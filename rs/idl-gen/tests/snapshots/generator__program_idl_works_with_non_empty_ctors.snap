@@ -25,7 +25,7 @@ service Test {
     }
     functions {
         /// Some description
-        DoThis(p1: u32, p2: String, p3: (Option<String>, u8), p4: TupleStruct, p5: GenericStruct<H256>, p6: GenericStruct<String>, p7: GenericConstStruct, p8: GenericConstStruct) -> String;
+        DoThis(p1: u32, p2: String, p3: (Option<String>, u8), p4: TupleStruct, p5: GenericStruct<H256>, p6: GenericStruct<String>, p7: GenericConstStructN8, p8: GenericConstStructN32) -> String;
         /// Some multiline description
         /// Second line
         /// Third line
@@ -45,7 +45,12 @@ service Test {
             p3: ManyVariants,
         }
         /// GenericConstStruct docs
-        struct GenericConstStruct {
+        struct GenericConstStructN32 {
+            /// GenericStruct field `field`
+            field: [u8; 32],
+        }
+        /// GenericConstStruct docs
+        struct GenericConstStructN8 {
             /// GenericStruct field `field`
             field: [u8; 8],
         }

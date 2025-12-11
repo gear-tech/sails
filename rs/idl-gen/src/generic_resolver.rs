@@ -5,11 +5,27 @@ pub(crate) fn resolve_generic_type_decl(
     type_decl: &TypeDecl,
     type_name: &str,
     type_params: &Vec<sails_idl_meta::TypeParameter>,
-) -> Result<TypeDecl> {
+) -> Result<(TypeDecl, Vec<String>)> {
+    let (generic_decl, suffixes) =
+        syn_resolver::try_resolve(type_name, type_decl).ok_or_else(|| {
+            Error::TypeIsUnsupported(format!(
+                "Generic type {type_name} not resolved from decl {type_decl}"
+            ))
+        })?;
+    let match_name = generic_decl.to_string();
     let candidates = build_generic_candidates(type_decl, type_params);
-    let syn_name = syn_resolver::try_resolve(type_name).map(|td| td.to_string());
-    let match_name = syn_name.unwrap_or_else(|| type_name.to_string());
 
+    println!(
+        "type_decl: {:?}, type_name: {}, match_name: {}, suffixes: {:?}, candidates: {:?}",
+        type_decl.to_string(),
+        type_name,
+        match_name,
+        &suffixes,
+        candidates
+            .iter()
+            .map(|td| td.to_string())
+            .collect::<Vec<_>>()
+    );
     candidates
         .into_iter()
         .find(|td| td.to_string() == match_name)
@@ -18,6 +34,7 @@ pub(crate) fn resolve_generic_type_decl(
                 "Generic type {type_name} not resolved from decl {type_decl}"
             ))
         })
+        .map(|td| (td, suffixes))
 }
 
 struct GenericCandidates<'a> {
@@ -139,33 +156,47 @@ mod syn_resolver {
         TypeSlice, TypeTuple,
     };
 
-    pub(super) fn try_resolve(type_name: &str) -> Option<TypeDecl> {
-        syn::parse_str::<Type>(type_name)
-            .map(|syn_type| finalize_syn(&syn_type))
-            .ok()
-            .flatten()
+    pub(super) fn try_resolve(
+        type_name: &str,
+        type_decl: &TypeDecl,
+    ) -> Option<(TypeDecl, Vec<String>)> {
+        let syn_type = syn::parse_str::<Type>(type_name).ok()?;
+        let mut suffixes = Vec::new();
+        syn_resolve(&syn_type, type_decl, &mut suffixes).map(|td| (td, suffixes))
     }
 
-    fn finalize_syn(t: &Type) -> Option<TypeDecl> {
+    fn syn_resolve(t: &Type, type_decl: &TypeDecl, suffixes: &mut Vec<String>) -> Option<TypeDecl> {
         use TypeDecl::*;
 
         match t {
             Type::Array(TypeArray { elem, len, .. }) => {
-                let len = len.to_token_stream().to_string().parse::<u32>().ok()?;
+                let len_str = len.to_token_stream().to_string();
+                let len = if let Ok(len) = len_str.parse::<u32>() {
+                    len
+                } else if let TypeDecl::Array { item: _, len } = type_decl {
+                    suffixes.push(format!("{len_str}{len}"));
+                    *len
+                } else {
+                    return None;
+                };
+                let item = syn_resolve(elem, type_decl, suffixes)?;
                 Some(Array {
-                    item: Box::new(finalize_syn(elem)?),
+                    item: Box::new(item),
                     len,
                 })
             }
             Type::Slice(TypeSlice { elem, .. }) => Some(Slice {
-                item: Box::new(finalize_syn(elem)?),
+                item: Box::new(syn_resolve(elem, type_decl, suffixes)?),
             }),
             Type::Tuple(TypeTuple { elems, .. }) => Some(Tuple {
-                types: elems.iter().filter_map(finalize_syn).collect(),
+                types: elems
+                    .iter()
+                    .filter_map(|t| syn_resolve(t, type_decl, suffixes))
+                    .collect(),
             }),
-            Type::Reference(TypeReference { elem, .. }) => finalize_syn(elem),
+            Type::Reference(TypeReference { elem, .. }) => syn_resolve(elem, type_decl, suffixes),
             // No paren types in the final output. Only single value tuples
-            Type::Paren(TypeParen { elem, .. }) => finalize_syn(elem),
+            Type::Paren(TypeParen { elem, .. }) => syn_resolve(elem, type_decl, suffixes),
             Type::Path(TypePath { path, .. }) => {
                 let last_segment = path.segments.last()?;
                 let name = last_segment.ident.to_string();
@@ -175,16 +206,19 @@ mod syn_resolver {
                         syn_args
                             .args
                             .iter()
-                            .filter_map(finalize_type_inner)
+                            .filter_map(|arg| match arg {
+                                GenericArgument::Type(t) => syn_resolve(t, type_decl, suffixes),
+                                _ => None,
+                            })
                             .collect()
                     } else {
                         vec![]
                     };
                 match name.as_str() {
                     "Vec" => {
-                        if let [_] = generics.as_slice() {
+                        if let [td] = generics.as_slice() {
                             Some(Slice {
-                                item: Box::new(Tuple { types: generics }),
+                                item: Box::new(td.clone()),
                             })
                         } else {
                             Some(Named { name, generics })
@@ -202,13 +236,6 @@ mod syn_resolver {
                     _ => Some(Named { name, generics }),
                 }
             }
-            _ => None,
-        }
-    }
-
-    fn finalize_type_inner(arg: &GenericArgument) -> Option<TypeDecl> {
-        match arg {
-            GenericArgument::Type(t) => finalize_syn(t),
             _ => None,
         }
     }
@@ -241,7 +268,6 @@ mod tests {
         let type_decl = resolver.get(id).unwrap();
 
         let candidates = build_generic_candidates(type_decl, &type_params);
-        println!("{candidates:?}");
 
         assert_eq!(2, candidates.len());
         assert!(candidates.contains(&Named {

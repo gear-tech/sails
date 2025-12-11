@@ -279,7 +279,7 @@ fn program_idl_works_with_empty_ctors() {
     assert!(program.ctors.is_empty());
     assert_eq!(generated_idl_program.services.len(), 1);
     assert_eq!(generated_idl_program.services[0].funcs.len(), 4);
-    assert_eq!(generated_idl_program.services[0].types.len(), 7);
+    assert_eq!(generated_idl_program.services[0].types.len(), 8);
 }
 
 #[test]
@@ -296,7 +296,7 @@ fn program_idl_works_with_non_empty_ctors() {
     assert_eq!(program.ctors.len(), 2);
     assert_eq!(generated_idl_program.services.len(), 1);
     assert_eq!(generated_idl_program.services[0].funcs.len(), 4);
-    assert_eq!(generated_idl_program.services[0].types.len(), 7);
+    assert_eq!(generated_idl_program.services[0].types.len(), 8);
 }
 
 #[test]
@@ -314,11 +314,11 @@ fn program_idl_works_with_multiple_services() {
     assert_eq!(generated_idl_program.services.len(), 2);
     assert_eq!(generated_idl_program.services[0].name, "Service");
     assert_eq!(generated_idl_program.services[0].funcs.len(), 4);
-    assert_eq!(generated_idl_program.services[0].types.len(), 7);
+    assert_eq!(generated_idl_program.services[0].types.len(), 8);
     // TODO: dedup services by id
     assert_eq!(generated_idl_program.services[1].name, "SomeService");
     assert_eq!(generated_idl_program.services[1].funcs.len(), 4);
-    assert_eq!(generated_idl_program.services[1].types.len(), 7);
+    assert_eq!(generated_idl_program.services[1].types.len(), 8);
 }
 
 #[test]
@@ -332,7 +332,7 @@ fn service_idl_works_with_basics() {
     assert!(generated_idl_program.program.is_none());
     assert_eq!(generated_idl_program.services.len(), 1);
     assert_eq!(generated_idl_program.services[0].funcs.len(), 4);
-    assert_eq!(generated_idl_program.services[0].types.len(), 7);
+    assert_eq!(generated_idl_program.services[0].types.len(), 8);
 }
 
 #[test]
@@ -358,5 +358,5 @@ fn service_idl_works_with_base_services() {
     assert_eq!(generated_idl_program.services[0].events.len(), 2);
 
     assert_eq!(generated_idl_program.services[1].funcs.len(), 4);
-    assert_eq!(generated_idl_program.services[1].types.len(), 7);
+    assert_eq!(generated_idl_program.services[1].types.len(), 8);
 }

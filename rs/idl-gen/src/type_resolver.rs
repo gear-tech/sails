@@ -1,8 +1,8 @@
 use super::*;
 use convert_case::{Case, Casing};
 use scale_info::{
-    Field, Path, PortableRegistry, StaticTypeInfo, Type, TypeDef, TypeDefComposite,
-    TypeDefPrimitive, TypeDefVariant, form::PortableForm,
+    Field, PortableRegistry, StaticTypeInfo, Type, TypeDef, TypeDefComposite, TypeDefPrimitive,
+    TypeDefVariant, form::PortableForm,
 };
 use std::collections::{BTreeMap, HashMap, HashSet};
 
@@ -16,12 +16,36 @@ pub struct TypeResolver<'a> {
 #[derive(Debug, Clone)]
 pub struct UserDefinedEntry {
     pub meta_type: sails_idl_meta::Type,
-    pub path: Path<PortableForm>,
+    pub ty: Type<PortableForm>,
 }
 
 impl UserDefinedEntry {
-    fn is_type(&self, type_info: &Type<PortableForm>) -> bool {
-        self.path == type_info.path
+    fn is_path_equals(&self, type_info: &Type<PortableForm>) -> bool {
+        self.ty.path == type_info.path
+    }
+
+    fn is_fields_equal(&self, type_info: &Type<PortableForm>) -> bool {
+        let fs1 = Self::fields(&self.ty);
+        let fs2 = Self::fields(type_info);
+        fs1 == fs2
+    }
+
+    fn fields(type_info: &Type<PortableForm>) -> Vec<u32> {
+        match &type_info.type_def {
+            TypeDef::Composite(type_def_composite) => type_def_composite
+                .fields
+                .iter()
+                .map(|f| f.ty.id)
+                .collect::<Vec<_>>(),
+            TypeDef::Variant(type_def_variant) => {
+                let mut fields = Vec::new();
+                type_def_variant.variants.iter().for_each(|v| {
+                    fields.extend(v.fields.iter().map(|f| f.ty.id));
+                });
+                fields
+            }
+            _ => unreachable!(),
+        }
     }
 }
 
@@ -137,7 +161,7 @@ impl<'a> TypeResolver<'a> {
     }
 
     fn register_user_defined(&mut self, ty: &Type<PortableForm>) -> Result<String> {
-        let name = match self.unique_type_name(ty) {
+        let mut name = match self.unique_type_name(ty) {
             Ok(name) => name,
             Err(exist) => return Ok(exist),
         };
@@ -149,7 +173,7 @@ impl<'a> TypeResolver<'a> {
                 let fields = type_def_composite
                     .fields
                     .iter()
-                    .map(|f| self.resolve_field(f, &type_params))
+                    .map(|f| self.resolve_field(f, &type_params, &mut name))
                     .collect::<Result<Vec<_>>>()?;
                 sails_idl_meta::TypeDef::Struct(StructDef { fields })
             }
@@ -161,7 +185,7 @@ impl<'a> TypeResolver<'a> {
                         let fields = v
                             .fields
                             .iter()
-                            .map(|f| self.resolve_field(f, &type_params))
+                            .map(|f| self.resolve_field(f, &type_params, &mut name))
                             .collect::<Result<Vec<_>>>()?;
                         Ok(EnumVariant {
                             name: v.name.to_string(),
@@ -176,6 +200,10 @@ impl<'a> TypeResolver<'a> {
             _ => unreachable!(),
         };
 
+        if self.user_defined.contains_key(&name) {
+            return Ok(name);
+        }
+
         let meta_type = sails_idl_meta::Type {
             name: name.clone(),
             type_params,
@@ -183,9 +211,13 @@ impl<'a> TypeResolver<'a> {
             docs: ty.docs.iter().map(|d| d.to_string()).collect(),
             annotations: vec![], //("rust_type".to_string(), Some(ty.path.to_string()))
         };
-        let path = ty.path.clone();
-        self.user_defined
-            .insert(name.clone(), UserDefinedEntry { meta_type, path });
+        self.user_defined.insert(
+            name.clone(),
+            UserDefinedEntry {
+                meta_type,
+                ty: ty.clone(),
+            },
+        );
         Ok(name)
     }
 
@@ -209,11 +241,13 @@ impl<'a> TypeResolver<'a> {
     fn unique_type_name(&self, ty: &Type<PortableForm>) -> Result<String, String> {
         for name in possible_names_by_path(ty) {
             if let Some(exists) = self.user_defined.get(&name) {
-                if exists.is_type(ty) {
-                    // type already registered
+                if !exists.is_path_equals(ty) {
+                    continue;
+                } else if exists.is_fields_equal(ty) {
+                    // type with exact fields already registered
                     return Err(name);
                 } else {
-                    continue;
+                    return Ok(name);
                 }
             }
             return Ok(name);
@@ -244,13 +278,21 @@ impl<'a> TypeResolver<'a> {
         &mut self,
         field: &Field<PortableForm>,
         type_params: &Vec<sails_idl_meta::TypeParameter>,
+        name: &mut String,
     ) -> Result<StructField> {
         let resolved = self.resolve_by_id(field.ty.id)?;
         let type_decl = if let Some(type_name) = field.type_name.as_ref()
             && &resolved.to_string() != type_name
-            && !type_params.is_empty()
         {
-            crate::generic_resolver::resolve_generic_type_decl(&resolved, type_name, type_params)?
+            let (td, suffixes) = crate::generic_resolver::resolve_generic_type_decl(
+                &resolved,
+                type_name,
+                type_params,
+            )?;
+            for suffix in suffixes {
+                name.push_str(suffix.as_str());
+            }
+            td
         } else {
             resolved
         };
@@ -765,5 +807,39 @@ mod tests {
 
         let t2_name = resolver.get(t2_id).unwrap().to_string();
         assert_eq!(t2_name, "Mod2T2");
+    }
+
+    #[test]
+    fn generic_const_struct_type_name_resolution_works() {
+        let mut registry = Registry::new();
+        let n8_id = registry
+            .register_type(&MetaType::new::<GenericConstStruct<8, 12, u8>>())
+            .id;
+        let n8_id_2 = registry
+            .register_type(&MetaType::new::<GenericConstStruct<8, 8, u8>>())
+            .id;
+        let n32_id = registry
+            .register_type(&MetaType::new::<GenericConstStruct<32, 8, u8>>())
+            .id;
+        let n256_id = registry
+            .register_type(&MetaType::new::<GenericConstStruct<256, 832, u8>>())
+            .id;
+        let n32u256_id = registry
+            .register_type(&MetaType::new::<GenericConstStruct<32, 8, gprimitives::U256>>())
+            .id;
+        let portable_registry = PortableRegistry::from(registry);
+        let resolver = TypeResolver::from_registry(&portable_registry);
+
+        let n8_name = resolver.get(n8_id).unwrap().to_string();
+        let n8_name_2 = resolver.get(n8_id_2).unwrap().to_string();
+        let n32_name = resolver.get(n32_id).unwrap().to_string();
+        let n256_name = resolver.get(n256_id).unwrap().to_string();
+        let n32u256_name = resolver.get(n32u256_id).unwrap().to_string();
+
+        assert_eq!(n8_name, "GenericConstStructN8M12<u8>");
+        assert_eq!(n8_name_2, "GenericConstStructN8M8<u8>");
+        assert_eq!(n32_name, "GenericConstStructN32M8<u8>");
+        assert_eq!(n256_name, "GenericConstStructN256M832<u8>");
+        assert_eq!(n32u256_name, "GenericConstStructN32M8<U256>");
     }
 }
