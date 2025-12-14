@@ -4,7 +4,7 @@ use scale_info::{
     Field, PortableRegistry, StaticTypeInfo, Type, TypeDef, TypeDefComposite, TypeDefPrimitive,
     TypeDefVariant, form::PortableForm,
 };
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
 #[derive(Debug, Clone)]
 pub struct TypeResolver<'a> {
@@ -167,13 +167,14 @@ impl<'a> TypeResolver<'a> {
         };
 
         let type_params = self.resolve_type_params(ty)?;
+        let mut suffixes = BTreeSet::new();
 
         let def = match &ty.type_def {
             TypeDef::Composite(type_def_composite) => {
                 let fields = type_def_composite
                     .fields
                     .iter()
-                    .map(|f| self.resolve_field(f, &type_params, &mut name))
+                    .map(|f| self.resolve_field(f, &type_params, &mut suffixes))
                     .collect::<Result<Vec<_>>>()?;
                 sails_idl_meta::TypeDef::Struct(StructDef { fields })
             }
@@ -185,7 +186,7 @@ impl<'a> TypeResolver<'a> {
                         let fields = v
                             .fields
                             .iter()
-                            .map(|f| self.resolve_field(f, &type_params, &mut name))
+                            .map(|f| self.resolve_field(f, &type_params, &mut suffixes))
                             .collect::<Result<Vec<_>>>()?;
                         Ok(EnumVariant {
                             name: v.name.to_string(),
@@ -199,6 +200,10 @@ impl<'a> TypeResolver<'a> {
             }
             _ => unreachable!(),
         };
+
+        for suffix in suffixes {
+            name.push_str(suffix.as_str());
+        }
 
         if self.user_defined.contains_key(&name) {
             return Ok(name);
@@ -277,21 +282,19 @@ impl<'a> TypeResolver<'a> {
     fn resolve_field(
         &mut self,
         field: &Field<PortableForm>,
-        type_params: &Vec<sails_idl_meta::TypeParameter>,
-        name: &mut String,
+        type_params: &[sails_idl_meta::TypeParameter],
+        suffixes: &mut BTreeSet<String>,
     ) -> Result<StructField> {
         let resolved = self.resolve_by_id(field.ty.id)?;
         let type_decl = if let Some(type_name) = field.type_name.as_ref()
             && &resolved.to_string() != type_name
         {
-            let (td, suffixes) = crate::generic_resolver::resolve_generic_type_decl(
+            let (td, suf) = crate::generic_resolver::resolve_generic_type_decl(
                 &resolved,
                 type_name,
                 type_params,
             )?;
-            for suffix in suffixes {
-                name.push_str(suffix.as_str());
-            }
+            suffixes.extend(suf);
             td
         } else {
             resolved
@@ -424,9 +427,9 @@ mod tests {
 
     #[allow(dead_code)]
     #[derive(TypeInfo)]
-    struct GenericConstStruct<const N: usize, const M: usize, T> {
+    struct GenericConstStruct<const N: usize, const O: usize, T> {
         field: [T; N],
-        field2: [T; M],
+        field2: Option<[T; O]>,
     }
 
     #[allow(dead_code)]
@@ -836,10 +839,10 @@ mod tests {
         let n256_name = resolver.get(n256_id).unwrap().to_string();
         let n32u256_name = resolver.get(n32u256_id).unwrap().to_string();
 
-        assert_eq!(n8_name, "GenericConstStructN8M12<u8>");
-        assert_eq!(n8_name_2, "GenericConstStructN8M8<u8>");
-        assert_eq!(n32_name, "GenericConstStructN32M8<u8>");
-        assert_eq!(n256_name, "GenericConstStructN256M832<u8>");
-        assert_eq!(n32u256_name, "GenericConstStructN32M8<U256>");
+        assert_eq!(n8_name, "GenericConstStructN8O12<u8>");
+        assert_eq!(n8_name_2, "GenericConstStructN8O8<u8>");
+        assert_eq!(n32_name, "GenericConstStructN32O8<u8>");
+        assert_eq!(n256_name, "GenericConstStructN256O832<u8>");
+        assert_eq!(n32u256_name, "GenericConstStructN32O8<U256>");
     }
 }
