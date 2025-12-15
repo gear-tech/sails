@@ -26,7 +26,7 @@ service Svc2 {
     }
 }
 
-program ProgramToDo {
+program MyProgram {
     constructors {
         Create();
     }

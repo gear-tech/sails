@@ -9,7 +9,7 @@ service Proxy {
     }
 }
 
-program ProgramToDo {
+program RedirectProxyClient {
     constructors {
         /// Proxy Program's constructor
         New(target: ActorId);

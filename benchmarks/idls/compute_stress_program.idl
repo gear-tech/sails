@@ -5,15 +5,15 @@ program ComputeStress {
     services {
         ComputeStress,
     }
-    types {
-        struct ComputeStressResult {
-            res: u32,
-        }
-    }
 }
 
 service ComputeStress {
     functions {
         ComputeStress(n: u32) -> ComputeStressResult;
+    }
+    types {
+        struct ComputeStressResult {
+            res: u32,
+        }
     }
 }

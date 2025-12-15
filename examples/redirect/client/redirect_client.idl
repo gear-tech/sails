@@ -11,7 +11,7 @@ service Redirect {
     }
 }
 
-program ProgramToDo {
+program RedirectClient {
     constructors {
         New();
     }

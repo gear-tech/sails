@@ -18,9 +18,9 @@
 //! ```
 
 use crate::clients::{
-    alloc_stress_client::{AllocStressProgram, AllocStressProgramCtors, alloc_stress::*},
-    compute_stress_client::{ComputeStressProgram, ComputeStressProgramCtors, compute_stress::*},
-    counter_bench_client::{CounterBenchProgram, CounterBenchProgramCtors, counter_bench::*},
+    alloc_stress_client::{AllocStress as _, AllocStressCtors, alloc_stress::*},
+    compute_stress_client::{ComputeStress as _, ComputeStressCtors, compute_stress::*},
+    counter_bench_client::{CounterBench as _, CounterBenchCtors, counter_bench::*},
 };
 use gtest::{System, constants::DEFAULT_USER_ALICE};
 use itertools::{Either, Itertools};
@@ -57,10 +57,7 @@ async fn alloc_stress_bench() {
 async fn compute_stress_bench() {
     let wasm_path = "../target/wasm32-gear/release/compute_stress.opt.wasm";
     let env = create_env();
-    let program = deploy_for_bench(&env, wasm_path, |d| {
-        ComputeStressProgramCtors::new_for_bench(d)
-    })
-    .await;
+    let program = deploy_for_bench(&env, wasm_path, |d| ComputeStressCtors::new_for_bench(d)).await;
     let mut service = program.compute_stress();
 
     let input_value = 30;
@@ -91,10 +88,7 @@ async fn compute_stress_bench() {
 async fn counter_bench() {
     let wasm_path = "../target/wasm32-gear/release/counter_bench.opt.wasm";
     let env = create_env();
-    let program = deploy_for_bench(&env, wasm_path, |d| {
-        CounterBenchProgramCtors::new_for_bench(d)
-    })
-    .await;
+    let program = deploy_for_bench(&env, wasm_path, |d| CounterBenchCtors::new_for_bench(d)).await;
     let mut service = program.counter_bench();
 
     let mut expected_value = 0;
@@ -270,10 +264,7 @@ async fn alloc_stress_test(n: u32) -> (usize, u64) {
     // Path taken from the .binpath file
     let wasm_path = "../target/wasm32-gear/release/alloc_stress.opt.wasm";
     let env = create_env();
-    let program = deploy_for_bench(&env, wasm_path, |d| {
-        AllocStressProgramCtors::new_for_bench(d)
-    })
-    .await;
+    let program = deploy_for_bench(&env, wasm_path, |d| AllocStressCtors::new_for_bench(d)).await;
 
     let mut service = program.alloc_stress();
     let message_id = service.alloc_stress(n).send_one_way().unwrap();

@@ -142,7 +142,7 @@ service Chaos {
     }
 }
 
-program ProgramToDo {
+program DemoClient {
     constructors {
         /// Program constructor (called once at the very beginning of the program lifetime)
         Default();

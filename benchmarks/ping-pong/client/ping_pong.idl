@@ -15,7 +15,7 @@ service PingPongService {
     }
 }
 
-program ProgramToDo {
+program PingPong {
     constructors {
         NewForBench();
     }

@@ -49,7 +49,7 @@ service RmrkCatalog {
     }
 }
 
-program ProgramToDo {
+program RmrkCatalog {
     constructors {
         New();
     }
