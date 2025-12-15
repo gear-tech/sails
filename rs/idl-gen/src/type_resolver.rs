@@ -528,7 +528,6 @@ mod tests {
         let portable_registry = PortableRegistry::from(registry);
 
         let resolver = TypeResolver::from_registry(&portable_registry);
-        println!("{resolver:#?}");
 
         let h256_decl = resolver.get(h256_id).unwrap();
         assert_eq!(*h256_decl, TypeDecl::Primitive(PrimitiveType::H256));
@@ -555,7 +554,6 @@ mod tests {
             .id;
         let portable_registry = PortableRegistry::from(registry);
         let resolver = TypeResolver::from_registry(&portable_registry);
-        println!("{resolver:#?}");
 
         let u32_struct = resolver.get(u32_struct_id).unwrap();
         assert_eq!(u32_struct.to_string(), "GenericStruct<u32>");
@@ -575,7 +573,6 @@ mod tests {
             .id;
         let portable_registry = PortableRegistry::from(registry);
         let resolver = TypeResolver::from_registry(&portable_registry);
-        println!("{resolver:#?}");
 
         let u32_string_enum = resolver.get(u32_string_enum_id).unwrap();
         assert_eq!(u32_string_enum.to_string(), "GenericEnum<u32, String>");
@@ -648,7 +645,6 @@ mod tests {
             .id;
         let portable_registry = PortableRegistry::from(registry);
         let resolver = TypeResolver::from_registry(&portable_registry);
-        println!("{resolver:#?}");
 
         let u32_option = resolver.get(u32_option_id).unwrap();
         assert_eq!(u32_option.to_string(), "Option<u32>");
@@ -683,7 +679,6 @@ mod tests {
             .id;
         let portable_registry = PortableRegistry::from(registry);
         let resolver = TypeResolver::from_registry(&portable_registry);
-        println!("{resolver:#?}");
 
         let btree_map = resolver.get(btree_map_id).unwrap();
         assert_eq!(btree_map.to_string(), "[(u32, String)]");
@@ -703,7 +698,6 @@ mod tests {
             .id;
         let portable_registry = PortableRegistry::from(registry);
         let resolver = TypeResolver::from_registry(&portable_registry);
-        // println!("{:#?}", resolver);
 
         let ty = resolver.get(id).unwrap();
         assert_eq!(ty.to_string(), "ManyVariants");

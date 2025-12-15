@@ -88,7 +88,7 @@ service Service {
     }
 }
 
-program ProgramToDo {
+program TestProgramWithEmptyCtorsMeta {
     services {
         Service,
     }

@@ -16,15 +16,21 @@ pub mod program {
     use super::*;
     use sails_idl_meta::ProgramMeta;
 
-    pub fn generate_idl<P: ProgramMeta>(mut idl_writer: impl Write) -> Result<()> {
-        let doc = build_program_ast::<P>(Some("ProgramToDo".to_string()))?;
+    pub fn generate_idl<P: ProgramMeta>(
+        program_name: Option<&str>,
+        mut idl_writer: impl Write,
+    ) -> Result<()> {
+        let doc = build_program_ast::<P>(program_name)?;
         doc.write_into(&mut idl_writer)?;
         Ok(())
     }
 
-    pub fn generate_idl_to_file<P: ProgramMeta>(path: impl AsRef<Path>) -> Result<()> {
+    pub fn generate_idl_to_file<P: ProgramMeta>(
+        program_name: Option<&str>,
+        path: impl AsRef<Path>,
+    ) -> Result<()> {
         let mut idl_new_content = Vec::new();
-        generate_idl::<P>(&mut idl_new_content)?;
+        generate_idl::<P>(program_name, &mut idl_new_content)?;
         if let Ok(idl_old_content) = fs::read(&path)
             && idl_new_content == idl_old_content
         {
@@ -41,15 +47,24 @@ pub mod service {
     use super::*;
     use sails_idl_meta::{AnyServiceMeta, ServiceMeta};
 
-    pub fn generate_idl<S: ServiceMeta>(mut idl_writer: impl Write) -> Result<()> {
-        let doc = build_service_ast("ServiceToDo", AnyServiceMeta::new::<S>())?;
+    pub fn generate_idl<S: ServiceMeta>(
+        service_name: &str,
+        mut idl_writer: impl Write,
+    ) -> Result<()> {
+        let doc = build_service_ast(service_name, AnyServiceMeta::new::<S>())?;
         doc.write_into(&mut idl_writer)?;
         Ok(())
     }
 
     pub fn generate_idl_to_file<S: ServiceMeta>(path: impl AsRef<Path>) -> Result<()> {
+        let service_name = path
+            .as_ref()
+            .file_name()
+            .map(|f| f.to_string_lossy().to_string())
+            .unwrap_or_else(|| "Service".to_string());
+
         let mut idl_new_content = Vec::new();
-        generate_idl::<S>(&mut idl_new_content)?;
+        generate_idl::<S>(service_name.as_str(), &mut idl_new_content)?;
         if let Ok(idl_old_content) = fs::read(&path)
             && idl_new_content == idl_old_content
         {
@@ -59,36 +74,28 @@ pub mod service {
     }
 }
 
-fn build_program_ast<P: ProgramMeta>(program_name: Option<String>) -> Result<IdlDoc> {
+fn build_program_ast<P: ProgramMeta>(program_name: Option<&str>) -> Result<IdlDoc> {
     let mut services = Vec::new();
     for (name, meta) in P::services() {
         services.extend(builder::ServiceBuilder::new(name, &meta).build()?);
     }
     let program = if let Some(name) = program_name {
-        Some(builder::ProgramBuilder::new::<P>().build(name)?)
+        Some(builder::ProgramBuilder::new::<P>().build(name.to_string())?)
     } else {
         None
     };
     let doc = IdlDoc {
-        globals: vec![
-            ("sails".to_string(), Some(SAILS_VERSION.to_string())),
-            // ("author".to_string(), Some(gen_meta_info.author)),
-            // ("version".to_string(), Some(gen_meta_info.version.format())),
-        ],
+        globals: vec![("sails".to_string(), Some(SAILS_VERSION.to_string()))],
         program,
         services,
     };
     Ok(doc)
 }
 
-fn build_service_ast(name: &'static str, meta: AnyServiceMeta) -> Result<IdlDoc> {
-    let services = builder::ServiceBuilder::new(name, &meta).build()?;
+fn build_service_ast(service_name: &str, meta: AnyServiceMeta) -> Result<IdlDoc> {
+    let services = builder::ServiceBuilder::new(service_name, &meta).build()?;
     let doc = IdlDoc {
-        globals: vec![
-            ("sails".to_string(), Some(SAILS_VERSION.to_string())),
-            // ("author".to_string(), Some(gen_meta_info.author)),
-            // ("version".to_string(), Some(gen_meta_info.version.format())),
-        ],
+        globals: vec![("sails".to_string(), Some(SAILS_VERSION.to_string()))],
         program: None,
         services,
     };

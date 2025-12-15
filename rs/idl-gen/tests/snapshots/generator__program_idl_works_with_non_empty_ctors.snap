@@ -88,7 +88,7 @@ service Test {
     }
 }
 
-program ProgramToDo {
+program TestProgramWithNonEmptyCtorsMeta {
     constructors {
         /// This is New constructor
         New();

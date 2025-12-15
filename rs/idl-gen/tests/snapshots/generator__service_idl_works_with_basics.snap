@@ -4,7 +4,7 @@ expression: generated_idl
 ---
 !@sails: 0.9.2
 
-service ServiceToDo {
+service TestServiceMeta {
     events {
         /// `This` Done
         ThisDone (

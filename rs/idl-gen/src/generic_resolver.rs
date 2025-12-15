@@ -12,13 +12,6 @@ pub(crate) fn resolve_generic_type_decl(
                 "Generic type {type_name} not resolved from decl {type_decl}"
             ))
         })?;
-    println!(
-        "type_decl: {:?}, type_name: {}, generic_decl: {}, suffixes: {:?}",
-        type_decl.to_string(),
-        type_name,
-        generic_decl,
-        &suffixes,
-    );
 
     Ok((generic_decl, suffixes))
 }
@@ -49,13 +42,6 @@ mod syn_resolver {
     ) -> Option<TypeDecl> {
         use TypeDecl::*;
 
-        // println!(
-        //     "syn_resolve_matched ty: {}, type_decl: {}, type_params: {:?}",
-        //     ty.to_token_stream().to_string(),
-        //     td,
-        //     type_params
-        // );
-
         match (ty, td) {
             (
                 Type::Array(TypeArray {
@@ -65,10 +51,16 @@ mod syn_resolver {
                 }),
                 Array { item, len },
             ) => {
-                let len_str = len_expr.to_token_stream().to_string();
-                let len = if let Ok(len) = len_str.parse::<u32>() {
+                // const generic arguments support limited to Array type
+                let len = if let syn::Expr::Lit(syn::ExprLit {
+                    lit: syn::Lit::Int(lit_int),
+                    ..
+                }) = len_expr
+                    && let Ok(len) = lit_int.base10_parse::<u32>()
+                {
                     len
                 } else {
+                    let len_str = len_expr.to_token_stream().to_string();
                     suffixes.insert(format!("{len_str}{len}"));
                     *len
                 };
@@ -101,86 +93,81 @@ mod syn_resolver {
             (Type::Paren(TypeParen { elem, .. }), _) => {
                 syn_resolve(elem, td, type_params, suffixes)
             }
-            (Type::Path(TypePath { path, .. }), Primitive(_)) => {
-                if let Some(td) = generic_param(type_params, path) {
-                    return Some(td);
+            (Type::Path(TypePath { path, .. }), type_decl) => {
+                if let Some(generic) = generic_param(type_params, path) {
+                    return Some(generic);
                 }
 
-                Some(td.clone())
-            }
-            (Type::Path(TypePath { path, .. }), Slice { item }) => {
-                if let Some(td) = generic_param(type_params, path) {
-                    return Some(td);
-                }
-
-                let last_segment = path.segments.last()?;
-                let ty_name = last_segment.ident.to_string();
-                let mut ty_generics: Vec<&Type> = Vec::new();
-                if let PathArguments::AngleBracketed(syn_args) = &last_segment.arguments {
-                    for arg in &syn_args.args {
-                        match arg {
-                            GenericArgument::Type(t) => ty_generics.push(t),
-                            GenericArgument::Const(c) => {
-                                println!("Const = {}", c.to_token_stream())
+                match type_decl {
+                    Slice { item } => {
+                        let last_segment = path.segments.last()?;
+                        let ty_name = last_segment.ident.to_string();
+                        let mut ty_generics: Vec<&Type> = Vec::new();
+                        if let PathArguments::AngleBracketed(syn_args) = &last_segment.arguments {
+                            for arg in &syn_args.args {
+                                if let GenericArgument::Type(t) = arg {
+                                    ty_generics.push(t)
+                                }
                             }
-                            _ => {}
                         }
+                        if ty_name == "Vec"
+                            && let [elem] = ty_generics.as_slice()
+                        {
+                            let item = syn_resolve(elem, item, type_params, suffixes)?;
+                            return Some(Slice {
+                                item: Box::new(item),
+                            });
+                        }
+                        if ty_name == "BTreeMap"
+                            && let Tuple { types } = item.as_ref()
+                            && let [key, value] = types.as_slice()
+                            && let [ty_key, ty_value] = ty_generics.as_slice()
+                        {
+                            let key = syn_resolve(ty_key, key, type_params, suffixes)?;
+                            let value = syn_resolve(ty_value, value, type_params, suffixes)?;
+                            return Some(Slice {
+                                item: Box::new(Tuple {
+                                    types: vec![key, value],
+                                }),
+                            });
+                        }
+
+                        None
                     }
-                }
-                if ty_name == "Vec"
-                    && let [elem] = ty_generics.as_slice()
-                {
-                    let item = syn_resolve(elem, item, type_params, suffixes)?;
-                    return Some(Slice {
-                        item: Box::new(item),
-                    });
-                }
-                if ty_name == "BTreeMap"
-                    && let Tuple { types } = item.as_ref()
-                    && let [key, value] = types.as_slice()
-                    && let [ty_key, ty_value] = ty_generics.as_slice()
-                {
-                    let key = syn_resolve(ty_key, key, type_params, suffixes)?;
-                    let value = syn_resolve(ty_value, value, type_params, suffixes)?;
-                    return Some(Slice {
-                        item: Box::new(Tuple {
-                            types: vec![key, value],
-                        }),
-                    });
-                }
-
-                None
-            }
-            (Type::Path(TypePath { path, .. }), Named { name, generics }) => {
-                if let Some(td) = generic_param(type_params, path) {
-                    return Some(td);
-                }
-
-                let last_segment = path.segments.last()?;
-                // let ty_name = last_segment.ident.to_string();
-                let mut ty_generics: Vec<&Type> = Vec::new();
-                if let PathArguments::AngleBracketed(syn_args) = &last_segment.arguments {
-                    for arg in &syn_args.args {
-                        match arg {
-                            GenericArgument::Type(t) => ty_generics.push(t),
-                            GenericArgument::Const(c) => {
-                                println!("Const = {}", c.to_token_stream())
+                    Array { item: _, len: _ } => None,
+                    Tuple { types: _ } => None,
+                    Named { name, generics } => {
+                        let last_segment = path.segments.last()?;
+                        // let ty_name = last_segment.ident.to_string();
+                        // TODO: const generic arguments are still ignored.
+                        // We never add anything to the `suffixes` set when we see `GenericArgument::Const`,
+                        // which means `TypeResolver::register_user_defined` (see rs/idl-gen/src/type_resolver.rs:163-207)
+                        // cannot differentiate two instantiations of the same type that only differ by const parameters
+                        // unless those consts appear inside an array length.
+                        // For types such as `struct Tag<const N: usize>;` or wrappers that only forward the const generic to another const generic,
+                        // every instantiation (`Tag<1>`, `Tag<2>`, …) collapses to the same IDL name,
+                        // so the second definition silently reuses the metadata of the first and the registry becomes inconsistent.
+                        let mut ty_generics: Vec<&Type> = Vec::new();
+                        if let PathArguments::AngleBracketed(syn_args) = &last_segment.arguments {
+                            for arg in &syn_args.args {
+                                if let GenericArgument::Type(t) = arg {
+                                    ty_generics.push(t)
+                                }
                             }
-                            _ => {}
                         }
+                        let generics: Option<Vec<TypeDecl>> = ty_generics
+                            .iter()
+                            .zip(generics)
+                            .map(|(ty, td)| syn_resolve(ty, td, type_params, suffixes))
+                            .collect();
+                        Some(Named {
+                            name: name.clone(),
+                            generics: generics?,
+                        })
                     }
+                    Primitive(_) => Some(type_decl.clone()),
                 }
-                let generics: Option<Vec<TypeDecl>> = ty_generics
-                    .iter()
-                    .zip(generics)
-                    .map(|(ty, td)| syn_resolve(ty, td, type_params, suffixes))
-                    .collect();
-                Some(Named {
-                    name: name.clone(),
-                    generics: generics?,
-                })
             }
-            (Type::Path(TypePath { path, .. }), _) => generic_param(type_params, path),
             _ => None,
         }
     }

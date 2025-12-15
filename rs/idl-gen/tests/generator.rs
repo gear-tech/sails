@@ -268,7 +268,11 @@ impl ProgramMeta for TestProgramWithMultipleServicesMeta {
 #[test]
 fn program_idl_works_with_empty_ctors() {
     let mut idl = Vec::new();
-    program::generate_idl::<TestProgramWithEmptyCtorsMeta>(&mut idl).unwrap();
+    program::generate_idl::<TestProgramWithEmptyCtorsMeta>(
+        Some("TestProgramWithEmptyCtorsMeta"),
+        &mut idl,
+    )
+    .unwrap();
     let generated_idl = String::from_utf8(idl).unwrap();
 
     insta::assert_snapshot!(generated_idl);
@@ -285,7 +289,11 @@ fn program_idl_works_with_empty_ctors() {
 #[test]
 fn program_idl_works_with_non_empty_ctors() {
     let mut idl = Vec::new();
-    program::generate_idl::<TestProgramWithNonEmptyCtorsMeta>(&mut idl).unwrap();
+    program::generate_idl::<TestProgramWithNonEmptyCtorsMeta>(
+        Some("TestProgramWithNonEmptyCtorsMeta"),
+        &mut idl,
+    )
+    .unwrap();
     let generated_idl = String::from_utf8(idl).unwrap();
 
     insta::assert_snapshot!(generated_idl);
@@ -302,7 +310,11 @@ fn program_idl_works_with_non_empty_ctors() {
 #[test]
 fn program_idl_works_with_multiple_services() {
     let mut idl = Vec::new();
-    program::generate_idl::<TestProgramWithMultipleServicesMeta>(&mut idl).unwrap();
+    program::generate_idl::<TestProgramWithMultipleServicesMeta>(
+        Some("TestProgramWithMultipleServicesMeta"),
+        &mut idl,
+    )
+    .unwrap();
     let generated_idl = String::from_utf8(idl).unwrap();
 
     insta::assert_snapshot!(generated_idl);
@@ -324,7 +336,7 @@ fn program_idl_works_with_multiple_services() {
 #[test]
 fn service_idl_works_with_basics() {
     let mut idl = Vec::new();
-    service::generate_idl::<TestServiceMeta>(&mut idl).unwrap();
+    service::generate_idl::<TestServiceMeta>("TestServiceMeta", &mut idl).unwrap();
     let generated_idl = String::from_utf8(idl).unwrap();
     insta::assert_snapshot!(generated_idl);
 
@@ -345,7 +357,7 @@ fn service_idl_works_with_base_services() {
             EventsMeta,
             ServiceMeta<BaseCommandsMeta, BaseQueriesMeta, BaseEventsMeta>,
         >,
-    >(&mut idl)
+    >("ServiceMetaWithBase", &mut idl)
     .unwrap();
     let generated_idl = String::from_utf8(idl).unwrap();
     insta::assert_snapshot!(generated_idl);

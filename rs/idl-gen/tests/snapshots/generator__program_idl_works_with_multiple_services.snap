@@ -172,7 +172,7 @@ service SomeService {
     }
 }
 
-program ProgramToDo {
+program TestProgramWithMultipleServicesMeta {
     services {
         Service,
         SomeService,
