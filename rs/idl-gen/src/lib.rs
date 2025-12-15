@@ -56,15 +56,12 @@ pub mod service {
         Ok(())
     }
 
-    pub fn generate_idl_to_file<S: ServiceMeta>(path: impl AsRef<Path>) -> Result<()> {
-        let service_name = path
-            .as_ref()
-            .file_name()
-            .map(|f| f.to_string_lossy().to_string())
-            .unwrap_or_else(|| "Service".to_string());
-
+    pub fn generate_idl_to_file<S: ServiceMeta>(
+        service_name: &str,
+        path: impl AsRef<Path>,
+    ) -> Result<()> {
         let mut idl_new_content = Vec::new();
-        generate_idl::<S>(service_name.as_str(), &mut idl_new_content)?;
+        generate_idl::<S>(service_name, &mut idl_new_content)?;
         if let Ok(idl_old_content) = fs::read(&path)
             && idl_new_content == idl_old_content
         {
