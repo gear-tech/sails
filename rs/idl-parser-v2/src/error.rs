@@ -4,19 +4,11 @@ use thiserror::Error;
 pub type Result<T, E = Error> = core::result::Result<T, E>;
 
 #[derive(Debug, Error, PartialEq)]
-pub enum RuleError {
-    #[error("Expected {0}")]
-    Expected(String),
-    #[error("Unexpected {0}")]
-    Unexpected(String),
-}
-
-#[derive(Debug, Error, PartialEq)]
 pub enum Error {
     #[error("{0:?}")]
     Pest(PestErrorFormatter),
     #[error("Rule error: {0}")]
-    Rule(#[from] RuleError),
+    Rule(String),
     #[error("Validation error: {0}")]
     Validation(String),
     #[error("Parse error: {0}")]

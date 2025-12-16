@@ -21,7 +21,7 @@ mod post_process;
 pub mod visitor;
 
 // Sails IDL v2 — parser using `pest-rs`
-use crate::error::{Error, Result, RuleError};
+use crate::error::{Error, Result};
 use core::str::FromStr;
 use pest::Parser;
 use pest::iterators::{Pair, Pairs};
@@ -39,7 +39,7 @@ pub fn parse_idl(src: &str) -> Result<IdlDoc> {
     let mut doc = build_idl(
         pairs
             .next()
-            .ok_or(Error::Rule(RuleError::Expected("expected Top".to_string())))?,
+            .ok_or(Error::Rule("expected Top".to_string()))?,
     )?;
 
     post_process::validate_and_post_process(&mut doc)?;
@@ -78,9 +78,7 @@ fn parse_ident(p: Pair<Rule>) -> Result<String> {
     if p.as_rule() == Rule::Ident {
         return Ok(p.as_str().to_string());
     }
-    Err(Error::Rule(RuleError::Expected(
-        "expected Ident".to_string(),
-    )))
+    Err(Error::Rule("expected Ident".to_string()))
 }
 
 fn parse_annotation(p: Pair<Rule>) -> Result<Annotation> {
@@ -93,18 +91,18 @@ fn parse_annotation(p: Pair<Rule>) -> Result<Annotation> {
             _ => {}
         }
     }
-    let key = key.ok_or(Error::Rule(RuleError::Expected(
-        "expected Ident".to_string(),
-    )))?;
+    let key = key.ok_or(Error::Rule("expected Ident".to_string()))?;
     Ok((key, val))
 }
 
 fn parse_type_decl(p: Pair<Rule>) -> Result<TypeDecl> {
     Ok(match p.as_rule() {
         // TypeDecl is `silent` Rule, but this for futureproof
-        Rule::TypeDecl => parse_type_decl(p.into_inner().next().ok_or(Error::Rule(
-            RuleError::Expected("expected TypeDecl".to_string()),
-        ))?)?,
+        Rule::TypeDecl => parse_type_decl(
+            p.into_inner()
+                .next()
+                .ok_or(Error::Rule("expected TypeDecl".to_string()))?,
+        )?,
         Rule::Tuple => {
             let mut types = Vec::new();
             for el in p.into_inner() {
@@ -154,9 +152,9 @@ fn parse_type_decl(p: Pair<Rule>) -> Result<TypeDecl> {
             TypeDecl::Named { name, generics }
         }
         other => {
-            return Err(Error::Rule(RuleError::Unexpected(format!(
+            return Err(Error::Rule(format!(
                 "unexpected rule in TypeDecl: {other:?}"
-            ))));
+            )));
         }
     })
 }
@@ -174,9 +172,9 @@ fn parse_param(p: Pair<'_, Rule>) -> Result<FuncParam> {
 fn parse_field(p: Pair<'_, Rule>) -> Result<StructField> {
     let mut it = p.into_inner();
     let (docs, annotations) = parse_docs_and_annotations(&mut it)?;
-    let part = it.next().ok_or(Error::Rule(RuleError::Expected(
-        "expected Ident | TypeDecl".to_string(),
-    )))?;
+    let part = it
+        .next()
+        .ok_or(Error::Rule("expected Ident | TypeDecl".to_string()))?;
     let (name, type_decl) = match part.as_rule() {
         Rule::Ident => {
             let name = part.as_str().to_string();
@@ -201,9 +199,9 @@ pub fn parse_type(p: Pair<Rule>) -> Result<Type> {
             // TODO: Alias is not implemented
             Err(Error::Validation("unimplemented AliasDecl".to_string()))
         }
-        _ => Err(Error::Rule(RuleError::Unexpected(
+        _ => Err(Error::Rule(
             "expected StructDecl | EnumDecl | AliasDecl".to_string(),
-        ))),
+        )),
     }
 }
 
@@ -227,9 +225,9 @@ fn parse_struct_type(p: Pair<Rule>) -> Result<Type> {
                 }
             }
             _ => {
-                return Err(Error::Rule(RuleError::Unexpected(
+                return Err(Error::Rule(
                     "expected StructDef | TupleDef | UnitDef".to_string(),
-                )));
+                ));
             }
         };
     }
@@ -263,9 +261,7 @@ fn parse_enum_type(p: Pair<Rule>) -> Result<Type> {
                 }
             }
             _ => {
-                return Err(Error::Rule(RuleError::Unexpected(
-                    "expected TypeParams | Variants".to_string(),
-                )));
+                return Err(Error::Rule("expected TypeParams | Variants".to_string()));
             }
         };
     }
@@ -292,9 +288,7 @@ fn parse_enum_variant(p: Pair<Rule>) -> Result<EnumVariant> {
                 }
             }
             _ => {
-                return Err(Error::Rule(RuleError::Unexpected(
-                    "expected Fields".to_string(),
-                )));
+                return Err(Error::Rule("expected Fields".to_string()));
             }
         };
     }
@@ -327,14 +321,18 @@ fn parse_func(p: Pair<Rule>) -> Result<ServiceFunc> {
                 }
             }
             Rule::Ret => {
-                output = Some(parse_type_decl(part.into_inner().next().ok_or(
-                    Error::Rule(RuleError::Expected("expect TypeDecl".to_string())),
-                )?)?)
+                output = Some(parse_type_decl(
+                    part.into_inner()
+                        .next()
+                        .ok_or(Error::Rule("expected TypeDecl".to_string()))?,
+                )?)
             }
             Rule::Throws => {
-                throws = Some(parse_type_decl(part.into_inner().next().ok_or(
-                    Error::Rule(RuleError::Expected("expect TypeDecl".to_string())),
-                )?)?)
+                throws = Some(parse_type_decl(
+                    part.into_inner()
+                        .next()
+                        .ok_or(Error::Rule("expected TypeDecl".to_string()))?,
+                )?)
             }
             _ => {}
         }
@@ -460,9 +458,9 @@ fn parse_program(p: Pair<Rule>) -> Result<ProgramUnit> {
                 }
             }
             _ => {
-                return Err(Error::Rule(RuleError::Unexpected(
+                return Err(Error::Rule(
                     "expected ConstructorsBlock | ServicesBlock | TypesBlock".to_string(),
-                )));
+                ));
             }
         }
     }
@@ -519,9 +517,7 @@ fn expect_next<'a, F: FnOnce(Pair<'a, Rule>) -> Result<T>, T>(
     if let Some(p) = it.next() {
         return f(p);
     }
-    Err(Error::Rule(RuleError::Expected(
-        "expected next Rule".to_string(),
-    )))
+    Err(Error::Rule("expected next Rule".to_string()))
 }
 
 fn expect_rule<'a>(
@@ -533,7 +529,7 @@ fn expect_rule<'a>(
             return Ok(p);
         }
     }
-    Err(Error::Rule(RuleError::Expected(format!("expected {r:?}"))))
+    Err(Error::Rule(format!("expected {r:?}")))
 }
 
 // ------------------------------ Tests ----------------------------------------
