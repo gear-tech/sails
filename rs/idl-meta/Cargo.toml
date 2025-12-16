@@ -10,7 +10,7 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-askama = { workspace = true, optional = true }
+askama = { workspace = true, optional = true, features = ["alloc", "derive"] }
 scale-info.workspace = true
 
 [dev-dependencies]

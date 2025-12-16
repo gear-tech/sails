@@ -1,7 +1,6 @@
 use super::*;
 use crate::type_resolver::TypeResolver;
 use scale_info::*;
-use std::collections::HashSet;
 
 pub struct ProgramBuilder {
     registry: PortableRegistry,
@@ -83,7 +82,7 @@ impl ProgramBuilder {
     }
 
     pub fn build(self, name: String) -> Result<ProgramUnit> {
-        let mut exclude = HashSet::new();
+        let mut exclude = BTreeSet::new();
         exclude.insert(self.ctors_type_id);
         exclude.extend(any_funcs_ids(&self.registry, self.ctors_type_id)?);
         let resolver = TypeResolver::try_from(&self.registry, exclude)?;
@@ -167,7 +166,7 @@ impl<'a> ServiceBuilder<'a> {
             services.extend(ServiceBuilder::new(name, meta).build()?);
         }
 
-        let exclude = HashSet::from_iter(self.exclude_type_ids()?);
+        let exclude = BTreeSet::from_iter(self.exclude_type_ids()?);
         let resolver = TypeResolver::try_from(&self.registry, exclude)?;
         let commands = self.commands(&resolver)?;
         let queries = self.queries(&resolver)?;

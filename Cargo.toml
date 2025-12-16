@@ -50,7 +50,7 @@ members = [
 # The order matches with publishing order.
 sails-idl-meta = { path = "rs/idl-meta" }
 sails-idl-parser = { path = "rs/idl-parser" }
-sails-idl-parser-v2 = { path = "rs/idl-parser-v2" }
+sails-idl-parser-v2 = { path = "rs/idl-parser-v2", default-features = false }
 sails-idl-gen = { path = "rs/idl-gen" }
 sails-client-gen = { path = "rs/client-gen" }
 sails-macros-core = { path = "rs/macros/core" }
@@ -75,7 +75,7 @@ gwasm-builder = { version = "=1.9.2", package = "gear-wasm-builder" }
 alloy-primitives = { version = "0.8.19", default-features = false }
 alloy-sol-types = { version = "0.8.19", default-features = false }
 anyhow = "1"
-askama = "0.14"
+askama = { version = "0.14", default-features = false }
 cargo-generate = "0.23"
 cargo_metadata = "0.19"
 clap = "4.5"

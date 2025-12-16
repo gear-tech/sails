@@ -7,7 +7,6 @@ use std::{
     ffi::OsStr,
     path::{Path, PathBuf},
     string::{String, ToString},
-    vec::Vec,
 };
 
 /// Shorthand function to be used in `build.rs`.
@@ -199,10 +198,9 @@ impl<P: ProgramMeta> ClientBuilder<P> {
             }
         } else if let Some(client_path) = self.client_path.as_ref() {
             // Generate IDL string for the program
-            let mut idl = Vec::new();
+            let mut idl = String::new();
             sails_idl_gen::generate_idl::<P>(Some(program_name.as_str()), &mut idl)
                 .expect("Error generating IDL from program");
-            let idl = String::from_utf8(idl).unwrap();
 
             // Generate client code from IDL string
             ClientGenerator::from_idl(&idl)

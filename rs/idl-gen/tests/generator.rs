@@ -267,17 +267,16 @@ impl ProgramMeta for TestProgramWithMultipleServicesMeta {
 
 #[test]
 fn program_idl_works_with_empty_ctors() {
-    let mut idl = Vec::new();
+    let mut idl = String::new();
     program::generate_idl::<TestProgramWithEmptyCtorsMeta>(
         Some("TestProgramWithEmptyCtorsMeta"),
         &mut idl,
     )
     .unwrap();
-    let generated_idl = String::from_utf8(idl).unwrap();
 
-    insta::assert_snapshot!(generated_idl);
+    insta::assert_snapshot!(idl);
 
-    let generated_idl_program = sails_idl_parser_v2::parse_idl(&generated_idl).unwrap();
+    let generated_idl_program = sails_idl_parser_v2::parse_idl(&idl).unwrap();
     assert!(generated_idl_program.program.is_some());
     let program = generated_idl_program.program.unwrap();
     assert!(program.ctors.is_empty());
@@ -288,17 +287,16 @@ fn program_idl_works_with_empty_ctors() {
 
 #[test]
 fn program_idl_works_with_non_empty_ctors() {
-    let mut idl = Vec::new();
+    let mut idl = String::new();
     program::generate_idl::<TestProgramWithNonEmptyCtorsMeta>(
         Some("TestProgramWithNonEmptyCtorsMeta"),
         &mut idl,
     )
     .unwrap();
-    let generated_idl = String::from_utf8(idl).unwrap();
 
-    insta::assert_snapshot!(generated_idl);
+    insta::assert_snapshot!(idl);
 
-    let generated_idl_program = sails_idl_parser_v2::parse_idl(&generated_idl).unwrap();
+    let generated_idl_program = sails_idl_parser_v2::parse_idl(&idl).unwrap();
     assert!(generated_idl_program.program.is_some());
     let program = generated_idl_program.program.unwrap();
     assert_eq!(program.ctors.len(), 2);
@@ -309,17 +307,16 @@ fn program_idl_works_with_non_empty_ctors() {
 
 #[test]
 fn program_idl_works_with_multiple_services() {
-    let mut idl = Vec::new();
+    let mut idl = String::new();
     program::generate_idl::<TestProgramWithMultipleServicesMeta>(
         Some("TestProgramWithMultipleServicesMeta"),
         &mut idl,
     )
     .unwrap();
-    let generated_idl = String::from_utf8(idl).unwrap();
 
-    insta::assert_snapshot!(generated_idl);
+    insta::assert_snapshot!(idl);
 
-    let generated_idl_program = sails_idl_parser_v2::parse_idl(&generated_idl).unwrap();
+    let generated_idl_program = sails_idl_parser_v2::parse_idl(&idl).unwrap();
     assert!(generated_idl_program.program.is_some());
     let program = generated_idl_program.program.unwrap();
     assert!(program.ctors.is_empty());
@@ -335,12 +332,12 @@ fn program_idl_works_with_multiple_services() {
 
 #[test]
 fn service_idl_works_with_basics() {
-    let mut idl = Vec::new();
+    let mut idl = String::new();
     service::generate_idl::<TestServiceMeta>("TestServiceMeta", &mut idl).unwrap();
-    let generated_idl = String::from_utf8(idl).unwrap();
-    insta::assert_snapshot!(generated_idl);
 
-    let generated_idl_program = sails_idl_parser_v2::parse_idl(&generated_idl).unwrap();
+    insta::assert_snapshot!(idl);
+
+    let generated_idl_program = sails_idl_parser_v2::parse_idl(&idl).unwrap();
     assert!(generated_idl_program.program.is_none());
     assert_eq!(generated_idl_program.services.len(), 1);
     assert_eq!(generated_idl_program.services[0].funcs.len(), 4);
@@ -349,7 +346,7 @@ fn service_idl_works_with_basics() {
 
 #[test]
 fn service_idl_works_with_base_services() {
-    let mut idl = Vec::new();
+    let mut idl = String::new();
     service::generate_idl::<
         ServiceMetaWithBase<
             CommandsMeta,
@@ -359,10 +356,10 @@ fn service_idl_works_with_base_services() {
         >,
     >("ServiceMetaWithBase", &mut idl)
     .unwrap();
-    let generated_idl = String::from_utf8(idl).unwrap();
-    insta::assert_snapshot!(generated_idl);
 
-    let generated_idl_program = sails_idl_parser_v2::parse_idl(&generated_idl).unwrap();
+    insta::assert_snapshot!(idl);
+
+    let generated_idl_program = sails_idl_parser_v2::parse_idl(&idl).unwrap();
     assert!(generated_idl_program.program.is_none());
     assert_eq!(generated_idl_program.services.len(), 2);
     assert_eq!(generated_idl_program.services[0].funcs.len(), 4);

@@ -1,3 +1,5 @@
+use super::*;
+
 pub type Result<T, E = Error> = core::result::Result<T, E>;
 
 #[derive(thiserror::Error, Debug)]
@@ -12,6 +14,9 @@ pub enum Error {
     TypeIdIsUnknown(u32),
     #[error("type `{0}` is not supported")]
     TypeIsUnsupported(String),
+    #[error(transparent)]
+    Template(#[from] askama::Error),
+    #[cfg(feature = "std")]
     #[error(transparent)]
     Io(#[from] std::io::Error),
 }

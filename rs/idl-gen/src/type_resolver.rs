@@ -4,13 +4,12 @@ use scale_info::{
     Field, PortableRegistry, StaticTypeInfo, Type, TypeDef, TypeDefComposite, TypeDefPrimitive,
     TypeDefVariant, form::PortableForm,
 };
-use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
 #[derive(Debug, Clone)]
 pub struct TypeResolver<'a> {
     registry: &'a PortableRegistry,
-    map: HashMap<u32, TypeDecl>,
-    user_defined: HashMap<String, UserDefinedEntry>,
+    map: BTreeMap<u32, TypeDecl>,
+    user_defined: BTreeMap<String, UserDefinedEntry>,
 }
 
 #[derive(Debug, Clone)]
@@ -52,14 +51,14 @@ impl UserDefinedEntry {
 impl<'a> TypeResolver<'a> {
     #[cfg(test)]
     pub fn from_registry(registry: &'a PortableRegistry) -> Self {
-        TypeResolver::try_from(registry, HashSet::new()).unwrap()
+        TypeResolver::try_from(registry, BTreeSet::new()).unwrap()
     }
 
-    pub fn try_from(registry: &'a PortableRegistry, exclude: HashSet<u32>) -> Result<Self> {
+    pub fn try_from(registry: &'a PortableRegistry, exclude: BTreeSet<u32>) -> Result<Self> {
         let mut resolver = Self {
             registry,
-            map: HashMap::new(),
-            user_defined: HashMap::new(),
+            map: BTreeMap::new(),
+            user_defined: BTreeMap::new(),
         };
         resolver.build_type_decl_map(exclude)?;
         Ok(resolver)
@@ -79,7 +78,7 @@ impl<'a> TypeResolver<'a> {
         self.map.get(&key)
     }
 
-    fn build_type_decl_map(&mut self, exclude: HashSet<u32>) -> Result<()> {
+    fn build_type_decl_map(&mut self, exclude: BTreeSet<u32>) -> Result<()> {
         let filtered: Vec<_> = self
             .registry
             .types
@@ -415,9 +414,9 @@ fn possible_names_by_path(ty: &Type<PortableForm>) -> impl Iterator<Item = Strin
 #[cfg(test)]
 mod tests {
     use super::*;
+    use core::num::{NonZeroU8, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU128};
     use gprimitives::NonZeroU256;
     use scale_info::{MetaType, Registry, TypeInfo};
-    use std::num::{NonZeroU8, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU128};
 
     #[allow(dead_code)]
     #[derive(TypeInfo)]

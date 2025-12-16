@@ -1,9 +1,23 @@
+#![no_std]
+
+extern crate alloc;
+
+#[cfg(feature = "std")]
+extern crate std;
+
+use alloc::{
+    boxed::Box,
+    collections::{BTreeMap, BTreeSet},
+    format,
+    string::{String, ToString as _},
+    vec,
+    vec::Vec,
+};
 use askama::Template;
 pub use errors::*;
 pub use program::*;
 use sails_idl_meta::*;
 use scale_info::{Variant, form::PortableForm};
-use std::{fs, io::Write, path::Path};
 
 mod builder;
 mod errors;
@@ -18,28 +32,29 @@ pub mod program {
 
     pub fn generate_idl<P: ProgramMeta>(
         program_name: Option<&str>,
-        mut idl_writer: impl Write,
+        mut idl_writer: impl core::fmt::Write,
     ) -> Result<()> {
         let doc = build_program_ast::<P>(program_name)?;
-        doc.write_into(&mut idl_writer)?;
+        doc.render_into(&mut idl_writer)?;
         Ok(())
     }
 
+    #[cfg(feature = "std")]
     pub fn generate_idl_to_file<P: ProgramMeta>(
         program_name: Option<&str>,
-        path: impl AsRef<Path>,
+        path: impl AsRef<std::path::Path>,
     ) -> Result<()> {
-        let mut idl_new_content = Vec::new();
+        let mut idl_new_content = String::new();
         generate_idl::<P>(program_name, &mut idl_new_content)?;
-        if let Ok(idl_old_content) = fs::read(&path)
+        if let Ok(idl_old_content) = std::fs::read_to_string(&path)
             && idl_new_content == idl_old_content
         {
             return Ok(());
         }
         if let Some(dir_path) = path.as_ref().parent() {
-            fs::create_dir_all(dir_path)?;
+            std::fs::create_dir_all(dir_path)?;
         }
-        Ok(fs::write(&path, idl_new_content)?)
+        Ok(std::fs::write(&path, idl_new_content)?)
     }
 }
 
@@ -49,25 +64,29 @@ pub mod service {
 
     pub fn generate_idl<S: ServiceMeta>(
         service_name: &str,
-        mut idl_writer: impl Write,
+        mut idl_writer: impl core::fmt::Write,
     ) -> Result<()> {
         let doc = build_service_ast(service_name, AnyServiceMeta::new::<S>())?;
-        doc.write_into(&mut idl_writer)?;
+        doc.render_into(&mut idl_writer)?;
         Ok(())
     }
 
+    #[cfg(feature = "std")]
     pub fn generate_idl_to_file<S: ServiceMeta>(
         service_name: &str,
-        path: impl AsRef<Path>,
+        path: impl AsRef<std::path::Path>,
     ) -> Result<()> {
-        let mut idl_new_content = Vec::new();
+        let mut idl_new_content = String::new();
         generate_idl::<S>(service_name, &mut idl_new_content)?;
-        if let Ok(idl_old_content) = fs::read(&path)
+        if let Ok(idl_old_content) = std::fs::read_to_string(&path)
             && idl_new_content == idl_old_content
         {
             return Ok(());
         }
-        Ok(fs::write(&path, idl_new_content)?)
+        if let Some(dir_path) = path.as_ref().parent() {
+            std::fs::create_dir_all(dir_path)?;
+        }
+        Ok(std::fs::write(&path, idl_new_content)?)
     }
 }
 

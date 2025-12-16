@@ -1,5 +1,4 @@
 use super::*;
-use std::collections::BTreeSet;
 
 pub(crate) fn resolve_generic_type_decl(
     type_decl: &TypeDecl,
