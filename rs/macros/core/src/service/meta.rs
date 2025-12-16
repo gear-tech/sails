@@ -64,7 +64,7 @@ impl ServiceBuilder<'_> {
                     #( #base_services_meta ),*
                 ];
                 const ASYNC: bool = #service_meta_asyncness ;
-                const INTERFACE_ID: [u8; 8] = #interface_id_computation;
+                const INTERFACE_ID: #sails_path::meta::InterfaceId = #interface_id_computation;
             }
         }
     }
@@ -199,7 +199,7 @@ impl ServiceBuilder<'_> {
             });
 
             let base_service_ids = base_services.into_iter().map(|base_type_no_lifetime| {
-                quote!(final_hash = final_hash.update(&<#base_type_no_lifetime as #sails_path::meta::ServiceMeta>::INTERFACE_ID);)
+                quote!(final_hash = final_hash.update(&<#base_type_no_lifetime as #sails_path::meta::ServiceMeta>::INTERFACE_ID.0);)
             });
 
             quote!(#(#base_service_ids)*)
@@ -221,7 +221,7 @@ impl ServiceBuilder<'_> {
                 #base_services_hash
 
                 let hash = final_hash.finalize();
-                [hash[0], hash[1], hash[2], hash[3], hash[4], hash[5], hash[6], hash[7]]
+                #sails_path::meta::InterfaceId::from_bytes_32(hash)
             }
         }
     }
