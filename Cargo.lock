@@ -7267,11 +7267,11 @@ dependencies = [
 name = "sails-idl-parser-v2"
 version = "0.9.2"
 dependencies = [
- "anyhow",
  "paste",
  "pest",
  "pest_derive",
  "sails-idl-meta",
+ "thiserror 2.0.12",
 ]
 
 [[package]]
