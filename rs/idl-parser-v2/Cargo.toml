@@ -14,10 +14,10 @@ crate-type = ["rlib"]
 
 [features]
 default = []
-std = ["pest/std", "pest_derive/std"]
+std = ["pest/std", "pest_derive/std", "thiserror/std"]
 
 [dependencies]
-anyhow.workspace = true
+thiserror.workspace = true
 pest.workspace = true
 pest_derive.workspace = true
 sails-idl-meta = { workspace = true, features = ["ast"] }
