@@ -17,10 +17,8 @@ pub enum Error {
     Pest(PestErrorFormatter),
     #[error("Rule error: {0}")]
     Rule(#[from] RuleError),
-    #[error("Internal error: {0}")]
-    Internal(String),
     #[error("Validation error: {0}")]
-    ValidationError(String),
+    Validation(String),
 }
 
 // A newtype wrapper for `pest::error::Error` to provide a custom `Debug`

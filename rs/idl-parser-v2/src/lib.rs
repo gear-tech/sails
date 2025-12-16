@@ -59,7 +59,7 @@ fn build_idl(top: Pair<Rule>) -> Result<IdlDoc> {
             Rule::ServiceDecl => services.push(parse_service(p)?),
             Rule::ProgramDecl => {
                 if program.replace(parse_program(p)?).is_some() {
-                    return Err(Error::ValidationError(
+                    return Err(Error::Validation(
                         "Expected at most one program per IDL document".to_string(),
                     ));
                 }
@@ -127,15 +127,15 @@ fn parse_type_decl(p: Pair<Rule>) -> Result<TypeDecl> {
             let len = expect_rule(&mut it, Rule::Number)?
                 .as_str()
                 .parse::<u32>()
-                .map_err(|e| Error::Internal(e.to_string()))?;
+                .map_err(|e| Error::Rule(RuleError::Expected(e.to_string())))?;
             TypeDecl::Array {
                 item: Box::new(ty),
                 len,
             }
         }
         Rule::Primitive => {
-            let primitive_type =
-                PrimitiveType::from_str(p.as_str()).map_err(|e| Error::Internal(e.to_string()))?;
+            let primitive_type = PrimitiveType::from_str(p.as_str())
+                .map_err(|e| Error::Rule(RuleError::Expected(e.to_string())))?;
             TypeDecl::Primitive(primitive_type)
         }
         Rule::Named => {
@@ -200,7 +200,7 @@ pub fn parse_type(p: Pair<Rule>) -> Result<Type> {
         Rule::EnumDecl => parse_enum_type(p),
         Rule::AliasDecl => {
             // TODO: Alias is not implemented
-            Err(Error::ValidationError("unimplmented AliasDecl".to_string()))
+            Err(Error::Validation("unimplmented AliasDecl".to_string()))
         }
         _ => Err(Error::Rule(RuleError::Unexpected(
             "expected StructDecl | EnumDecl | AliasDecl".to_string(),
@@ -540,9 +540,7 @@ fn expect_rule<'a>(
             ))));
         }
     }
-    Err(Error::Rule(RuleError::Expected(format!(
-        "expected {r:?}"
-    ))))
+    Err(Error::Rule(RuleError::Expected(format!("expected {r:?}"))))
 }
 
 // ------------------------------ Tests ----------------------------------------
@@ -700,7 +698,7 @@ mod tests {
         "#;
 
         let err = parse_idl(SRC).expect_err("multiple programs should fail");
-        assert!(matches!(err, Error::ValidationError(_)));
+        assert!(matches!(err, Error::Validation(_)));
         assert!(
             err.to_string()
                 .contains("Expected at most one program per IDL document")

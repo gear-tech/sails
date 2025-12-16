@@ -53,7 +53,7 @@ pub fn validate_and_post_process(doc: &mut IdlDoc) -> Result<()> {
             .into_iter()
             .map(|e| e.to_string())
             .collect();
-        return Err(Error::ValidationError(error_messages.join("\n")));
+        return Err(Error::Validation(error_messages.join("\n")));
     }
 
     Ok(())
@@ -128,7 +128,7 @@ impl<'a> visitor::Visitor<'a> for Validator<'a> {
     fn visit_named_type_decl(&mut self, name: &'a str, generics: &'a [ast::TypeDecl]) {
         if PrimitiveType::from_str(name).is_err() && !self.is_type_known(name) {
             self.errors
-                .push(Error::ValidationError(format!("Unknown type '{name}'")));
+                .push(Error::Validation(format!("Unknown type '{name}'")));
         }
 
         for generic in generics {
@@ -144,7 +144,7 @@ impl<'a> visitor::Visitor<'a> for Validator<'a> {
                 .iter()
                 .all(|f| f.name.is_some() == first_field_is_named)
             {
-                self.errors.push(Error::ValidationError(
+                self.errors.push(Error::Validation(
                     "Mixing named and unnamed fields in a struct or enum variant is not allowed."
                         .to_string(),
                 ));
