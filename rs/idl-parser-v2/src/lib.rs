@@ -60,7 +60,7 @@ fn build_idl(top: Pair<Rule>) -> Result<IdlDoc> {
             Rule::ProgramDecl => {
                 if program.replace(parse_program(p)?).is_some() {
                     return Err(Error::Validation(
-                        "Expected at most one program per IDL document".to_string(),
+                        "expected at most one program per IDL document".to_string(),
                     ));
                 }
             }
@@ -127,15 +127,14 @@ fn parse_type_decl(p: Pair<Rule>) -> Result<TypeDecl> {
             let len = expect_rule(&mut it, Rule::Number)?
                 .as_str()
                 .parse::<u32>()
-                .map_err(|e| Error::Rule(RuleError::Expected(e.to_string())))?;
+                .map_err(|e| Error::Parse(e.to_string()))?;
             TypeDecl::Array {
                 item: Box::new(ty),
                 len,
             }
         }
         Rule::Primitive => {
-            let primitive_type = PrimitiveType::from_str(p.as_str())
-                .map_err(|e| Error::Rule(RuleError::Expected(e.to_string())))?;
+            let primitive_type = PrimitiveType::from_str(p.as_str()).map_err(Error::Parse)?;
             TypeDecl::Primitive(primitive_type)
         }
         Rule::Named => {
@@ -200,7 +199,7 @@ pub fn parse_type(p: Pair<Rule>) -> Result<Type> {
         Rule::EnumDecl => parse_enum_type(p),
         Rule::AliasDecl => {
             // TODO: Alias is not implemented
-            Err(Error::Validation("unimplmented AliasDecl".to_string()))
+            Err(Error::Validation("unimplemented AliasDecl".to_string()))
         }
         _ => Err(Error::Rule(RuleError::Unexpected(
             "expected StructDecl | EnumDecl | AliasDecl".to_string(),
@@ -532,12 +531,6 @@ fn expect_rule<'a>(
     if let Some(p) = it.next() {
         if p.as_rule() == r {
             return Ok(p);
-        } else {
-            return Err(Error::Rule(RuleError::Expected(format!(
-                "expected {:?}, but found {:?}",
-                r,
-                p.as_rule()
-            ))));
         }
     }
     Err(Error::Rule(RuleError::Expected(format!("expected {r:?}"))))
@@ -701,7 +694,7 @@ mod tests {
         assert!(matches!(err, Error::Validation(_)));
         assert!(
             err.to_string()
-                .contains("Expected at most one program per IDL document")
+                .contains("expected at most one program per IDL document")
         );
     }
 
@@ -712,6 +705,6 @@ mod tests {
         let mut pairs = IdlParser::parse(Rule::AliasDecl, SRC).expect("parse alias");
         let err =
             parse_type(pairs.next().expect("alias")).expect_err("alias should not be supported");
-        assert!(err.to_string().contains("unimplmented AliasDecl"));
+        assert!(err.to_string().contains("unimplemented AliasDecl"));
     }
 }

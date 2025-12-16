@@ -19,6 +19,8 @@ pub enum Error {
     Rule(#[from] RuleError),
     #[error("Validation error: {0}")]
     Validation(String),
+    #[error("Parse error: {0}")]
+    Parse(String),
 }
 
 // A newtype wrapper for `pest::error::Error` to provide a custom `Debug`
