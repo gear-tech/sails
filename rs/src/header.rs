@@ -143,15 +143,7 @@ impl SailsMessageHeader {
             .iter()
             .filter_map(|(id, r_id)| (*id == interface_id).then_some(*r_id))
             .fold((0, false), |(count, found), program_route_id| {
-                let new_count = count + 1;
-
-                let new_found = if !found {
-                    message_route_id == program_route_id
-                } else {
-                    found
-                };
-
-                (new_count, new_found)
+                (count + 1, found || message_route_id == program_route_id)
             });
 
         if same_interface_ids == 0 {
@@ -173,8 +165,15 @@ impl SailsMessageHeader {
 
 impl Encode for SailsMessageHeader {
     fn encode_to<O: Output + ?Sized>(&self, dest: &mut O) {
-        let bytes = self.to_bytes();
-        dest.write(&bytes);
+        // Copy-paste for the optimization purpose, as `to_bytes` allocates a new Vec.
+        dest.write(Magic::new().as_bytes());
+        dest.push_byte(self.version.inner());
+        dest.push_byte(self.hlen.inner());
+        dest.write(self.interface_id.as_bytes());
+        dest.write(&self.entry_id.to_le_bytes());
+        dest.push_byte(self.route_id);
+        // Reserved byte
+        dest.push_byte(0);
     }
 }
 
@@ -545,7 +544,7 @@ mod tests {
     }
 
     #[test]
-    fn message_header_try_read_fails_invalid_magic() {
+    fn message_header_try_read_fails_insufficient_bytes() {
         // Insufficient bytes (no route id)
         let bytes = [0x47, 0x4D, 1, 15, 1, 2, 3, 4, 5, 6, 7, 8, 210, 4];
 
