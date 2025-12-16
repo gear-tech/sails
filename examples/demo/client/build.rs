@@ -10,6 +10,8 @@ fn main() {
 
     ClientGenerator::from_idl_path(&idl_file_path)
         .with_mocks("with_mocks")
+        .with_external_type("NonZeroU8", "core::num::NonZeroU8")
+        .with_external_type("NonZeroU32", "core::num::NonZeroU32")
         .generate_to(client_rs_file_path)
         .unwrap();
 }

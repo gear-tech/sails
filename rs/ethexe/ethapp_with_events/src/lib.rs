@@ -1,10 +1,13 @@
 #![no_std]
 
+use sails_rs::{Encode, ReflectHash, TypeInfo};
+
 /// Service Events
 #[sails_rs::event]
-#[derive(Clone, Debug, PartialEq, sails_rs::Encode, sails_rs::TypeInfo)]
+#[derive(Clone, Debug, PartialEq, Encode, TypeInfo, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
+#[reflect_hash(crate = sails_rs)]
 pub enum Events {
     DoThisEvent {
         /// Some u32 value

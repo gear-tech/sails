@@ -1,5 +1,6 @@
-use demo_client::{this_that::ThisThat, *};
+use demo_client::{this_that::ThisThat, this_that::*};
 use sails_rename::{client::*, gstd::Syscall, prelude::*};
+
 #[derive(Clone)]
 pub struct ThisThatCaller<ThisThatClient> {
     this_that: ThisThatClient,
@@ -47,7 +48,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use demo_client::mockall::MockThisThat;
+    use demo_client::this_that::mockall::MockThisThat;
     use sails_rename::{client::PendingCall, gstd::services::Service};
 
     #[tokio::test]
