@@ -1,6 +1,6 @@
 ---
 source: rs/idl-gen/tests/generator.rs
-expression: generated_idl
+expression: idl
 ---
 !@sails: 0.9.2
 
@@ -175,6 +175,6 @@ service SomeService {
 program TestProgramWithMultipleServicesMeta {
     services {
         Service,
-        SomeService,
+        SomeService: Service,
     }
 }

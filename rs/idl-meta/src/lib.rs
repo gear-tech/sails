@@ -41,6 +41,7 @@ pub struct AnyServiceMeta {
     queries: MetaType,
     events: MetaType,
     base_services: Vec<(&'static str, AnyServiceMeta)>,
+    interface_id: [u8; 8],
 }
 
 impl AnyServiceMeta {
@@ -50,6 +51,7 @@ impl AnyServiceMeta {
             queries: S::queries(),
             events: S::events(),
             base_services: S::base_services().collect(),
+            interface_id: S::INTERFACE_ID,
         }
     }
 
@@ -69,6 +71,10 @@ impl AnyServiceMeta {
         self.base_services
             .iter()
             .map(|&(name, ref meta)| (name, meta))
+    }
+
+    pub fn interface_id(&self) -> &[u8; 8] {
+        &self.interface_id
     }
 }
 
