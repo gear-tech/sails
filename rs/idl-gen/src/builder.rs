@@ -695,7 +695,7 @@ mod tests {
 
         assert_eq!(meta.types.len(), 1);
         assert!(matches!(
-            meta.types.get(0),
+            meta.types.first(),
             Some(sails_idl_meta::Type { name, .. }) if name == "CtorType"
         ));
     }
@@ -1390,7 +1390,7 @@ mod tests {
 
         assert_eq!(service.types.len(), 1);
         assert!(matches!(
-            service.types.get(0),
+            service.types.first(),
             Some(sails_idl_meta::Type { name, .. }) if name == "EventTwoParams"
         ));
     }
@@ -2010,7 +2010,7 @@ mod tests {
             assert_eq!(service.types.len(), expected_type_count);
             if expected_type_count == 1 {
                 assert!(matches!(
-                    service.types.get(0),
+                    service.types.first(),
                     Some(sails_idl_meta::Type { name, .. }) if name == "NonUserDefinedArgs"
                 ));
             }
@@ -2083,7 +2083,7 @@ mod tests {
         let meta2 = test_program_unit::<CtorsWithUserDefinedArgs>().expect("ProgramBuilder error");
         assert_eq!(meta2.types.len(), 1);
         assert!(matches!(
-            meta2.types.get(0),
+            meta2.types.first(),
             Some(sails_idl_meta::Type { name, .. }) if name == "CustomType"
         ));
     }

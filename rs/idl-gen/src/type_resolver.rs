@@ -2,7 +2,7 @@ use super::*;
 use convert_case::{Case, Casing};
 use scale_info::{
     Field, PortableRegistry, StaticTypeInfo, Type, TypeDef, TypeDefComposite, TypeDefPrimitive,
-    TypeDefVariant, form::PortableForm,
+    TypeDefVariant,
 };
 
 #[derive(Debug, Clone)]
@@ -1063,9 +1063,7 @@ mod tests {
         for expected in expect_struct_fields_type_names {
             assert!(
                 s_fields.contains(&expected.to_string()),
-                "struct missing generic field {}, All fields: {:#?}",
-                expected,
-                s_fields
+                "struct missing generic field {expected}, All fields: {s_fields:#?}"
             );
         }
         // For enums: check the collected `fields` contains expected signatures and variant names
@@ -1111,9 +1109,7 @@ mod tests {
         for expected in expect_enum_field_type_names {
             assert!(
                 e_fields.contains(&expected.to_string()),
-                "enum missing generic field {}. All enum fields/entries: {:#?}",
-                expected,
-                e_fields
+                "enum missing generic field {expected}. All enum fields/entries: {e_fields:#?}"
             );
         }
 
@@ -1132,7 +1128,7 @@ mod tests {
                 .find(|f| {
                     f.name
                         .as_ref()
-                        .is_some_and(|s| s.to_string() == "generic_value")
+                        .is_some_and(|s| s.to_string().eq("generic_value"))
                 })
                 .unwrap();
             assert_eq!(
@@ -1146,7 +1142,7 @@ mod tests {
                 .find(|f| {
                     f.name
                         .as_ref()
-                        .is_some_and(|s| s.to_string() == "tuple_generic")
+                        .is_some_and(|s| s.to_string().eq("tuple_generic"))
                 })
                 .unwrap();
             assert_eq!(
@@ -1160,7 +1156,7 @@ mod tests {
                 .find(|f| {
                     f.name
                         .as_ref()
-                        .is_some_and(|s| s.to_string() == "option_generic")
+                        .is_some_and(|s| s.to_string().eq("option_generic"))
                 })
                 .unwrap();
             assert_eq!(
@@ -1174,7 +1170,7 @@ mod tests {
                 .find(|f| {
                     f.name
                         .as_ref()
-                        .is_some_and(|s| s.to_string() == "btreemap_generic")
+                        .is_some_and(|s| s.to_string().eq("btreemap_generic"))
                 })
                 .unwrap();
             assert_eq!(
@@ -1396,9 +1392,7 @@ mod tests {
         for expected in expect_struct_field_types {
             assert!(
                 struct_field_types.contains(&expected.to_string()),
-                "Struct missing field type {}.\n All: {:#?}",
-                expected,
-                struct_field_types
+                "Struct missing field type {expected}.\n All: {struct_field_types:#?}"
             );
         }
 
@@ -1432,9 +1426,7 @@ mod tests {
         for expected in expect_enum_field_types {
             assert!(
                 enum_field_types.contains(&expected.to_string()),
-                "Enum missing field type {}.\n All: {:#?}",
-                expected,
-                enum_field_types
+                "Enum missing field type {expected}.\n All: {enum_field_types:#?}"
             );
         }
     }
@@ -1450,7 +1442,7 @@ mod tests {
             composite
                 .fields
                 .iter()
-                .find(|f| f.name.as_ref().is_some_and(|s| s.to_string() == name))
+                .find(|f| f.name.as_ref().is_some_and(|s| s.to_string().eq(name)))
                 .unwrap_or_else(|| {
                     panic!("Field `{name}` not found. Fields: {:#?}", composite.fields)
                 })
@@ -1616,9 +1608,7 @@ mod tests {
         for expected in expect_struct_field_types {
             assert!(
                 struct_field_types.contains(&expected.to_string()),
-                "MultiGenStruct missing field type {}.\n All: {:#?}",
-                expected,
-                struct_field_types
+                "MultiGenStruct missing field type {expected}.\n All: {struct_field_types:#?}"
             );
         }
 
@@ -1664,9 +1654,7 @@ mod tests {
         for expected in expect_enum_field_types {
             assert!(
                 enum_field_types.contains(&expected.to_string()),
-                "MultiGenEnum missing field type {}.\n All: {:#?}",
-                expected,
-                enum_field_types
+                "MultiGenEnum missing field type {expected}.\n All: {enum_field_types:#?}"
             );
         }
 
@@ -1716,7 +1704,7 @@ mod tests {
             let field1 = tuple_of_result_variant
                 .fields
                 .iter()
-                .find(|f| f.name.as_ref().is_some_and(|s| s.to_string() == "field1"))
+                .find(|f| f.name.as_ref().is_some_and(|s| s.to_string().eq("field1")))
                 .unwrap();
             assert_eq!(
                 resolver.get(field1.ty.id).unwrap().to_string(),
