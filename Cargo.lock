@@ -7233,6 +7233,7 @@ version = "0.9.2"
 dependencies = [
  "askama",
  "insta",
+ "parity-scale-codec",
  "scale-info",
 ]
 

@@ -21,6 +21,7 @@ pub use spin;
 mod builder;
 pub mod client;
 pub mod errors;
+pub mod header;
 #[cfg(feature = "gclient")]
 #[cfg(not(target_arch = "wasm32"))]
 pub use gclient;

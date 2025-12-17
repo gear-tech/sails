@@ -18,7 +18,7 @@ impl ProgramBuilder {
             .map(|(service_name, meta)| {
                 // TEMP: dedup by interface_id
                 // will not be needed after routring by interface_id
-                let key = u64::from_le_bytes(meta.interface_id().clone());
+                let key = u64::from_le_bytes(meta.interface_id().0);
                 let (name, route) = if let Some(name) = service_ids.get(&key) {
                     (name.to_string(), Some(service_name.to_string()))
                 } else {
@@ -575,7 +575,7 @@ mod tests {
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 0u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::zero();
         }
 
         struct TestProgram;
@@ -633,7 +633,7 @@ mod tests {
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 0u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::zero();
         }
 
         struct TestProgram;
@@ -713,7 +713,7 @@ mod tests {
             type EventsMeta = BaseServiceEvents;
             const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 1u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(1u64);
         }
 
         struct ExtendedServiceMeta;
@@ -724,7 +724,7 @@ mod tests {
             const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] =
                 &[("BaseServiceMeta", AnyServiceMeta::new::<BaseServiceMeta>)];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 2u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(2u64);
         }
 
         #[derive(TypeInfo)]
@@ -828,7 +828,7 @@ mod tests {
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 10u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(10u64);
         }
 
         struct ExtendedServiceMeta;
@@ -839,7 +839,7 @@ mod tests {
             const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] =
                 &[("BaseService", AnyServiceMeta::new::<BaseServiceMeta>)];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 11u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(11u64);
         }
 
         #[derive(TypeInfo)]
@@ -920,7 +920,7 @@ mod tests {
             type EventsMeta = BaseServiceEvents;
             const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 20u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(20u64);
         }
 
         struct ExtendedService;
@@ -931,7 +931,7 @@ mod tests {
             const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] =
                 &[("BaseService", AnyServiceMeta::new::<BaseService>)];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 21u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(21u64);
         }
 
         #[derive(TypeInfo)]
@@ -989,7 +989,7 @@ mod tests {
             type EventsMeta = BaseServiceEvents;
             const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 30u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(30u64);
         }
 
         #[allow(unused)]
@@ -1006,7 +1006,7 @@ mod tests {
             const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] =
                 &[("ServiceBase", AnyServiceMeta::new::<ServiceBase>)];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 31u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(31u64);
         }
 
         #[allow(unused)]
@@ -1055,7 +1055,7 @@ mod tests {
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 40u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(40u64);
         }
 
         struct ServiceA2;
@@ -1065,7 +1065,7 @@ mod tests {
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 41u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(41u64);
         }
 
         struct ServiceB2;
@@ -1078,7 +1078,7 @@ mod tests {
                 ("ServiceA2", AnyServiceMeta::new::<ServiceA2>),
             ];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 42u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(42u64);
         }
 
         struct ServiceB1;
@@ -1088,7 +1088,7 @@ mod tests {
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 43u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(43u64);
         }
 
         struct ServiceC;
@@ -1101,7 +1101,7 @@ mod tests {
                 ("ServiceB2", AnyServiceMeta::new::<ServiceB2>),
             ];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 44u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(44u64);
         }
 
         let services = test_service_units::<ServiceC>("ServiceC").expect("ServiceBuilder error");
@@ -1130,7 +1130,7 @@ mod tests {
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 50u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(50u64);
         }
 
         struct Service1;
@@ -1141,7 +1141,7 @@ mod tests {
             const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] =
                 &[("BaseService", AnyServiceMeta::new::<BaseService>)];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 51u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(51u64);
         }
 
         struct Service2;
@@ -1152,7 +1152,7 @@ mod tests {
             const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] =
                 &[("BaseService", AnyServiceMeta::new::<BaseService>)];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 52u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(52u64);
         }
 
         struct TestProgram;
@@ -1179,7 +1179,7 @@ mod tests {
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 60u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(60u64);
         }
 
         struct Service1;
@@ -1190,7 +1190,7 @@ mod tests {
             const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] =
                 &[("BaseService", AnyServiceMeta::new::<BaseService>)];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 61u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(61u64);
         }
 
         struct Service2;
@@ -1201,7 +1201,7 @@ mod tests {
             const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] =
                 &[("RenamedBaseService", AnyServiceMeta::new::<BaseService>)];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 62u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(62u64);
         }
 
         struct TestProgram;
@@ -1228,7 +1228,7 @@ mod tests {
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 70u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(70u64);
         }
 
         struct ServiceB;
@@ -1241,7 +1241,7 @@ mod tests {
                 ("ServiceA", AnyServiceMeta::new::<ServiceA>),
             ];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 71u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(71u64);
         }
 
         assert!(test_service_units::<ServiceB>("ServiceB").is_err());
@@ -1256,7 +1256,7 @@ mod tests {
                 ("RenamedServiceA", AnyServiceMeta::new::<ServiceA>),
             ];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 72u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(72u64);
         }
 
         assert!(test_service_units::<ServiceC>("ServiceC").is_err());
@@ -1275,7 +1275,7 @@ mod tests {
             type EventsMeta = InvalidEvents;
             const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 80u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(80u64);
         }
 
         #[derive(TypeInfo)]
@@ -1304,7 +1304,7 @@ mod tests {
             type EventsMeta = EventServiceEvents;
             const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 81u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(81u64);
         }
 
         #[derive(TypeInfo)]
@@ -1409,7 +1409,7 @@ mod tests {
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 90u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(90u64);
         }
 
         struct NotVariantQueriesService;
@@ -1419,7 +1419,7 @@ mod tests {
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 91u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(91u64);
         }
 
         #[derive(TypeInfo)]
@@ -1458,7 +1458,7 @@ mod tests {
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 100u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(100u64);
         }
 
         struct InvalidCommandsService2;
@@ -1468,7 +1468,7 @@ mod tests {
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 101u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(101u64);
         }
 
         struct InvalidQueriesService1;
@@ -1478,7 +1478,7 @@ mod tests {
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 102u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(102u64);
         }
 
         struct InvalidQueriesService2;
@@ -1488,7 +1488,7 @@ mod tests {
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 103u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(103u64);
         }
 
         // Commands/queries with wrong number of fields
@@ -1552,7 +1552,7 @@ mod tests {
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 110u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(110u64);
         }
 
         // Commands where the first field (params) is not composite
@@ -1584,7 +1584,7 @@ mod tests {
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 111u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(111u64);
         }
 
         #[derive(TypeInfo)]
@@ -1616,7 +1616,7 @@ mod tests {
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 120u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(120u64);
         }
 
         #[derive(TypeInfo)]
@@ -1720,7 +1720,7 @@ mod tests {
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 130u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(130u64);
         }
 
         struct ServiceWithOneQuery;
@@ -1730,7 +1730,7 @@ mod tests {
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 131u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(131u64);
         }
 
         struct ServiceWithNoFunctions;
@@ -1740,7 +1740,7 @@ mod tests {
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 132u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(132u64);
         }
 
         #[derive(TypeInfo)]
@@ -1798,7 +1798,7 @@ mod tests {
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 133u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(133u64);
         }
 
         #[derive(TypeInfo)]
@@ -1881,7 +1881,7 @@ mod tests {
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 140u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(140u64);
         }
 
         struct Service2;
@@ -1891,7 +1891,7 @@ mod tests {
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 141u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(141u64);
         }
 
         struct Service3;
@@ -1901,7 +1901,7 @@ mod tests {
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 142u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(142u64);
         }
 
         struct Service4;
@@ -1911,7 +1911,7 @@ mod tests {
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 143u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(143u64);
         }
 
         struct Service5;
@@ -1921,7 +1921,7 @@ mod tests {
             type EventsMeta = EventsWithNonUserDefinedArgs;
             const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 144u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(144u64);
         }
 
         struct Service6;
@@ -1931,7 +1931,7 @@ mod tests {
             type EventsMeta = EventsWithUserDefinedArgs;
             const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 145u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(145u64);
         }
 
         #[derive(TypeInfo)]
@@ -2101,7 +2101,7 @@ mod tests {
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 150u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(150u64);
         }
 
         struct Service2Meta;
@@ -2111,7 +2111,7 @@ mod tests {
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 151u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(151u64);
         }
 
         // First service using both shared types
@@ -2202,7 +2202,7 @@ mod tests {
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 160u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(160u64);
         }
 
         struct Service2;
@@ -2212,7 +2212,7 @@ mod tests {
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 161u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(161u64);
         }
 
         struct Service3;
@@ -2222,7 +2222,7 @@ mod tests {
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
-            const INTERFACE_ID: [u8; 8] = 162u64.to_le_bytes();
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(162u64);
         }
 
         struct TestProgram;
