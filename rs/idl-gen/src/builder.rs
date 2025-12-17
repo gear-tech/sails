@@ -623,53 +623,53 @@ mod tests {
         );
     }
 
-    #[test]
-    #[ignore = "TODO"]
-    fn program_has_same_name_services() {
-        struct TestService;
-        impl ServiceMeta for TestService {
-            type CommandsMeta = utils::NoCommands;
-            type QueriesMeta = utils::NoQueries;
-            type EventsMeta = utils::NoEvents;
-            const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
-            const ASYNC: bool = false;
-            const INTERFACE_ID: InterfaceId = InterfaceId::zero();
-        }
+    // #[test]
+    // #[ignore = "TODO"]
+    // fn program_has_same_name_services() {
+    //     struct TestService;
+    //     impl ServiceMeta for TestService {
+    //         type CommandsMeta = utils::NoCommands;
+    //         type QueriesMeta = utils::NoQueries;
+    //         type EventsMeta = utils::NoEvents;
+    //         const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
+    //         const ASYNC: bool = false;
+    //         const INTERFACE_ID: InterfaceId = InterfaceId::zero();
+    //     }
 
-        struct TestProgram;
-        impl ProgramMeta for TestProgram {
-            type ConstructorsMeta = utils::SimpleCtors;
-            const SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[
-                ("TestService", AnyServiceMeta::new::<TestService>),
-                ("TestService", AnyServiceMeta::new::<TestService>),
-            ];
-            const ASYNC: bool = false;
-        }
+    //     struct TestProgram;
+    //     impl ProgramMeta for TestProgram {
+    //         type ConstructorsMeta = utils::SimpleCtors;
+    //         const SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[
+    //             ("TestService", AnyServiceMeta::new::<TestService>),
+    //             ("TestService", AnyServiceMeta::new::<TestService>),
+    //         ];
+    //         const ASYNC: bool = false;
+    //     }
 
-        let meta = ProgramBuilder::new::<TestProgram>()
-            .build("TestProgram".to_string())
-            .expect("ProgramBuilder error");
+    //     let meta = ProgramBuilder::new::<TestProgram>()
+    //         .build("TestProgram".to_string())
+    //         .expect("ProgramBuilder error");
 
-        assert_eq!(meta.services.len(), 2);
-        assert_eq!(
-            meta.services[0],
-            ServiceExpo {
-                name: "TestService".to_string(),
-                route: None,
-                docs: vec![],
-                annotations: vec![]
-            }
-        );
-        assert_eq!(
-            meta.services[1],
-            ServiceExpo {
-                name: "TestService".to_string(),
-                route: Some("TestService".to_string()),
-                docs: vec![],
-                annotations: vec![]
-            }
-        );
-    }
+    //     assert_eq!(meta.services.len(), 2);
+    //     assert_eq!(
+    //         meta.services[0],
+    //         ServiceExpo {
+    //             name: "TestService".to_string(),
+    //             route: None,
+    //             docs: vec![],
+    //             annotations: vec![]
+    //         }
+    //     );
+    //     assert_eq!(
+    //         meta.services[1],
+    //         ServiceExpo {
+    //             name: "TestService".to_string(),
+    //             route: Some("TestService".to_string()),
+    //             docs: vec![],
+    //             annotations: vec![]
+    //         }
+    //     );
+    // }
 
     #[test]
     fn program_section_has_types_section() {
@@ -1120,147 +1120,147 @@ mod tests {
         );
     }
 
-    #[test]
-    #[ignore = "TODO [future]: Must be 3 services when Sails binary protocol is implemented"]
-    fn no_repeated_base_services() {
-        struct BaseService;
-        impl ServiceMeta for BaseService {
-            type CommandsMeta = utils::NoCommands;
-            type QueriesMeta = utils::NoQueries;
-            type EventsMeta = utils::NoEvents;
-            const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
-            const ASYNC: bool = false;
-            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(50u64);
-        }
+    // #[test]
+    // #[ignore = "TODO [future]: Must be 3 services when Sails binary protocol is implemented"]
+    // fn no_repeated_base_services() {
+    //     struct BaseService;
+    //     impl ServiceMeta for BaseService {
+    //         type CommandsMeta = utils::NoCommands;
+    //         type QueriesMeta = utils::NoQueries;
+    //         type EventsMeta = utils::NoEvents;
+    //         const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
+    //         const ASYNC: bool = false;
+    //         const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(50u64);
+    //     }
 
-        struct Service1;
-        impl ServiceMeta for Service1 {
-            type CommandsMeta = utils::NoCommands;
-            type QueriesMeta = utils::NoQueries;
-            type EventsMeta = utils::NoEvents;
-            const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] =
-                &[("BaseService", AnyServiceMeta::new::<BaseService>)];
-            const ASYNC: bool = false;
-            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(51u64);
-        }
+    //     struct Service1;
+    //     impl ServiceMeta for Service1 {
+    //         type CommandsMeta = utils::NoCommands;
+    //         type QueriesMeta = utils::NoQueries;
+    //         type EventsMeta = utils::NoEvents;
+    //         const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] =
+    //             &[("BaseService", AnyServiceMeta::new::<BaseService>)];
+    //         const ASYNC: bool = false;
+    //         const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(51u64);
+    //     }
 
-        struct Service2;
-        impl ServiceMeta for Service2 {
-            type CommandsMeta = utils::NoCommands;
-            type QueriesMeta = utils::NoQueries;
-            type EventsMeta = utils::NoEvents;
-            const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] =
-                &[("BaseService", AnyServiceMeta::new::<BaseService>)];
-            const ASYNC: bool = false;
-            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(52u64);
-        }
+    //     struct Service2;
+    //     impl ServiceMeta for Service2 {
+    //         type CommandsMeta = utils::NoCommands;
+    //         type QueriesMeta = utils::NoQueries;
+    //         type EventsMeta = utils::NoEvents;
+    //         const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] =
+    //             &[("BaseService", AnyServiceMeta::new::<BaseService>)];
+    //         const ASYNC: bool = false;
+    //         const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(52u64);
+    //     }
 
-        struct TestProgram;
-        impl ProgramMeta for TestProgram {
-            type ConstructorsMeta = utils::SimpleCtors;
-            const SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[
-                ("Service1", AnyServiceMeta::new::<Service1>),
-                ("Service2", AnyServiceMeta::new::<Service2>),
-            ];
-            const ASYNC: bool = false;
-        }
+    //     struct TestProgram;
+    //     impl ProgramMeta for TestProgram {
+    //         type ConstructorsMeta = utils::SimpleCtors;
+    //         const SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[
+    //             ("Service1", AnyServiceMeta::new::<Service1>),
+    //             ("Service2", AnyServiceMeta::new::<Service2>),
+    //         ];
+    //         const ASYNC: bool = false;
+    //     }
 
-        let doc = build_program_ast::<TestProgram>(None).unwrap();
-        assert_eq!(doc.services.len(), 3);
-    }
+    //     let doc = build_program_ast::<TestProgram>(None).unwrap();
+    //     assert_eq!(doc.services.len(), 3);
+    // }
 
-    #[test]
-    #[ignore = "TODO [future]: Must be 3 services when Sails binary protocol is implemented"]
-    fn no_repeated_base_services_with_renaming() {
-        struct BaseService;
-        impl ServiceMeta for BaseService {
-            type CommandsMeta = utils::NoCommands;
-            type QueriesMeta = utils::NoQueries;
-            type EventsMeta = utils::NoEvents;
-            const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
-            const ASYNC: bool = false;
-            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(60u64);
-        }
+    // #[test]
+    // #[ignore = "TODO [future]: Must be 3 services when Sails binary protocol is implemented"]
+    // fn no_repeated_base_services_with_renaming() {
+    //     struct BaseService;
+    //     impl ServiceMeta for BaseService {
+    //         type CommandsMeta = utils::NoCommands;
+    //         type QueriesMeta = utils::NoQueries;
+    //         type EventsMeta = utils::NoEvents;
+    //         const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
+    //         const ASYNC: bool = false;
+    //         const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(60u64);
+    //     }
 
-        struct Service1;
-        impl ServiceMeta for Service1 {
-            type CommandsMeta = utils::NoCommands;
-            type QueriesMeta = utils::NoQueries;
-            type EventsMeta = utils::NoEvents;
-            const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] =
-                &[("BaseService", AnyServiceMeta::new::<BaseService>)];
-            const ASYNC: bool = false;
-            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(61u64);
-        }
+    //     struct Service1;
+    //     impl ServiceMeta for Service1 {
+    //         type CommandsMeta = utils::NoCommands;
+    //         type QueriesMeta = utils::NoQueries;
+    //         type EventsMeta = utils::NoEvents;
+    //         const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] =
+    //             &[("BaseService", AnyServiceMeta::new::<BaseService>)];
+    //         const ASYNC: bool = false;
+    //         const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(61u64);
+    //     }
 
-        struct Service2;
-        impl ServiceMeta for Service2 {
-            type CommandsMeta = utils::NoCommands;
-            type QueriesMeta = utils::NoQueries;
-            type EventsMeta = utils::NoEvents;
-            const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] =
-                &[("RenamedBaseService", AnyServiceMeta::new::<BaseService>)];
-            const ASYNC: bool = false;
-            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(62u64);
-        }
+    //     struct Service2;
+    //     impl ServiceMeta for Service2 {
+    //         type CommandsMeta = utils::NoCommands;
+    //         type QueriesMeta = utils::NoQueries;
+    //         type EventsMeta = utils::NoEvents;
+    //         const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] =
+    //             &[("RenamedBaseService", AnyServiceMeta::new::<BaseService>)];
+    //         const ASYNC: bool = false;
+    //         const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(62u64);
+    //     }
 
-        struct TestProgram;
-        impl ProgramMeta for TestProgram {
-            type ConstructorsMeta = utils::SimpleCtors;
-            const SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[
-                ("Service1", AnyServiceMeta::new::<Service1>),
-                ("Service2", AnyServiceMeta::new::<Service2>),
-            ];
-            const ASYNC: bool = false;
-        }
+    //     struct TestProgram;
+    //     impl ProgramMeta for TestProgram {
+    //         type ConstructorsMeta = utils::SimpleCtors;
+    //         const SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[
+    //             ("Service1", AnyServiceMeta::new::<Service1>),
+    //             ("Service2", AnyServiceMeta::new::<Service2>),
+    //         ];
+    //         const ASYNC: bool = false;
+    //     }
 
-        let doc = build_program_ast::<TestProgram>(None).unwrap();
-        assert_eq!(doc.services.len(), 3);
-    }
+    //     let doc = build_program_ast::<TestProgram>(None).unwrap();
+    //     assert_eq!(doc.services.len(), 3);
+    // }
 
-    #[test]
-    #[ignore = "TODO [future]: Must be error when Sails binary protocol is implemented"]
-    fn no_same_service_in_base_services() {
-        struct ServiceA;
-        impl ServiceMeta for ServiceA {
-            type CommandsMeta = utils::NoCommands;
-            type QueriesMeta = utils::NoQueries;
-            type EventsMeta = utils::NoEvents;
-            const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
-            const ASYNC: bool = false;
-            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(70u64);
-        }
+    // #[test]
+    // #[ignore = "TODO [future]: Must be error when Sails binary protocol is implemented"]
+    // fn no_same_service_in_base_services() {
+    //     struct ServiceA;
+    //     impl ServiceMeta for ServiceA {
+    //         type CommandsMeta = utils::NoCommands;
+    //         type QueriesMeta = utils::NoQueries;
+    //         type EventsMeta = utils::NoEvents;
+    //         const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
+    //         const ASYNC: bool = false;
+    //         const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(70u64);
+    //     }
 
-        struct ServiceB;
-        impl ServiceMeta for ServiceB {
-            type CommandsMeta = utils::NoCommands;
-            type QueriesMeta = utils::NoQueries;
-            type EventsMeta = utils::NoEvents;
-            const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[
-                ("ServiceA", AnyServiceMeta::new::<ServiceA>),
-                ("ServiceA", AnyServiceMeta::new::<ServiceA>),
-            ];
-            const ASYNC: bool = false;
-            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(71u64);
-        }
+    //     struct ServiceB;
+    //     impl ServiceMeta for ServiceB {
+    //         type CommandsMeta = utils::NoCommands;
+    //         type QueriesMeta = utils::NoQueries;
+    //         type EventsMeta = utils::NoEvents;
+    //         const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[
+    //             ("ServiceA", AnyServiceMeta::new::<ServiceA>),
+    //             ("ServiceA", AnyServiceMeta::new::<ServiceA>),
+    //         ];
+    //         const ASYNC: bool = false;
+    //         const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(71u64);
+    //     }
 
-        assert!(test_service_units::<ServiceB>("ServiceB").is_err());
+    //     assert!(test_service_units::<ServiceB>("ServiceB").is_err());
 
-        struct ServiceC;
-        impl ServiceMeta for ServiceC {
-            type CommandsMeta = utils::NoCommands;
-            type QueriesMeta = utils::NoQueries;
-            type EventsMeta = utils::NoEvents;
-            const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[
-                ("ServiceA", AnyServiceMeta::new::<ServiceA>),
-                ("RenamedServiceA", AnyServiceMeta::new::<ServiceA>),
-            ];
-            const ASYNC: bool = false;
-            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(72u64);
-        }
+    //     struct ServiceC;
+    //     impl ServiceMeta for ServiceC {
+    //         type CommandsMeta = utils::NoCommands;
+    //         type QueriesMeta = utils::NoQueries;
+    //         type EventsMeta = utils::NoEvents;
+    //         const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[
+    //             ("ServiceA", AnyServiceMeta::new::<ServiceA>),
+    //             ("RenamedServiceA", AnyServiceMeta::new::<ServiceA>),
+    //         ];
+    //         const ASYNC: bool = false;
+    //         const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(72u64);
+    //     }
 
-        assert!(test_service_units::<ServiceC>("ServiceC").is_err());
-    }
+    //     assert!(test_service_units::<ServiceC>("ServiceC").is_err());
+    // }
 
     // ------------------------------------------------------------------------------------
     // ------------------------------ Events related tests --------------------------------
@@ -2192,54 +2192,54 @@ mod tests {
         assert!(has_shared_custom_type_field);
     }
 
-    #[test]
-    #[ignore = "TODO [future]: Must be 3 services when Sails binary protocol is implemented"]
-    fn no_repeated_services() {
-        struct Service1;
-        impl ServiceMeta for Service1 {
-            type CommandsMeta = utils::NoCommands;
-            type QueriesMeta = utils::NoQueries;
-            type EventsMeta = utils::NoEvents;
-            const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
-            const ASYNC: bool = false;
-            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(160u64);
-        }
+    // #[test]
+    // #[ignore = "TODO [future]: Must be 3 services when Sails binary protocol is implemented"]
+    // fn no_repeated_services() {
+    //     struct Service1;
+    //     impl ServiceMeta for Service1 {
+    //         type CommandsMeta = utils::NoCommands;
+    //         type QueriesMeta = utils::NoQueries;
+    //         type EventsMeta = utils::NoEvents;
+    //         const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
+    //         const ASYNC: bool = false;
+    //         const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(160u64);
+    //     }
 
-        struct Service2;
-        impl ServiceMeta for Service2 {
-            type CommandsMeta = utils::NoCommands;
-            type QueriesMeta = utils::NoQueries;
-            type EventsMeta = utils::NoEvents;
-            const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
-            const ASYNC: bool = false;
-            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(161u64);
-        }
+    //     struct Service2;
+    //     impl ServiceMeta for Service2 {
+    //         type CommandsMeta = utils::NoCommands;
+    //         type QueriesMeta = utils::NoQueries;
+    //         type EventsMeta = utils::NoEvents;
+    //         const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
+    //         const ASYNC: bool = false;
+    //         const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(161u64);
+    //     }
 
-        struct Service3;
-        impl ServiceMeta for Service3 {
-            type CommandsMeta = utils::NoCommands;
-            type QueriesMeta = utils::NoQueries;
-            type EventsMeta = utils::NoEvents;
-            const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
-            const ASYNC: bool = false;
-            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(162u64);
-        }
+    //     struct Service3;
+    //     impl ServiceMeta for Service3 {
+    //         type CommandsMeta = utils::NoCommands;
+    //         type QueriesMeta = utils::NoQueries;
+    //         type EventsMeta = utils::NoEvents;
+    //         const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
+    //         const ASYNC: bool = false;
+    //         const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(162u64);
+    //     }
 
-        struct TestProgram;
-        impl ProgramMeta for TestProgram {
-            type ConstructorsMeta = utils::SimpleCtors;
-            const SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[
-                ("Service11", AnyServiceMeta::new::<Service1>),
-                ("Service12", AnyServiceMeta::new::<Service1>),
-                ("Service13", AnyServiceMeta::new::<Service1>),
-                ("Service21", AnyServiceMeta::new::<Service2>),
-                ("Service22", AnyServiceMeta::new::<Service2>),
-                ("Service31", AnyServiceMeta::new::<Service3>),
-            ];
-            const ASYNC: bool = false;
-        }
+    //     struct TestProgram;
+    //     impl ProgramMeta for TestProgram {
+    //         type ConstructorsMeta = utils::SimpleCtors;
+    //         const SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[
+    //             ("Service11", AnyServiceMeta::new::<Service1>),
+    //             ("Service12", AnyServiceMeta::new::<Service1>),
+    //             ("Service13", AnyServiceMeta::new::<Service1>),
+    //             ("Service21", AnyServiceMeta::new::<Service2>),
+    //             ("Service22", AnyServiceMeta::new::<Service2>),
+    //             ("Service31", AnyServiceMeta::new::<Service3>),
+    //         ];
+    //         const ASYNC: bool = false;
+    //     }
 
-        let doc = build_program_ast::<TestProgram>(None).unwrap();
-        assert_eq!(doc.services.len(), 3);
-    }
+    //     let doc = build_program_ast::<TestProgram>(None).unwrap();
+    //     assert_eq!(doc.services.len(), 3);
+    // }
 }
