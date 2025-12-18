@@ -38,6 +38,16 @@ pub mod io {
     use super::*;
     sails_rs::io_struct_impl!(NewForBench () -> ());
 }
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
+#[codec(crate = sails_rs::scale_codec)]
+#[scale_info(crate = sails_rs::scale_info)]
+#[reflect_hash(crate = sails_rs)]
+pub enum PingPongPayload {
+    Start(ActorId),
+    Ping,
+    Pong,
+    Finished,
+}
 
 pub mod ping_pong_service {
     use super::*;
@@ -65,13 +75,4 @@ pub mod ping_pong_service {
         use super::*;
         sails_rs::io_struct_impl!(Ping (payload: super::PingPongPayload) -> super::PingPongPayload);
     }
-}
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
-#[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
-pub enum PingPongPayload {
-    Start(ActorId),
-    Ping,
-    Pong,
-    Finished,
 }

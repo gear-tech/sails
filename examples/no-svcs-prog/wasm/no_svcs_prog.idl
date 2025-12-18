@@ -1,4 +1,8 @@
-constructor {
-  Create : ();
-};
 
+!@sails: 0.9.2
+
+program ProgramToDo {
+    constructors {
+        Create();
+    }
+}

@@ -1,0 +1,44 @@
+!@sails: 0.1.0
+
+program MyProgram {
+    constructors {
+        Init(); // No throws
+    }
+
+    services {
+        MyService: MyService
+    }
+
+    types {
+        struct CommonType { // Program-level CommonType
+            program_value: u32,
+        }
+
+        struct ProgramOnlyType {
+            data: CommonType,
+        }
+    }
+}
+
+service MyService {
+    functions {
+        /// Uses CommonType from program scope.
+        DoSomething(input: CommonType) -> u32;
+
+        /// Uses CommonType from service scope.
+        AnotherAction(input: ServiceCommonType) -> u32;
+
+        /// Uses ProgramOnlyType from program scope.
+        UseProgramType(input: ProgramOnlyType) -> bool;
+    }
+
+    types {
+        struct CommonType { // Service-level CommonType
+            service_name: String,
+        }
+
+        struct ServiceCommonType {
+            service_id: u64,
+        }
+    }
+}

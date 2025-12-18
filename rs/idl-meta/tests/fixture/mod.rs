@@ -125,7 +125,7 @@ pub fn enum_variants_type() -> Type {
 pub fn counter_service() -> ServiceUnit {
     ServiceUnit {
         name: "Counter".to_string(),
-        extends: vec![],
+        extends: vec!["BaseService".to_string(), "AnotherBaseService".to_string()],
         funcs: vec![
             ServiceFunc {
                 name: "Add".to_string(),

@@ -8,6 +8,7 @@ service {{ name }} {
     {%- if extends.len() > 0 %}
     extends {
         {%- for ext in extends %}
+        {{ ext }},
         {%- endfor %}
     }
     {%- endif %}

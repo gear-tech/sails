@@ -25,6 +25,7 @@ alloc-stress = { path = "alloc-stress" }
 compute-stress = { path = "compute-stress" }
 counter-bench = { path = "counter-bench" }
 convert_case.workspace = true
+sails-client-gen.workspace = true
 
 [dev-dependencies]
 gtest.workspace = true

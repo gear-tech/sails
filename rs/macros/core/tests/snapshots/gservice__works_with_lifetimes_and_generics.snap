@@ -98,8 +98,22 @@ where
     type CommandsMeta = some_service_meta::CommandsMeta;
     type QueriesMeta = some_service_meta::QueriesMeta;
     type EventsMeta = some_service_meta::EventsMeta;
-    const BASE_SERVICES: &'static [sails_rs::meta::AnyServiceMetaFn] = &[];
+    const BASE_SERVICES: &'static [(&'static str, sails_rs::meta::AnyServiceMetaFn)] = &[];
     const ASYNC: bool = false;
+    const INTERFACE_ID: sails_rs::meta::InterfaceId = {
+        let mut final_hash = sails_rs::keccak_const::Keccak256::new();
+        {
+            let mut fn_hash = sails_rs::keccak_const::Keccak256::new();
+            fn_hash = fn_hash.update("command".as_bytes());
+            fn_hash = fn_hash.update("DoThis".as_bytes());
+            fn_hash = fn_hash.update(b"res");
+            fn_hash = fn_hash
+                .update(&<u32 as sails_rs::sails_reflect_hash::ReflectHash>::HASH);
+            final_hash = final_hash.update(&fn_hash.finalize());
+        }
+        let hash = final_hash.finalize();
+        sails_rs::meta::InterfaceId::from_bytes_32(hash)
+    };
 }
 mod some_service_meta {
     use super::*;

@@ -181,8 +181,33 @@ impl sails_rs::meta::ServiceMeta for MyServiceWithEvents {
     type CommandsMeta = my_service_with_events_meta::CommandsMeta;
     type QueriesMeta = my_service_with_events_meta::QueriesMeta;
     type EventsMeta = my_service_with_events_meta::EventsMeta;
-    const BASE_SERVICES: &'static [sails_rs::meta::AnyServiceMetaFn] = &[];
+    const BASE_SERVICES: &'static [(&'static str, sails_rs::meta::AnyServiceMetaFn)] = &[];
     const ASYNC: bool = false;
+    const INTERFACE_ID: sails_rs::meta::InterfaceId = {
+        let mut final_hash = sails_rs::keccak_const::Keccak256::new();
+        {
+            let mut fn_hash = sails_rs::keccak_const::Keccak256::new();
+            fn_hash = fn_hash.update("command".as_bytes());
+            fn_hash = fn_hash.update("DoThis".as_bytes());
+            fn_hash = fn_hash.update(b"res");
+            fn_hash = fn_hash
+                .update(&<u32 as sails_rs::sails_reflect_hash::ReflectHash>::HASH);
+            final_hash = final_hash.update(&fn_hash.finalize());
+        }
+        {
+            let mut fn_hash = sails_rs::keccak_const::Keccak256::new();
+            fn_hash = fn_hash.update("query".as_bytes());
+            fn_hash = fn_hash.update("This".as_bytes());
+            fn_hash = fn_hash.update(b"res");
+            fn_hash = fn_hash
+                .update(&<bool as sails_rs::sails_reflect_hash::ReflectHash>::HASH);
+            final_hash = final_hash.update(&fn_hash.finalize());
+        }
+        final_hash = final_hash
+            .update(&<MyEvents as sails_rs::sails_reflect_hash::ReflectHash>::HASH);
+        let hash = final_hash.finalize();
+        sails_rs::meta::InterfaceId::from_bytes_32(hash)
+    };
 }
 mod my_service_with_events_meta {
     use super::*;

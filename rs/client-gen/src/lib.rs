@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use convert_case::{Case, Casing};
 use root_generator::RootGenerator;
-use sails_idl_parser::ast::visitor;
+use sails_idl_parser_v2::{parse_idl, visitor};
 use std::{collections::HashMap, ffi::OsStr, fs, io::Write, path::Path};
 
 mod ctor_generators;
@@ -14,27 +14,27 @@ mod type_generators;
 
 const SAILS: &str = "sails_rs";
 
-pub struct IdlPath<'a>(&'a Path);
-pub struct IdlString<'a>(&'a str);
-pub struct ClientGenerator<'a, S> {
-    sails_path: Option<&'a str>,
-    mocks_feature_name: Option<&'a str>,
-    external_types: HashMap<&'a str, &'a str>,
+pub struct IdlPath<'ast>(&'ast Path);
+pub struct IdlString<'ast>(&'ast str);
+pub struct ClientGenerator<'ast, S> {
+    sails_path: Option<&'ast str>,
+    mocks_feature_name: Option<&'ast str>,
+    external_types: HashMap<&'ast str, &'ast str>,
     no_derive_traits: bool,
     with_no_std: bool,
-    client_path: Option<&'a Path>,
+    client_path: Option<&'ast Path>,
     idl: S,
 }
 
-impl<'a, S> ClientGenerator<'a, S> {
-    pub fn with_mocks(self, mocks_feature_name: &'a str) -> Self {
+impl<'ast, S> ClientGenerator<'ast, S> {
+    pub fn with_mocks(self, mocks_feature_name: &'ast str) -> Self {
         Self {
             mocks_feature_name: Some(mocks_feature_name),
             ..self
         }
     }
 
-    pub fn with_sails_crate(self, sails_path: &'a str) -> Self {
+    pub fn with_sails_crate(self, sails_path: &'ast str) -> Self {
         Self {
             sails_path: Some(sails_path),
             ..self
@@ -59,7 +59,7 @@ impl<'a, S> ClientGenerator<'a, S> {
     /// let code = sails_client_gen::ClientGenerator::from_idl("<idl>")
     ///     .with_external_type("MyFuncParam", "my_crate::MyParam");
     /// ```
-    pub fn with_external_type(self, name: &'a str, path: &'a str) -> Self {
+    pub fn with_external_type(self, name: &'ast str, path: &'ast str) -> Self {
         let mut external_types = self.external_types;
         external_types.insert(name, path);
         Self {
@@ -68,7 +68,7 @@ impl<'a, S> ClientGenerator<'a, S> {
         }
     }
 
-    /// Derive only nessessary [`parity_scale_codec::Encode`], [`parity_scale_codec::Decode`] and [`scale_info::TypeInfo`] traits for the generated types
+    /// Derive only nessessary [`parity_scale_codec::Encode`], [`parity_scale_codec::Decode`], [`scale_info::TypeInfo`] and [`sails_reflect_hash::ReflectHash`] traits for the generated types
     ///
     /// By default, types additionally derive [`PartialEq`], [`Clone`] and [`Debug`]
     pub fn with_no_derive_traits(self) -> Self {
@@ -78,7 +78,7 @@ impl<'a, S> ClientGenerator<'a, S> {
         }
     }
 
-    pub fn with_client_path(self, client_path: &'a Path) -> Self {
+    pub fn with_client_path(self, client_path: &'ast Path) -> Self {
         Self {
             client_path: Some(client_path),
             ..self
@@ -86,8 +86,8 @@ impl<'a, S> ClientGenerator<'a, S> {
     }
 }
 
-impl<'a> ClientGenerator<'a, IdlPath<'a>> {
-    pub fn from_idl_path(idl_path: &'a Path) -> Self {
+impl<'ast> ClientGenerator<'ast, IdlPath<'ast>> {
+    pub fn from_idl_path(idl_path: &'ast Path) -> Self {
         Self {
             sails_path: None,
             mocks_feature_name: None,
@@ -130,7 +130,7 @@ impl<'a> ClientGenerator<'a, IdlPath<'a>> {
         Ok(())
     }
 
-    fn with_idl(self, idl: &'a str) -> ClientGenerator<'a, IdlString<'a>> {
+    fn with_idl(self, idl: &'ast str) -> ClientGenerator<'ast, IdlString<'ast>> {
         ClientGenerator {
             sails_path: self.sails_path,
             mocks_feature_name: self.mocks_feature_name,
@@ -143,8 +143,8 @@ impl<'a> ClientGenerator<'a, IdlPath<'a>> {
     }
 }
 
-impl<'a> ClientGenerator<'a, IdlString<'a>> {
-    pub fn from_idl(idl: &'a str) -> Self {
+impl<'ast> ClientGenerator<'ast, IdlString<'ast>> {
+    pub fn from_idl(idl: &'ast str) -> Self {
         Self {
             sails_path: None,
             mocks_feature_name: None,
@@ -166,8 +166,8 @@ impl<'a> ClientGenerator<'a, IdlString<'a>> {
             self.external_types,
             self.no_derive_traits,
         );
-        let program = sails_idl_parser::ast::parse_idl(idl).context("Failed to parse IDL")?;
-        visitor::accept_program(&program, &mut generator);
+        let doc = parse_idl(idl).context("Failed to parse IDL")?;
+        visitor::accept_idl_doc(&doc, &mut generator);
 
         let code = generator.finalize(self.with_no_std);
 

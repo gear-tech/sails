@@ -36,6 +36,13 @@ pub mod io {
     use super::*;
     sails_rs::io_struct_impl!(NewForBench () -> ());
 }
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
+#[codec(crate = sails_rs::scale_codec)]
+#[scale_info(crate = sails_rs::scale_info)]
+#[reflect_hash(crate = sails_rs)]
+pub struct AllocStressResult {
+    pub inner: Vec<u8>,
+}
 
 pub mod alloc_stress {
     use super::*;
@@ -61,10 +68,4 @@ pub mod alloc_stress {
         use super::*;
         sails_rs::io_struct_impl!(AllocStress (n: u32) -> super::AllocStressResult);
     }
-}
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
-#[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
-pub struct AllocStressResult {
-    pub inner: Vec<u8>,
 }

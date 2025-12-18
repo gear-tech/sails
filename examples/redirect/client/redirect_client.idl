@@ -1,11 +1,21 @@
-constructor {
-  New : ();
-};
+
+!@sails: 0.9.2
 
 service Redirect {
-  /// Exit from program with inheritor ID
-  Exit : (inheritor_id: actor_id) -> null;
-  /// Returns program ID of the current program
-  query GetProgramId : () -> actor_id;
-};
+    functions {
+        /// Exit from program with inheritor ID
+        Exit(inheritor_id: ActorId);
+        /// Returns program ID of the current program
+        @query
+        GetProgramId() -> ActorId;
+    }
+}
 
+program ProgramToDo {
+    constructors {
+        New();
+    }
+    services {
+        Redirect,
+    }
+}

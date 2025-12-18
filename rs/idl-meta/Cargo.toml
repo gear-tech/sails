@@ -11,9 +11,10 @@ rust-version.workspace = true
 
 [dependencies]
 askama = { workspace = true, optional = true }
-scale-info.workspace = true
+parity-scale-codec.workspace = true
 serde = { workspace = true, features = ["derive"], optional = true }
 serde-json = { workspace = true, features = ["alloc"], optional = true }
+scale-info.workspace = true
 
 [dev-dependencies]
 insta.workspace = true

@@ -23,9 +23,11 @@ use proc_macro_error::proc_macro_error;
 ///
 /// ```rust
 /// mod my_service {
-///     use sails_rs::{export, service};
+///     use sails_rs::{export, service, prelude::*};
 ///
-///     #[derive(parity_scale_codec::Encode, scale_info::TypeInfo)]
+///     #[event]
+///     #[derive(parity_scale_codec::Encode, scale_info::TypeInfo, ReflectHash)]
+///     #[reflect_hash(crate = sails_rs)]
 ///     pub enum MyServiceEvents {
 ///         SomethingDone,
 ///     }

@@ -483,8 +483,8 @@ impl core::str::FromStr for PrimitiveType {
             "i64" => Ok(I64),
             "i128" => Ok(I128),
 
-            "ActorId" | "actorid" | "actor_id" => Ok(ActorId),
-            "CodeId" | "codeid" | "code_id" => Ok(CodeId),
+            "ActorId" | "actor" | "actor_id" => Ok(ActorId),
+            "CodeId" | "code" | "code_id" => Ok(CodeId),
             "MessageId" | "messageid" | "message_id" => Ok(MessageId),
 
             "H256" | "h256" => Ok(H256),

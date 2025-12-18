@@ -1,14 +1,16 @@
 use genco::prelude::*;
-use sails_idl_parser::{ast::visitor, ast::visitor::Visitor, ast::*};
+use sails_idl_parser_v2::{ast, visitor, visitor::Visitor};
 
-pub(crate) struct EventsModuleGenerator<'a> {
-    service_name: &'a str,
-    sails_path: &'a str,
+use crate::helpers::generate_doc_comments;
+
+pub(crate) struct EventsModuleGenerator<'ast> {
+    service_name: &'ast str,
+    sails_path: &'ast str,
     tokens: rust::Tokens,
 }
 
-impl<'a> EventsModuleGenerator<'a> {
-    pub(crate) fn new(service_name: &'a str, sails_path: &'a str) -> Self {
+impl<'ast> EventsModuleGenerator<'ast> {
+    pub(crate) fn new(service_name: &'ast str, sails_path: &'ast str) -> Self {
         Self {
             service_name,
             sails_path,
@@ -21,13 +23,13 @@ impl<'a> EventsModuleGenerator<'a> {
     }
 }
 
-impl<'ast> Visitor<'ast> for EventsModuleGenerator<'_> {
-    fn visit_service(&mut self, service: &'ast Service) {
+impl<'ast> Visitor<'ast> for EventsModuleGenerator<'ast> {
+    fn visit_service_unit(&mut self, service: &'ast ast::ServiceUnit) {
         let events_name = &format!("{}Events", self.service_name);
         let event_names = service
-            .events()
+            .events
             .iter()
-            .map(|e| format!("\"{}\"", e.name()))
+            .map(|e| format!("\"{}\"", e.name))
             .collect::<Vec<_>>()
             .join(", ");
 
@@ -36,12 +38,13 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator<'_> {
             #[cfg(not(target_arch = "wasm32"))]
             pub mod events $("{")
                 use super::*;
-                #[derive(PartialEq, Debug, Encode, Decode)]
+                #[derive(PartialEq, Debug, Encode, Decode, ReflectHash)]
                 #[codec(crate = $(self.sails_path)::scale_codec)]
+                #[reflect_hash(crate = $(self.sails_path))]
                 pub enum $events_name $("{")
         };
 
-        visitor::accept_service(service, self);
+        visitor::accept_service_unit(service, self);
 
         quote_in! { self.tokens =>
             $['\r'] $("}")
@@ -62,27 +65,44 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator<'_> {
         };
     }
 
-    fn visit_service_event(&mut self, event: &'ast ServiceEvent) {
-        if let Some(type_decl) = event.type_decl().as_ref() {
-            for doc in event.docs() {
-                quote_in! { self.tokens =>
-                    $['\r'] $("///") $doc
-                };
-            }
+    fn visit_service_event(&mut self, event: &'ast ast::ServiceEvent) {
+        generate_doc_comments(&mut self.tokens, &event.docs);
 
-            let type_decl_code = crate::type_generators::generate_type_decl_code(type_decl);
-            if type_decl_code.starts_with('{') {
-                quote_in! { self.tokens =>
-                    $['\r'] $(event.name()) $(type_decl_code),
-                };
-            } else {
-                quote_in! { self.tokens =>
-                    $['\r'] $(event.name())($(type_decl_code)) ,
+        let variant_name = &event.name;
+
+        if event.def.is_unit() {
+            // Unit variant: `Variant,`
+            quote_in! { self.tokens =>
+                $['\r'] $variant_name,
+            };
+        } else if event.def.is_tuple() {
+            // Tuple variant: `Variant(Type1, Type2),`
+            let mut field_tokens = rust::Tokens::new();
+            for field in &event.def.fields {
+                let type_code =
+                    crate::type_generators::generate_type_decl_with_path(&field.type_decl, "");
+                field_tokens.append(type_code);
+                field_tokens.append(", ");
+            }
+            quote_in! { self.tokens =>
+                $['\r'] $variant_name($field_tokens),
+            };
+        } else {
+            // Struct variant: `Variant { field1: Type1, ... },`
+            let mut field_tokens = rust::Tokens::new();
+            for field in &event.def.fields {
+                generate_doc_comments(&mut field_tokens, &field.docs);
+                let field_name = field.name.as_ref().unwrap();
+                let type_code =
+                    crate::type_generators::generate_type_decl_with_path(&field.type_decl, "");
+                quote_in! { field_tokens =>
+                    $['\r'] $field_name: $type_code,
                 };
             }
-        } else {
             quote_in! { self.tokens =>
-                $['\r'] $(event.name()),
+                $['\r'] $variant_name {
+                    $(field_tokens)
+                $['\r'] },
             };
         }
     }

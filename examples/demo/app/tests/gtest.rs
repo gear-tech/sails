@@ -232,46 +232,8 @@ async fn dog_barks() {
 
 #[tokio::test]
 async fn dog_walks() {
-    use demo_client::dog::{Dog as _, events::DogEvents};
-    // Arrange
-    let (env, code_id, _gas_limit) = create_env();
-
-    // Use generated client code for activating Demo program
-    // using the `new` constructor and the `send`/`recv` pair
-    // of methods
-    let demo_program = env
-        .deploy(code_id, vec![])
-        .new(None, Some((1, -1)))
-        .await
-        .unwrap();
-
-    let mut dog_client = demo_program.dog();
-    let dog_listener = dog_client.listener();
-    let mut dog_events = dog_listener.listen().await.unwrap();
-
-    // Act
-    dog_client.walk(10, 20).await.unwrap();
-
-    // Assert
-    let position = dog_client.position().await.unwrap();
-    let event = dog_events.next().await.unwrap();
-
-    assert_eq!(position, (11, 19));
-    assert_eq!(
-        (
-            demo_program.id(),
-            DogEvents::Walked {
-                from: (1, -1),
-                to: (11, 19)
-            }
-        ),
-        event
-    );
-}
-
-#[tokio::test]
-async fn dog_weights() {
     use demo_client::dog::Dog as _;
+    use demo_client::walker_service::{WalkerService as _, events::WalkerServiceEvents};
     // Arrange
     let (env, code_id, _gas_limit) = create_env();
 
@@ -285,8 +247,50 @@ async fn dog_weights() {
         .unwrap();
 
     let dog_client = demo_program.dog();
+    let mut walker_client = dog_client.walker_service();
+    let listener = walker_client.listener();
+    let mut events = listener.listen().await.unwrap();
 
-    let avg_weight = dog_client.avg_weight().await.unwrap();
+    // Act
+    walker_client.walk(10, 20).await.unwrap();
+
+    // Assert
+    let position = walker_client.position().await.unwrap();
+    let event = events.next().await.unwrap();
+
+    assert_eq!(position, (11, 19));
+    assert_eq!(
+        (
+            demo_program.id(),
+            WalkerServiceEvents::Walked {
+                from: (1, -1),
+                to: (11, 19)
+            }
+        ),
+        event
+    );
+}
+
+#[tokio::test]
+async fn dog_weights() {
+    use demo_client::dog::Dog as _;
+    use demo_client::mammal_service::MammalService as _;
+    // Arrange
+    let (env, code_id, _gas_limit) = create_env();
+
+    // Use generated client code for activating Demo program
+    // using the `new` constructor and the `send`/`recv` pair
+    // of methods
+    let demo_program = env
+        .deploy(code_id, vec![])
+        .new(None, Some((1, -1)))
+        .await
+        .unwrap();
+
+    let dog_client = demo_program.dog();
+    let mammal_client = dog_client.mammal_service();
+
+    let avg_weight = mammal_client.avg_weight().await.unwrap();
 
     assert_eq!(avg_weight, 42);
 }

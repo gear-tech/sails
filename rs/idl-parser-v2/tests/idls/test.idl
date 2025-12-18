@@ -1,0 +1,89 @@
+!@sails: 0.1.0
+!@include: ownable.idl
+!@include: git://github.com/some_repo/tippable.idl
+/// Canvas service
+service Canvas {
+    // Merge `functions`, `events`, `types`, from Ownable, Tippable and Pausable services
+    extends {
+        Ownable,
+        Tippable,
+        Pausable,
+    }
+    // Canvas service events
+    events {
+        StatusChanged(Point),
+        Jubilee {
+            /// Amount of alive points.
+            @indexed
+            amount: u64,
+            bits: [u8],
+        },
+        E1,
+    }
+    functions {
+        /// Sets color for the point.
+        /// app -> `fn color_point(&mut self, point: Point<u32>, color: Color) -> Result<(), ColorError>`
+        /// On `Ok` - auto-reply. On `Err` -> app will encode error bytes of `ColorError` (`gr_panic_bytes`).
+        ColorPoint(point: Point, color: Color) throws ColorError;
+        /// Kills the point.
+        /// app -> `fn kill_point(&mut self, point: Point) -> Result<bool, String>`
+        KillPoint(point: Point) -> bool throws String;
+        /// Returns known points.
+        /// app -> `fn points(&self, ...) -> Result<BTreeMap<Point, PointStatus>, String>`
+        @query
+        Points(offset: u32, len: u32) -> [(Point, PointStatus)] throws string;
+        /// Returns status set for given point.
+        @query
+        PointStatus(point: Point) -> PointStatus;
+    }
+    types {
+        // Point with two coordinates.
+        struct Point<T> {
+            /// Horizontal coordinate.
+            x: T,
+            /// Vertical coordinate.
+            y: T,
+        }
+        struct Color {
+            color: [u8; 4],
+            space: ColorSpace,
+        }
+        enum ColorSpace {
+            RGB,
+            HSV,
+            CMYK,
+        }
+        /// Defines status of some point as colored by somebody or dead for some reason.
+        enum PointStatus {
+            /// Colored into some RGB.
+            Colored {
+                /// Who has colored it.
+                author: actor,
+                /// Color used.
+                color: Color,
+            },
+            /// Dead point - won't be available for coloring anymore.
+            Dead,
+        }
+        /// Error happened during point setting.
+        enum ColorError {
+            InvalidSource,
+            DeadPoint,
+        }
+    }
+}
+/// Pausable Service
+service Pausable {
+    events {
+        Paused,
+        Unpaused,
+    }
+    functions {
+        // Client: `fn pause(&mut self) -> Result<(), SailsEnvError>`
+        Pause();
+        Unpause();
+    }
+    types {
+        struct PausedError;
+    }
+}
