@@ -18,24 +18,43 @@
 
 //! Type names resolution.
 
-use crate::errors::{Error, Result};
+use crate::{
+    RawTypeNameResolutionError,
+    errors::{Error, Result},
+};
 use convert_case::{Case, Casing};
 use core::num::{NonZeroU8, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU128};
 use gprimitives::*;
+use quote::ToTokens;
 use scale_info::{
-    PortableType, Type, TypeDef, TypeDefArray, TypeDefPrimitive, TypeDefSequence, TypeDefTuple,
-    TypeInfo, form::PortableForm,
+    Field, PortableType, Type, TypeDef, TypeDefArray, TypeDefPrimitive, TypeDefSequence,
+    TypeDefTuple, TypeInfo, form::PortableForm,
 };
+use serde::Serialize;
 use std::{
-    collections::{BTreeMap, HashMap},
+    collections::{BTreeMap, HashMap, HashSet},
+    ops::Deref,
     rc::Rc,
     result::Result as StdResult,
     sync::OnceLock,
 };
 
+const INTERIM_VEC_TYPE_NAME: &str = "SailsInterimNameVec";
+const INTERIM_BTREE_MAP_TYPE_NAME: &str = "SailsInterimNameBTreeMap";
+const NON_ZERO_U8: &str = "NonZeroU8";
+const NON_ZERO_U16: &str = "NonZeroU16";
+const NON_ZERO_U32: &str = "NonZeroU32";
+const NON_ZERO_U64: &str = "NonZeroU64";
+const NON_ZERO_U128: &str = "NonZeroU128";
+const NON_ZERO_U256: &str = "NonZeroU256";
+
 pub(super) fn resolve<'a>(
     types: impl Iterator<Item = &'a PortableType>,
-) -> Result<BTreeMap<u32, String>> {
+    filter_out_types: &HashSet<u32>,
+) -> Result<(
+    BTreeMap<u32, FinalizedName>,
+    BTreeMap<u32, FinalizedRawName>,
+)> {
     let types = types
         .map(|t| (t.id, t))
         .collect::<BTreeMap<u32, &PortableType>>();
@@ -49,15 +68,34 @@ pub(super) fn resolve<'a>(
                 .map(|_| type_names)
         },
     );
-    type_names.map(|type_names| {
-        type_names
+
+    type_names.and_then(|type_names| {
+        let concrete_names = type_names
             .0
             .iter()
             .map(|(id, name)| (*id, name.as_string(false, &type_names.1)))
-            .collect()
+            .collect();
+
+        resolve_raw_type_names(&types, &concrete_names, filter_out_types).map(|raw_names| {
+            let finalized_raw_names = raw_names
+                .into_iter()
+                .map(|(id, raw_name)| (id, raw_name.finalize()))
+                .collect();
+
+            let concrete_names = concrete_names
+                .into_iter()
+                .map(|(id, name)| {
+                    let finalized_name = finalize_type_name::finalize(&name);
+                    (id, finalized_name)
+                })
+                .collect::<BTreeMap<_, _>>();
+
+            (concrete_names, finalized_raw_names)
+        })
     })
 }
 
+// TODO issue#1104
 fn resolve_type_name(
     types: &BTreeMap<u32, &PortableType>,
     type_id: u32,
@@ -218,7 +256,8 @@ impl ByPathTypeName {
         let mut possible_names = Self::possible_names_by_path(type_info).fold(
             Vec::with_capacity(type_info.path.segments.len() + 1),
             |mut possible_names, name| {
-                possible_names.push((name.clone(), type_params.0.clone()));
+                let possible_name = (name.clone(), type_params.0.clone());
+                possible_names.push(possible_name.clone());
                 let name_ref_count = by_path_type_names
                     .entry((name.clone(), type_params.0.clone()))
                     .or_default();
@@ -231,7 +270,8 @@ impl ByPathTypeName {
             // to solve name conflict with const generic parameters `<const N: size>`
             let name_ref_count = by_path_type_names.get(first_name).unwrap_or(&0);
             let name = format!("{}{}", first_name.0, name_ref_count);
-            possible_names.push((name.clone(), first_name.1.clone()));
+            let possible_name = (name.clone(), first_name.1.clone());
+            possible_names.push(possible_name);
             let name_ref_count = by_path_type_names
                 .entry((name.clone(), type_params.0.clone()))
                 .or_default();
@@ -278,8 +318,8 @@ impl TypeName for ByPathTypeName {
                 .iter()
                 .map(|tn| tn.as_string(true, by_path_type_names))
                 .collect::<Vec<_>>()
-                .join("And");
-            format!("{}For{}", name.0, type_param_names)
+                .join(", ");
+            format!("{}<{}>", name.0, type_param_names)
         }
     }
 }
@@ -348,22 +388,19 @@ impl TypeName for BTreeMapTypeName {
         let value_type_name = self
             .value_type_name
             .as_string(for_generic_param, by_path_type_names);
-        if for_generic_param {
-            format!("MapOf{key_type_name}To{value_type_name}")
-        } else {
-            format!("map ({key_type_name}, {value_type_name})")
-        }
+
+        format!("{INTERIM_BTREE_MAP_TYPE_NAME}<{key_type_name}, {value_type_name}>")
     }
 }
 
 /// Result type name resolution.
-struct ResultTypeName {
+pub(crate) struct ResultTypeName {
     ok_type_name: RcTypeName,
     err_type_name: RcTypeName,
 }
 
 impl ResultTypeName {
-    pub fn new(
+    fn new(
         types: &BTreeMap<u32, &PortableType>,
         type_info: &Type<PortableForm>,
         resolved_type_names: &mut BTreeMap<u32, RcTypeName>,
@@ -420,11 +457,8 @@ impl TypeName for ResultTypeName {
         let err_type_name = self
             .err_type_name
             .as_string(for_generic_param, by_path_type_names);
-        if for_generic_param {
-            format!("ResultOf{ok_type_name}Or{err_type_name}")
-        } else {
-            format!("result ({ok_type_name}, {err_type_name})")
-        }
+
+        format!("Result<{ok_type_name}, {err_type_name}>")
     }
 }
 
@@ -472,11 +506,8 @@ impl TypeName for OptionTypeName {
         let some_type_name = self
             .some_type_name
             .as_string(for_generic_param, by_path_type_names);
-        if for_generic_param {
-            format!("OptOf{some_type_name}")
-        } else {
-            format!("opt {some_type_name}")
-        }
+
+        format!("Option<{some_type_name}>")
     }
 }
 
@@ -509,26 +540,15 @@ impl TypeName for TupleTypeName {
         for_generic_param: bool,
         by_path_type_names: &HashMap<(String, Vec<u32>), u32>,
     ) -> String {
-        if self.field_type_names.is_empty() {
-            "null".into()
-        } else if for_generic_param {
-            format!(
-                "StructOf{}",
-                self.field_type_names
-                    .iter()
-                    .map(|tn| tn.as_string(for_generic_param, by_path_type_names))
-                    .collect::<Vec<_>>()
-                    .join("And")
-            )
+        let field_type_names = self
+            .field_type_names
+            .iter()
+            .map(|tn| tn.as_string(for_generic_param, by_path_type_names))
+            .collect::<Vec<_>>();
+        if field_type_names.len() == 1 {
+            format!("({},)", field_type_names[0])
         } else {
-            format!(
-                "struct {{ {} }}",
-                self.field_type_names
-                    .iter()
-                    .map(|tn| tn.as_string(for_generic_param, by_path_type_names))
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            )
+            format!("({})", field_type_names.join(", "))
         }
     }
 }
@@ -564,11 +584,7 @@ impl TypeName for VectorTypeName {
         let item_type_name = self
             .item_type_name
             .as_string(for_generic_param, by_path_type_names);
-        if for_generic_param {
-            format!("VecOf{item_type_name}")
-        } else {
-            format!("vec {item_type_name}")
-        }
+        format!("{INTERIM_VEC_TYPE_NAME}<{item_type_name}>")
     }
 }
 
@@ -607,11 +623,8 @@ impl TypeName for ArrayTypeName {
         let item_type_name = self
             .item_type_name
             .as_string(for_generic_param, by_path_type_names);
-        if for_generic_param {
-            format!("ArrOf{}{}", self.len, item_type_name)
-        } else {
-            format!("[{}, {}]", item_type_name, self.len)
-        }
+
+        format!("[{item_type_name}; {len}]", len = self.len)
     }
 }
 
@@ -625,7 +638,7 @@ impl PrimitiveTypeName {
         let name = match type_def {
             TypeDefPrimitive::Bool => Ok("bool"),
             TypeDefPrimitive::Char => Ok("char"),
-            TypeDefPrimitive::Str => Ok("str"),
+            TypeDefPrimitive::Str => Ok("String"),
             TypeDefPrimitive::U8 => Ok("u8"),
             TypeDefPrimitive::U16 => Ok("u16"),
             TypeDefPrimitive::U32 => Ok("u32"),
@@ -646,20 +659,24 @@ impl PrimitiveTypeName {
 impl TypeName for PrimitiveTypeName {
     fn as_string(
         &self,
-        for_generic_param: bool,
+        _for_generic_param: bool,
         _by_path_type_names: &HashMap<(String, Vec<u32>), u32>,
     ) -> String {
-        if for_generic_param {
-            self.name.to_case(Case::Pascal)
-        } else {
-            self.name.to_string()
-        }
+        self.name.to_string()
     }
 }
 
 macro_rules! impl_primitive_alias_type_name {
-    ($primitive:ident, $alias:ident) => {
-        mod $alias {
+    ($mod_name:ident, $primitive:ident) => {
+        impl_primitive_alias_type_name!($mod_name, $primitive, stringify!($primitive));
+    };
+
+    ($mod_name:ident, $primitive:ident, $alias:ident) => {
+        impl_primitive_alias_type_name!($mod_name, $primitive, stringify!($alias));
+    };
+
+    ($mod_name:ident, $primitive:ident, $alias:expr) => {
+        mod $mod_name {
             use super::*;
 
             pub(super) struct TypeNameImpl;
@@ -679,39 +696,738 @@ macro_rules! impl_primitive_alias_type_name {
             impl TypeName for TypeNameImpl {
                 fn as_string(
                     &self,
-                    for_generic_param: bool,
+                    _for_generic_param: bool,
                     _by_path_type_names: &HashMap<(String, Vec<u32>), u32>,
                 ) -> String {
-                    if for_generic_param {
-                        stringify!($primitive).into()
-                    } else {
-                        stringify!($alias).into()
-                    }
+                    $alias.into()
                 }
             }
         }
     };
 }
 
-impl_primitive_alias_type_name!(ActorId, actor_id);
-impl_primitive_alias_type_name!(MessageId, message_id);
-impl_primitive_alias_type_name!(CodeId, code_id);
-impl_primitive_alias_type_name!(H160, h160);
-impl_primitive_alias_type_name!(H256, h256);
-impl_primitive_alias_type_name!(U256, u256);
-impl_primitive_alias_type_name!(NonZeroU8, nat8);
-impl_primitive_alias_type_name!(NonZeroU16, nat16);
-impl_primitive_alias_type_name!(NonZeroU32, nat32);
-impl_primitive_alias_type_name!(NonZeroU64, nat64);
-impl_primitive_alias_type_name!(NonZeroU128, nat128);
-impl_primitive_alias_type_name!(NonZeroU256, nat256);
+impl_primitive_alias_type_name!(actor_id, ActorId);
+impl_primitive_alias_type_name!(message_id, MessageId);
+impl_primitive_alias_type_name!(code_id, CodeId);
+impl_primitive_alias_type_name!(h160, H160);
+impl_primitive_alias_type_name!(h256, H256);
+impl_primitive_alias_type_name!(u256, U256, u256);
+impl_primitive_alias_type_name!(nat8, NonZeroU8, { NON_ZERO_U8 });
+impl_primitive_alias_type_name!(nat16, NonZeroU16, { NON_ZERO_U16 });
+impl_primitive_alias_type_name!(nat32, NonZeroU32, { NON_ZERO_U32 });
+impl_primitive_alias_type_name!(nat64, NonZeroU64, { NON_ZERO_U64 });
+impl_primitive_alias_type_name!(nat128, NonZeroU128, { NON_ZERO_U128 });
+impl_primitive_alias_type_name!(nat256, NonZeroU256, { NON_ZERO_U256 });
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
+#[serde(transparent)]
+pub struct FinalizedRawName(RawNames);
+
+impl Deref for FinalizedRawName {
+    type Target = RawNames;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
+#[serde(transparent)]
+pub struct FinalizedName(pub String);
+
+impl Deref for FinalizedName {
+    type Target = String;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+/// Type name with generics info.
+///
+/// Basically it's the string representation of how
+/// the type was declared by the user, including generic.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
+pub enum RawNames {
+    #[serde(rename = "enum")]
+    Enum {
+        docs: Vec<String>,
+        own_name: String,
+        fields: Vec<TypeFieldsOwner>,
+    },
+    #[serde(rename = "struct")]
+    Struct(TypeFieldsOwner),
+}
+
+impl RawNames {
+    fn new_struct(own_name: String, docs: Vec<String>) -> Self {
+        RawNames::Struct(TypeFieldsOwner {
+            own_name,
+            fields: Vec::new(),
+            docs,
+        })
+    }
+
+    fn new_enum(own_name: String, docs: Vec<String>) -> Self {
+        RawNames::Enum {
+            own_name,
+            fields: Vec::new(),
+            docs,
+        }
+    }
+
+    fn finalize(self) -> FinalizedRawName {
+        match self {
+            RawNames::Enum {
+                own_name,
+                fields,
+                docs,
+            } => {
+                let fields = fields
+                    .into_iter()
+                    .map(TypeFieldsOwner::finalize_fields)
+                    .collect();
+
+                FinalizedRawName(RawNames::Enum {
+                    own_name,
+                    fields,
+                    docs,
+                })
+            }
+            RawNames::Struct(owner) => FinalizedRawName(RawNames::Struct(owner.finalize_fields())),
+        }
+    }
+
+    fn add_struct_field(
+        &mut self,
+        field_name: Option<String>,
+        type_name: String,
+        docs: Vec<String>,
+    ) {
+        match self {
+            RawNames::Struct(owner) => owner.fields.push(TypeField {
+                name: field_name,
+                type_name,
+                docs,
+            }),
+            RawNames::Enum { .. } => {}
+        }
+    }
+
+    fn add_enum_field(
+        &mut self,
+        variant_idx: usize,
+        field_name: Option<String>,
+        type_name: String,
+        docs: Vec<String>,
+    ) {
+        let RawNames::Enum { fields, .. } = self else {
+            return;
+        };
+
+        let Some(field_owner) = fields.get_mut(variant_idx) else {
+            panic!("internal error: variant not initialized");
+        };
+
+        field_owner.fields.push(TypeField {
+            name: field_name,
+            type_name,
+            docs,
+        });
+    }
+
+    fn initialize_enum_field(
+        &mut self,
+        variant_idx: usize,
+        variant_name: String,
+        docs: Vec<String>,
+    ) {
+        let RawNames::Enum { fields, .. } = self else {
+            return;
+        };
+
+        let None = fields.get(variant_idx) else {
+            panic!("internal error: variant already initialized");
+        };
+
+        if fields.len() != variant_idx {
+            panic!("internal error: variant indices must be sequential");
+        }
+
+        let new_variant_owner = TypeFieldsOwner {
+            own_name: variant_name,
+            fields: Vec::new(),
+            docs,
+        };
+
+        fields.push(new_variant_owner);
+    }
+
+    #[cfg(test)]
+    pub(crate) fn type_name(&self) -> &str {
+        match self {
+            RawNames::Enum { own_name, .. } => own_name,
+            RawNames::Struct(owner) => &owner.own_name,
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn fields_type_names(&self) -> Vec<&str> {
+        match self {
+            RawNames::Enum { fields, .. } => fields
+                .iter()
+                .flat_map(|owner| owner.fields.iter().map(|field| field.type_name.as_str()))
+                .collect(),
+            RawNames::Struct(owner) => owner
+                .fields
+                .iter()
+                .map(|field| field.type_name.as_str())
+                .collect(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
+pub struct TypeFieldsOwner {
+    pub docs: Vec<String>,
+    pub own_name: String,
+    pub fields: Vec<TypeField>,
+}
+
+impl TypeFieldsOwner {
+    fn finalize_fields(self) -> Self {
+        TypeFieldsOwner {
+            own_name: finalize_type_name::finalize(&self.own_name).0,
+            fields: self
+                .fields
+                .into_iter()
+                .map(TypeField::finalize_field)
+                .collect(),
+            docs: self.docs,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
+pub struct TypeField {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    pub type_name: String,
+    pub docs: Vec<String>,
+}
+
+impl TypeField {
+    fn finalize_field(self) -> Self {
+        TypeField {
+            name: self.name,
+            type_name: finalize_type_name::finalize(&self.type_name).0,
+            docs: self.docs,
+        }
+    }
+}
+
+/// Build names for types defined by user, but with generic type params.
+///
+/// Takes types from the portable registry along with concrete (resolved) types names
+/// and produces a map of type names with generic params as they were declared.
+pub(crate) fn resolve_raw_type_names(
+    types: &BTreeMap<u32, &PortableType>,
+    concrete_names: &BTreeMap<u32, String>,
+    filter_out_types: &HashSet<u32>,
+) -> Result<BTreeMap<u32, RawNames>> {
+    let mut seen_parent_names = HashSet::new();
+    let mut generic_names = BTreeMap::new();
+
+    // Iterate through all types and process their fields
+    for (parent_type_id, parent_type_info) in types {
+        if filter_out_types.contains(parent_type_id) {
+            continue;
+        }
+
+        let parent_type_info = &parent_type_info.ty;
+
+        if parent_type_info.path.namespace().is_empty() {
+            continue;
+        }
+
+        // Skip non-composite and non-variant types, as these are only
+        // types that can be declared with generics by the user.
+        //
+        // Also this check allows to skip Vec<T>, as it's `TypeInfo` impl
+        // defines it as a sequence, not a composite.
+        if !matches!(
+            parent_type_info.type_def,
+            TypeDef::Composite(_) | TypeDef::Variant(_)
+        ) {
+            continue;
+        }
+
+        // Also skip known generic types, as there are no user-defined generics.
+        if ResultTypeName::is_result_type(parent_type_info)
+            || OptionTypeName::is_option_type(parent_type_info)
+            || BTreeMapTypeName::is_btree_map_type(parent_type_info)
+        {
+            continue;
+        }
+
+        // Take generics names
+        let params_names = parent_type_info
+            .type_params
+            .iter()
+            .map(|param| param.name.to_string())
+            .collect::<Vec<_>>();
+
+        // First insert main type
+        let parent_type_name = resolve_parent_type_name(
+            concrete_names
+                .get(parent_type_id)
+                .ok_or(Error::TypeIdIsUnknown(*parent_type_id))?,
+            &params_names,
+        )?;
+
+        if !seen_parent_names.insert(parent_type_name.clone()) {
+            continue;
+        }
+
+        // Construct set of param names for easier lookup
+        let params_names = params_names.into_iter().collect::<HashSet<_>>();
+        let docs = parent_type_info
+            .docs
+            .iter()
+            .map(|doc| doc.to_string())
+            .collect::<Vec<_>>();
+
+        // Then insert fields
+        let type_generic_name = match &parent_type_info.type_def {
+            TypeDef::Composite(composite) => {
+                let mut parent_generic_name = RawNames::new_struct(parent_type_name.clone(), docs);
+                resolve_fields_types_names(
+                    composite.fields.iter(),
+                    concrete_names,
+                    &params_names,
+                    &mut parent_generic_name,
+                    None,
+                )?;
+
+                parent_generic_name
+            }
+            TypeDef::Variant(variant) => {
+                let mut parent_generic_name = RawNames::new_enum(parent_type_name.clone(), docs);
+                for variant in variant.variants.iter() {
+                    let variant_idx = variant.index as usize;
+                    let variant_name = variant.name.to_string();
+                    let variant_docs = variant
+                        .docs
+                        .iter()
+                        .map(|doc| doc.to_string())
+                        .collect::<Vec<_>>();
+
+                    parent_generic_name.initialize_enum_field(
+                        variant_idx,
+                        variant_name,
+                        variant_docs,
+                    );
+
+                    resolve_fields_types_names(
+                        variant.fields.iter(),
+                        concrete_names,
+                        &params_names,
+                        &mut parent_generic_name,
+                        Some(variant_idx),
+                    )?;
+                }
+
+                parent_generic_name
+            }
+            _ => unreachable!("Must not be handled"),
+        };
+
+        if generic_names
+            .insert(*parent_type_id, type_generic_name)
+            .is_some()
+        {
+            return Err(RawTypeNameResolutionError::MainTypeRepetition(parent_type_name).into());
+        }
+    }
+
+    Ok(generic_names)
+}
+
+/// Construct parent type name declaration with generics.
+///
+/// Simply takes the concrete name and replaces concrete generics with generic param names,
+/// by splitting at `<` and joining with provided type param names.
+fn resolve_parent_type_name(concrete_name: &str, type_params: &[String]) -> Result<String> {
+    let type_name_without_generics =
+        concrete_name
+            .split('<')
+            .next()
+            .ok_or(RawTypeNameResolutionError::UnexpectedValue(format!(
+                "Expected struct/enum type with `<` symbol, got - {concrete_name}"
+            )))?;
+
+    Ok(if type_params.is_empty() {
+        type_name_without_generics.to_string()
+    } else {
+        format!("{type_name_without_generics}<{}>", type_params.join(", "))
+    })
+}
+
+fn resolve_fields_types_names<'a>(
+    fields_iter: impl Iterator<Item = &'a Field<PortableForm>>,
+    concrete_names: &BTreeMap<u32, String>,
+    params_names: &HashSet<String>,
+    parent_generic_name: &mut RawNames,
+    variant_idx: Option<usize>,
+) -> Result<()> {
+    for field in fields_iter {
+        let field_name = field.name.as_ref().map(|name| name.to_string());
+        let field_type_id = field.ty.id;
+        let field_type_name = field
+            .type_name
+            .as_ref()
+            .map(|name| name.to_string())
+            .expect("field must have name set");
+        let field_docs = field
+            .docs
+            .iter()
+            .map(|doc| doc.to_string())
+            .collect::<Vec<_>>();
+
+        let field_type_name =
+            resolve_field_type_name(field_type_id, field_type_name, concrete_names, params_names)?;
+
+        if let Some(variant_idx) = variant_idx {
+            parent_generic_name.add_enum_field(
+                variant_idx,
+                field_name,
+                field_type_name,
+                field_docs,
+            );
+        } else {
+            parent_generic_name.add_struct_field(field_name, field_type_name, field_docs);
+        }
+    }
+
+    Ok(())
+}
+
+fn resolve_field_type_name(
+    field_type_id: u32,
+    field_type_name: String,
+    concrete_names: &BTreeMap<u32, String>,
+    params_names: &HashSet<String>,
+) -> Result<String> {
+    let concrete_type_name = concrete_names
+        .get(&field_type_id)
+        .ok_or(Error::TypeIdIsUnknown(field_type_id))?;
+
+    if &field_type_name == concrete_type_name {
+        return Ok(field_type_name);
+    }
+
+    // Type names differ either due to monomorphization or type name resolution, or both
+    let syn_field_type_name = syn::parse_str::<syn::Type>(&field_type_name).map_err(|e| {
+        RawTypeNameResolutionError::UnexpectedValue(format!(
+            "Failed to parse field type name `{field_type_name}`: {e}"
+        ))
+    })?;
+    let syn_concrete_type_name = syn::parse_str::<syn::Type>(concrete_type_name).map_err(|e| {
+        RawTypeNameResolutionError::UnexpectedValue(format!(
+            "Failed to parse concrete type name `{concrete_type_name}`: {e}"
+        ))
+    })?;
+
+    let resolved_type =
+        resolve_to_generic::resolve(&syn_concrete_type_name, &syn_field_type_name, params_names)?;
+
+    Ok(resolved_type.format())
+}
+
+mod resolve_to_generic {
+    use super::*;
+    use syn::{
+        GenericArgument, PathArguments, Type as SynType, TypeArray, TypeGroup, TypeParen, TypePath,
+        TypeReference, TypeTuple, punctuated::Punctuated,
+    };
+
+    /// Resolves a concrete type name to a generic one by replacing concrete arguments by generic ones.
+    ///
+    /// The function is a bit complex, because `initial` contains identifiers of types that were previously
+    /// resolved by type names resolution algo above, which takes into account if there are types with same
+    /// names and etc.
+    ///
+    /// The algorithm works the following way:
+    /// - If `initial` is just a generic parameter, then return it as is, else take concrete value,
+    ///   because if values differ, then it's due to type resolution, and resolved names from concrete
+    ///   must be taken.
+    /// - If `initial` and `concrete` are complex types owning internally other types (like arrays, tuples and etc.)
+    ///   then recursively resolve their inner types. The resolution is done based on instruction described above.
+    pub(super) fn resolve(
+        concrete: &SynType,
+        initial: &SynType,
+        generics: &HashSet<String>,
+    ) -> Result<SynType> {
+        match initial {
+            // Check if we have `initial` to be just a generic parameter.
+            SynType::Path(TypePath { qself: None, path }) if path.get_ident().is_some() => {
+                let ident = path
+                    .get_ident()
+                    .expect("path type must have identifier")
+                    .to_string();
+
+                if generics.contains(&ident) {
+                    return Ok(initial.clone());
+                }
+            }
+            _ => {}
+        }
+
+        match (concrete, initial) {
+            (SynType::Path(cp), SynType::Path(gp)) => resolve_type_path(cp, gp, generics),
+            (SynType::Tuple(ct), SynType::Tuple(gt)) => resolve_type_tuple(ct, gt, generics),
+            (SynType::Array(ca), SynType::Array(ga)) => resolve_type_array(ca, ga, generics),
+            (SynType::Paren(cp), SynType::Paren(gp)) => resolve_type_paren(cp, gp, generics),
+            (SynType::Group(cg), SynType::Group(gg)) => resolve_type_group(cg, gg, generics),
+            (SynType::Reference(cr), SynType::Reference(gr)) => resolve_type_ref(cr, gr, generics),
+            _ => unreachable!(
+                "Unexpected type combination in into generic resolution method: concrete {}, initial {}",
+                concrete.format(),
+                initial.format(),
+            ),
+        }
+    }
+
+    fn resolve_type_path(
+        concrete: &TypePath,
+        initial: &TypePath,
+        generics: &HashSet<String>,
+    ) -> Result<SynType> {
+        // The resolution is done base on concrete value, as it's elements are changed to generics.
+        let mut ret = concrete.clone();
+
+        let concrete_path = concrete.path.segments.last();
+        let initial_path = initial.path.segments.last();
+        let Some((concrete_path, initial_path)) = concrete_path.zip(initial_path) else {
+            return Err(RawTypeNameResolutionError::UnexpectedValue(format!(
+                "Mismatched type paths during generic resolution: concrete {}, initial {}",
+                concrete.format(),
+                initial.format(),
+            ))
+            .into());
+        };
+
+        if let (
+            PathArguments::AngleBracketed(concrete_type_args),
+            PathArguments::AngleBracketed(initial_type_args),
+        ) = (&concrete_path.arguments, &initial_path.arguments)
+        {
+            let mut new_args = Punctuated::new();
+
+            let args_iter = concrete_type_args
+                .args
+                .iter()
+                .zip(initial_type_args.args.iter());
+            for (concrete_argument, initial_argument) in args_iter {
+                // Just take the argument or resolve from concrete to generic.
+                let resolved_arg = match (concrete_argument, initial_argument) {
+                    (GenericArgument::Type(c), GenericArgument::Type(i)) => {
+                        GenericArgument::Type(resolve(c, i, generics)?)
+                    }
+                    _ => concrete_argument.clone(),
+                };
+
+                new_args.push(resolved_arg);
+            }
+
+            let last = ret.path.segments.last_mut().expect("checked");
+            last.arguments = PathArguments::AngleBracketed(syn::AngleBracketedGenericArguments {
+                args: new_args,
+                ..concrete_type_args.clone()
+            });
+        }
+
+        // Else means, that concrete path type doesn't have generic argument, so does not the initial one.
+        // In this case, we just take a value of `concrete`.
+        // Case when initial has generics and the concrete doesn't is not possible.
+
+        Ok(SynType::Path(ret))
+    }
+
+    fn resolve_type_tuple(
+        concrete: &TypeTuple,
+        initial: &TypeTuple,
+        generics: &HashSet<String>,
+    ) -> Result<SynType> {
+        let mut ret = concrete.clone();
+        ret.elems = concrete
+            .elems
+            .iter()
+            .zip(&initial.elems)
+            .map(|(c, i)| resolve(c, i, generics))
+            .collect::<Result<Vec<SynType>>>()?
+            .into_iter()
+            .collect();
+
+        Ok(SynType::Tuple(ret))
+    }
+
+    fn resolve_type_array(
+        concrete: &TypeArray,
+        initial: &TypeArray,
+        generics: &HashSet<String>,
+    ) -> Result<SynType> {
+        let mut ret = concrete.clone();
+        ret.elem = Box::new(resolve(&concrete.elem, &initial.elem, generics)?);
+
+        Ok(SynType::Array(ret))
+    }
+
+    fn resolve_type_paren(
+        concrete: &TypeParen,
+        initial: &TypeParen,
+        generics: &HashSet<String>,
+    ) -> Result<SynType> {
+        let mut ret = concrete.clone();
+        ret.elem = Box::new(resolve(&concrete.elem, &initial.elem, generics)?);
+
+        Ok(SynType::Paren(ret))
+    }
+
+    fn resolve_type_group(
+        concrete: &TypeGroup,
+        initial: &TypeGroup,
+        generics: &HashSet<String>,
+    ) -> Result<SynType> {
+        let mut ret = concrete.clone();
+        ret.elem = Box::new(resolve(&concrete.elem, &initial.elem, generics)?);
+
+        Ok(SynType::Group(ret))
+    }
+
+    fn resolve_type_ref(
+        concrete: &TypeReference,
+        initial: &TypeReference,
+        generics: &HashSet<String>,
+    ) -> Result<SynType> {
+        let mut ret = concrete.clone();
+        ret.elem = Box::new(resolve(&concrete.elem, &initial.elem, generics)?);
+
+        Ok(SynType::Reference(ret))
+    }
+}
+
+trait FormatSynType {
+    fn format(&self) -> String;
+}
+
+impl<T: ToTokens> FormatSynType for T {
+    fn format(&self) -> String {
+        self.to_token_stream()
+            .to_string()
+            .replace(" < ", "<")
+            .replace(" >", ">")
+            .replace(" , ", ", ")
+            .replace(" ( ", "(")
+            .replace(" ) ", ")")
+            .replace(" [ ", "[")
+            .replace(" ] ", "]")
+            .replace(" ; ", "; ")
+    }
+}
+
+mod finalize_type_name {
+    use super::*;
+    use syn::{
+        GenericArgument, PathArguments, Type, TypeArray, TypeParen, TypePath, TypeReference,
+        TypeSlice, TypeTuple,
+    };
+
+    pub(super) fn finalize(type_name: &str) -> FinalizedName {
+        let syn_type = syn::parse_str::<Type>(type_name).unwrap_or_else(|_| {
+            unreachable!(
+                "internal error: failed to parse type name during finalization: {type_name}"
+            )
+        });
+
+        FinalizedName(finalize_syn(&syn_type))
+    }
+
+    fn finalize_syn(t: &Type) -> String {
+        match t {
+            Type::Array(TypeArray { elem, len, .. }) => {
+                format!("[{}; {}]", finalize_syn(elem), len.format())
+            }
+            Type::Slice(TypeSlice { elem, .. }) => format!("[{}]", finalize_syn(elem)),
+            Type::Tuple(TypeTuple { elems, .. }) => {
+                let elements = elems.iter().map(finalize_syn).collect::<Vec<_>>();
+                if elements.len() == 1 {
+                    format!("({},)", elements[0])
+                } else {
+                    format!("({})", elements.join(", "))
+                }
+            }
+            Type::Reference(TypeReference { elem, .. }) => finalize_syn(elem),
+            // No paren types in the final output. Only single value tuples
+            Type::Paren(TypeParen { elem, .. }) => finalize_syn(elem),
+            Type::Path(TypePath { path, .. }) => {
+                let last_segment = path.segments.last().unwrap();
+                let ident = last_segment.ident.to_string();
+
+                if let PathArguments::AngleBracketed(syn_args) = &last_segment.arguments {
+                    let args = syn_args
+                        .args
+                        .iter()
+                        .map(finalize_type_inner)
+                        .collect::<Vec<_>>()
+                        .join(", ");
+
+                    match ident.as_str() {
+                        INTERIM_VEC_TYPE_NAME => {
+                            if syn_args.args.len() != 1 {
+                                panic!("Vec is accepted only with one generic argument");
+                            }
+
+                            format!("[{args}]")
+                        }
+                        INTERIM_BTREE_MAP_TYPE_NAME => {
+                            if syn_args.args.len() != 2 {
+                                panic!("BTreeMap is accepted only with two generic arguments");
+                            }
+
+                            format!("[({args})]")
+                        }
+                        ident => format!("{ident}<{args}>"),
+                    }
+                } else {
+                    match ident.as_str() {
+                        NON_ZERO_U8 => "NonZero<u8>".to_string(),
+                        NON_ZERO_U16 => "NonZero<u16>".to_string(),
+                        NON_ZERO_U32 => "NonZero<u32>".to_string(),
+                        NON_ZERO_U64 => "NonZero<u64>".to_string(),
+                        NON_ZERO_U128 => "NonZero<u128>".to_string(),
+                        NON_ZERO_U256 => "NonZero<u256>".to_string(),
+                        ident => ident.to_string(),
+                    }
+                }
+            }
+            _ => t.format(),
+        }
+    }
+
+    fn finalize_type_inner(arg: &GenericArgument) -> String {
+        match arg {
+            GenericArgument::Type(t) => finalize_syn(t),
+            _ => arg.format(),
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {
-    use std::result;
-
     use super::*;
-    use scale_info::{MetaType, PortableRegistry, Registry};
+    use scale_info::{MetaType, PortableRegistry, Registry, TypeDefComposite, Variant};
+    use std::result;
 
     #[allow(dead_code)]
     #[derive(TypeInfo)]
@@ -772,16 +1488,18 @@ mod tests {
             .id;
         let portable_registry = PortableRegistry::from(registry);
 
-        let type_names = resolve(portable_registry.types.iter()).unwrap();
+        let type_names = resolve(portable_registry.types.iter(), &Default::default())
+            .unwrap()
+            .0;
 
-        let h256_name = type_names.get(&h256_id).unwrap();
-        assert_eq!(h256_name, "h256");
-        let as_generic_param_name = type_names.get(&h256_as_generic_param_id).unwrap();
-        assert_eq!(as_generic_param_name, "GenericStructForH256");
-        let u256_name = type_names.get(&u256_id).unwrap();
+        let h256_name = &type_names.get(&h256_id).unwrap().0;
+        assert_eq!(h256_name, "H256");
+        let as_generic_param_name = &type_names.get(&h256_as_generic_param_id).unwrap().0;
+        assert_eq!(as_generic_param_name, "GenericStruct<H256>");
+        let u256_name = &type_names.get(&u256_id).unwrap().0;
         assert_eq!(u256_name, "u256");
-        let as_generic_param_name = type_names.get(&u256_as_generic_param_id).unwrap();
-        assert_eq!(as_generic_param_name, "GenericStructForU256");
+        let as_generic_param_name = &type_names.get(&u256_as_generic_param_id).unwrap().0;
+        assert_eq!(as_generic_param_name, "GenericStruct<u256>");
     }
 
     #[test]
@@ -795,13 +1513,13 @@ mod tests {
             .id;
         let portable_registry = PortableRegistry::from(registry);
 
-        let type_names = resolve(portable_registry.types.iter()).unwrap();
+        let (type_names, _) = resolve(portable_registry.types.iter(), &Default::default()).unwrap();
 
         let u32_struct_name = type_names.get(&u32_struct_id).unwrap();
-        assert_eq!(u32_struct_name, "GenericStructForU32");
+        assert_eq!(u32_struct_name.0, "GenericStruct<u32>");
 
         let string_struct_name = type_names.get(&string_struct_id).unwrap();
-        assert_eq!(string_struct_name, "GenericStructForStr");
+        assert_eq!(string_struct_name.0, "GenericStruct<String>");
     }
 
     #[test]
@@ -815,13 +1533,13 @@ mod tests {
             .id;
         let portable_registry = PortableRegistry::from(registry);
 
-        let type_names = resolve(portable_registry.types.iter()).unwrap();
+        let (type_names, _) = resolve(portable_registry.types.iter(), &Default::default()).unwrap();
 
         let u32_string_enum_name = type_names.get(&u32_string_enum_id).unwrap();
-        assert_eq!(u32_string_enum_name, "GenericEnumForU32AndStr");
+        assert_eq!(u32_string_enum_name.0, "GenericEnum<u32, String>");
 
         let bool_u32_enum_name = type_names.get(&bool_u32_enum_id).unwrap();
-        assert_eq!(bool_u32_enum_name, "GenericEnumForBoolAndU32");
+        assert_eq!(bool_u32_enum_name.0, "GenericEnum<bool, u32>");
     }
 
     #[test]
@@ -833,12 +1551,12 @@ mod tests {
             .id;
         let portable_registry = PortableRegistry::from(registry);
 
-        let type_names = resolve(portable_registry.types.iter()).unwrap();
+        let (type_names, _) = resolve(portable_registry.types.iter(), &Default::default()).unwrap();
 
         let u32_array_name = type_names.get(&u32_array_id).unwrap();
-        assert_eq!(u32_array_name, "[u32, 10]");
+        assert_eq!(u32_array_name.0, "[u32; 10]");
         let as_generic_param_name = type_names.get(&as_generic_param_id).unwrap();
-        assert_eq!(as_generic_param_name, "GenericStructForArrOf10U32");
+        assert_eq!(as_generic_param_name.0, "GenericStruct<[u32; 10]>");
     }
 
     #[test]
@@ -850,12 +1568,12 @@ mod tests {
             .id;
         let portable_registry = PortableRegistry::from(registry);
 
-        let type_names = resolve(portable_registry.types.iter()).unwrap();
+        let (type_names, _) = resolve(portable_registry.types.iter(), &Default::default()).unwrap();
 
         let u32_vector_name = type_names.get(&u32_vector_id).unwrap();
-        assert_eq!(u32_vector_name, "vec u32");
+        assert_eq!(u32_vector_name.0, "[u32]");
         let as_generic_param_name = type_names.get(&as_generic_param_id).unwrap();
-        assert_eq!(as_generic_param_name, "GenericStructForVecOfU32");
+        assert_eq!(as_generic_param_name.0, "GenericStruct<[u32]>");
     }
 
     #[test]
@@ -869,12 +1587,15 @@ mod tests {
             .id;
         let portable_registry = PortableRegistry::from(registry);
 
-        let type_names = resolve(portable_registry.types.iter()).unwrap();
+        let (type_names, _) = resolve(portable_registry.types.iter(), &Default::default()).unwrap();
 
         let u32_result_name = type_names.get(&u32_result_id).unwrap();
-        assert_eq!(u32_result_name, "result (u32, str)");
+        assert_eq!(u32_result_name.0, "Result<u32, String>");
         let as_generic_param_name = type_names.get(&as_generic_param_id).unwrap();
-        assert_eq!(as_generic_param_name, "GenericStructForResultOfU32OrStr");
+        assert_eq!(
+            as_generic_param_name.0,
+            "GenericStruct<Result<u32, String>>"
+        );
     }
 
     #[test]
@@ -886,12 +1607,12 @@ mod tests {
             .id;
         let portable_registry = PortableRegistry::from(registry);
 
-        let type_names = resolve(portable_registry.types.iter()).unwrap();
+        let (type_names, _) = resolve(portable_registry.types.iter(), &Default::default()).unwrap();
 
         let u32_option_name = type_names.get(&u32_option_id).unwrap();
-        assert_eq!(u32_option_name, "opt u32");
+        assert_eq!(u32_option_name.0, "Option<u32>");
         let as_generic_param_name = type_names.get(&as_generic_param_id).unwrap();
-        assert_eq!(as_generic_param_name, "GenericStructForOptOfU32");
+        assert_eq!(as_generic_param_name.0, "GenericStruct<Option<u32>>");
     }
 
     #[test]
@@ -903,12 +1624,12 @@ mod tests {
             .id;
         let portable_registry = PortableRegistry::from(registry);
 
-        let type_names = resolve(portable_registry.types.iter()).unwrap();
+        let (type_names, _) = resolve(portable_registry.types.iter(), &Default::default()).unwrap();
 
         let u32_str_tuple_name = type_names.get(&u32_str_tuple_id).unwrap();
-        assert_eq!(u32_str_tuple_name, "struct { u32, str }");
+        assert_eq!(u32_str_tuple_name.0, "(u32, String)");
         let as_generic_param_name = type_names.get(&as_generic_param_id).unwrap();
-        assert_eq!(as_generic_param_name, "GenericStructForStructOfU32AndStr");
+        assert_eq!(as_generic_param_name.0, "GenericStruct<(u32, String)>");
     }
 
     #[test]
@@ -922,12 +1643,12 @@ mod tests {
             .id;
         let portable_registry = PortableRegistry::from(registry);
 
-        let type_names = resolve(portable_registry.types.iter()).unwrap();
+        let (type_names, _) = resolve(portable_registry.types.iter(), &Default::default()).unwrap();
 
         let btree_map_name = type_names.get(&btree_map_id).unwrap();
-        assert_eq!(btree_map_name, "map (u32, str)");
+        assert_eq!(btree_map_name.0, "[(u32, String)]");
         let as_generic_param_name = type_names.get(&as_generic_param_id).unwrap();
-        assert_eq!(as_generic_param_name, "GenericStructForMapOfU32ToStr");
+        assert_eq!(as_generic_param_name.0, "GenericStruct<[(u32, String)]>");
     }
 
     #[test]
@@ -937,13 +1658,13 @@ mod tests {
         let t2_id = registry.register_type(&MetaType::new::<mod_2::T1>()).id;
         let portable_registry = PortableRegistry::from(registry);
 
-        let type_names = resolve(portable_registry.types.iter()).unwrap();
+        let (type_names, _) = resolve(portable_registry.types.iter(), &Default::default()).unwrap();
 
         let t1_name = type_names.get(&t1_id).unwrap();
-        assert_eq!(t1_name, "Mod1T1");
+        assert_eq!(t1_name.0, "Mod1T1");
 
         let t2_name = type_names.get(&t2_id).unwrap();
-        assert_eq!(t2_name, "Mod2T1");
+        assert_eq!(t2_name.0, "Mod2T1");
     }
 
     #[test]
@@ -955,17 +1676,17 @@ mod tests {
         let t2_id = registry.register_type(&MetaType::new::<mod_2::T2>()).id;
         let portable_registry = PortableRegistry::from(registry);
 
-        let type_names = resolve(portable_registry.types.iter()).unwrap();
+        let (type_names, _) = resolve(portable_registry.types.iter(), &Default::default()).unwrap();
 
         let t1_name = type_names.get(&t1_id).unwrap();
-        assert_eq!(t1_name, "Mod1Mod2T2");
+        assert_eq!(t1_name.0, "Mod1Mod2T2");
 
         let t2_name = type_names.get(&t2_id).unwrap();
-        assert_eq!(t2_name, "TestsMod2T2");
+        assert_eq!(t2_name.0, "TestsMod2T2");
     }
 
     macro_rules! type_name_resolution_works {
-        ($primitive:ident, $alias:ident) => {
+        ($primitive:ty) => {
             let mut registry = Registry::new();
             let id = registry.register_type(&MetaType::new::<$primitive>()).id;
             let as_generic_param_id = registry
@@ -973,66 +1694,68 @@ mod tests {
                 .id;
             let portable_registry = PortableRegistry::from(registry);
 
-            let type_names = resolve(portable_registry.types.iter()).unwrap();
+            let (type_names, _) =
+                resolve(portable_registry.types.iter(), &Default::default()).unwrap();
 
-            let name = type_names.get(&id).unwrap();
-            assert_eq!(name, stringify!($alias));
-            let as_generic_param_name = type_names.get(&as_generic_param_id).unwrap();
+            let name = &type_names.get(&id).unwrap().0;
+            assert_eq!(name, stringify!($primitive));
+            let as_generic_param_name = &type_names.get(&as_generic_param_id).unwrap().0;
             assert_eq!(
                 as_generic_param_name,
-                concat!("GenericStructFor", stringify!($primitive))
+                concat!("GenericStruct<", stringify!($primitive), ">")
             );
         };
     }
 
     #[test]
     fn actor_id_type_name_resolution_works() {
-        type_name_resolution_works!(ActorId, actor_id);
+        type_name_resolution_works!(ActorId);
     }
 
     #[test]
     fn message_id_type_name_resolution_works() {
-        type_name_resolution_works!(MessageId, message_id);
+        type_name_resolution_works!(MessageId);
     }
 
     #[test]
     fn code_id_type_name_resolution_works() {
-        type_name_resolution_works!(CodeId, code_id);
+        type_name_resolution_works!(CodeId);
     }
 
     #[test]
     fn h160_type_name_resolution_works() {
-        type_name_resolution_works!(H160, h160);
+        type_name_resolution_works!(H160);
     }
 
     #[test]
-    fn nonzero_u8_type_name_resolution_works() {
-        type_name_resolution_works!(NonZeroU8, nat8);
-    }
+    fn non_zero_types_name_resolution_works() {
+        type Test = (
+            NonZeroU8,
+            NonZeroU16,
+            NonZeroU32,
+            NonZeroU64,
+            NonZeroU128,
+            NonZeroU256,
+        );
+        let mut registry = Registry::new();
+        let id = registry.register_type(&MetaType::new::<Test>()).id;
+        let part_of_generic = registry
+            .register_type(&MetaType::new::<GenericStruct<Test>>())
+            .id;
+        let portable_registry = PortableRegistry::from(registry);
 
-    #[test]
-    fn nonzero_u16_type_name_resolution_works() {
-        type_name_resolution_works!(NonZeroU16, nat16);
-    }
+        let (type_names, _) = resolve(portable_registry.types.iter(), &Default::default()).unwrap();
+        let name = &type_names.get(&id).unwrap().0;
+        assert_eq!(
+            name,
+            "(NonZero<u8>, NonZero<u16>, NonZero<u32>, NonZero<u64>, NonZero<u128>, NonZero<u256>)"
+        );
 
-    #[test]
-    fn nonzero_u32_type_name_resolution_works() {
-        type_name_resolution_works!(NonZeroU32, nat32);
-    }
-
-    #[test]
-    fn nonzero_u64_type_name_resolution_works() {
-        type_name_resolution_works!(NonZeroU64, nat64);
-    }
-
-    #[test]
-    fn nonzero_u128_type_name_resolution_works() {
-        type_name_resolution_works!(NonZeroU128, nat128);
-    }
-
-    #[test]
-    fn nonzero_u256_type_name_resolution_works() {
-        type_name_resolution_works!(NonZeroU256, nat256);
+        let part_of_generic_name = &type_names.get(&part_of_generic).unwrap().0;
+        assert_eq!(
+            part_of_generic_name,
+            "GenericStruct<(NonZero<u8>, NonZero<u16>, NonZero<u32>, NonZero<u64>, NonZero<u128>, NonZero<u256>)>"
+        );
     }
 
     #[test]
@@ -1055,20 +1778,1414 @@ mod tests {
             .id;
         let portable_registry = PortableRegistry::from(registry);
 
-        let type_names = resolve(portable_registry.types.iter()).unwrap();
+        let filter_out_types = HashSet::new();
+        let (type_names, _) = resolve(portable_registry.types.iter(), &filter_out_types).unwrap();
 
         assert_eq!(n8_id, n8_id_2);
         assert_ne!(n8_id, n32_id);
         assert_ne!(n8_id, n256_id);
-        assert_eq!(type_names.get(&n8_id).unwrap(), "GenericConstStruct1ForU8");
-        assert_eq!(type_names.get(&n32_id).unwrap(), "GenericConstStruct2ForU8");
         assert_eq!(
-            type_names.get(&n256_id).unwrap(),
-            "GenericConstStruct3ForU8"
+            &type_names.get(&n8_id).unwrap().0,
+            "GenericConstStruct1<u8>"
         );
         assert_eq!(
-            type_names.get(&n32u256_id).unwrap(),
-            "GenericConstStructForU256"
+            &type_names.get(&n32_id).unwrap().0,
+            "GenericConstStruct2<u8>"
         );
+        assert_eq!(
+            &type_names.get(&n256_id).unwrap().0,
+            "GenericConstStruct3<u8>"
+        );
+        assert_eq!(
+            &type_names.get(&n32u256_id).unwrap().0,
+            "GenericConstStruct<u256>"
+        );
+    }
+
+    #[test]
+    fn finalize_names() {
+        let cases = vec![
+            // Vec replacements
+            ("SailsInterimNameVec<i32>", "[i32]"),
+            ("SailsInterimNameVec<&str>", "[str]"),
+            // Paren types are unwrapped
+            ("(SailsInterimNameVec<String>)", "[String]"),
+            ("SailsInterimNameVec<&'a mut u64>", "[u64]"),
+            ("SailsInterimNameVec<(String, u8)>", "[(String, u8)]"),
+            ("&SailsInterimNameVec<String>", "[String]"),
+            ("&(SailsInterimNameVec<u32>)", "[u32]"),
+            ("SailsInterimNameVec<SailsInterimNameVec<bool>>", "[[bool]]"),
+            (
+                "&(SailsInterimNameVec<&'static SailsInterimNameVec<i16>>)",
+                "[[i16]]",
+            ),
+            ("SailsInterimNameVec<[u32; 4]>", "[[u32; 4]]"),
+            (
+                "SailsInterimNameVec<(SailsInterimNameVec<i8>, f64)>",
+                "[([i8], f64)]",
+            ),
+            (
+                "Result<SailsInterimNameVec<u8>, String>",
+                "Result<[u8], String>",
+            ),
+            (
+                "Option<SailsInterimNameBTreeMap<i32, i32>>",
+                "Option<[(i32, i32)]>",
+            ),
+            (
+                "(u32, SailsInterimNameVec<i64>, bool)",
+                "(u32, [i64], bool)",
+            ),
+            (
+                "(SailsInterimNameBTreeMap<u8, u8>, (SailsInterimNameVec<u128>, char))",
+                "([(u8, u8)], ([u128], char))",
+            ),
+            ("SailsInterimNameBTreeMap<String, u32>", "[(String, u32)]"),
+            ("SailsInterimNameBTreeMap<&'a str, i8>", "[(str, i8)]"),
+            (
+                "SailsInterimNameBTreeMap<u8, SailsInterimNameVec<bool>>",
+                "[(u8, [bool])]",
+            ),
+            ("&SailsInterimNameBTreeMap<i32, f32>", "[(i32, f32)]"),
+            (
+                "&(SailsInterimNameBTreeMap<&'static str, SailsInterimNameVec<f32>>)",
+                "[(str, [f32])]",
+            ),
+            (
+                "SailsInterimNameBTreeMap<u8, SailsInterimNameBTreeMap<u8, u8>>",
+                "[(u8, [(u8, u8)])]",
+            ),
+            (
+                "SailsInterimNameVec<SailsInterimNameBTreeMap<i32, i32>>",
+                "[[(i32, i32)]]",
+            ),
+            (
+                "SailsInterimNameBTreeMap<(u8, u8), SailsInterimNameVec<(u8, u8)>>",
+                "[((u8, u8), [(u8, u8)])]",
+            ),
+            // Mixed/edge cases
+            (
+                "&'a mut SailsInterimNameBTreeMap<String, &'a T>",
+                "[(String, T)]",
+            ),
+            (
+                "(SailsInterimNameVec<i32>, &'b SailsInterimNameBTreeMap<bool, bool>)",
+                "([i32], [(bool, bool)])",
+            ),
+            (
+                "[SailsInterimNameBTreeMap<u8, SailsInterimNameVec<u8>>; 10]",
+                "[[(u8, [u8])]; 10]",
+            ),
+            (
+                "Result<SailsInterimNameVec<SailsInterimNameBTreeMap<u8, SailsInterimNameVec<u8>>>, ()>",
+                "Result<[[(u8, [u8])]], ()>",
+            ),
+            // Double unwrap of a paren type
+            ("((SailsInterimNameVec<u8>))", "[u8]"),
+            // Single-element tuple in paren
+            ("((SailsInterimNameVec<u8>),)", "([u8],)"),
+            // Single-element tuple
+            ("(SailsInterimNameVec<u8>,)", "([u8],)"),
+            (
+                "(Option<[SailsInterimNameBTreeMap<char, SailsInterimNameVec<u8>>; 4]>, &[SailsInterimNameVec<u8>])",
+                "(Option<[[(char, [u8])]; 4]>, [[u8]])",
+            ),
+            // NonZero types
+            ("NonZeroU8", "NonZero<u8>"),
+            ("NonZeroU16", "NonZero<u16>"),
+            ("NonZeroU32", "NonZero<u32>"),
+            ("NonZeroU64", "NonZero<u64>"),
+            ("NonZeroU128", "NonZero<u128>"),
+            ("NonZeroU256", "NonZero<u256>"),
+        ];
+
+        for (input, expected) in cases {
+            let finalized = finalize_type_name::finalize(input);
+            assert_eq!(finalized.0, expected, "Failed for input: {input}");
+        }
+    }
+
+    #[test]
+    fn simple_cases_one_generic() {
+        // Define helper types for the test
+        #[allow(dead_code)]
+        #[derive(TypeInfo)]
+        struct SimpleOneGenericStruct<T> {
+            // Category 1: Simple generic usage
+            concrete: u32,
+            genericless_unit: GenericlessUnitStruct,
+            genericless_tuple: GenericlessTupleStruct,
+            genericless_named: GenericlessNamedStruct,
+            genericless_enum: GenericlessEnum,
+            genericless_variantless_enum: GenericlessVariantlessEnum,
+            generic_value: T,
+            tuple_generic: (String, T, T, u32),
+            option_generic: Option<T>,
+            result_generic: result::Result<T, String>,
+            btreemap_generic: BTreeMap<String, T>,
+            struct_generic: GenericStruct<T>,
+            enum_generic: SimpleOneGenericEnum<T>,
+
+            // Category 2: Two-level nested generics
+            option_of_option: Option<Option<T>>,
+            result_of_option: result::Result<Option<T>, String>,
+            btreemap_nested: BTreeMap<Option<T>, GenericStruct<T>>,
+            struct_of_option: GenericStruct<Option<T>>,
+            enum_of_result: SimpleOneGenericEnum<result::Result<T, String>>,
+
+            // Category 3: Triple-nested generics
+            option_triple: Option<Option<Option<T>>>,
+            result_triple: result::Result<Option<result::Result<T, String>>, String>,
+            btreemap_triple: BTreeMap<Option<GenericStruct<T>>, result::Result<T, String>>,
+            struct_triple: GenericStruct<Option<result::Result<T, String>>>,
+        }
+
+        #[allow(dead_code)]
+        #[derive(TypeInfo)]
+        enum SimpleOneGenericEnum<T> {
+            // Category 1: Simple generic usage
+            NoFields,
+            GenericValue(T),
+            TupleGeneric(String, T, T, u32),
+            OptionGeneric(Option<T>),
+            ResultGeneric(result::Result<T, String>),
+            BTreeMapGeneric {
+                map: BTreeMap<String, T>,
+            },
+            StructGeneric {
+                inner: GenericStruct<T>,
+            },
+            NestedEnum(NestedGenericEnum<T>),
+
+            // Category 2: Two-level nested generics
+            OptionOfOption(Option<Option<T>>),
+            ResultOfOption {
+                res: result::Result<Option<T>, String>,
+            },
+            DoubleNested {
+                btree_map_nested: BTreeMap<Option<T>, GenericStruct<T>>,
+                struct_nested: GenericStruct<Option<T>>,
+            },
+
+            // Category 3: Triple-nested generics
+            TrippleNested {
+                option_triple: Option<Option<Option<T>>>,
+                result_triple: result::Result<Option<result::Result<T, String>>, String>,
+            },
+            OptionTriple(Option<Option<Option<T>>>),
+            ResultTriple {
+                res: result::Result<Option<result::Result<T, String>>, String>,
+            },
+            NoFields2,
+        }
+
+        #[allow(dead_code)]
+        #[derive(TypeInfo)]
+        struct GenericlessUnitStruct;
+
+        #[allow(dead_code)]
+        #[derive(TypeInfo)]
+        struct GenericlessTupleStruct(u32, String);
+
+        #[allow(dead_code)]
+        #[derive(TypeInfo)]
+        struct GenericlessNamedStruct {
+            a: u32,
+            b: String,
+        }
+
+        #[allow(dead_code)]
+        #[derive(TypeInfo)]
+        enum GenericlessEnum {
+            Unit,
+            Tuple(u32, String),
+            Named { a: u32, b: String },
+        }
+
+        #[allow(dead_code)]
+        #[derive(TypeInfo)]
+        enum GenericlessVariantlessEnum {}
+
+        #[allow(dead_code)]
+        #[derive(TypeInfo)]
+        enum NestedGenericEnum<T> {
+            First(T),
+            Second(Vec<T>),
+        }
+
+        let mut registry = Registry::new();
+
+        let struct_id = registry
+            .register_type(&MetaType::new::<SimpleOneGenericStruct<u32>>())
+            .id;
+        let enum_id = registry
+            .register_type(&MetaType::new::<SimpleOneGenericEnum<u32>>())
+            .id;
+
+        let genericless_unit_id = registry
+            .register_type(&MetaType::new::<GenericlessUnitStruct>())
+            .id;
+        let genericless_tuple_id = registry
+            .register_type(&MetaType::new::<GenericlessTupleStruct>())
+            .id;
+        let genericless_named_id = registry
+            .register_type(&MetaType::new::<GenericlessNamedStruct>())
+            .id;
+        let genericless_enum_id = registry
+            .register_type(&MetaType::new::<GenericlessEnum>())
+            .id;
+        let genericless_variantless_enum_id = registry
+            .register_type(&MetaType::new::<GenericlessVariantlessEnum>())
+            .id;
+
+        let portable_registry = PortableRegistry::from(registry);
+
+        // Get both concrete and generic names from resolve
+        let (concrete_names, generic_names) =
+            resolve(portable_registry.types.iter(), &Default::default()).unwrap();
+
+        // Check main types
+        assert_eq!(
+            &concrete_names.get(&struct_id).unwrap().0,
+            "SimpleOneGenericStruct<u32>"
+        );
+        let struct_generic = generic_names
+            .get(&struct_id)
+            .expect("struct generic must exist");
+        assert_eq!(struct_generic.0.type_name(), "SimpleOneGenericStruct<T>");
+
+        assert_eq!(
+            &concrete_names.get(&enum_id).unwrap().0,
+            "SimpleOneGenericEnum<u32>"
+        );
+        let enum_generic = generic_names
+            .get(&enum_id)
+            .expect("enum generic must exist");
+        assert_eq!(enum_generic.0.type_name(), "SimpleOneGenericEnum<T>");
+
+        // For structs: check that expected generic field strings are present
+        let s_fields = struct_generic.0.fields_type_names();
+
+        let expect_struct_fields_type_names = vec![
+            "u32",
+            "GenericlessUnitStruct",
+            "GenericlessTupleStruct",
+            "GenericlessNamedStruct",
+            "GenericlessEnum",
+            "GenericlessVariantlessEnum",
+            "T",
+            "(String, T, T, u32)",
+            "Option<T>",
+            "Result<T, String>",
+            "[(String, T)]",
+            "GenericStruct<T>",
+            "SimpleOneGenericEnum<T>",
+            "Option<Option<T>>",
+            "Result<Option<T>, String>",
+            "[(Option<T>, GenericStruct<T>)]",
+            "GenericStruct<Option<T>>",
+            "SimpleOneGenericEnum<Result<T, String>>",
+            "Option<Option<Option<T>>>",
+            "Result<Option<Result<T, String>>, String>",
+            "[(Option<GenericStruct<T>>, Result<T, String>)]",
+            "GenericStruct<Option<Result<T, String>>>",
+        ];
+
+        for expected in expect_struct_fields_type_names {
+            assert!(
+                s_fields.contains(&expected),
+                "struct {} missing generic field signature {}. All fields: {:#?}",
+                struct_generic.0.type_name(),
+                expected,
+                s_fields
+            );
+        }
+
+        // For enums: check the collected `fields` contains expected signatures and variant names
+        let e_fields = &enum_generic.0.fields_type_names();
+
+        // First let's check no fields variants
+        let RawNames::Enum { fields, .. } = &enum_generic.0 else {
+            panic!("Expected enum generic name");
+        };
+
+        let no_fields_variant = &fields[0];
+        let no_fields2_variant = &fields[fields.len() - 1];
+
+        assert_eq!(no_fields_variant.own_name, "NoFields");
+        assert_eq!(no_fields2_variant.own_name, "NoFields2");
+        assert!(no_fields_variant.fields.is_empty());
+        assert!(no_fields2_variant.fields.is_empty());
+
+        // expected generic strings for enum fields and nested types:
+        let expect_enum_field_type_names = vec![
+            "T",
+            "String",
+            "T",
+            "T",
+            "u32",
+            "Option<T>",
+            "Result<T, String>",
+            "[(String, T)]",
+            "GenericStruct<T>",
+            "NestedGenericEnum<T>",
+            "Option<Option<T>>",
+            "Result<Option<T>, String>",
+            "[(Option<T>, GenericStruct<T>)]",
+            "GenericStruct<Option<T>>",
+            "Option<Option<Option<T>>>",
+            "Result<Option<Result<T, String>>, String>",
+        ];
+
+        for expected in expect_enum_field_type_names {
+            assert!(
+                e_fields.contains(&expected),
+                "enum {} missing generic field signature {}. All enum fields/entries: {:#?}",
+                enum_generic.0.type_name(),
+                expected,
+                e_fields
+            );
+        }
+
+        // Also verify concrete_names for some representative fields to keep parity with original test spirit
+        // Retrieve struct type to check underlying field concrete ids
+        let struct_type = portable_registry
+            .types
+            .iter()
+            .find(|t| t.id == struct_id)
+            .unwrap();
+
+        if let TypeDef::Composite(composite) = &struct_type.ty.type_def {
+            let generic_value = composite
+                .fields
+                .iter()
+                .find(|f| f.name == Some("generic_value"))
+                .unwrap();
+            assert_eq!(&concrete_names.get(&generic_value.ty.id).unwrap().0, "u32");
+
+            let tuple_generic = composite
+                .fields
+                .iter()
+                .find(|f| f.name == Some("tuple_generic"))
+                .unwrap();
+            assert_eq!(
+                &concrete_names.get(&tuple_generic.ty.id).unwrap().0,
+                "(String, u32, u32, u32)"
+            );
+
+            let option_generic = composite
+                .fields
+                .iter()
+                .find(|f| f.name == Some("option_generic"))
+                .unwrap();
+            assert_eq!(
+                &concrete_names.get(&option_generic.ty.id).unwrap().0,
+                "Option<u32>"
+            );
+
+            let btreemap_generic = composite
+                .fields
+                .iter()
+                .find(|f| f.name == Some("btreemap_generic"))
+                .unwrap();
+            assert_eq!(
+                &concrete_names.get(&btreemap_generic.ty.id).unwrap().0,
+                "[(String, u32)]"
+            );
+        } else {
+            panic!("Expected composite type");
+        }
+
+        let genericless_unit = generic_names.get(&genericless_unit_id).unwrap();
+        let RawNames::Struct(fields) = &genericless_unit.0 else {
+            panic!("Expected struct generic name");
+        };
+        assert_eq!(fields.own_name.as_str(), "GenericlessUnitStruct");
+        assert!(fields.fields.is_empty());
+
+        let genericless_tuple = generic_names.get(&genericless_tuple_id).unwrap();
+        let RawNames::Struct(fields) = &genericless_tuple.0 else {
+            panic!("Expected struct generic name");
+        };
+        assert_eq!(fields.own_name.as_str(), "GenericlessTupleStruct");
+        let expected_fields_value = vec![
+            TypeField {
+                name: None,
+                type_name: "u32".to_string(),
+                docs: Vec::new(),
+            },
+            TypeField {
+                name: None,
+                type_name: "String".to_string(),
+                docs: Vec::new(),
+            },
+        ];
+        assert_eq!(fields.fields, expected_fields_value);
+
+        let genericless_named = generic_names.get(&genericless_named_id).unwrap();
+        let RawNames::Struct(fields) = &genericless_named.0 else {
+            panic!("Expected struct generic name");
+        };
+        assert_eq!(fields.own_name.as_str(), "GenericlessNamedStruct");
+        let expected_fields_value = vec![
+            TypeField {
+                name: Some("a".to_string()),
+                type_name: "u32".to_string(),
+                docs: Vec::new(),
+            },
+            TypeField {
+                name: Some("b".to_string()),
+                type_name: "String".to_string(),
+                docs: Vec::new(),
+            },
+        ];
+        assert_eq!(fields.fields, expected_fields_value);
+
+        let genericless_enum = generic_names.get(&genericless_enum_id).unwrap();
+        let RawNames::Enum {
+            own_name, fields, ..
+        } = &genericless_enum.0
+        else {
+            panic!("Expected enum generic name");
+        };
+        assert_eq!(own_name.as_str(), "GenericlessEnum");
+        let expected_variants = vec![
+            TypeFieldsOwner {
+                own_name: "Unit".to_string(),
+                fields: vec![],
+                docs: Vec::new(),
+            },
+            TypeFieldsOwner {
+                own_name: "Tuple".to_string(),
+                fields: vec![
+                    TypeField {
+                        name: None,
+                        type_name: "u32".to_string(),
+                        docs: Vec::new(),
+                    },
+                    TypeField {
+                        name: None,
+                        type_name: "String".to_string(),
+                        docs: Vec::new(),
+                    },
+                ],
+                docs: Vec::new(),
+            },
+            TypeFieldsOwner {
+                own_name: "Named".to_string(),
+                fields: vec![
+                    TypeField {
+                        name: Some("a".to_string()),
+                        type_name: "u32".to_string(),
+                        docs: Vec::new(),
+                    },
+                    TypeField {
+                        name: Some("b".to_string()),
+                        type_name: "String".to_string(),
+                        docs: Vec::new(),
+                    },
+                ],
+                docs: Vec::new(),
+            },
+        ];
+        assert_eq!(fields, &expected_variants);
+
+        let genericless_variantless_enum =
+            generic_names.get(&genericless_variantless_enum_id).unwrap();
+        let RawNames::Enum {
+            own_name, fields, ..
+        } = &genericless_variantless_enum.0
+        else {
+            panic!("Expected enum generic name");
+        };
+        assert_eq!(own_name.as_str(), "GenericlessVariantlessEnum");
+        assert!(fields.is_empty());
+    }
+
+    #[test]
+    fn complex_cases_one_generic() {
+        #[allow(dead_code)]
+        #[derive(TypeInfo)]
+        struct ComplexOneGenericStruct<T> {
+            array_of_generic: [T; 10],
+            tuple_complex: (T, Vec<T>, [T; 5]),
+            array_of_tuple: [(T, T); 3],
+            vec_of_array: Vec<[T; 8]>,
+
+            array_of_option: [Option<T>; 5],
+            tuple_of_result: (result::Result<T, String>, Option<T>),
+            vec_of_struct: Vec<GenericStruct<T>>,
+            array_of_btreemap: [BTreeMap<String, T>; 2],
+
+            array_of_vec_of_option: [Vec<Option<T>>; 4],
+            tuple_triple: (Option<Vec<T>>, result::Result<[T; 3], String>),
+            vec_of_struct_of_option: Vec<GenericStruct<Option<T>>>,
+            array_complex_triple: [BTreeMap<Option<T>, result::Result<T, String>>; 2],
+        }
+
+        #[allow(dead_code)]
+        #[derive(TypeInfo)]
+        #[allow(clippy::type_complexity)]
+        enum ComplexOneGenericEnum<T> {
+            ArrayOfGeneric([T; 10]),
+            TupleComplex(T, Vec<T>, [T; 5]),
+            ArrayOfTuple([(T, T); 3]),
+            VecOfArray {
+                vec: Vec<[T; 8]>,
+            },
+
+            ArrayOfOption([Option<T>; 5]),
+            TupleOfResult {
+                tuple: (result::Result<T, String>, Option<T>),
+            },
+            VecOfStruct(Vec<GenericStruct<T>>),
+            ArrayOfBTreeMap {
+                array: [BTreeMap<String, T>; 2],
+            },
+
+            ArrayOfVecOfOption([Vec<Option<Vec<T>>>; 4]),
+            TupleTriple {
+                field1: Option<Option<Vec<T>>>,
+                field2: result::Result<Option<[T; 3]>, String>,
+            },
+            VecOfStructOfOption(Vec<GenericStruct<Option<T>>>),
+            ArrayComplexTriple(
+                [BTreeMap<BTreeMap<Option<T>, String>, result::Result<T, String>>; 2],
+            ),
+        }
+
+        // Register types
+        let mut registry = Registry::new();
+        let struct_id = registry
+            .register_type(&MetaType::new::<ComplexOneGenericStruct<bool>>())
+            .id;
+        let enum_id = registry
+            .register_type(&MetaType::new::<ComplexOneGenericEnum<bool>>())
+            .id;
+
+        let portable_registry = PortableRegistry::from(registry);
+
+        // Compute concrete and generic type names
+        let (concrete_names, generic_names) =
+            resolve(portable_registry.types.iter(), &Default::default()).unwrap();
+
+        // Check top level resolved names
+        assert_eq!(
+            &concrete_names.get(&struct_id).unwrap().0,
+            "ComplexOneGenericStruct<bool>"
+        );
+        let struct_generic = generic_names.get(&struct_id).unwrap();
+        assert_eq!(struct_generic.0.type_name(), "ComplexOneGenericStruct<T>");
+
+        assert_eq!(
+            &concrete_names.get(&enum_id).unwrap().0,
+            "ComplexOneGenericEnum<bool>"
+        );
+        let enum_generic = generic_names.get(&enum_id).unwrap();
+        assert_eq!(enum_generic.0.type_name(), "ComplexOneGenericEnum<T>");
+
+        // Validate Struct generics
+        let struct_field_types = struct_generic.0.fields_type_names();
+        let expect_struct_field_types = vec![
+            "[T; 10]",
+            "(T, [T], [T; 5])",
+            "[(T, T); 3]",
+            "[[T; 8]]",
+            "[Option<T>; 5]",
+            "(Result<T, String>, Option<T>)",
+            "[GenericStruct<T>]",
+            "[[(String, T)]; 2]",
+            "[[Option<T>]; 4]",
+            "(Option<[T]>, Result<[T; 3], String>)",
+            "[GenericStruct<Option<T>>]",
+            "[[(Option<T>, Result<T, String>)]; 2]",
+        ];
+
+        for expected in expect_struct_field_types {
+            assert!(
+                struct_field_types.contains(&expected),
+                "Struct {} missing field type {}.\n All: {:#?}",
+                struct_generic.0.type_name(),
+                expected,
+                struct_field_types
+            );
+        }
+
+        let enum_field_types = enum_generic.0.fields_type_names();
+        let expect_enum_field_types = vec![
+            "[T; 10]",
+            "T",
+            "[T]",
+            "[T; 5]",
+            "[(T, T); 3]",
+            "[[T; 8]]",
+            "[Option<T>; 5]",
+            "(Result<T, String>, Option<T>)",
+            "[GenericStruct<T>]",
+            "[[(String, T)]; 2]",
+            "[[Option<[T]>]; 4]",
+            "Option<Option<[T]>>",
+            "Result<Option<[T; 3]>, String>",
+            "[GenericStruct<Option<T>>]",
+            "[[([(Option<T>, String)], Result<T, String>)]; 2]",
+        ];
+
+        for expected in expect_enum_field_types {
+            assert!(
+                enum_field_types.contains(&expected),
+                "Enum {} missing field type {}.\n All: {:#?}",
+                enum_generic.0.type_name(),
+                expected,
+                enum_field_types
+            );
+        }
+    }
+
+    #[test]
+    fn multiple_generics() {
+        fn find_field_struct<'a>(
+            composite: &'a TypeDefComposite<PortableForm>,
+            name: &str,
+        ) -> &'a Field<PortableForm> {
+            composite
+                .fields
+                .iter()
+                .find(|f| f.name == Some(name))
+                .unwrap_or_else(|| {
+                    panic!(
+                        "Field `{}` not found. Fields: {:#?}",
+                        name, composite.fields
+                    )
+                })
+        }
+
+        fn find_field_enum<'a>(
+            variants: &'a [Variant<PortableForm>],
+            name: &str,
+        ) -> &'a Variant<PortableForm> {
+            variants
+                .iter()
+                .find(|v| v.name == name)
+                .unwrap_or_else(|| panic!("Variant `{name}` not found. Variants: {variants:#?}"))
+        }
+
+        #[allow(dead_code)]
+        #[derive(TypeInfo)]
+        struct MultiGenStruct<T1, T2, T3> {
+            // Category 1: Simple and complex types with single generics
+            just_t1: T1,
+            just_t2: T2,
+            just_t3: T3,
+            array_t1: [T1; 8],
+            tuple_t2_t3: (T2, T3),
+            vec_t3: Vec<T3>,
+
+            // Category 2: Mixed generics in complex types
+            tuple_mixed: (T1, T2, T3),
+            tuple_repeated: (T1, T1, T2, T2, T3, T3),
+            array_of_tuple: [(T1, T2); 4],
+            vec_of_array: Vec<[T3; 5]>,
+            btreemap_t1_t2: BTreeMap<T1, T2>,
+            struct_of_t3: GenericStruct<T3>,
+            enum_mixed: GenericEnum<T1, T2>,
+
+            // Category 3: Two-level nested with multiple generics
+            option_of_result: Option<result::Result<T1, T2>>,
+            array_of_option: [Option<T2>; 6],
+            vec_of_tuple: Vec<(T2, T3, T1)>,
+            tuple_of_result: (result::Result<T1, String>, Option<T2>),
+            btreemap_nested: BTreeMap<Option<T1>, result::Result<T2, String>>,
+            struct_of_tuple: GenericStruct<(T2, T3)>,
+
+            // Category 4: Triple-nested complex types with multiple generics
+            option_triple: Option<result::Result<Vec<T1>, T2>>,
+            array_triple: [BTreeMap<T1, Option<T2>>; 3],
+            vec_of_struct_of_option: Vec<GenericStruct<Option<T3>>>,
+            array_of_vec_of_tuple: [Vec<(T1, T2)>; 2],
+            tuple_complex_triple: (Option<Vec<T1>>, result::Result<[T2; 4], T3>),
+            vec_complex: Vec<GenericStruct<result::Result<T1, T2>>>,
+        }
+
+        #[allow(dead_code)]
+        #[derive(TypeInfo)]
+        enum MultiGenEnum<T1, T2, T3> {
+            // Category 1: Simple and complex types with single generics
+            JustT1(T1),
+            JustT2(T2),
+            JustT3(T3),
+            ArrayT1([T1; 8]),
+            TupleT2T3((T2, T3)),
+            VecT3 {
+                vec: Vec<T3>,
+            },
+
+            // Category 2: Mixed generics in complex types
+            TupleMixed(T1, T2, T3),
+            TupleRepeated((T1, T1, T2, T2, T3, T3)),
+            ArrayOfTuple([(T1, T2); 4]),
+            VecOfArray {
+                vec: Vec<[T3; 5]>,
+            },
+            BTreeMapT1T2 {
+                map: BTreeMap<T1, T2>,
+            },
+            StructOfT3(GenericStruct<T3>),
+            EnumMixed {
+                inner: GenericEnum<T1, T2>,
+            },
+
+            // Category 3: Two-level nested with multiple generics
+            OptionOfResult(Option<result::Result<T1, T2>>),
+            ArrayOfOption([Option<T2>; 6]),
+            VecOfTuple(Vec<(T2, T3, T1)>),
+            TupleOfResult {
+                field1: result::Result<T1, String>,
+                field2: Option<T2>,
+            },
+            BTreeMapNested {
+                map: BTreeMap<Option<T1>, result::Result<T2, String>>,
+            },
+            StructOfTuple(GenericStruct<(T2, T3)>),
+
+            // Category 4: Triple-nested complex types with multiple generics
+            OptionTriple(Option<result::Result<Vec<T1>, T2>>),
+            ArrayTriple([BTreeMap<T1, Option<T2>>; 3]),
+            VecOfStructOfOption(Vec<GenericStruct<Option<T3>>>),
+            ArrayOfVecOfTuple {
+                array: [Vec<(T1, T2)>; 2],
+            },
+            TupleComplexTriple {
+                field1: Option<Vec<T1>>,
+                field2: result::Result<[T2; 4], T3>,
+            },
+            VecComplex(Vec<GenericStruct<result::Result<T1, T2>>>),
+        }
+
+        // Register types and build portable registry
+        let mut registry = Registry::new();
+        let struct_id = registry
+            .register_type(&MetaType::new::<MultiGenStruct<u32, String, H256>>())
+            .id;
+        let enum_id = registry
+            .register_type(&MetaType::new::<MultiGenEnum<u32, String, H256>>())
+            .id;
+
+        let portable_registry = PortableRegistry::from(registry);
+
+        let (concrete_names, generic_names) =
+            resolve(portable_registry.types.iter(), &Default::default()).unwrap();
+
+        assert_eq!(
+            &concrete_names.get(&struct_id).unwrap().0,
+            "MultiGenStruct<u32, String, H256>"
+        );
+        let struct_generic = generic_names
+            .get(&struct_id)
+            .expect("struct generic must exist");
+        assert_eq!(struct_generic.0.type_name(), "MultiGenStruct<T1, T2, T3>");
+
+        assert_eq!(
+            &concrete_names.get(&enum_id).unwrap().0,
+            "MultiGenEnum<u32, String, H256>"
+        );
+        let enum_generic = generic_names
+            .get(&enum_id)
+            .expect("enum generic must exist");
+        assert_eq!(enum_generic.0.type_name(), "MultiGenEnum<T1, T2, T3>");
+
+        let struct_field_types = struct_generic.0.fields_type_names();
+        let expect_struct_field_types = vec![
+            "T1",
+            "T2",
+            "T3",
+            "[T1; 8]",
+            "(T2, T3)",
+            "[T3]",
+            "(T1, T2, T3)",
+            "(T1, T1, T2, T2, T3, T3)",
+            "[(T1, T2); 4]",
+            "[[T3; 5]]",
+            "[(T1, T2)]",
+            "GenericStruct<T3>",
+            "GenericEnum<T1, T2>",
+            "Option<Result<T1, T2>>",
+            "[Option<T2>; 6]",
+            "[(T2, T3, T1)]",
+            "(Result<T1, String>, Option<T2>)",
+            "[(Option<T1>, Result<T2, String>)]",
+            "GenericStruct<(T2, T3)>",
+            "Option<Result<[T1], T2>>",
+            "[[(T1, Option<T2>)]; 3]",
+            "[GenericStruct<Option<T3>>]",
+            "[[(T1, T2)]; 2]",
+            "(Option<[T1]>, Result<[T2; 4], T3>)",
+            "[GenericStruct<Result<T1, T2>>]",
+        ];
+
+        for e in expect_struct_field_types {
+            assert!(
+                struct_field_types.contains(&e),
+                "{} missing expected type signature `{}`. All entries: {:#?}",
+                struct_generic.0.type_name(),
+                e,
+                struct_field_types
+            );
+        }
+
+        let struct_type = portable_registry
+            .types
+            .iter()
+            .find(|t| t.id == struct_id)
+            .unwrap();
+        if let TypeDef::Composite(composite) = &struct_type.ty.type_def {
+            // quick concrete checks for representative fields
+            let just_t1 = find_field_struct(composite, "just_t1");
+            assert_eq!(&concrete_names.get(&just_t1.ty.id).unwrap().0, "u32");
+
+            let tuple_t2_t3 = find_field_struct(composite, "tuple_t2_t3");
+            assert_eq!(
+                &concrete_names.get(&tuple_t2_t3.ty.id).unwrap().0,
+                "(String, H256)"
+            );
+
+            let vec_t3 = find_field_struct(composite, "vec_t3");
+            assert_eq!(&concrete_names.get(&vec_t3.ty.id).unwrap().0, "[H256]");
+
+            let array_triple = find_field_struct(composite, "array_triple");
+            assert_eq!(
+                &concrete_names.get(&array_triple.ty.id).unwrap().0,
+                "[[(u32, Option<String>)]; 3]"
+            );
+        } else {
+            panic!("Expected composite type");
+        }
+
+        let enum_field_types = enum_generic.0.fields_type_names();
+        let expect_enum_field_types = vec![
+            "T1",
+            "T2",
+            "T3",
+            "[T1; 8]",
+            "(T2, T3)",
+            "[T3]",
+            "T1",
+            "T2",
+            "T3",
+            "(T1, T1, T2, T2, T3, T3)",
+            "[(T1, T2); 4]",
+            "[[T3; 5]]",
+            "[(T1, T2)]",
+            "GenericStruct<T3>",
+            "GenericEnum<T1, T2>",
+            "Option<Result<T1, T2>>",
+            "[Option<T2>; 6]",
+            "[(T2, T3, T1)]",
+            "Result<T1, String>",
+            "Option<T2>",
+            "[(Option<T1>, Result<T2, String>)]",
+            "GenericStruct<(T2, T3)>",
+            "Option<Result<[T1], T2>>",
+            "[[(T1, Option<T2>)]; 3]",
+            "[GenericStruct<Option<T3>>]",
+            "[[(T1, T2)]; 2]",
+            "Option<[T1]>",
+            "Result<[T2; 4], T3>",
+            "[GenericStruct<Result<T1, T2>>]",
+        ];
+
+        for e in expect_enum_field_types {
+            assert!(
+                enum_field_types.contains(&e),
+                "{} missing expected type signature `{}`. All entries: {:#?}",
+                enum_generic.type_name(),
+                e,
+                enum_field_types
+            );
+        }
+
+        let enum_type = portable_registry
+            .types
+            .iter()
+            .find(|t| t.id == enum_id)
+            .unwrap();
+        if let TypeDef::Variant(variant) = &enum_type.ty.type_def {
+            // check a representative tuple-like variant concrete names
+            let tuple_t2_t3_variant = find_field_enum(&variant.variants, "TupleT2T3");
+            let f0 = &tuple_t2_t3_variant.fields[0];
+            assert_eq!(&concrete_names.get(&f0.ty.id).unwrap().0, "(String, H256)");
+
+            // check option/result shaped variant
+            let tuple_of_result_variant = find_field_enum(&variant.variants, "TupleOfResult");
+            let field1 = tuple_of_result_variant
+                .fields
+                .iter()
+                .find(|f| f.name == Some("field1"))
+                .unwrap();
+            assert_eq!(
+                &concrete_names.get(&field1.ty.id).unwrap().0,
+                "Result<u32, String>"
+            );
+        } else {
+            panic!("Expected variant type");
+        }
+    }
+
+    #[test]
+    fn generic_const_with_generic_types() {
+        #[allow(dead_code)]
+        #[derive(TypeInfo)]
+        struct ConstGenericStruct<const N: usize, T> {
+            array: [T; N],
+            value: T,
+            vec: Vec<T>,
+            option: Option<T>,
+        }
+
+        #[allow(dead_code)]
+        #[derive(TypeInfo)]
+        struct TwoConstGenericStruct<const N: usize, const M: usize, T1, T2> {
+            array1: [T1; N],
+            array2: [T2; M],
+            tuple: (T1, T2),
+            nested: GenericStruct<T1>,
+            result: result::Result<T1, T2>,
+        }
+
+        #[allow(dead_code)]
+        #[derive(TypeInfo)]
+        enum ConstGenericEnum<const N: usize, T> {
+            Array([T; N]),
+            Value(T),
+            Nested { inner: GenericStruct<T> },
+        }
+
+        let mut registry = Registry::new();
+
+        // Register ConstGenericStruct with different N and T values
+        let struct_n8_u32_id = registry
+            .register_type(&MetaType::new::<ConstGenericStruct<8, u32>>())
+            .id;
+        let struct_n8_string_id = registry
+            .register_type(&MetaType::new::<ConstGenericStruct<8, String>>())
+            .id;
+
+        let struct_n16_u32_id = registry
+            .register_type(&MetaType::new::<ConstGenericStruct<16, u32>>())
+            .id;
+
+        assert_ne!(struct_n8_u32_id, struct_n8_string_id);
+        assert_ne!(struct_n8_u32_id, struct_n16_u32_id);
+
+        // Register TwoConstGenericStruct
+        let two_const_id = registry
+            .register_type(&MetaType::new::<TwoConstGenericStruct<4, 8, u64, H256>>())
+            .id;
+
+        // Register ConstGenericEnum
+        let enum_n8_bool_id = registry
+            .register_type(&MetaType::new::<ConstGenericEnum<8, bool>>())
+            .id;
+
+        let portable_registry = PortableRegistry::from(registry);
+        let (concrete_names, generic_names) =
+            resolve(portable_registry.types.iter(), &Default::default()).unwrap();
+
+        // Check ConstGenericStruct with N=8, T=u32
+        assert_eq!(
+            concrete_names.get(&struct_n8_u32_id).unwrap().0,
+            "ConstGenericStruct1<u32>"
+        );
+        assert_eq!(
+            concrete_names.get(&struct_n8_string_id).unwrap().0,
+            "ConstGenericStruct<String>"
+        );
+        assert_eq!(
+            concrete_names.get(&struct_n16_u32_id).unwrap().0,
+            "ConstGenericStruct2<u32>"
+        );
+        assert_eq!(
+            concrete_names.get(&two_const_id).unwrap().0,
+            "TwoConstGenericStruct<u64, H256>"
+        );
+        assert_eq!(
+            concrete_names.get(&enum_n8_bool_id).unwrap().0,
+            "ConstGenericEnum<bool>"
+        );
+
+        assert_eq!(
+            generic_names.get(&struct_n8_u32_id).unwrap().0.type_name(),
+            "ConstGenericStruct1<T>"
+        );
+        assert_eq!(
+            generic_names.get(&two_const_id).unwrap().0.type_name(),
+            "TwoConstGenericStruct<T1, T2>"
+        );
+        assert_eq!(
+            generic_names.get(&enum_n8_bool_id).unwrap().0.type_name(),
+            "ConstGenericEnum<T>"
+        );
+
+        let struct_n8_u32 = &generic_names
+            .get(&struct_n8_u32_id)
+            .expect("generic name must exist")
+            .0;
+
+        let field_type_names = struct_n8_u32.fields_type_names();
+        let expected_field_type_names = vec!["[T; 8]", "T", "[T]", "Option<T>"];
+        for expected in expected_field_type_names {
+            assert!(
+                field_type_names.contains(&expected),
+                "ConstGenericStruct1<T> missing field type name `{expected}`. All: {field_type_names:#?}",
+            );
+        }
+
+        let two_const_generic = &generic_names
+            .get(&two_const_id)
+            .expect("generic name must exist")
+            .0;
+        let field_type_names = two_const_generic.fields_type_names();
+        let expected_field_type_names = vec![
+            "[T1; 4]",
+            "[T2; 8]",
+            "(T1, T2)",
+            "GenericStruct<T1>",
+            "Result<T1, T2>",
+        ];
+        for expected in expected_field_type_names {
+            assert!(
+                field_type_names.contains(&expected),
+                "TwoConstGenericStruct<T1, T2> missing field type name `{expected}`. All: {field_type_names:#?}",
+            );
+        }
+
+        let enum_generic = &generic_names
+            .get(&enum_n8_bool_id)
+            .expect("generic name must exist")
+            .0;
+        let field_type_names = enum_generic.fields_type_names();
+        let expected_field_type_names = vec!["[T; 8]", "T", "GenericStruct<T>"];
+        for expected in expected_field_type_names {
+            assert!(
+                field_type_names.contains(&expected),
+                "ConstGenericEnum<T> missing field type name `{expected}`. All: {field_type_names:#?}",
+            );
+        }
+    }
+
+    // Types for same_name_different_modules test
+    #[allow(dead_code)]
+    mod same_name_test {
+        use super::*;
+
+        pub mod module_a {
+            use super::*;
+
+            #[derive(TypeInfo)]
+            pub struct SameName<T> {
+                pub value: T,
+            }
+        }
+
+        pub mod module_b {
+            use super::*;
+
+            #[derive(TypeInfo)]
+            pub struct SameName<T> {
+                pub value: T,
+            }
+        }
+
+        pub mod module_c {
+            use super::*;
+
+            pub mod nested {
+                use super::*;
+
+                #[derive(TypeInfo)]
+                pub struct SameName<T> {
+                    pub value: T,
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn same_name_different_mods_generic_names() {
+        use same_name_test::*;
+
+        #[allow(dead_code)]
+        #[derive(TypeInfo)]
+        struct TestStruct<T1, T2> {
+            field_a: module_a::SameName<T1>,
+            field_b: module_b::SameName<T2>,
+            field_c: module_c::nested::SameName<T1>,
+            generic_a: GenericStruct<module_a::SameName<T2>>,
+            generic_b: GenericStruct<module_b::SameName<T1>>,
+            vec_a: Vec<module_c::nested::SameName<T1>>,
+            option_b: Option<module_b::SameName<T2>>,
+            result_mix: result::Result<module_a::SameName<T1>, module_b::SameName<T2>>,
+        }
+
+        let mut registry = Registry::new();
+        let struct_id = registry
+            .register_type(&MetaType::new::<TestStruct<u32, bool>>())
+            .id;
+
+        let portable_registry = PortableRegistry::from(registry);
+        let (concrete_names, generic_names) =
+            resolve(portable_registry.types.iter(), &Default::default()).unwrap();
+
+        // Check main type
+        assert_eq!(
+            concrete_names.get(&struct_id).unwrap().0,
+            "TestStruct<u32, bool>"
+        );
+        assert_eq!(
+            generic_names.get(&struct_id).unwrap().0.type_name(),
+            "TestStruct<T1, T2>"
+        );
+
+        let struct_generic = &generic_names
+            .get(&struct_id)
+            .expect("struct generic must exist")
+            .0;
+
+        let struct_field_type_names = struct_generic.fields_type_names();
+        let expected_field_type_names = vec![
+            "ModuleASameName<T1>",
+            "ModuleBSameName<T2>",
+            "NestedSameName<T1>",
+            "GenericStruct<ModuleASameName<T2>>",
+            "GenericStruct<ModuleBSameName<T1>>",
+            "[NestedSameName<T1>]",
+            "Option<ModuleBSameName<T2>>",
+            "Result<ModuleASameName<T1>, ModuleBSameName<T2>>",
+        ];
+
+        for expected in expected_field_type_names {
+            assert!(
+                struct_field_type_names.contains(&expected),
+                "TestStruct<T1, T2> missing field type name `{expected}`. All: {struct_field_type_names:#?}",
+            );
+        }
+    }
+
+    #[test]
+    fn type_names_concrete_generic_reuses() {
+        #[allow(dead_code)]
+        #[derive(TypeInfo)]
+        struct ReuseTestStruct<T1, T2> {
+            // Same type with different generic instantiations
+            a1: ReusableGenericStruct<T1>,
+            a1r: ReusableGenericStruct<CodeId>,
+
+            a2: ReusableGenericStruct<Vec<T1>>,
+            a2r: ReusableGenericStruct<Vec<bool>>,
+
+            a3: ReusableGenericStruct<(T1, T2)>,
+            a3r: ReusableGenericStruct<(u64, H256)>,
+
+            b1: ReusableGenericStruct<T2>,
+            b1r: ReusableGenericStruct<H256>,
+
+            // Same enum with different instantiations
+            e1: ReusableGenericEnum<T1>,
+            e1r: ReusableGenericEnum<CodeId>,
+
+            e2: ReusableGenericEnum<T2>,
+            e2r: ReusableGenericEnum<bool>,
+
+            e3: ReusableGenericEnum<String>,
+            e3r: ReusableGenericEnum<[T1; 8]>,
+
+            // Nested reuses
+            n1: GenericStruct<ReusableGenericStruct<T1>>,
+            n2: GenericStruct<ReusableGenericStruct<T2>>,
+            n3: GenericStruct<ReusableGenericStruct<u32>>,
+
+            // Complex reuses
+            c1: Vec<ReusableGenericStruct<T1>>,
+            c2: [ReusableGenericEnum<T2>; 5],
+            c3: Option<ReusableGenericStruct<(T1, T2)>>,
+            c4: result::Result<ReusableGenericEnum<T1>, ReusableGenericEnum<T2>>,
+            c5: BTreeMap<T1, ReusableGenericStruct<T2>>,
+            c6: BTreeMap<ReusableGenericEnum<T1>, String>,
+            c7: BTreeMap<ReusableGenericStruct<T1>, ReusableGenericEnum<T2>>,
+            c8: BTreeMap<ReusableGenericStruct<u64>, ReusableGenericEnum<H256>>,
+        }
+
+        #[allow(dead_code)]
+        #[derive(TypeInfo)]
+        enum ReuseTestEnum<T1, T2> {
+            // Same type with different generic instantiations
+            A1(ReusableGenericStruct<T1>),
+            A1r(ReusableGenericStruct<CodeId>),
+
+            A2(ReusableGenericStruct<Vec<T1>>),
+            A2r(ReusableGenericStruct<Vec<bool>>),
+
+            A3 {
+                field: ReusableGenericStruct<(T1, T2)>,
+            },
+            A3r {
+                field: ReusableGenericStruct<(u64, H256)>,
+            },
+
+            B1(ReusableGenericStruct<T2>),
+            B1r(ReusableGenericStruct<H256>),
+
+            // Same enum with different instantiations
+            E1(ReusableGenericEnum<T1>),
+            E1r(ReusableGenericEnum<CodeId>),
+
+            E2(ReusableGenericEnum<T2>),
+            E2r(ReusableGenericEnum<bool>),
+
+            E3 {
+                field: ReusableGenericEnum<String>,
+            },
+            E3r {
+                field: ReusableGenericEnum<[T1; 8]>,
+            },
+
+            // Nested reuses
+            N1(GenericStruct<ReusableGenericStruct<T1>>),
+            N2(GenericStruct<ReusableGenericStruct<T2>>),
+            N3(GenericStruct<ReusableGenericStruct<u32>>),
+
+            // Complex reuses
+            C1(Vec<ReusableGenericStruct<T1>>),
+            C2 {
+                field: [ReusableGenericEnum<T2>; 5],
+            },
+            C3(Option<ReusableGenericStruct<(T1, T2)>>),
+            C4(result::Result<ReusableGenericEnum<T1>, ReusableGenericEnum<T2>>),
+            C5 {
+                field: BTreeMap<T1, ReusableGenericStruct<T2>>,
+            },
+            C6(BTreeMap<ReusableGenericEnum<T1>, String>),
+            C7(BTreeMap<ReusableGenericStruct<T1>, ReusableGenericEnum<T2>>),
+            C8(BTreeMap<ReusableGenericStruct<u64>, ReusableGenericEnum<H256>>),
+        }
+
+        #[allow(dead_code)]
+        #[derive(TypeInfo)]
+        struct ReusableGenericStruct<T> {
+            data: T,
+            count: u32,
+        }
+
+        #[allow(dead_code)]
+        #[derive(TypeInfo)]
+        enum ReusableGenericEnum<T> {
+            Some(T),
+            None,
+        }
+
+        let mut registry = Registry::new();
+        let struct_id = registry
+            .register_type(&MetaType::new::<ReuseTestStruct<u64, H256>>())
+            .id;
+        let enum_id = registry
+            .register_type(&MetaType::new::<ReuseTestEnum<u64, H256>>())
+            .id;
+
+        let portable_registry = PortableRegistry::from(registry);
+
+        let (concrete_names, generic_names) =
+            resolve(portable_registry.types.iter(), &Default::default()).unwrap();
+
+        assert_eq!(
+            &concrete_names.get(&struct_id).unwrap().0,
+            "ReuseTestStruct<u64, H256>"
+        );
+
+        let struct_generic = generic_names.get(&struct_id).unwrap();
+        assert_eq!(struct_generic.0.type_name(), "ReuseTestStruct<T1, T2>",);
+
+        assert_eq!(
+            &concrete_names.get(&enum_id).unwrap().0,
+            "ReuseTestEnum<u64, H256>"
+        );
+        let enum_generic = generic_names.get(&enum_id).unwrap();
+        assert_eq!(enum_generic.0.type_name(), "ReuseTestEnum<T1, T2>");
+
+        let struct_field_types = struct_generic.fields_type_names();
+        let expect_struct_field_types = vec![
+            "ReusableGenericStruct<T1>",
+            "ReusableGenericStruct<CodeId>",
+            "ReusableGenericStruct<[T1]>",
+            "ReusableGenericStruct<[bool]>",
+            "ReusableGenericStruct<(T1, T2)>",
+            "ReusableGenericStruct<(u64, H256)>",
+            "ReusableGenericStruct<T2>",
+            "ReusableGenericStruct<H256>",
+            "ReusableGenericEnum<T1>",
+            "ReusableGenericEnum<CodeId>",
+            "ReusableGenericEnum<T2>",
+            "ReusableGenericEnum<bool>",
+            "ReusableGenericEnum<String>",
+            "ReusableGenericEnum<[T1; 8]>",
+            "GenericStruct<ReusableGenericStruct<T1>>",
+            "GenericStruct<ReusableGenericStruct<T2>>",
+            "GenericStruct<ReusableGenericStruct<u32>>",
+            "[ReusableGenericStruct<T1>]",
+            "[ReusableGenericEnum<T2>; 5]",
+            "Option<ReusableGenericStruct<(T1, T2)>>",
+            "Result<ReusableGenericEnum<T1>, ReusableGenericEnum<T2>>",
+            "[(T1, ReusableGenericStruct<T2>)]",
+            "[(ReusableGenericEnum<T1>, String)]",
+            "[(ReusableGenericStruct<T1>, ReusableGenericEnum<T2>)]",
+            "[(ReusableGenericStruct<u64>, ReusableGenericEnum<H256>)]",
+        ];
+
+        for e in expect_struct_field_types {
+            assert!(
+                struct_field_types.contains(&e),
+                "{} missing expected type signature `{}`. All entries: {:#?}",
+                struct_generic.type_name(),
+                e,
+                struct_field_types
+            );
+        }
+
+        let enum_field_types = enum_generic.fields_type_names();
+        let expect_enum_field_types = vec![
+            "ReusableGenericStruct<T1>",
+            "ReusableGenericStruct<CodeId>",
+            "ReusableGenericStruct<[T1]>",
+            "ReusableGenericStruct<[bool]>",
+            "ReusableGenericStruct<(T1, T2)>",
+            "ReusableGenericStruct<(u64, H256)>",
+            "ReusableGenericStruct<T2>",
+            "ReusableGenericStruct<H256>",
+            "ReusableGenericEnum<T1>",
+            "ReusableGenericEnum<CodeId>",
+            "ReusableGenericEnum<T2>",
+            "ReusableGenericEnum<bool>",
+            "ReusableGenericEnum<String>",
+            "ReusableGenericEnum<[T1; 8]>",
+            "GenericStruct<ReusableGenericStruct<T1>>",
+            "GenericStruct<ReusableGenericStruct<T2>>",
+            "GenericStruct<ReusableGenericStruct<u32>>",
+            "[ReusableGenericStruct<T1>]",
+            "[ReusableGenericEnum<T2>; 5]",
+            "Option<ReusableGenericStruct<(T1, T2)>>",
+            "Result<ReusableGenericEnum<T1>, ReusableGenericEnum<T2>>",
+            "[(T1, ReusableGenericStruct<T2>)]",
+            "[(ReusableGenericEnum<T1>, String)]",
+            "[(ReusableGenericStruct<T1>, ReusableGenericEnum<T2>)]",
+            "[(ReusableGenericStruct<u64>, ReusableGenericEnum<H256>)]",
+        ];
+
+        for e in expect_enum_field_types {
+            assert!(
+                enum_field_types.contains(&e),
+                "{} missing expected type signature `{}`. All entries: {:#?}",
+                enum_generic.type_name(),
+                e,
+                enum_field_types
+            );
+        }
     }
 }
