@@ -169,6 +169,17 @@ impl ProgramBuilder {
                 {
                     let invocation_export = shared::invocation_export_or_default(fn_item);
 
+                    #[cfg(feature = "ethexe")]
+                    {
+                        use convert_case::{Case, Casing};
+                        let camel_case_route = invocation_export.route.to_case(Case::Camel);
+                        shared::validation::validate_identifier(
+                            &camel_case_route,
+                            fn_item.sig.ident.span(),
+                            "Exposed Service",
+                        );
+                    }
+
                     if let Some(duplicate) = routes.insert(
                         invocation_export.route.clone(),
                         fn_item.sig.ident.to_string(),
@@ -495,11 +506,24 @@ fn discover_program_ctors<'a>(
 ) -> Vec<FnBuilder<'a>> {
     let self_type_path: TypePath = parse_quote!(Self);
     let (program_type_path, _, _) = shared::impl_type_refs(program_impl.self_ty.as_ref());
-    shared::discover_invocation_targets(
+    let ctors = shared::discover_invocation_targets(
         program_impl,
         |fn_item| program_ctor_predicate(fn_item, &self_type_path, program_type_path),
         sails_path,
-    )
+    );
+
+    #[cfg(feature = "ethexe")]
+    {
+        for ctor in &ctors {
+            shared::validation::validate_identifier(
+                &ctor.route_camel_case(),
+                ctor.ident.span(),
+                "Program constructor",
+            );
+        }
+    }
+
+    ctors
 }
 
 fn program_ctor_predicate(
