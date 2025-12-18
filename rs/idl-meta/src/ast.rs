@@ -6,6 +6,8 @@ use alloc::{
     vec::Vec,
 };
 use core::fmt::{Display, Write};
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 // -------------------------------- IDL model ---------------------------------
 
@@ -21,9 +23,19 @@ use core::fmt::{Display, Write};
     derive(askama::Template),
     template(path = "idl.askama", escape = "none")
 )]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct IdlDoc {
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Vec::is_empty")
+    )]
     pub globals: Vec<(String, Option<String>)>,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     pub program: Option<ProgramUnit>,
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Vec::is_empty")
+    )]
     pub services: Vec<ServiceUnit>,
 }
 
@@ -40,12 +52,33 @@ pub struct IdlDoc {
     derive(askama::Template),
     template(path = "program.askama", escape = "none")
 )]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct ProgramUnit {
     pub name: String,
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Vec::is_empty")
+    )]
     pub ctors: Vec<CtorFunc>,
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Vec::is_empty")
+    )]
     pub services: Vec<ServiceExpo>,
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Vec::is_empty")
+    )]
     pub types: Vec<Type>,
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Vec::is_empty")
+    )]
     pub docs: Vec<String>,
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Vec::is_empty")
+    )]
     pub annotations: Vec<(String, Option<String>)>,
 }
 
@@ -56,10 +89,20 @@ pub struct ProgramUnit {
 /// - an optional low-level `route` (transport / path) used by the runtime,
 /// - may contain documentation comments and annotations.
 #[derive(Debug, Default, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct ServiceExpo {
     pub name: String,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     pub route: Option<String>,
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Vec::is_empty")
+    )]
     pub docs: Vec<String>,
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Vec::is_empty")
+    )]
     pub annotations: Vec<(String, Option<String>)>,
 }
 
@@ -70,10 +113,20 @@ pub struct ServiceExpo {
 /// - `params` are the IDL-level arguments,
 /// - may contain documentation comments and annotations.
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct CtorFunc {
     pub name: String,
+    #[cfg_attr(feature = "serde", serde(default))]
     pub params: Vec<FuncParam>,
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Vec::is_empty")
+    )]
     pub docs: Vec<String>,
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Vec::is_empty")
+    )]
     pub annotations: Vec<(String, Option<String>)>,
 }
 
@@ -91,13 +144,38 @@ pub struct CtorFunc {
     derive(askama::Template),
     template(path = "service.askama", escape = "none")
 )]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct ServiceUnit {
     pub name: String,
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Vec::is_empty")
+    )]
     pub extends: Vec<String>,
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Vec::is_empty")
+    )]
     pub funcs: Vec<ServiceFunc>,
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Vec::is_empty")
+    )]
     pub events: Vec<ServiceEvent>,
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Vec::is_empty")
+    )]
     pub types: Vec<Type>,
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Vec::is_empty")
+    )]
     pub docs: Vec<String>,
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Vec::is_empty")
+    )]
     pub annotations: Vec<(String, Option<String>)>,
 }
 
@@ -109,18 +187,34 @@ pub struct ServiceUnit {
 /// - `is_query` marks read-only / query functions as defined by the spec;
 /// - may contain documentation comments and annotations.
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct ServiceFunc {
     pub name: String,
+    #[cfg_attr(feature = "serde", serde(default))]
     pub params: Vec<FuncParam>,
     pub output: TypeDecl,
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     pub throws: Option<TypeDecl>,
     pub kind: FunctionKind,
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Vec::is_empty")
+    )]
     pub docs: Vec<String>,
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Vec::is_empty")
+    )]
     pub annotations: Vec<(String, Option<String>)>,
 }
 
 /// Function kind based on mutability.
 #[derive(Debug, Default, PartialEq, Eq, Clone, Copy)]
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(rename_all = "lowercase")
+)]
 pub enum FunctionKind {
     #[default]
     Command,
@@ -142,8 +236,10 @@ impl ServiceFunc {
 /// Stores the parameter name as written in IDL and its fully resolved type
 /// (`TypeDecl`), preserving declaration order.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct FuncParam {
     pub name: String,
+    #[cfg_attr(feature = "serde", serde(rename = "type"))]
     pub type_decl: TypeDecl,
 }
 
@@ -171,6 +267,11 @@ pub type ServiceEvent = EnumVariant;
 ///     - user-defined types with generics (`UserDefined`),
 ///     - bare generic parameters (`T`).
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(rename_all = "lowercase", tag = "kind")
+)]
 pub enum TypeDecl {
     /// Slice type `[T]`.
     Slice { item: Box<TypeDecl> },
@@ -185,10 +286,15 @@ pub enum TypeDecl {
     /// - generic type parameter (e.g. `T`) used in type definitions.
     Named {
         name: String,
+        #[cfg_attr(
+            feature = "serde",
+            serde(default, skip_serializing_if = "Vec::is_empty")
+        )]
         generics: Vec<TypeDecl>,
     },
     /// Built-in primitive type from `PrimitiveType`.
-    Primitive(PrimitiveType),
+    #[cfg_attr(feature = "serde", serde(untagged))]
+    Primitive(#[cfg_attr(feature = "serde", serde(with = "serde_str"))] PrimitiveType),
 }
 
 impl TypeDecl {
@@ -400,11 +506,25 @@ impl core::str::FromStr for PrimitiveType {
     derive(askama::Template),
     template(path = "type.askama", escape = "none")
 )]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Type {
     pub name: String,
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Vec::is_empty")
+    )]
     pub type_params: Vec<TypeParameter>,
+    #[cfg_attr(feature = "serde", serde(flatten))]
     pub def: TypeDef,
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Vec::is_empty")
+    )]
     pub docs: Vec<String>,
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Vec::is_empty")
+    )]
     pub annotations: Vec<(String, Option<String>)>,
 }
 
@@ -414,12 +534,14 @@ pub struct Type {
 /// - `ty` is an optional concrete type bound / substitution; `None` means that
 ///   the parameter is left generic at this level.
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct TypeParameter {
     /// The name of the generic type parameter e.g. "T".
     pub name: String,
     /// The concrete type for the type parameter.
     ///
     /// `None` if the type parameter is skipped.
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     pub ty: Option<TypeDecl>,
 }
 
@@ -436,6 +558,11 @@ impl Display for TypeParameter {
 /// - `Struct` - record / tuple / unit structs;
 /// - `Enum` - tagged unions with variants that may carry payloads.
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(rename_all = "lowercase", tag = "kind")
+)]
 pub enum TypeDef {
     Struct(StructDef),
     Enum(EnumDef),
@@ -453,7 +580,9 @@ pub enum TypeDef {
     derive(askama::Template),
     template(path = "struct_def.askama", escape = "none")
 )]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct StructDef {
+    #[cfg_attr(feature = "serde", serde(default))]
     pub fields: Vec<StructField>,
 }
 
@@ -487,10 +616,21 @@ impl StructDef {
     derive(askama::Template),
     template(path = "field.askama", escape = "none")
 )]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct StructField {
+    #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     pub name: Option<String>,
+    #[cfg_attr(feature = "serde", serde(rename = "type"))]
     pub type_decl: TypeDecl,
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Vec::is_empty")
+    )]
     pub docs: Vec<String>,
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Vec::is_empty")
+    )]
     pub annotations: Vec<(String, Option<String>)>,
 }
 
@@ -499,7 +639,9 @@ pub struct StructField {
 /// Stores the ordered list of `EnumVariant` items that form a tagged union.
 /// Each variant may be unit-like, classic (named fields) or tuple-like.
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct EnumDef {
+    #[cfg_attr(feature = "serde", serde(default))]
     pub variants: Vec<EnumVariant>,
 }
 
@@ -514,9 +656,44 @@ pub struct EnumDef {
     derive(askama::Template),
     template(path = "variant.askama", escape = "none")
 )]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct EnumVariant {
     pub name: String,
+    #[cfg_attr(feature = "serde", serde(flatten))]
     pub def: StructDef,
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Vec::is_empty")
+    )]
     pub docs: Vec<String>,
+    #[cfg_attr(
+        feature = "serde",
+        serde(default, skip_serializing_if = "Vec::is_empty")
+    )]
     pub annotations: Vec<(String, Option<String>)>,
+}
+
+#[cfg(feature = "serde")]
+mod serde_str {
+    use super::*;
+    use core::str::FromStr;
+    use serde::{Deserializer, Serializer};
+
+    pub(super) fn serialize<T, S>(value: &T, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        T: Display,
+        S: Serializer,
+    {
+        serializer.collect_str(value)
+    }
+
+    pub(super) fn deserialize<'de, T, D>(deserializer: D) -> Result<T, D::Error>
+    where
+        T: FromStr,
+        <T as FromStr>::Err: Display,
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        T::from_str(s.as_str()).map_err(serde::de::Error::custom)
+    }
 }
