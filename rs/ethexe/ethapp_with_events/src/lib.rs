@@ -1,5 +1,7 @@
 #![no_std]
 
+#![allow(unused_assignments)]
+
 use sails_rs::prelude::*;
 
 /// Service Events
