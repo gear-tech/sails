@@ -31,7 +31,7 @@ impl sails_rs::EthEvent for MyEvent {
                 .finalize(),
         ),
     ];
-    #[allow(unused_variables)]
+    #[allow(unused)]
     fn topics(&self) -> sails_rs::Vec<sails_rs::alloy_primitives::B256> {
         match self {
             MyEvent::MyEvent1 => {
@@ -42,7 +42,7 @@ impl sails_rs::EthEvent for MyEvent {
             }
         }
     }
-    #[allow(unused_variables)]
+    #[allow(unused)]
     fn data(&self) -> sails_rs::Vec<u8> {
         match self {
             MyEvent::MyEvent1 => Self::encode_sequence(&()),
