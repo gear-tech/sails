@@ -1,3 +1,5 @@
+use super::*;
+
 pub type Result<T, E = Error> = core::result::Result<T, E>;
 
 #[derive(thiserror::Error, Debug)]
@@ -13,9 +15,8 @@ pub enum Error {
     #[error("type `{0}` is not supported")]
     TypeIsUnsupported(String),
     #[error(transparent)]
-    TemplateIsBroken(#[from] Box<handlebars::TemplateError>),
+    Template(#[from] askama::Error),
+    #[cfg(feature = "std")]
     #[error(transparent)]
-    RenderingFailed(#[from] Box<handlebars::RenderError>),
-    #[error(transparent)]
-    IoFailed(#[from] std::io::Error),
+    Io(#[from] std::io::Error),
 }

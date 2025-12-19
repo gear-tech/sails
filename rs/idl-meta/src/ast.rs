@@ -59,6 +59,7 @@ pub struct ProgramUnit {
 pub struct ServiceExpo {
     pub name: String,
     pub route: Option<String>,
+    // TODO: interface_id: [u8; 8],
     pub docs: Vec<String>,
     pub annotations: Vec<(String, Option<String>)>,
 }

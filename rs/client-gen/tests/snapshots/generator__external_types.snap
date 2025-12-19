@@ -7,16 +7,6 @@ expression: code
 use my_crate::MyParam;
 #[allow(unused_imports)]
 use my_crate::sails::{client::*, collections::*, prelude::*};
-pub struct ServiceProgram;
-impl my_crate::sails::client::Program for ServiceProgram {}
-pub trait Service {
-    type Env: my_crate::sails::client::GearEnv;
-}
-impl<E: my_crate::sails::client::GearEnv> Service
-    for my_crate::sails::client::Actor<ServiceProgram, E>
-{
-    type Env = E;
-}
 
 pub mod service {
     use super::*;

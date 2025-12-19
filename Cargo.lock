@@ -562,13 +562,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "129397200fe83088e8a68407a8e2b1f826cf0086b21ccdb866a722c8bcd3a94f"
 dependencies = [
  "askama_parser",
- "basic-toml",
  "memchr",
  "proc-macro2",
  "quote",
  "rustc-hash 2.1.1",
- "serde",
- "serde_derive",
  "syn 2.0.104",
 ]
 
@@ -579,8 +576,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d6ab5630b3d5eaf232620167977f95eb51f3432fc76852328774afbd242d4358"
 dependencies = [
  "memchr",
- "serde",
- "serde_derive",
  "winnow 0.7.1",
 ]
 
@@ -805,15 +800,6 @@ name = "base64ct"
 version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8c3c1a368f70d6cf7302d78f8f7093da241fb8e8807c05cc9e51a125895a6d5b"
-
-[[package]]
-name = "basic-toml"
-version = "0.1.10"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba62675e8242a4c4e806d12f11d136e626e6c8361d6b829310732241652a178a"
-dependencies = [
- "serde",
-]
 
 [[package]]
 name = "beef"
@@ -6183,6 +6169,7 @@ version = "0.9.2"
 dependencies = [
  "ping-pong-bench-app",
  "sails-client-gen",
+ "sails-idl-gen",
 ]
 
 [[package]]
@@ -7228,15 +7215,15 @@ dependencies = [
 name = "sails-idl-gen"
 version = "0.9.2"
 dependencies = [
+ "askama",
  "convert_case 0.7.1",
  "gprimitives",
- "handlebars",
  "insta",
+ "quote",
  "sails-idl-meta",
- "sails-idl-parser",
+ "sails-idl-parser-v2",
  "scale-info",
- "serde",
- "serde_json",
+ "syn 2.0.104",
  "thiserror 2.0.12",
 ]
 

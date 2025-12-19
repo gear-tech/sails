@@ -12,7 +12,7 @@ pub(crate) struct RootGenerator<'ast> {
     tokens: Tokens,
     service_impl_tokens: Tokens,
     service_trait_tokens: Tokens,
-    anonymous_service_name: &'ast str,
+    program_name: Option<&'ast str>,
     mocks_feature_name: Option<&'ast str>,
     sails_path: &'ast str,
     external_types: HashMap<&'ast str, &'ast str>,
@@ -23,17 +23,16 @@ pub(crate) struct RootGenerator<'ast> {
 
 impl<'ast> RootGenerator<'ast> {
     pub(crate) fn new(
-        anonymous_service_name: &'ast str,
         mocks_feature_name: Option<&'ast str>,
         sails_path: &'ast str,
         external_types: HashMap<&'ast str, &'ast str>,
         no_derive_traits: bool,
     ) -> Self {
         Self {
-            anonymous_service_name,
             tokens: Tokens::new(),
             service_impl_tokens: Tokens::new(),
             service_trait_tokens: Tokens::new(),
+            program_name: None,
             mocks_feature_name,
             sails_path,
             external_types,
@@ -44,7 +43,7 @@ impl<'ast> RootGenerator<'ast> {
     }
 
     pub(crate) fn finalize(self, with_no_std: bool) -> String {
-        let extern_std = if let Some(mocks_feature_name) = self.mocks_feature_name {
+        let mut tokens = if let Some(mocks_feature_name) = self.mocks_feature_name {
             quote! {
                 $['\n']
                 #[cfg(feature = $(quoted(mocks_feature_name)))]
@@ -55,7 +54,7 @@ impl<'ast> RootGenerator<'ast> {
             Tokens::new()
         };
 
-        let mut tokens = quote! {
+        quote_in! { tokens =>
             #[allow(unused_imports)]
             use $(self.sails_path)::{client::*, collections::*, prelude::*};
         };
@@ -67,26 +66,25 @@ impl<'ast> RootGenerator<'ast> {
             };
         }
 
-        let program_name = &self.anonymous_service_name.to_case(Case::Pascal);
-        quote_in! { tokens =>
-            $extern_std
+        if let Some(program_name) = self.program_name {
+            quote_in! { tokens =>
+                pub struct $(program_name)Program;
 
-            pub struct $(program_name)Program;
+                impl $(self.sails_path)::client::Program for  $(program_name)Program {}
 
-            impl $(self.sails_path)::client::Program for  $(program_name)Program {}
+                pub trait $program_name {
+                    type Env: $(self.sails_path)::client::GearEnv;
+                    $(self.service_trait_tokens)
+                }
 
-            pub trait $program_name {
-                type Env: $(self.sails_path)::client::GearEnv;
-                $(self.service_trait_tokens)
-            }
+                impl<E: $(self.sails_path)::client::GearEnv> $program_name for $(self.sails_path)::client::Actor<$(program_name)Program, E> {
+                    type Env = E;
+                    $(self.service_impl_tokens)
+                }
+            };
+        }
 
-            impl<E: $(self.sails_path)::client::GearEnv> $program_name for $(self.sails_path)::client::Actor<$(program_name)Program, E> {
-                type Env = E;
-                $(self.service_impl_tokens)
-            }
-
-            $(self.tokens)
-        };
+        tokens.extend(self.tokens);
 
         let mut result = tokens.to_file_string().unwrap();
 
@@ -105,7 +103,9 @@ impl<'ast> RootGenerator<'ast> {
 
 impl<'ast> Visitor<'ast> for RootGenerator<'ast> {
     fn visit_program_unit(&mut self, program: &'ast ast::ProgramUnit) {
-        let mut ctor_gen = CtorGenerator::new(self.anonymous_service_name, self.sails_path);
+        self.program_name = Some(&program.name);
+
+        let mut ctor_gen = CtorGenerator::new(&program.name, self.sails_path);
         ctor_gen.visit_program_unit(program);
         self.tokens.extend(ctor_gen.finalize());
 
@@ -118,14 +118,8 @@ impl<'ast> Visitor<'ast> for RootGenerator<'ast> {
     }
 
     fn visit_service_unit(&mut self, service: &'ast ast::ServiceUnit) {
-        let service_name = if service.name.is_empty() {
-            self.anonymous_service_name
-        } else {
-            &service.name
-        };
-
         let mut client_gen = ServiceGenerator::new(
-            service_name,
+            &service.name,
             self.sails_path,
             &self.external_types,
             self.mocks_feature_name,

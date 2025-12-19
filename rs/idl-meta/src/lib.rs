@@ -33,6 +33,16 @@ impl InterfaceId {
         Self(inner)
     }
 
+    /// Create interface ID from bytes.
+    pub const fn from_bytes_8(bytes: [u8; 8]) -> Self {
+        Self(bytes)
+    }
+
+    /// Create interface ID from u64.
+    pub const fn from_u64(int: u64) -> Self {
+        Self(int.to_le_bytes())
+    }
+
     /// Get interface ID as a byte slice
     pub fn as_bytes(&self) -> &[u8] {
         &self.0
@@ -102,6 +112,7 @@ pub struct AnyServiceMeta {
     queries: MetaType,
     events: MetaType,
     base_services: Vec<(&'static str, AnyServiceMeta)>,
+    interface_id: InterfaceId,
 }
 
 impl AnyServiceMeta {
@@ -111,6 +122,7 @@ impl AnyServiceMeta {
             queries: S::queries(),
             events: S::events(),
             base_services: S::base_services().collect(),
+            interface_id: S::INTERFACE_ID,
         }
     }
 
@@ -130,6 +142,10 @@ impl AnyServiceMeta {
         self.base_services
             .iter()
             .map(|&(name, ref meta)| (name, meta))
+    }
+
+    pub fn interface_id(&self) -> InterfaceId {
+        self.interface_id
     }
 }
 
