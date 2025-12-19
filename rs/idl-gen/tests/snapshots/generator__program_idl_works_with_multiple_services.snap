@@ -4,7 +4,7 @@ expression: idl
 ---
 !@sails: 0.9.2
 
-service Service {
+service Service@0x0000000000000000 {
     events {
         /// `This` Done
         ThisDone (
@@ -88,7 +88,7 @@ service Service {
     }
 }
 
-service SomeService {
+service SomeService@0x0000000000000000 {
     events {
         /// `This` Done
         ThisDone (
@@ -174,7 +174,7 @@ service SomeService {
 
 program TestProgramWithMultipleServicesMeta {
     services {
-        Service,
-        SomeService: Service,
+        Service@0x0000000000000000,
+        Service@0x0000000000000000: SomeService,
     }
 }

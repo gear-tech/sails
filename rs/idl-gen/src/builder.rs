@@ -25,8 +25,12 @@ impl ProgramBuilder {
                     service_ids.insert(key, service_name);
                     (service_name.to_string(), None)
                 };
+                let interface_id = meta.interface_id();
                 ServiceExpo {
-                    name,
+                    name: ServiceIdent {
+                        name,
+                        interface_id: Some(interface_id),
+                    },
                     route,
                     docs: vec![],
                     annotations: vec![],
@@ -173,7 +177,10 @@ impl<'a> ServiceBuilder<'a> {
         let mut services = Vec::new();
         let mut extends = Vec::new();
         for (name, meta) in self.meta.base_services() {
-            extends.push(name.to_string());
+            extends.push(ServiceIdent {
+                name: name.to_string(),
+                interface_id: Some(meta.interface_id()),
+            });
             // TODO: dedup base services based on `interface_id`
             services.extend(ServiceBuilder::new(name, meta).build()?);
         }
@@ -186,7 +193,10 @@ impl<'a> ServiceBuilder<'a> {
         let types = resolver.into_types();
 
         services.push(ServiceUnit {
-            name: self.name.to_string(),
+            name: ServiceIdent {
+                name: self.name.to_string(),
+                interface_id: Some(self.meta.interface_id()),
+            },
             extends,
             funcs: [commands, queries].concat(),
             events,
@@ -597,7 +607,10 @@ mod tests {
         assert_eq!(
             meta.services[0],
             ServiceExpo {
-                name: "TestService1".to_string(),
+                name: ServiceIdent {
+                    name: "TestService1".to_string(),
+                    interface_id: Some(InterfaceId::zero())
+                },
                 route: None,
                 docs: vec![],
                 annotations: vec![]
@@ -606,7 +619,11 @@ mod tests {
         assert_eq!(
             meta.services[1],
             ServiceExpo {
-                name: "TestService1".to_string(),
+                name: ServiceIdent {
+                    name: "TestService1".to_string(),
+                    interface_id: Some(InterfaceId::zero())
+                },
+
                 route: Some("TestService2".to_string()),
                 docs: vec![],
                 annotations: vec![]
@@ -615,7 +632,10 @@ mod tests {
         assert_eq!(
             meta.services[2],
             ServiceExpo {
-                name: "TestService1".to_string(),
+                name: ServiceIdent {
+                    name: "TestService1".to_string(),
+                    interface_id: Some(InterfaceId::zero())
+                },
                 route: Some("TestService3".to_string()),
                 docs: vec![],
                 annotations: vec![]
@@ -772,12 +792,15 @@ mod tests {
         let base_service = &services[0];
         let extended_service = &services[1];
 
-        assert_eq!(base_service.name.as_str(), "BaseServiceMeta");
-        assert_eq!(extended_service.name.as_str(), "ExtendedService");
+        assert_eq!(base_service.name.name, "BaseServiceMeta");
+        assert_eq!(extended_service.name.name, "ExtendedService");
 
         assert_eq!(
             extended_service.extends,
-            vec!["BaseServiceMeta".to_string()]
+            vec![ServiceIdent {
+                name: "BaseServiceMeta".to_string(),
+                interface_id: Some(BaseServiceMeta::INTERFACE_ID)
+            }]
         );
 
         assert_eq!(base_service.funcs.len(), 2);
@@ -873,8 +896,8 @@ mod tests {
         let base_service = &services[0];
         let extended_service = &services[1];
 
-        assert_eq!(base_service.name.as_str(), "BaseService");
-        assert_eq!(extended_service.name.as_str(), "ExtendedService");
+        assert_eq!(base_service.name.name, "BaseService");
+        assert_eq!(extended_service.name.name, "ExtendedService");
 
         let base_cmd = base_service
             .funcs
@@ -953,8 +976,8 @@ mod tests {
         let base_service = &services[0];
         let extended_service = &services[1];
 
-        assert_eq!(base_service.name.as_str(), "BaseService");
-        assert_eq!(extended_service.name.as_str(), "ExtendedService");
+        assert_eq!(base_service.name.name, "BaseService");
+        assert_eq!(extended_service.name.name, "ExtendedService");
 
         let base_event = base_service
             .events
@@ -1107,7 +1130,7 @@ mod tests {
         let services = test_service_units::<ServiceC>("ServiceC").expect("ServiceBuilder error");
 
         assert_eq!(services.len(), 5);
-        let names: Vec<&str> = services.iter().map(|s| s.name.as_str()).collect();
+        let names: Vec<_> = services.iter().map(|s| s.name.name.as_str()).collect();
         assert_eq!(
             names,
             vec![

@@ -321,11 +321,11 @@ fn program_idl_works_with_multiple_services() {
     let program = generated_idl_program.program.unwrap();
     assert!(program.ctors.is_empty());
     assert_eq!(generated_idl_program.services.len(), 2);
-    assert_eq!(generated_idl_program.services[0].name, "Service");
+    assert_eq!(generated_idl_program.services[0].name.name, "Service");
     assert_eq!(generated_idl_program.services[0].funcs.len(), 4);
     assert_eq!(generated_idl_program.services[0].types.len(), 8);
     // TODO: dedup services by id
-    assert_eq!(generated_idl_program.services[1].name, "SomeService");
+    assert_eq!(generated_idl_program.services[1].name.name, "SomeService");
     assert_eq!(generated_idl_program.services[1].funcs.len(), 4);
     assert_eq!(generated_idl_program.services[1].types.len(), 8);
 }
