@@ -49,7 +49,7 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Build & Test Client Generator
         run: |
@@ -59,7 +59,7 @@ jobs:
           cp ./net/rs/target/release/sails_net_client_gen.dll ./net/rs/target/artifacts/win-x64
 
       - name: Upload Client Generator Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: native_client_gen_win_x64
           path: ./net/rs/target/artifacts
@@ -71,7 +71,7 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Build & Test Client Generator
         run: |
@@ -81,7 +81,7 @@ jobs:
           cp ./net/rs/target/release/libsails_net_client_gen.so ./net/rs/target/artifacts/linux-x64
 
       - name: Upload Client Generator Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: native_client_gen_linux_x64
           path: ./net/rs/target/artifacts
@@ -93,7 +93,7 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Build & Test Client Generator
         run: |
@@ -104,7 +104,7 @@ jobs:
           cp ./net/rs/target/x86_64-apple-darwin/release/libsails_net_client_gen.dylib ./net/rs/target/artifacts/osx-x64
 
       - name: Upload Client Generator Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: native_client_gen_osx_x64
           path: ./net/rs/target/artifacts
@@ -116,7 +116,7 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Build & Test Client Generator
         run: |
@@ -127,7 +127,7 @@ jobs:
           cp ./net/rs/target/aarch64-apple-darwin/release/libsails_net_client_gen.dylib ./net/rs/target/artifacts/osx-arm64
 
       - name: Upload Client Generator Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: native_client_gen_osx_arm64
           path: ./net/rs/target/artifacts
@@ -144,18 +144,18 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0 # for MinVer
           filter: tree:0 # for MinVer
 
       - name: Set Up .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 9.0.x
 
       - name: Download Native Libraries
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           path: native_client_gens
           pattern: native_client_gen_*
@@ -207,7 +207,7 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Create Draft Release
         uses: softprops/action-gh-release@v2
