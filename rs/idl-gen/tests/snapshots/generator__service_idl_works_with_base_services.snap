@@ -4,7 +4,7 @@ expression: idl
 ---
 !@sails: 0.9.2
 
-service B@0x0000000000000000 {
+service B@0x0100000000000000 {
     events {
         ThisDoneBase(u32),
         ThatDoneBase {
@@ -21,9 +21,9 @@ service B@0x0000000000000000 {
     }
 }
 
-service ServiceMetaWithBase@0x0000000000000000 {
+service ServiceMetaWithBase@0x0200000000000000 {
     extends {
-        B@0x0000000000000000,
+        B@0x0100000000000000,
     }
     events {
         /// `This` Done

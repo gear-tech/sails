@@ -150,7 +150,7 @@ pub struct AnyServiceMeta {
     commands: MetaType,
     queries: MetaType,
     events: MetaType,
-    base_services: Vec<(&'static str, AnyServiceMeta)>,
+    base_services: Vec<(&'static str, AnyServiceMetaFn)>,
     interface_id: InterfaceId,
 }
 
@@ -160,7 +160,7 @@ impl AnyServiceMeta {
             commands: S::commands(),
             queries: S::queries(),
             events: S::events(),
-            base_services: S::base_services().collect(),
+            base_services: S::BASE_SERVICES.to_vec(),
             interface_id: S::INTERFACE_ID,
         }
     }
@@ -177,10 +177,8 @@ impl AnyServiceMeta {
         &self.events
     }
 
-    pub fn base_services(&self) -> impl Iterator<Item = (&'static str, &AnyServiceMeta)> {
-        self.base_services
-            .iter()
-            .map(|&(name, ref meta)| (name, meta))
+    pub fn base_services(&self) -> impl Iterator<Item = (&'static str, AnyServiceMeta)> {
+        self.base_services.iter().map(|&(name, f)| (name, f()))
     }
 
     pub fn interface_id(&self) -> InterfaceId {
