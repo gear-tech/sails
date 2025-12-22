@@ -103,6 +103,7 @@ impl FromStr for ServiceIdent {
 pub struct ServiceExpo {
     pub name: ServiceIdent,
     pub route: Option<String>,
+    pub route_idx: u8,
     pub docs: Vec<String>,
     pub annotations: Vec<(String, Option<String>)>,
 }

@@ -1,13 +1,13 @@
 
 !@sails: 0.9.2
 
-service PingPong {
+service PingPong@0x21bd9a9aa51da264 {
     functions {
         Ping(input: String) -> String throws String;
     }
 }
 
-service Counter {
+service Counter@0x579d6daba41b7d82 {
     events {
         /// Emitted when a new value is added to the counter
         Added(u32),
@@ -25,7 +25,7 @@ service Counter {
     }
 }
 
-service WalkerService {
+service WalkerService@0xee1536b55170bf0a {
     events {
         Walked {
             from: (i32, i32),
@@ -39,7 +39,7 @@ service WalkerService {
     }
 }
 
-service MammalService {
+service MammalService@0xff6b93e1961026fe {
     functions {
         MakeSound() -> String;
         @query
@@ -47,10 +47,10 @@ service MammalService {
     }
 }
 
-service Dog {
+service Dog@0x18666e67a21917a1 {
     extends {
-        WalkerService,
-        MammalService,
+        WalkerService@0xee1536b55170bf0a,
+        MammalService@0xff6b93e1961026fe,
     }
     events {
         Barked,
@@ -60,7 +60,7 @@ service Dog {
     }
 }
 
-service References {
+service References@0xb7a968809a79420a {
     functions {
         Add(v: u32) -> u32;
         AddByte(byte: u8) -> [u8];
@@ -79,7 +79,7 @@ service References {
     }
 }
 
-service ThisThat {
+service ThisThat@0x18ff5d765e12ddad {
     functions {
         DoThat(param: DoThatParam) -> (ActorId, NonZeroU32, ManyVariantsReply) throws (String);
         DoThis(p1: u32, p2: String, p3: (Option<H160>, NonZeroU8), p4: TupleStruct) -> (String, u32);
@@ -120,7 +120,7 @@ service ThisThat {
     }
 }
 
-service ValueFee {
+service ValueFee@0x41c1080b4e1e8dc5 {
     events {
         Withheld(u128),
     }
@@ -131,7 +131,7 @@ service ValueFee {
     }
 }
 
-service Chaos {
+service Chaos@0xf0c8c80dfabf72d5 {
     functions {
         @query
         PanicAfterWait();
@@ -150,12 +150,12 @@ program DemoClient {
         New(counter: Option<u32>, dog_position: Option<(i32, i32)>);
     }
     services {
-        PingPong,
-        Counter,
-        Dog,
-        References,
-        ThisThat,
-        ValueFee,
-        Chaos,
+        PingPong@0x21bd9a9aa51da264,
+        Counter@0x579d6daba41b7d82,
+        Dog@0x18666e67a21917a1,
+        References@0xb7a968809a79420a,
+        ThisThat@0x18ff5d765e12ddad,
+        ValueFee@0x41c1080b4e1e8dc5,
+        Chaos@0xf0c8c80dfabf72d5,
     }
 }

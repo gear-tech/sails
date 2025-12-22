@@ -15,7 +15,8 @@ impl ProgramBuilder {
         let ctors = P::constructors();
         let ctors_type_id = registry.register_type(&ctors).id;
         let services_expo = P::services()
-            .map(|(service_name, meta)| {
+            .enumerate()
+            .map(|(idx, (service_name, meta))| {
                 // TEMP: dedup by interface_id
                 // will not be needed after routring by interface_id
                 let key = u64::from_le_bytes(meta.interface_id().0);
@@ -32,6 +33,7 @@ impl ProgramBuilder {
                         interface_id: Some(interface_id),
                     },
                     route,
+                    route_idx: (idx as u8) + 1,
                     docs: vec![],
                     annotations: vec![],
                 }

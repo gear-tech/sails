@@ -441,10 +441,16 @@ fn parse_program(p: Pair<Rule>) -> Result<ProgramUnit> {
                 }
             }
             Rule::ServicesBlock => {
-                for s in item
+                for (idx, s) in item
                     .into_inner()
                     .filter(|x| x.as_rule() == Rule::ServiceExpo)
+                    .enumerate()
                 {
+                    if idx > u8::MAX.into() {
+                        return Err(Error::Validation(
+                            "Too many services in program. Max: 255".to_string(),
+                        ));
+                    }
                     let mut sit = s.into_inner();
                     let (docs, annotations) = parse_docs_and_annotations(&mut sit)?;
                     let name = expect_next(&mut sit, parse_service_ident)?;
@@ -458,6 +464,7 @@ fn parse_program(p: Pair<Rule>) -> Result<ProgramUnit> {
                     services.push(ServiceExpo {
                         name,
                         route,
+                        route_idx: (idx as u8) + 1,
                         docs,
                         annotations,
                     });

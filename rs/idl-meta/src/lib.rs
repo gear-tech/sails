@@ -99,7 +99,7 @@ impl core::str::FromStr for InterfaceId {
             let hex = core::str::from_utf8(chunk).map_err(|_| "invalid UTF-8".to_string())?;
 
             bytes[i] =
-                u8::from_str_radix(hex, 16).map_err(|_| format!("invalid hex byte: {}", hex))?;
+                u8::from_str_radix(hex, 16).map_err(|_| format!("invalid hex byte: {hex}"))?;
         }
 
         Ok(InterfaceId(bytes))
