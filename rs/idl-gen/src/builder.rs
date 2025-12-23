@@ -5,39 +5,21 @@ use scale_info::*;
 pub struct ProgramBuilder {
     registry: PortableRegistry,
     ctors_type_id: u32,
-    services_expo: Vec<ServiceExpo>,
+    service_expos: Vec<(&'static str, AnyServiceMeta)>,
 }
 
 impl ProgramBuilder {
     pub fn new<P: ProgramMeta>() -> Self {
-        let mut service_ids: BTreeMap<u64, &'static str> = BTreeMap::new();
         let mut registry = Registry::new();
         let ctors = P::constructors();
         let ctors_type_id = registry.register_type(&ctors).id;
-        let services_expo = P::services()
-            .map(|(service_name, meta)| {
-                // TEMP: dedup by interface_id
-                // will not be needed after routring by interface_id
-                let key = u64::from_le_bytes(meta.interface_id().0);
-                let (name, route) = if let Some(name) = service_ids.get(&key) {
-                    (name.to_string(), Some(service_name.to_string()))
-                } else {
-                    service_ids.insert(key, service_name);
-                    (service_name.to_string(), None)
-                };
-                ServiceExpo {
-                    name,
-                    route,
-                    docs: vec![],
-                    annotations: vec![],
-                }
-            })
-            .collect::<Vec<_>>();
+        let service_expos = P::services().collect();
+
         let registry = PortableRegistry::from(registry);
         Self {
             registry,
             ctors_type_id,
-            services_expo,
+            service_expos,
         }
     }
 
@@ -45,7 +27,7 @@ impl ProgramBuilder {
         any_funcs(&self.registry, self.ctors_type_id)?
             .map(|c| {
                 if c.fields.len() != 1 {
-                    Err(Error::FuncMetaIsInvalid(format!(
+                    Err(Error::MetaIsInvalid(format!(
                         "ctor `{}` has invalid number of fields",
                         c.name
                     )))
@@ -61,7 +43,7 @@ impl ProgramBuilder {
                             .iter()
                             .map(|f| -> Result<_> {
                                 let name = f.name.as_ref().ok_or_else(|| {
-                                    Error::FuncMetaIsInvalid(format!(
+                                    Error::MetaIsInvalid(format!(
                                         "ctor `{}` param is missing a name",
                                         c.name
                                     ))
@@ -83,7 +65,7 @@ impl ProgramBuilder {
                             annotations: vec![],
                         })
                     } else {
-                        Err(Error::FuncMetaIsInvalid(format!(
+                        Err(Error::MetaIsInvalid(format!(
                             "ctor `{}` params type is not a composite",
                             c.name
                         )))
@@ -93,19 +75,54 @@ impl ProgramBuilder {
             .collect()
     }
 
-    pub fn build(self, name: String) -> Result<ProgramUnit> {
+    pub fn build(self, name: String, services: &[ServiceUnit]) -> Result<ProgramUnit> {
         let mut exclude = BTreeSet::new();
         exclude.insert(self.ctors_type_id);
         exclude.extend(any_funcs_ids(&self.registry, self.ctors_type_id)?);
         let resolver = TypeResolver::try_from(&self.registry, exclude)?;
         let ctors = self.ctor_funcs(&resolver)?;
-        let services = self.services_expo;
         let types = resolver.into_types();
+
+        if self.service_expos.len() > u8::MAX as usize {
+            return Err(Error::MetaIsInvalid(
+                "Too many services in program. Max: 255".to_string(),
+            ));
+        }
+
+        let expos: Result<Vec<_>> = self
+            .service_expos
+            .into_iter()
+            .enumerate()
+            .map(|(idx, (route, meta))| {
+                let interface_id = meta.interface_id();
+                let Some(service) = services
+                    .iter()
+                    .find(|s| s.name.interface_id == Some(interface_id))
+                else {
+                    return Err(Error::MetaIsInvalid(format!(
+                        "service `{route}@{interface_id}` not defined"
+                    )));
+                };
+                let route = if service.name.name == route {
+                    None
+                } else {
+                    Some(route.to_string())
+                };
+
+                Ok(ServiceExpo {
+                    name: service.name.clone(),
+                    route,
+                    route_idx: (idx as u8) + 1,
+                    docs: vec![],
+                    annotations: vec![],
+                })
+            })
+            .collect();
 
         Ok(ProgramUnit {
             name,
             ctors,
-            services,
+            services: expos?,
             types,
             docs: vec![],
             annotations: vec![],
@@ -123,7 +140,7 @@ fn any_funcs(
     if let scale_info::TypeDef::Variant(variant) = &funcs.type_def {
         Ok(variant.variants.iter())
     } else {
-        Err(Error::FuncMetaIsInvalid(format!(
+        Err(Error::MetaIsInvalid(format!(
             "func type id {func_type_id} references a type that is not a variant"
         )))
     }
@@ -137,7 +154,7 @@ fn any_funcs_ids(registry: &PortableRegistry, func_type_id: u32) -> Result<Vec<u
                 .first()
                 .map(|field| field.ty.id)
                 .ok_or_else(|| {
-                    Error::FuncMetaIsInvalid(format!("func `{}` has no fields", variant.name))
+                    Error::MetaIsInvalid(format!("func `{}` has no fields", variant.name))
                 })
         })
         .collect::<Result<Vec<_>>>()
@@ -169,13 +186,41 @@ impl<'a> ServiceBuilder<'a> {
         }
     }
 
-    pub fn build(self) -> Result<Vec<ServiceUnit>> {
-        let mut services = Vec::new();
+    pub fn build(self, services: &mut Vec<ServiceUnit>) -> Result<ServiceIdent> {
+        let mut visited = BTreeSet::new();
+        self.build_inner(services, &mut visited)
+    }
+
+    fn build_inner(
+        self,
+        services: &mut Vec<ServiceUnit>,
+        visited: &mut BTreeSet<u64>,
+    ) -> core::result::Result<ServiceIdent, Error> {
+        let interface_id = self.meta.interface_id();
+        if let Some(service) = services
+            .iter()
+            .find(|s| s.name.interface_id == Some(interface_id))
+        {
+            // if service already built, return ident
+            return Ok(service.name.clone());
+        }
+
+        // cycle detection for base service recursion
+        let key = u64::from_le_bytes(interface_id.0);
+        if !visited.insert(key) {
+            return Err(Error::MetaIsInvalid(format!(
+                "service `{}` has cyclic base services",
+                ServiceIdent {
+                    name: self.name.to_string(),
+                    interface_id: Some(interface_id),
+                }
+            )));
+        }
+
         let mut extends = Vec::new();
         for (name, meta) in self.meta.base_services() {
-            extends.push(name.to_string());
-            // TODO: dedup base services based on `interface_id`
-            services.extend(ServiceBuilder::new(name, meta).build()?);
+            let ident = ServiceBuilder::new(name, &meta).build_inner(services, visited)?;
+            extends.push(ident);
         }
 
         let exclude = BTreeSet::from_iter(self.exclude_type_ids()?);
@@ -185,8 +230,12 @@ impl<'a> ServiceBuilder<'a> {
         let events = self.events(&resolver)?;
         let types = resolver.into_types();
 
-        services.push(ServiceUnit {
+        let ident = ServiceIdent {
             name: self.name.to_string(),
+            interface_id: Some(interface_id),
+        };
+        services.push(ServiceUnit {
+            name: ident.clone(),
             extends,
             funcs: [commands, queries].concat(),
             events,
@@ -194,7 +243,8 @@ impl<'a> ServiceBuilder<'a> {
             docs: vec![],
             annotations: vec![],
         });
-        Ok(services)
+        visited.remove(&key);
+        Ok(ident)
     }
 
     fn exclude_type_ids(&self) -> Result<impl Iterator<Item = u32>> {
@@ -213,7 +263,7 @@ impl<'a> ServiceBuilder<'a> {
         any_funcs(&self.registry, self.commands_type_id)?
             .map(|c| {
                 if c.fields.len() != 2 {
-                    Err(Error::FuncMetaIsInvalid(format!(
+                    Err(Error::MetaIsInvalid(format!(
                         "command `{}` has invalid number of fields",
                         c.name
                     )))
@@ -240,7 +290,7 @@ impl<'a> ServiceBuilder<'a> {
                             .iter()
                             .map(|f| -> Result<_> {
                                 let name = f.name.as_ref().ok_or_else(|| {
-                                    Error::FuncMetaIsInvalid(format!(
+                                    Error::MetaIsInvalid(format!(
                                         "command `{}` param is missing a name",
                                         c.name
                                     ))
@@ -265,7 +315,7 @@ impl<'a> ServiceBuilder<'a> {
                             annotations: vec![],
                         })
                     } else {
-                        Err(Error::FuncMetaIsInvalid(format!(
+                        Err(Error::MetaIsInvalid(format!(
                             "command `{}` params type is not a composite",
                             c.name
                         )))
@@ -279,7 +329,7 @@ impl<'a> ServiceBuilder<'a> {
         any_funcs(&self.registry, self.queries_type_id)?
             .map(|c| {
                 if c.fields.len() != 2 {
-                    Err(Error::FuncMetaIsInvalid(format!(
+                    Err(Error::MetaIsInvalid(format!(
                         "query `{}` has invalid number of fields",
                         c.name
                     )))
@@ -306,7 +356,7 @@ impl<'a> ServiceBuilder<'a> {
                             .iter()
                             .map(|f| -> Result<_> {
                                 let name = f.name.as_ref().ok_or_else(|| {
-                                    Error::FuncMetaIsInvalid(format!(
+                                    Error::MetaIsInvalid(format!(
                                         "query `{}` param is missing a name",
                                         c.name
                                     ))
@@ -332,7 +382,7 @@ impl<'a> ServiceBuilder<'a> {
                             annotations: vec![("query".to_string(), None)],
                         })
                     } else {
-                        Err(Error::FuncMetaIsInvalid(format!(
+                        Err(Error::MetaIsInvalid(format!(
                             "query `{}` params type is not a composite",
                             c.name
                         )))
@@ -423,12 +473,15 @@ mod tests {
             const ASYNC: bool = false;
         }
 
-        ProgramBuilder::new::<TestProgram<T>>().build("TestProgram".to_string())
+        let services = Vec::new();
+        ProgramBuilder::new::<TestProgram<T>>().build("TestProgram".to_string(), &services)
     }
 
     fn test_service_units<S: ServiceMeta>(service_name: &'static str) -> Result<Vec<ServiceUnit>> {
         let meta = AnyServiceMeta::new::<S>();
-        ServiceBuilder::new(service_name, &meta).build()
+        let mut services = Vec::new();
+        ServiceBuilder::new(service_name, &meta).build(&mut services)?;
+        Ok(services)
     }
 
     // ------------------------------------------------------------------------------------
@@ -478,8 +531,8 @@ mod tests {
             let result = test_program_unit::<T>();
 
             assert!(result.is_err());
-            let Err(Error::FuncMetaIsInvalid(msg)) = result else {
-                panic!("Expected FuncMetaIsInvalid error, got {result:?}");
+            let Err(Error::MetaIsInvalid(msg)) = result else {
+                panic!("Expected MetaIsInvalid error, got {result:?}");
             };
             assert_eq!(msg.as_str(), expected_error_msg);
         }
@@ -575,7 +628,7 @@ mod tests {
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
-            const INTERFACE_ID: InterfaceId = InterfaceId::zero();
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(1);
         }
 
         struct TestProgram;
@@ -589,16 +642,23 @@ mod tests {
             const ASYNC: bool = false;
         }
 
+        let services =
+            test_service_units::<TestService>("TestService1").expect("ServiceBuilder error");
+
         let meta = ProgramBuilder::new::<TestProgram>()
-            .build("TestProgram".to_string())
+            .build("TestProgram".to_string(), &services)
             .expect("ProgramBuilder error");
 
         assert_eq!(meta.services.len(), 3);
         assert_eq!(
             meta.services[0],
             ServiceExpo {
-                name: "TestService1".to_string(),
+                name: ServiceIdent {
+                    name: "TestService1".to_string(),
+                    interface_id: Some(InterfaceId::from_u64(1))
+                },
                 route: None,
+                route_idx: 1,
                 docs: vec![],
                 annotations: vec![]
             }
@@ -606,8 +666,12 @@ mod tests {
         assert_eq!(
             meta.services[1],
             ServiceExpo {
-                name: "TestService1".to_string(),
+                name: ServiceIdent {
+                    name: "TestService1".to_string(),
+                    interface_id: Some(InterfaceId::from_u64(1))
+                },
                 route: Some("TestService2".to_string()),
+                route_idx: 2,
                 docs: vec![],
                 annotations: vec![]
             }
@@ -615,8 +679,12 @@ mod tests {
         assert_eq!(
             meta.services[2],
             ServiceExpo {
-                name: "TestService1".to_string(),
+                name: ServiceIdent {
+                    name: "TestService1".to_string(),
+                    interface_id: Some(InterfaceId::from_u64(1))
+                },
                 route: Some("TestService3".to_string()),
+                route_idx: 3,
                 docs: vec![],
                 annotations: vec![]
             }
@@ -772,12 +840,15 @@ mod tests {
         let base_service = &services[0];
         let extended_service = &services[1];
 
-        assert_eq!(base_service.name.as_str(), "BaseServiceMeta");
-        assert_eq!(extended_service.name.as_str(), "ExtendedService");
+        assert_eq!(base_service.name.name, "BaseServiceMeta");
+        assert_eq!(extended_service.name.name, "ExtendedService");
 
         assert_eq!(
             extended_service.extends,
-            vec!["BaseServiceMeta".to_string()]
+            vec![ServiceIdent {
+                name: "BaseServiceMeta".to_string(),
+                interface_id: Some(BaseServiceMeta::INTERFACE_ID)
+            }]
         );
 
         assert_eq!(base_service.funcs.len(), 2);
@@ -873,8 +944,8 @@ mod tests {
         let base_service = &services[0];
         let extended_service = &services[1];
 
-        assert_eq!(base_service.name.as_str(), "BaseService");
-        assert_eq!(extended_service.name.as_str(), "ExtendedService");
+        assert_eq!(base_service.name.name, "BaseService");
+        assert_eq!(extended_service.name.name, "ExtendedService");
 
         let base_cmd = base_service
             .funcs
@@ -953,8 +1024,8 @@ mod tests {
         let base_service = &services[0];
         let extended_service = &services[1];
 
-        assert_eq!(base_service.name.as_str(), "BaseService");
-        assert_eq!(extended_service.name.as_str(), "ExtendedService");
+        assert_eq!(base_service.name.name, "BaseService");
+        assert_eq!(extended_service.name.name, "ExtendedService");
 
         let base_event = base_service
             .events
@@ -1107,7 +1178,7 @@ mod tests {
         let services = test_service_units::<ServiceC>("ServiceC").expect("ServiceBuilder error");
 
         assert_eq!(services.len(), 5);
-        let names: Vec<&str> = services.iter().map(|s| s.name.as_str()).collect();
+        let names: Vec<_> = services.iter().map(|s| s.name.name.as_str()).collect();
         assert_eq!(
             names,
             vec![
@@ -1120,103 +1191,133 @@ mod tests {
         );
     }
 
-    // #[test]
-    // #[ignore = "TODO [future]: Must be 3 services when Sails binary protocol is implemented"]
-    // fn no_repeated_base_services() {
-    //     struct BaseService;
-    //     impl ServiceMeta for BaseService {
-    //         type CommandsMeta = utils::NoCommands;
-    //         type QueriesMeta = utils::NoQueries;
-    //         type EventsMeta = utils::NoEvents;
-    //         const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
-    //         const ASYNC: bool = false;
-    //         const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(50u64);
-    //     }
+    #[test]
+    fn no_repeated_base_services() {
+        struct BaseService;
+        impl ServiceMeta for BaseService {
+            type CommandsMeta = utils::NoCommands;
+            type QueriesMeta = utils::NoQueries;
+            type EventsMeta = utils::NoEvents;
+            const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
+            const ASYNC: bool = false;
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(50u64);
+        }
 
-    //     struct Service1;
-    //     impl ServiceMeta for Service1 {
-    //         type CommandsMeta = utils::NoCommands;
-    //         type QueriesMeta = utils::NoQueries;
-    //         type EventsMeta = utils::NoEvents;
-    //         const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] =
-    //             &[("BaseService", AnyServiceMeta::new::<BaseService>)];
-    //         const ASYNC: bool = false;
-    //         const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(51u64);
-    //     }
+        struct Service1;
+        impl ServiceMeta for Service1 {
+            type CommandsMeta = utils::NoCommands;
+            type QueriesMeta = utils::NoQueries;
+            type EventsMeta = utils::NoEvents;
+            const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] =
+                &[("BaseService", AnyServiceMeta::new::<BaseService>)];
+            const ASYNC: bool = false;
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(51u64);
+        }
 
-    //     struct Service2;
-    //     impl ServiceMeta for Service2 {
-    //         type CommandsMeta = utils::NoCommands;
-    //         type QueriesMeta = utils::NoQueries;
-    //         type EventsMeta = utils::NoEvents;
-    //         const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] =
-    //             &[("BaseService", AnyServiceMeta::new::<BaseService>)];
-    //         const ASYNC: bool = false;
-    //         const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(52u64);
-    //     }
+        struct Service2;
+        impl ServiceMeta for Service2 {
+            type CommandsMeta = utils::NoCommands;
+            type QueriesMeta = utils::NoQueries;
+            type EventsMeta = utils::NoEvents;
+            const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] =
+                &[("BaseService", AnyServiceMeta::new::<BaseService>)];
+            const ASYNC: bool = false;
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(52u64);
+        }
 
-    //     struct TestProgram;
-    //     impl ProgramMeta for TestProgram {
-    //         type ConstructorsMeta = utils::SimpleCtors;
-    //         const SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[
-    //             ("Service1", AnyServiceMeta::new::<Service1>),
-    //             ("Service2", AnyServiceMeta::new::<Service2>),
-    //         ];
-    //         const ASYNC: bool = false;
-    //     }
+        struct TestProgram;
+        impl ProgramMeta for TestProgram {
+            type ConstructorsMeta = utils::SimpleCtors;
+            const SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[
+                ("Service1", AnyServiceMeta::new::<Service1>),
+                ("Service2", AnyServiceMeta::new::<Service2>),
+            ];
+            const ASYNC: bool = false;
+        }
 
-    //     let doc = build_program_ast::<TestProgram>(None).unwrap();
-    //     assert_eq!(doc.services.len(), 3);
-    // }
+        let doc = build_program_ast::<TestProgram>(None).unwrap();
+        assert_eq!(doc.services.len(), 3);
+    }
 
-    // #[test]
-    // #[ignore = "TODO [future]: Must be 3 services when Sails binary protocol is implemented"]
-    // fn no_repeated_base_services_with_renaming() {
-    //     struct BaseService;
-    //     impl ServiceMeta for BaseService {
-    //         type CommandsMeta = utils::NoCommands;
-    //         type QueriesMeta = utils::NoQueries;
-    //         type EventsMeta = utils::NoEvents;
-    //         const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
-    //         const ASYNC: bool = false;
-    //         const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(60u64);
-    //     }
+    #[test]
+    fn no_repeated_base_services_with_renaming() {
+        struct BaseService;
+        impl ServiceMeta for BaseService {
+            type CommandsMeta = utils::NoCommands;
+            type QueriesMeta = utils::NoQueries;
+            type EventsMeta = utils::NoEvents;
+            const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
+            const ASYNC: bool = false;
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(60u64);
+        }
 
-    //     struct Service1;
-    //     impl ServiceMeta for Service1 {
-    //         type CommandsMeta = utils::NoCommands;
-    //         type QueriesMeta = utils::NoQueries;
-    //         type EventsMeta = utils::NoEvents;
-    //         const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] =
-    //             &[("BaseService", AnyServiceMeta::new::<BaseService>)];
-    //         const ASYNC: bool = false;
-    //         const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(61u64);
-    //     }
+        struct Service1;
+        impl ServiceMeta for Service1 {
+            type CommandsMeta = utils::NoCommands;
+            type QueriesMeta = utils::NoQueries;
+            type EventsMeta = utils::NoEvents;
+            const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] =
+                &[("BaseService", AnyServiceMeta::new::<BaseService>)];
+            const ASYNC: bool = false;
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(61u64);
+        }
 
-    //     struct Service2;
-    //     impl ServiceMeta for Service2 {
-    //         type CommandsMeta = utils::NoCommands;
-    //         type QueriesMeta = utils::NoQueries;
-    //         type EventsMeta = utils::NoEvents;
-    //         const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] =
-    //             &[("RenamedBaseService", AnyServiceMeta::new::<BaseService>)];
-    //         const ASYNC: bool = false;
-    //         const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(62u64);
-    //     }
+        struct Service2;
+        impl ServiceMeta for Service2 {
+            type CommandsMeta = utils::NoCommands;
+            type QueriesMeta = utils::NoQueries;
+            type EventsMeta = utils::NoEvents;
+            const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] =
+                &[("RenamedBaseService", AnyServiceMeta::new::<BaseService>)];
+            const ASYNC: bool = false;
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(62u64);
+        }
 
-    //     struct TestProgram;
-    //     impl ProgramMeta for TestProgram {
-    //         type ConstructorsMeta = utils::SimpleCtors;
-    //         const SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[
-    //             ("Service1", AnyServiceMeta::new::<Service1>),
-    //             ("Service2", AnyServiceMeta::new::<Service2>),
-    //         ];
-    //         const ASYNC: bool = false;
-    //     }
+        struct TestProgram;
+        impl ProgramMeta for TestProgram {
+            type ConstructorsMeta = utils::SimpleCtors;
+            const SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[
+                ("Service1", AnyServiceMeta::new::<Service1>),
+                ("Service2", AnyServiceMeta::new::<Service2>),
+            ];
+            const ASYNC: bool = false;
+        }
 
-    //     let doc = build_program_ast::<TestProgram>(None).unwrap();
-    //     assert_eq!(doc.services.len(), 3);
-    // }
+        let doc = build_program_ast::<TestProgram>(None).unwrap();
+        assert_eq!(doc.services.len(), 3);
+    }
+
+    #[test]
+    fn base_services_cycle_detection() {
+        struct ServiceA;
+        impl ServiceMeta for ServiceA {
+            type CommandsMeta = utils::NoCommands;
+            type QueriesMeta = utils::NoQueries;
+            type EventsMeta = utils::NoEvents;
+            const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] =
+                &[("ServiceB", AnyServiceMeta::new::<ServiceB>)];
+            const ASYNC: bool = false;
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(70u64);
+        }
+
+        struct ServiceB;
+        impl ServiceMeta for ServiceB {
+            type CommandsMeta = utils::NoCommands;
+            type QueriesMeta = utils::NoQueries;
+            type EventsMeta = utils::NoEvents;
+            const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] =
+                &[("ServiceA", AnyServiceMeta::new::<ServiceA>)];
+            const ASYNC: bool = false;
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(71u64);
+        }
+
+        let res = test_service_units::<ServiceA>("ServiceA");
+        assert!(res.is_err());
+        let Err(Error::MetaIsInvalid(msg)) = res else {
+            panic!("Expected MetaIsInvalid error, got {res:?}");
+        };
+        assert!(msg.contains("cyclic base services"));
+    }
 
     // #[test]
     // #[ignore = "TODO [future]: Must be error when Sails binary protocol is implemented"]
@@ -1287,8 +1388,8 @@ mod tests {
         let res = test_service_units::<InvalidEventsService>("InvalidEventsService");
 
         assert!(res.is_err());
-        let Err(Error::FuncMetaIsInvalid(msg)) = res else {
-            panic!("Expected FuncMetaIsInvalid error, got {res:?}");
+        let Err(Error::MetaIsInvalid(msg)) = res else {
+            panic!("Expected MetaIsInvalid error, got {res:?}");
         };
         assert!(msg.contains("references a type that is not a variant"));
     }
@@ -1434,8 +1535,8 @@ mod tests {
 
         let internal_check = |result: Result<Vec<ServiceUnit>>| {
             assert!(result.is_err());
-            let Err(Error::FuncMetaIsInvalid(msg)) = result else {
-                panic!("Expected FuncMetaIsInvalid error, got {result:?}");
+            let Err(Error::MetaIsInvalid(msg)) = result else {
+                panic!("Expected MetaIsInvalid error, got {result:?}");
             };
             assert!(msg.contains("references a type that is not a variant"));
         };
@@ -1518,8 +1619,8 @@ mod tests {
 
         let internal_check = |result: Result<Vec<ServiceUnit>>, expected_msg: &str| {
             assert!(result.is_err());
-            let Err(Error::FuncMetaIsInvalid(msg)) = result else {
-                panic!("Expected FuncMetaIsInvalid error, got {result:?}");
+            let Err(Error::MetaIsInvalid(msg)) = result else {
+                panic!("Expected MetaIsInvalid error, got {result:?}");
             };
             assert_eq!(msg.as_str(), expected_msg);
         };
@@ -1565,8 +1666,8 @@ mod tests {
         let result = test_service_units::<TestServiceMeta>("TestService");
 
         assert!(result.is_err());
-        let Err(Error::FuncMetaIsInvalid(msg)) = result else {
-            panic!("Expected FuncMetaIsInvalid error, got {result:?}");
+        let Err(Error::MetaIsInvalid(msg)) = result else {
+            panic!("Expected MetaIsInvalid error, got {result:?}");
         };
         assert_eq!(
             msg.as_str(),
@@ -1601,8 +1702,8 @@ mod tests {
         let result = test_service_units::<BadServiceMeta>("TestService");
 
         assert!(result.is_err());
-        let Err(Error::FuncMetaIsInvalid(msg)) = result else {
-            panic!("Expected FuncMetaIsInvalid error, got {result:?}");
+        let Err(Error::MetaIsInvalid(msg)) = result else {
+            panic!("Expected MetaIsInvalid error, got {result:?}");
         };
         assert_eq!(msg.as_str(), "command `BadCmd` param is missing a name");
     }
@@ -2192,54 +2293,53 @@ mod tests {
         assert!(has_shared_custom_type_field);
     }
 
-    // #[test]
-    // #[ignore = "TODO [future]: Must be 3 services when Sails binary protocol is implemented"]
-    // fn no_repeated_services() {
-    //     struct Service1;
-    //     impl ServiceMeta for Service1 {
-    //         type CommandsMeta = utils::NoCommands;
-    //         type QueriesMeta = utils::NoQueries;
-    //         type EventsMeta = utils::NoEvents;
-    //         const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
-    //         const ASYNC: bool = false;
-    //         const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(160u64);
-    //     }
+    #[test]
+    fn no_repeated_services() {
+        struct Service1;
+        impl ServiceMeta for Service1 {
+            type CommandsMeta = utils::NoCommands;
+            type QueriesMeta = utils::NoQueries;
+            type EventsMeta = utils::NoEvents;
+            const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
+            const ASYNC: bool = false;
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(160u64);
+        }
 
-    //     struct Service2;
-    //     impl ServiceMeta for Service2 {
-    //         type CommandsMeta = utils::NoCommands;
-    //         type QueriesMeta = utils::NoQueries;
-    //         type EventsMeta = utils::NoEvents;
-    //         const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
-    //         const ASYNC: bool = false;
-    //         const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(161u64);
-    //     }
+        struct Service2;
+        impl ServiceMeta for Service2 {
+            type CommandsMeta = utils::NoCommands;
+            type QueriesMeta = utils::NoQueries;
+            type EventsMeta = utils::NoEvents;
+            const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
+            const ASYNC: bool = false;
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(161u64);
+        }
 
-    //     struct Service3;
-    //     impl ServiceMeta for Service3 {
-    //         type CommandsMeta = utils::NoCommands;
-    //         type QueriesMeta = utils::NoQueries;
-    //         type EventsMeta = utils::NoEvents;
-    //         const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
-    //         const ASYNC: bool = false;
-    //         const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(162u64);
-    //     }
+        struct Service3;
+        impl ServiceMeta for Service3 {
+            type CommandsMeta = utils::NoCommands;
+            type QueriesMeta = utils::NoQueries;
+            type EventsMeta = utils::NoEvents;
+            const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
+            const ASYNC: bool = false;
+            const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(162u64);
+        }
 
-    //     struct TestProgram;
-    //     impl ProgramMeta for TestProgram {
-    //         type ConstructorsMeta = utils::SimpleCtors;
-    //         const SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[
-    //             ("Service11", AnyServiceMeta::new::<Service1>),
-    //             ("Service12", AnyServiceMeta::new::<Service1>),
-    //             ("Service13", AnyServiceMeta::new::<Service1>),
-    //             ("Service21", AnyServiceMeta::new::<Service2>),
-    //             ("Service22", AnyServiceMeta::new::<Service2>),
-    //             ("Service31", AnyServiceMeta::new::<Service3>),
-    //         ];
-    //         const ASYNC: bool = false;
-    //     }
+        struct TestProgram;
+        impl ProgramMeta for TestProgram {
+            type ConstructorsMeta = utils::SimpleCtors;
+            const SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[
+                ("Service11", AnyServiceMeta::new::<Service1>),
+                ("Service12", AnyServiceMeta::new::<Service1>),
+                ("Service13", AnyServiceMeta::new::<Service1>),
+                ("Service21", AnyServiceMeta::new::<Service2>),
+                ("Service22", AnyServiceMeta::new::<Service2>),
+                ("Service31", AnyServiceMeta::new::<Service3>),
+            ];
+            const ASYNC: bool = false;
+        }
 
-    //     let doc = build_program_ast::<TestProgram>(None).unwrap();
-    //     assert_eq!(doc.services.len(), 3);
-    // }
+        let doc = build_program_ast::<TestProgram>(None).unwrap();
+        assert_eq!(doc.services.len(), 3);
+    }
 }

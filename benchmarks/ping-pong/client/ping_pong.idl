@@ -1,7 +1,7 @@
 
 !@sails: 0.9.2
 
-service PingPongService {
+service PingPongService@0x229cc617d36f5be2 {
     functions {
         Ping(payload: PingPongPayload) -> PingPongPayload;
     }
@@ -20,6 +20,6 @@ program PingPong {
         NewForBench();
     }
     services {
-        PingPongService,
+        PingPongService@0x229cc617d36f5be2,
     }
 }

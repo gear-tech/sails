@@ -35,7 +35,7 @@ program {{ name }} {
         {%- for (k, v) in s.annotations %}
         @{{ k }} {%- if v.is_some() -%}: {{ v.as_ref().unwrap() }}{% endif %}
         {%- endfor %}
-        {% if s.route.is_some() %}{{ s.route.as_ref().unwrap() }}: {% endif %}{{ s.name }},
+        {{ s.name }}{% if s.route.is_some() %}: {{ s.route.as_ref().unwrap() }}{% endif %},
 
         {%- endfor %}
     }

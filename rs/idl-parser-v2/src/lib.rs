@@ -81,6 +81,16 @@ fn parse_ident(p: Pair<Rule>) -> Result<String> {
     Err(Error::Rule("expected Ident".to_string()))
 }
 
+fn parse_service_ident(p: Pair<Rule>) -> Result<ServiceIdent> {
+    if p.as_rule() == Rule::ServiceIdent {
+        p.as_str()
+            .parse::<ServiceIdent>()
+            .map_err(|e| Error::Parse(e.to_string()))
+    } else {
+        Err(Error::Rule("expected ServiceIdent".to_string()))
+    }
+}
+
 fn parse_annotation(p: Pair<Rule>) -> Result<Annotation> {
     let mut key = None;
     let mut val = None;
@@ -352,7 +362,7 @@ fn parse_func(p: Pair<Rule>) -> Result<ServiceFunc> {
 fn parse_service(p: Pair<Rule>) -> Result<ServiceUnit> {
     let mut it = p.into_inner();
     let (docs, annotations) = parse_docs_and_annotations(&mut it)?;
-    let name = expect_rule(&mut it, Rule::Ident)?.as_str().to_string();
+    let name = expect_next(&mut it, parse_service_ident)?;
 
     let mut extends = Vec::new();
     let mut events = Vec::new();
@@ -361,8 +371,9 @@ fn parse_service(p: Pair<Rule>) -> Result<ServiceUnit> {
     for item in it {
         match item.as_rule() {
             Rule::ExtendsBlock => {
-                for i in item.into_inner().filter(|x| x.as_rule() == Rule::Ident) {
-                    extends.push(i.as_str().to_string());
+                for i in item.into_inner() {
+                    let ident = parse_service_ident(i)?;
+                    extends.push(ident);
                 }
             }
             Rule::EventsBlock => {
@@ -434,19 +445,26 @@ fn parse_program(p: Pair<Rule>) -> Result<ProgramUnit> {
                     .into_inner()
                     .filter(|x| x.as_rule() == Rule::ServiceExpo)
                 {
+                    let len = services.len();
+                    if len >= u8::MAX as usize {
+                        return Err(Error::Validation(
+                            "Too many services in program. Max: 255".to_string(),
+                        ));
+                    }
                     let mut sit = s.into_inner();
                     let (docs, annotations) = parse_docs_and_annotations(&mut sit)?;
-                    let mut name = expect_next(&mut sit, parse_ident)?;
-                    let mut route = None;
-                    if let Some(p) = sit.next()
+                    let name = expect_next(&mut sit, parse_service_ident)?;
+                    let route = if let Some(p) = sit.next()
                         && p.as_rule() == Rule::Ident
                     {
-                        route = Some(name);
-                        name = p.as_str().to_string();
-                    }
+                        Some(p.as_str().to_string())
+                    } else {
+                        None
+                    };
                     services.push(ServiceExpo {
                         name,
                         route,
+                        route_idx: (len as u8) + 1,
                         docs,
                         annotations,
                     });
@@ -656,7 +674,7 @@ mod tests {
         "#;
         let mut pairs = IdlParser::parse(Rule::ServiceDecl, SRC).expect("parse idl");
         let svc = expect_next(&mut pairs, parse_service).expect("parse");
-        assert_eq!(svc.name, "X");
+        assert_eq!(svc.name.to_string(), "X");
         assert!(svc.funcs.iter().any(|f| f.name == "Ping"));
     }
 

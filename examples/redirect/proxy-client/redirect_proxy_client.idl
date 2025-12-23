@@ -1,7 +1,7 @@
 
 !@sails: 0.9.2
 
-service Proxy {
+service Proxy@0xda3d188945af8090 {
     functions {
         /// Get program ID of the target program via client
         @query
@@ -15,6 +15,6 @@ program RedirectProxyClient {
         New(target: ActorId);
     }
     services {
-        Proxy,
+        Proxy@0xda3d188945af8090,
     }
 }

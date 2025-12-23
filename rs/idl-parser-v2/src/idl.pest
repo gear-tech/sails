@@ -2,9 +2,10 @@ WHITESPACE = _{ WHITE_SPACE | NEWLINE }
 COMMENT    = _{ "//" ~ !"/" ~ (!NEWLINE ~ ANY)* }
 
 // ---------- Lexemes ----------
-Ident    = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
-Number   = @{ ASCII_DIGIT+ }
-StrToEol = @{ (!NEWLINE ~ ANY)* }
+Ident        = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
+Number       = @{ ASCII_DIGIT+ }
+StrToEol     = @{ (!NEWLINE ~ ANY)* }
+ServiceIdent = @{ Ident ~ ("@0x" ~ HEX_DIGIT+)? }
 
 // ---------- Docs & Annotations ----------
 GlobalAnn = { WHITESPACE* ~ "!@" ~ Ident ~ (":" ~ StrToEol)? }
@@ -45,9 +46,9 @@ Variant  = { DocsAndAnnotations? ~ Ident ~ (StructDef | TupleDef)? }
 AliasDecl = { "alias" ~ Ident ~ TypeParams? ~ "=" ~ TypeDecl ~ ";" }
 
 // ---------- Service ----------
-ServiceDecl = { DocsAndAnnotations* ~ "service" ~ Ident ~ "{" ~ (ExtendsBlock | EventsBlock | FunctionsBlock | TypesBlock)* ~ "}" }
+ServiceDecl = { DocsAndAnnotations* ~ "service" ~ ServiceIdent ~ "{" ~ (ExtendsBlock | EventsBlock | FunctionsBlock | TypesBlock)* ~ "}" }
 
-ExtendsBlock   = { "extends" ~ "{" ~ Ident ~ ("," ~ Ident)* ~ ","? ~ "}" }
+ExtendsBlock   = { "extends" ~ "{" ~ ServiceIdent ~ ("," ~ ServiceIdent)* ~ ","? ~ "}" }
 EventsBlock    = { "events" ~ "{" ~ Variant ~ ("," ~ Variant)* ~ ","? ~ "}" }
 FunctionsBlock = { "functions" ~ "{" ~ FuncDecl* ~ "}" }
 TypesBlock     = { "types" ~ "{" ~ (StructDecl | EnumDecl | AliasDecl)* ~ "}" }
@@ -64,7 +65,7 @@ ProgramDecl       = { DocsAndAnnotations? ~ "program" ~ Ident ~ "{" ~ (Construct
 ConstructorsBlock = { "constructors" ~ "{" ~ CtorDecl* ~ "}" }
 CtorDecl          = { DocsAndAnnotations? ~ Ident ~ "(" ~ Params? ~ ")" ~ ";"? }
 ServicesBlock     = { "services" ~ "{" ~ (ServiceExpo ~ ","?)* ~ "}" }
-ServiceExpo       = { DocsAndAnnotations? ~ Ident ~ (":" ~ Ident)? }
+ServiceExpo       = { DocsAndAnnotations? ~ ServiceIdent ~ (":" ~ Ident)? }
 
 // ---------- Top level ----------
 Top = { SOI ~ (GlobalAnn | ServiceDecl | ProgramDecl)* ~ EOI }

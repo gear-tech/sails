@@ -1,3 +1,4 @@
+use crate::alloc::string::ToString;
 use crate::ast;
 use alloc::{boxed::Box, ffi::CString, format, string::String, vec::Vec};
 use core::ffi::{CStr, c_char};
@@ -321,9 +322,9 @@ pub struct ServiceUnit {
 
 impl ServiceUnit {
     pub fn from_ast(service_unit: &ast::ServiceUnit, allocations: &mut Allocations) -> Self {
-        let name_ffi = allocate_string(&service_unit.name, allocations);
-        let (extends_ptr, extends_len) =
-            allocate_ffi_string_vec(&service_unit.extends, allocations);
+        let name_ffi = allocate_string(&service_unit.name.to_string(), allocations);
+        let extends: Vec<_> = service_unit.extends.iter().map(|s| s.to_string()).collect();
+        let (extends_ptr, extends_len) = allocate_ffi_string_vec(&extends, allocations);
         let (docs_ptr, docs_len) = allocate_ffi_string_vec(&service_unit.docs, allocations);
         let (annotations_ptr, annotations_len) =
             allocate_annotation_vec(&service_unit.annotations, allocations);
@@ -623,7 +624,7 @@ pub struct ServiceExpo {
 
 impl ServiceExpo {
     pub fn from_ast(service_expo: &ast::ServiceExpo, allocations: &mut Allocations) -> Self {
-        let name_ffi = allocate_string(&service_expo.name, allocations);
+        let name_ffi = allocate_string(&service_expo.name.to_string(), allocations);
         let (route_ptr, route_len) = if let Some(route) = &service_expo.route {
             let route_ffi = allocate_string(route, allocations);
             (route_ffi.ptr, route_ffi.len)

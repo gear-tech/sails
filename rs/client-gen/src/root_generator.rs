@@ -110,7 +110,10 @@ impl<'ast> Visitor<'ast> for RootGenerator<'ast> {
         self.tokens.extend(ctor_gen.finalize());
 
         for service_item in &program.services {
-            let service_name = service_item.route.as_ref().unwrap_or(&service_item.name);
+            let service_name = service_item
+                .route
+                .as_ref()
+                .unwrap_or(&service_item.name.name);
             self.program_exported_services.push(service_name);
         }
 
@@ -119,7 +122,7 @@ impl<'ast> Visitor<'ast> for RootGenerator<'ast> {
 
     fn visit_service_unit(&mut self, service: &'ast ast::ServiceUnit) {
         let mut client_gen = ServiceGenerator::new(
-            &service.name,
+            &service.name.name,
             self.sails_path,
             &self.external_types,
             self.mocks_feature_name,
@@ -141,20 +144,23 @@ impl<'ast> Visitor<'ast> for RootGenerator<'ast> {
     }
 
     fn visit_service_expo(&mut self, service_item: &'ast ast::ServiceExpo) {
-        let service_name = service_item.route.as_ref().unwrap_or(&service_item.name);
-        let method_name = service_item.name.to_case(Case::Snake);
-        let route_pascal_case = service_name.to_case(Case::Pascal);
-        let route_snake_case = service_name.to_case(Case::Snake);
+        let service_route = service_item
+            .route
+            .as_ref()
+            .unwrap_or(&service_item.name.name);
+        let method_name = service_route.to_case(Case::Snake);
+        let name_pascal_case = service_item.name.name.to_case(Case::Pascal);
+        let name_snake_case = service_item.name.name.to_case(Case::Snake);
 
         generate_doc_comments(&mut self.service_trait_tokens, &service_item.docs);
 
         quote_in!(self.service_trait_tokens =>
-            $['\r'] fn $(&method_name)(&self) -> $(self.sails_path)::client::Service<$(route_snake_case.clone())::$(route_pascal_case.clone())Impl, Self::Env>;
+            $['\r'] fn $(&method_name)(&self) -> $(self.sails_path)::client::Service<$(&name_snake_case)::$(&name_pascal_case)Impl, Self::Env>;
         );
 
         quote_in!(self.service_impl_tokens =>
-            $['\r'] fn $(&method_name)(&self) -> $(self.sails_path)::client::Service<$(route_snake_case)::$(route_pascal_case)Impl, Self::Env> {
-                self.service(stringify!($(service_item.name.clone())))
+            $['\r'] fn $(&method_name)(&self) -> $(self.sails_path)::client::Service<$(&name_snake_case)::$(&name_pascal_case)Impl, Self::Env> {
+                self.service(stringify!($(&name_pascal_case)))
             }
         );
     }
