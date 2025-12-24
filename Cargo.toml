@@ -68,44 +68,44 @@ gtest = "=1.10.0"
 gwasm-builder = { version = "=1.10.0", package = "gear-wasm-builder" }
 
 # Other deps in alphabetical order
-alloy-primitives = { version = "1.4", default-features = false }
-alloy-sol-types = { version = "1.4", default-features = false }
+alloy-primitives = { version = "1.5", default-features = false }
+alloy-sol-types = { version = "1.5", default-features = false }
 anyhow = "1"
-askama = "0.14"
+askama = "0.15"
 cargo-generate = "0.23"
 cargo_metadata = "0.23"
 clap = "4.5"
 fs2 = "0.4.3"
-convert_case = "0.7"
+convert_case = "0.10"
 futures = { version = "0.3", default-features = false }
-genco = "0.17"
+genco = "0.19"
 git-download = "0.1"
-handlebars = "4.4"
-hashbrown = "0.15"
+handlebars = "6.3"
+hashbrown = "0.16"
 hex = { version = "0.4", default-features = false }
-insta = "1.44"
+insta = "1.45"
 itertools = "0.14"
 keccak-const = "0.2"
-lalrpop = { version = "0.20", default-features = false }
-lalrpop-util = "0.20"
+lalrpop = { version = "0.22", default-features = false }
+lalrpop-util = "0.22"
 log = { version = "0.4", default-features = false }
-logos = "0.13"
-mockall = "0.12"
+logos = "0.16"
+mockall = "0.14"
 pin-project-lite = "0.2"
 parity-scale-codec = { version = "=3.7.5", default-features = false }
 paste = "1.0"
 prettyplease = "0.2"
 proc-macro-error = "1.0"
 proc-macro2 = { version = "1", default-features = false }
-rustdoc-types = "=0.56.0"
+rustdoc-types = "=0.57.0"
 quote = "1.0"
 scale-info = { version = "2.11", default-features = false }
 serde = "1.0"
 serde-json = { package = "serde_json", version = "1.0" }
-spin = { version = "0.9", default-features = false, features = ["spin_mutex"] }
+spin = { version = "0.10", default-features = false, features = ["spin_mutex"] }
 syn = "2.0"
 thiserror = { version = "2.0", default-features = false }
-toml_edit = "0.22"
+toml_edit = "0.23"
 tempfile = "3.19"
 tokio = "1.48"
 tokio-stream = "0.1"
