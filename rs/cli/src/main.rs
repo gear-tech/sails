@@ -55,7 +55,7 @@ enum SailsCommands {
         offline: bool,
         /// Generate contracts compatible with Ethereum (for Vara.ETH).
         #[arg(long)]
-        ethereum: bool,
+        eth: bool,
     },
 
     /// Generate client code from IDL
@@ -149,9 +149,9 @@ fn main() -> Result<(), i32> {
             username,
             sails_path,
             offline,
-            ethereum,
+            eth,
         } => program_new::ProgramGenerator::new(
-            path, name, author, username, sails_path, offline, ethereum,
+            path, name, author, username, sails_path, offline, eth,
         )
         .generate(),
         SailsCommands::ClientRs {
