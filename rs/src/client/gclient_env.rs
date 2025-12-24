@@ -239,8 +239,11 @@ async fn send_for_reply(
     params: GclientParams,
 ) -> Result<(ActorId, Vec<u8>), GclientError> {
     let value = params.value.unwrap_or(0);
+    #[cfg(not(feature = "ethexe"))]
     let gas_limit =
         calculate_gas_limit(&api, program_id, &payload, params.gas_limit, value).await?;
+    #[cfg(feature = "ethexe")]
+    let gas_limit = 0;
 
     let mut listener = api.subscribe().await?;
     let message_id = send_message_with_voucher_if_some(
@@ -267,7 +270,10 @@ async fn send_one_way(
     params: GclientParams,
 ) -> Result<MessageId, GclientError> {
     let value = params.value.unwrap_or(0);
+    #[cfg(not(feature = "ethexe"))]
     let gas_limit = calculate_gas_limit(api, program_id, &payload, params.gas_limit, value).await?;
+    #[cfg(feature = "ethexe")]
+    let gas_limit = 0;
 
     send_message_with_voucher_if_some(api, program_id, payload, gas_limit, value, params.voucher)
         .await
@@ -293,6 +299,7 @@ async fn send_message_with_voucher_if_some(
     Ok(message_id)
 }
 
+#[cfg(not(feature = "ethexe"))]
 async fn calculate_gas_limit(
     api: &GearApi,
     program_id: ActorId,
@@ -300,7 +307,6 @@ async fn calculate_gas_limit(
     gas_limit: Option<GasUnit>,
     value: ValueUnit,
 ) -> Result<u64, GclientError> {
-    #[cfg(not(feature = "ethexe"))]
     let gas_limit = if let Some(gas_limit) = gas_limit {
         gas_limit
     } else {
@@ -310,8 +316,6 @@ async fn calculate_gas_limit(
             .await?;
         gas_info.min_limit
     };
-    #[cfg(feature = "ethexe")]
-    let gas_limit = 0;
     Ok(gas_limit)
 }
 

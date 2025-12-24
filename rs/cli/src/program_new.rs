@@ -121,6 +121,7 @@ pub struct ProgramGenerator {
     client_file_name: String,
     sails_path: Option<PathBuf>,
     offline: bool,
+    ethereum: bool,
     service_name: String,
     program_struct_name: String,
 }
@@ -139,6 +140,7 @@ impl ProgramGenerator {
         username: Option<String>,
         sails_path: Option<PathBuf>,
         offline: bool,
+        ethereum: bool,
     ) -> Self {
         let package_name = name.map_or_else(
             || {
@@ -162,6 +164,7 @@ impl ProgramGenerator {
             client_file_name,
             sails_path,
             offline,
+            ethereum,
             service_name,
             program_struct_name: "Program".to_string(),
         }
@@ -286,7 +289,7 @@ impl ProgramGenerator {
         let manifest_path = &manifest_path(path);
 
         // add sails-rs refs
-        self.cargo_add_sails_rs(manifest_path, Normal, None)?;
+        self.cargo_add_sails_rs(manifest_path, Normal, self.ethereum.then_some("ethexe"))?;
 
         let mut lib_rs = File::create(lib_rs_path(path))?;
         self.app_lib().write_into(&mut lib_rs)?;
@@ -345,8 +348,16 @@ impl ProgramGenerator {
         cargo_add(manifest_path, [self.app_name()], Build, None, self.offline)?;
 
         // add sails-rs refs
-        self.cargo_add_sails_rs(manifest_path, Normal, None)?;
-        self.cargo_add_sails_rs(manifest_path, Build, Some("build"))?;
+        self.cargo_add_sails_rs(manifest_path, Normal, self.ethereum.then_some("ethexe"))?;
+        self.cargo_add_sails_rs(
+            manifest_path,
+            Build,
+            Some(if self.ethereum {
+                "ethexe,build"
+            } else {
+                "build"
+            }),
+        )?;
 
         Ok(())
     }
@@ -357,8 +368,16 @@ impl ProgramGenerator {
 
         let manifest_path = &manifest_path(path);
         // add sails-rs refs
-        self.cargo_add_sails_rs(manifest_path, Normal, None)?;
-        self.cargo_add_sails_rs(manifest_path, Build, Some("build"))?;
+        self.cargo_add_sails_rs(manifest_path, Normal, self.ethereum.then_some("ethexe"))?;
+        self.cargo_add_sails_rs(
+            manifest_path,
+            Build,
+            Some(if self.ethereum {
+                "ethexe,build"
+            } else {
+                "build"
+            }),
+        )?;
 
         // add app ref
         cargo_add(manifest_path, [self.app_name()], Build, None, self.offline)?;
@@ -376,7 +395,15 @@ impl ProgramGenerator {
         let path = &self.path;
         let manifest_path = &manifest_path(path);
         // add sails-rs refs
-        self.cargo_add_sails_rs(manifest_path, Development, Some("gtest,gclient"))?;
+        self.cargo_add_sails_rs(
+            manifest_path,
+            Development,
+            Some(if self.ethereum {
+                "ethexe,gtest,gclient"
+            } else {
+                "gtest,gclient"
+            }),
+        )?;
 
         // add tokio
         cargo_add(

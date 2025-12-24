@@ -5,7 +5,7 @@ use sails_rs::prelude::*;
 struct {{ service_name }}(());
 
 impl {{ service_name }} {
-    pub fn new() -> Self {
+    pub fn create() -> Self {
         Self(())
     }
 }
@@ -25,13 +25,13 @@ pub struct {{ program_struct_name }}(());
 #[sails_rs::program]
 impl {{ program_struct_name }} {
     // Program's constructor
-    pub fn new() -> Self {
+    pub fn create() -> Self {
         Self(())
     }
 
     // Exposed service
     pub fn {{ service_name_snake}}(&self) -> {{ service_name }} {
-        {{ service_name }}::new()
+        {{ service_name }}::create()
     }
 }
 

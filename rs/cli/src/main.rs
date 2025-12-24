@@ -53,6 +53,9 @@ enum SailsCommands {
         /// Run without accessing the network
         #[arg(long)]
         offline: bool,
+        /// Generate contracts compatible with Ethereum (for Vara.ETH).
+        #[arg(long)]
+        eth: bool,
     },
 
     /// Generate client code from IDL
@@ -146,8 +149,11 @@ fn main() -> Result<(), i32> {
             username,
             sails_path,
             offline,
-        } => program_new::ProgramGenerator::new(path, name, author, username, sails_path, offline)
-            .generate(),
+            eth,
+        } => program_new::ProgramGenerator::new(
+            path, name, author, username, sails_path, offline, eth,
+        )
+        .generate(),
         SailsCommands::ClientRs {
             idl_path,
             out_path,
