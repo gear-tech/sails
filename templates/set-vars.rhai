@@ -32,7 +32,7 @@ variable::set("mocks-feature-name", "mocks");
 
 // Set versions of used crates
 variable::set("mockall-version", "0.12");
-variable::set("sails-rs-version", "0.10.1"); // NB: This version is updated autmatically by GH release workflow
+variable::set("sails-rs-version", "0.10.2"); // NB: This version is updated autmatically by GH release workflow
 variable::set("tokio-version", "1.41");
 
 fn is_kebab_case(name) {
