@@ -364,7 +364,7 @@ pub enum PrimitiveType {
 
 impl PrimitiveType {
     /// Returns the canonical textual representation used when rendering IDL.
-    pub fn as_str(&self) -> &'static str {
+    pub const fn as_str(&self) -> &'static str {
         use PrimitiveType::*;
         match self {
             Void => "()",

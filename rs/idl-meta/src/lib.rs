@@ -4,6 +4,8 @@ extern crate alloc;
 
 #[cfg(feature = "ast")]
 mod ast;
+#[cfg(feature = "ast")]
+mod calc_hash;
 
 use alloc::{
     format,

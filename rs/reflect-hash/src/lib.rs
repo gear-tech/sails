@@ -110,77 +110,83 @@ impl_reflect_hash_for_primitives! {
 
 impl ReflectHash for NonZeroU8 {
     const HASH: [u8; 32] = Keccak256::new()
-        .update(b"NonZeroU8")
+        .update(b"NonZero")
         .update(&<u8 as ReflectHash>::HASH)
         .finalize();
 }
 
 impl ReflectHash for NonZeroU16 {
     const HASH: [u8; 32] = Keccak256::new()
-        .update(b"NonZeroU16")
+        .update(b"NonZero")
         .update(&<u16 as ReflectHash>::HASH)
         .finalize();
 }
 
 impl ReflectHash for NonZeroU32 {
     const HASH: [u8; 32] = Keccak256::new()
-        .update(b"NonZeroU32")
+        .update(b"NonZero")
         .update(&<u32 as ReflectHash>::HASH)
         .finalize();
 }
 
 impl ReflectHash for NonZeroU64 {
     const HASH: [u8; 32] = Keccak256::new()
-        .update(b"NonZeroU64")
+        .update(b"NonZero")
         .update(&<u64 as ReflectHash>::HASH)
         .finalize();
 }
 
 impl ReflectHash for NonZeroU128 {
     const HASH: [u8; 32] = Keccak256::new()
-        .update(b"NonZeroU128")
+        .update(b"NonZero")
         .update(&<u128 as ReflectHash>::HASH)
         .finalize();
 }
 
 impl ReflectHash for NonZeroI8 {
     const HASH: [u8; 32] = Keccak256::new()
-        .update(b"NonZeroI8")
+        .update(b"NonZero")
         .update(&<i8 as ReflectHash>::HASH)
         .finalize();
 }
 
 impl ReflectHash for NonZeroI16 {
     const HASH: [u8; 32] = Keccak256::new()
-        .update(b"NonZeroI16")
+        .update(b"NonZero")
         .update(&<i16 as ReflectHash>::HASH)
         .finalize();
 }
 
 impl ReflectHash for NonZeroI32 {
     const HASH: [u8; 32] = Keccak256::new()
-        .update(b"NonZeroI32")
+        .update(b"NonZero")
         .update(&<i32 as ReflectHash>::HASH)
         .finalize();
 }
 
 impl ReflectHash for NonZeroI64 {
     const HASH: [u8; 32] = Keccak256::new()
-        .update(b"NonZeroI64")
+        .update(b"NonZero")
         .update(&<i64 as ReflectHash>::HASH)
         .finalize();
 }
 
 impl ReflectHash for NonZeroI128 {
     const HASH: [u8; 32] = Keccak256::new()
-        .update(b"NonZeroI128")
+        .update(b"NonZero")
         .update(&<i128 as ReflectHash>::HASH)
         .finalize();
 }
 
 // [T] (slice) has same data structure as Vec<T>
 impl<T: ReflectHash> ReflectHash for [T] {
-    const HASH: [u8; 32] = { Keccak256::new().update(b"Vec").update(&T::HASH).finalize() };
+    const HASH: [u8; 32] = {
+        Keccak256::new()
+            .update(b"[")
+            .update(&T::HASH)
+            .update(b"]")
+            .finalize()
+    };
 }
 
 // Immutable references have the same hash as the referent
@@ -261,69 +267,52 @@ impl_reflect_hash_for_bytes_arrays!(
 );
 
 impl ReflectHash for ActorId {
-    const HASH: [u8; 32] = Keccak256::new()
-        .update(b"ActorId")
-        .update(&<[u8; 32] as ReflectHash>::HASH)
-        .finalize();
+    const HASH: [u8; 32] = Keccak256::new().update(b"ActorId").finalize();
 }
 
 impl ReflectHash for MessageId {
-    const HASH: [u8; 32] = Keccak256::new()
-        .update(b"MessageId")
-        .update(&<[u8; 32] as ReflectHash>::HASH)
-        .finalize();
+    const HASH: [u8; 32] = Keccak256::new().update(b"MessageId").finalize();
 }
 
 impl ReflectHash for CodeId {
-    const HASH: [u8; 32] = Keccak256::new()
-        .update(b"CodeId")
-        .update(&<[u8; 32] as ReflectHash>::HASH)
-        .finalize();
+    const HASH: [u8; 32] = Keccak256::new().update(b"CodeId").finalize();
 }
 
 impl ReflectHash for H256 {
-    const HASH: [u8; 32] = Keccak256::new()
-        .update(b"H256")
-        .update(&<[u8; 32] as ReflectHash>::HASH)
-        .finalize();
+    const HASH: [u8; 32] = Keccak256::new().update(b"H256").finalize();
 }
 
 impl ReflectHash for H160 {
-    const HASH: [u8; 32] = Keccak256::new()
-        .update(b"H160")
-        .update(&<[u8; 20] as ReflectHash>::HASH)
-        .finalize();
+    const HASH: [u8; 32] = Keccak256::new().update(b"H160").finalize();
 }
 
 impl ReflectHash for U256 {
-    const HASH: [u8; 32] = Keccak256::new()
-        .update(b"U256")
-        .update(
-            &Keccak256::new()
-                .update(&<u64 as ReflectHash>::HASH)
-                .update(b"4")
-                .finalize(),
-        )
-        .finalize();
+    const HASH: [u8; 32] = Keccak256::new().update(b"U256").finalize();
 }
 
 impl ReflectHash for NonZeroU256 {
     const HASH: [u8; 32] = Keccak256::new()
-        .update(b"NonZeroU256")
+        .update(b"NonZero")
         .update(&U256::HASH)
         .finalize();
 }
 
 impl<T: ReflectHash> ReflectHash for Vec<T> {
-    const HASH: [u8; 32] = { Keccak256::new().update(b"Vec").update(&T::HASH).finalize() };
+    const HASH: [u8; 32] = {
+        Keccak256::new()
+            .update(b"[")
+            .update(&T::HASH)
+            .update(b"]")
+            .finalize()
+    };
 }
 
 impl<K: ReflectHash, V: ReflectHash> ReflectHash for BTreeMap<K, V> {
     const HASH: [u8; 32] = {
         Keccak256::new()
-            .update(b"BTreeMap")
-            .update(&K::HASH)
-            .update(&V::HASH)
+            .update(b"[")
+            .update(&<(K, V) as ReflectHash>::HASH)
+            .update(b"]")
             .finalize()
     };
 }

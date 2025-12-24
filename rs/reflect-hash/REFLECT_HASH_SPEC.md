@@ -7,6 +7,7 @@ This document specifies how structural hashes are computed for Rust types at com
 `ReflectHash` is a trait that provides a **deterministic, compile-time, structural hash** for Rust types. Each type implementing `ReflectHash` has a constant 32-byte hash computed using Keccak256 based solely on the type's structure, independent of field names.
 
 The structural hash enables:
+
 - **Type fingerprinting**: Unique identifiers for types based on their structure
 - **Interface stability tracking**: Detect when type structures change across versions
 - **Structural equivalence**: Types with the same structure produce the same hash, regardless of field naming
@@ -65,6 +66,7 @@ HASH = HASH(bytes(TypeName))
 ```
 
 **Examples:**
+
 ```
 u8::HASH     = HASH(b"u8")
 u32::HASH    = HASH(b"u32")
@@ -74,6 +76,7 @@ str::HASH    = HASH(b"String")  // str and String are structurally equivalent
 ```
 
 **Supported primitives:**
+
 - Unsigned integers: `u8`, `u16`, `u32`, `u64`, `u128`
 - Signed integers: `i8`, `i16`, `i32`, `i64`, `i128`
 - Boolean: `bool`
@@ -85,15 +88,16 @@ str::HASH    = HASH(b"String")  // str and String are structurally equivalent
 Non-zero wrapper types include both the wrapper name and the inner type:
 
 ```
-NonZeroT::HASH = HASH(b"NonZeroT" || T::HASH)
+NonZeroT::HASH = HASH(b"NonZero" || T::HASH)
 ```
 
 **Examples:**
+
 ```
-NonZeroU8::HASH   = HASH(b"NonZeroU8" || u8::HASH)
-NonZeroU32::HASH  = HASH(b"NonZeroU32" || u32::HASH)
-NonZeroI64::HASH  = HASH(b"NonZeroI64" || i64::HASH)
-NonZeroU256::HASH = HASH(b"NonZeroU256" || U256::HASH)
+NonZeroU8::HASH   = HASH(b"NonZero" || u8::HASH)
+NonZeroU32::HASH  = HASH(b"NonZero" || u32::HASH)
+NonZeroI64::HASH  = HASH(b"NonZero" || i64::HASH)
+NonZeroU256::HASH = HASH(b"NonZero" || U256::HASH)
 ```
 
 ### References
@@ -124,6 +128,7 @@ Tuples are hashed by concatenating the hashes of their elements:
 ```
 
 **Examples:**
+
 ```
 (u32, u64)::HASH          = HASH(u32::HASH || u64::HASH)
 (String, bool, u8)::HASH  = HASH(String::HASH || bool::HASH || u8::HASH)
@@ -140,6 +145,7 @@ Arrays are hashed by the element type and the array length:
 ```
 
 **Examples:**
+
 ```
 [u8; 32]::HASH  = HASH(u8::HASH || b"32")
 [bool; 10]::HASH = HASH(bool::HASH || b"10")
@@ -149,10 +155,10 @@ Arrays are hashed by the element type and the array length:
 
 ### Slices & Vec
 
-Slices have the same hash as vectors of the same element type:
+`Vec` have the same hash as slices of the same element type:
 
 ```
-[T]::HASH = HASH(b"Vec" || T::HASH)
+[T]::HASH = HASH(b"[" || T::HASH || b"]")
 ```
 
 This reflects that slices and vectors are structurally equivalent in interface terms.
@@ -164,6 +170,7 @@ Option<T>::HASH = HASH(b"Option" || T::HASH)
 ```
 
 **Example:**
+
 ```
 Option<u32>::HASH = HASH(b"Option" || u32::HASH)
 ```
@@ -175,6 +182,7 @@ Result<T, E>::HASH = HASH(b"Result" || T::HASH || E::HASH)
 ```
 
 **Example:**
+
 ```
 Result<u32, String>::HASH = HASH(b"Result" || u32::HASH || String::HASH)
 ```
@@ -182,12 +190,13 @@ Result<u32, String>::HASH = HASH(b"Result" || u32::HASH || String::HASH)
 ### BTreeMap
 
 ```
-BTreeMap<K, V>::HASH = HASH(b"BTreeMap" || K::HASH || V::HASH)
+BTreeMap<K, V>::HASH = HASH(b"[" || (K, V)::HASH || b"]")
 ```
 
 **Example:**
+
 ```
-BTreeMap<String, u64>::HASH = HASH(b"BTreeMap" || String::HASH || u64::HASH)
+BTreeMap<String, u64>::HASH = HASH(b"[" || (String, u64)::HASH  || b"]")
 ```
 
 ### Structs
@@ -199,6 +208,7 @@ HASH = HASH(bytes(StructName) || T1::HASH || T2::HASH || ... || TN::HASH)
 ```
 
 Where:
+
 - `StructName` is the UTF-8 bytes of the struct's identifier
 - `Ti::HASH` are the hashes of field types in declaration order
 - Field names are **excluded**
@@ -244,6 +254,7 @@ struct User2 { x: u64, y: String }
 ```
 
 Both produce the same hash if they have the same field types in the same order:
+
 ```
 User1::HASH = HASH(b"User1" || u64::HASH || String::HASH)
 User2::HASH = HASH(b"User2" || u64::HASH || String::HASH)
@@ -337,15 +348,15 @@ Action::HASH  = HASH(Stop_HASH || Move_HASH || SetName_HASH)
 
 ### Gear Primitives
 
-Special Gear types are hashed with their name and inner structure:
+Special Gear types are hashed with their name:
 
 ```
-ActorId::HASH   = HASH(b"ActorId" || [u8; 32]::HASH)
-MessageId::HASH = HASH(b"MessageId" || [u8; 32]::HASH)
-CodeId::HASH    = HASH(b"CodeId" || [u8; 32]::HASH)
-H256::HASH      = HASH(b"H256" || [u8; 32]::HASH)
-H160::HASH      = HASH(b"H160" || [u8; 20]::HASH)
-U256::HASH      = HASH(b"U256" || HASH(u64::HASH || b"4"))
+ActorId::HASH   = HASH(b"ActorId")
+MessageId::HASH = HASH(b"MessageId")
+CodeId::HASH    = HASH(b"CodeId")
+H256::HASH      = HASH(b"H256")
+H160::HASH      = HASH(b"H160")
+U256::HASH      = HASH(b"U256")
 ```
 
 ## Determinism Guarantees
@@ -377,6 +388,7 @@ struct Outer {
 ```
 
 Hash computation:
+
 ```
 Inner::HASH = HASH(b"Inner" || u32::HASH)
 Outer::HASH = HASH(b"Outer" || Inner::HASH || u64::HASH)
@@ -392,6 +404,7 @@ struct Container<T: ReflectHash> {
 ```
 
 Each instantiation has a different hash:
+
 ```
 Container<u32>::HASH = HASH(b"Container" || u32::HASH)
 Container<String>::HASH = HASH(b"Container" || String::HASH)
