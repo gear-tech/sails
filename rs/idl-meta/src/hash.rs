@@ -14,7 +14,7 @@ impl ServiceUnit {
         if !self.events.is_empty() {
             let mut ev_hash = Keccak256::new();
             for var in &self.events {
-                ev_hash = ev_hash.update(&hash_struct(&var.name, &var.def.fields, &type_map))
+                ev_hash = ev_hash.update(&hash_struct(&var.name, &var.def.fields, &type_map, None))
             }
             hash = hash.update(&ev_hash.finalize());
         }
@@ -37,73 +37,108 @@ fn hash_func(func: &ServiceFunc, type_map: &BTreeMap<&str, &Type>) -> [u8; 32] {
     };
     hash = hash.update(func.name.as_bytes());
     for p in &func.params {
-        hash = hash.update(&hash_type_decl(&p.type_decl, type_map));
+        hash = hash.update(&hash_type_decl(&p.type_decl, type_map, None));
     }
     hash = hash.update(b"res");
-    hash = hash.update(&hash_type_decl(&func.output, type_map));
+    hash = hash.update(&hash_type_decl(&func.output, type_map, None));
     if let Some(th) = &func.throws {
         hash = hash.update(b"throws");
-        hash = hash.update(&hash_type_decl(th, type_map));
+        hash = hash.update(&hash_type_decl(th, type_map, None));
     }
     hash.finalize()
 }
 
-fn hash_type(ty: &Type, type_map: &BTreeMap<&str, &Type>) -> [u8; 32] {
+fn hash_type(
+    ty: &Type,
+    type_map: &BTreeMap<&str, &Type>,
+    type_params: Option<&BTreeMap<String, TypeDecl>>,
+) -> [u8; 32] {
     match &ty.def {
-        TypeDef::Struct(StructDef { fields }) => hash_struct(&ty.name, &fields, type_map),
+        TypeDef::Struct(StructDef { fields }) => {
+            hash_struct(&ty.name, &fields, type_map, type_params)
+        }
         TypeDef::Enum(enum_def) => {
             let mut hash = Keccak256::new();
             for var in &enum_def.variants {
-                hash = hash.update(&hash_struct(&var.name, &var.def.fields, type_map))
+                hash = hash.update(&hash_struct(
+                    &var.name,
+                    &var.def.fields,
+                    type_map,
+                    type_params,
+                ))
             }
             hash.finalize()
         }
     }
 }
 
-fn hash_struct(name: &str, fields: &[StructField], type_map: &BTreeMap<&str, &Type>) -> [u8; 32] {
+fn hash_struct(
+    name: &str,
+    fields: &[StructField],
+    type_map: &BTreeMap<&str, &Type>,
+    type_params: Option<&BTreeMap<String, TypeDecl>>,
+) -> [u8; 32] {
     let mut hash = Keccak256::new().update(name.as_bytes());
     for f in fields {
-        hash = hash.update(hash_type_decl(&f.type_decl, type_map).as_slice())
+        hash = hash.update(hash_type_decl(&f.type_decl, type_map, type_params).as_slice())
     }
     hash.finalize()
 }
 
-pub fn hash_type_decl(type_decl: &TypeDecl, type_map: &BTreeMap<&str, &Type>) -> [u8; 32] {
+fn hash_type_decl(
+    type_decl: &TypeDecl,
+    type_map: &BTreeMap<&str, &Type>,
+    type_params: Option<&BTreeMap<String, TypeDecl>>,
+) -> [u8; 32] {
     match type_decl {
         TypeDecl::Slice { item } => Keccak256::new()
             .update(b"[")
-            .update(hash_type_decl(item, type_map).as_slice())
+            .update(hash_type_decl(item, type_map, type_params).as_slice())
             .update(b"]")
             .finalize(),
         TypeDecl::Array { item, len } => Keccak256::new()
-            .update(hash_type_decl(item, type_map).as_slice())
+            .update(hash_type_decl(item, type_map, type_params).as_slice())
             .update(format!("{len}").as_bytes())
             .finalize(),
         TypeDecl::Tuple { types } => {
             let mut hash = Keccak256::new();
             for ty in types {
-                hash = hash.update(&hash_type_decl(ty, type_map));
+                hash = hash.update(&hash_type_decl(ty, type_map, type_params));
             }
             hash.finalize()
         }
         TypeDecl::Named { name, generics } => {
-            if let Some(ty) = TypeDecl::option_type_decl(type_decl) {
+            if generics.is_empty()
+                && let Some(map) = type_params
+                && let Some(param_ty) = map.get(name)
+            {
+                // generic type parameter `T`
+                return hash_type_decl(param_ty, type_map, type_params);
+            } else if let Some(ty) = TypeDecl::option_type_decl(type_decl) {
                 Keccak256::new()
                     .update(b"Option")
-                    .update(&hash_type_decl(&ty, type_map))
+                    .update(&hash_type_decl(&ty, type_map, type_params))
                     .finalize()
             } else if let Some((ok, err)) = TypeDecl::result_type_decl(type_decl) {
                 Keccak256::new()
                     .update(b"Result")
-                    .update(&hash_type_decl(&ok, type_map))
-                    .update(&hash_type_decl(&err, type_map))
+                    .update(&hash_type_decl(&ok, type_map, type_params))
+                    .update(&hash_type_decl(&err, type_map, type_params))
                     .finalize()
             } else if let Some(ty) = type_map.get(name.as_str()) {
-                hash_type(ty, type_map)
+                if generics.is_empty() {
+                    hash_type(ty, type_map, None)
+                } else if ty.type_params.len() == generics.len() {
+                    let mut params = BTreeMap::new();
+                    for (param, arg) in ty.type_params.iter().zip(generics.iter()) {
+                        params.insert(param.name.clone(), arg.clone());
+                    }
+                    hash_type(ty, type_map, Some(&params))
+                } else {
+                    unimplemented!("generic params type `{name}` must be resolved");
+                }
             } else {
-                // TODO: implement hash for named types with generics
-                todo!();
+                unimplemented!("type `{name}` not supported");
             }
         }
         TypeDecl::Primitive(primitive_type) => Keccak256::new()
@@ -124,12 +159,12 @@ mod tests {
         ($ty: ty, $p: expr) => {
             assert_eq!(
                 <$ty as ReflectHash>::HASH,
-                hash_type_decl(&$p, &BTreeMap::new())
+                hash_type_decl(&$p, &BTreeMap::new(), None)
             );
         };
 
         ($ty: ty, $p: expr, $map: expr) => {
-            assert_eq!(<$ty as ReflectHash>::HASH, hash_type_decl(&$p, &$map));
+            assert_eq!(<$ty as ReflectHash>::HASH, hash_type_decl(&$p, &$map, None));
         };
     }
 
@@ -347,7 +382,7 @@ mod tests {
         struct NamedStruct {
             f1: u32,
             f2: Option<&'static str>,
-        };
+        }
 
         let mut map = BTreeMap::new();
         let ty = Type {
@@ -382,6 +417,91 @@ mod tests {
             Named {
                 name: "NamedStruct".to_string(),
                 generics: vec![]
+            },
+            map
+        );
+    }
+
+    #[test]
+    fn hash_struct_generics() {
+        #[derive(ReflectHash)]
+        #[allow(unused)]
+        struct GenericStruct<T1: ReflectHash, T2: ReflectHash> {
+            f1: T1,
+            f2: Option<T2>,
+        }
+
+        let mut map = BTreeMap::new();
+        let ty = Type {
+            name: "GenericStruct".to_string(),
+            type_params: vec![
+                TypeParameter {
+                    name: "T1".to_string(),
+                    ty: None,
+                },
+                TypeParameter {
+                    name: "T2".to_string(),
+                    ty: None,
+                },
+            ],
+            def: TypeDef::Struct(StructDef {
+                fields: vec![
+                    StructField {
+                        name: Some("f1".to_string()),
+                        type_decl: Named {
+                            name: "T1".to_string(),
+                            generics: vec![],
+                        },
+                        docs: vec![],
+                        annotations: vec![],
+                    },
+                    StructField {
+                        name: Some("f2".to_string()),
+                        type_decl: Named {
+                            name: "Option".to_string(),
+                            generics: vec![Named {
+                                name: "T2".to_string(),
+                                generics: vec![],
+                            }],
+                        },
+                        docs: vec![],
+                        annotations: vec![],
+                    },
+                ],
+            }),
+            docs: vec![],
+            annotations: vec![],
+        };
+        map.insert("GenericStruct", &ty);
+
+        let ty_u8_str = Named {
+            name: "GenericStruct".to_string(),
+            generics: vec![Primitive(U8), Primitive(String)],
+        };
+        let ty_str_u8 = Named {
+            name: "GenericStruct".to_string(),
+            generics: vec![Primitive(String), Primitive(U8)],
+        };
+
+        assert_ne!(
+            hash_type_decl(&ty_u8_str, &map, None),
+            hash_type_decl(&ty_str_u8, &map, None)
+        );
+
+        assert_type_decl!(
+            GenericStruct<u8, &str>,
+            Named {
+                name: "GenericStruct".to_string(),
+                generics: vec![Primitive(U8), Primitive(String)],
+            },
+            map
+        );
+
+        assert_type_decl!(
+            GenericStruct<&str, u8>,
+            Named {
+                name: "GenericStruct".to_string(),
+                generics: vec![Primitive(String), Primitive(U8)],
             },
             map
         );
