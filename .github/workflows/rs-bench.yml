@@ -35,7 +35,7 @@ jobs:
       issues: write
     steps:
       - name: Checkout PR branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Free Disk Space
         uses: ./.github/actions/free-disk-space
@@ -87,7 +87,7 @@ jobs:
       # Comment the comparison table on the PR
       - name: Comment PR with Benchmark Comparison
         if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
