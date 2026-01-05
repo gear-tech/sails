@@ -90,7 +90,7 @@ Non-zero wrapper types include both the wrapper name and the inner type:
 ```
 NonZeroT::HASH = HASH(b"NonZeroT" || T::HASH)
 ```
-s
+
 **Examples:**
 
 ```

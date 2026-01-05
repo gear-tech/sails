@@ -5,6 +5,15 @@ use keccak_const::Keccak256;
 type Error = String;
 
 impl ServiceUnit {
+    /// Compute a deterministic interface identifier for this service.
+    ///
+    /// The hash incorporates:
+    /// - all functions (kind, name, params, output, optional throws),
+    /// - all events (their payload shape),
+    /// - all base services by their already-computed interface IDs.
+    ///
+    /// Types referenced by functions or events are expanded via the AST
+    /// definitions in `self.types`, including generic instantiation.
     pub fn interface_id(&self) -> Result<InterfaceId, Error> {
         let type_map: BTreeMap<_, _> = self.types.iter().map(|ty| (ty.name.as_str(), ty)).collect();
 
@@ -95,15 +104,18 @@ fn hash_type_decl(
     type_params: Option<&BTreeMap<String, TypeDecl>>,
 ) -> Result<[u8; 32], Error> {
     let bytes = match type_decl {
+        // Encode slices as [T].
         TypeDecl::Slice { item } => Keccak256::new()
             .update(b"[")
             .update(hash_type_decl(item, type_map, type_params)?.as_slice())
             .update(b"]")
             .finalize(),
+        // Arrays include the element type and the length.
         TypeDecl::Array { item, len } => Keccak256::new()
             .update(hash_type_decl(item, type_map, type_params)?.as_slice())
             .update(format!("{len}").as_bytes())
             .finalize(),
+        // Tuples hash their element types in order.
         TypeDecl::Tuple { types } => {
             let mut hash = Keccak256::new();
             for ty in types {
@@ -112,12 +124,14 @@ fn hash_type_decl(
             hash.finalize()
         }
         TypeDecl::Named { name, generics } => {
+            // Resolve generic parameters if a mapping is provided (e.g., T -> u32).
             if generics.is_empty()
                 && let Some(map) = type_params
                 && let Some(param_ty) = map.get(name)
             {
                 // generic type parameter `T`
                 return hash_type_decl(param_ty, type_map, type_params);
+            // Normalize well-known container types to stable markers.
             } else if let Some(ty) = TypeDecl::option_type_decl(type_decl) {
                 Keccak256::new()
                     .update(b"Option")
@@ -129,6 +143,7 @@ fn hash_type_decl(
                     .update(&hash_type_decl(&ok, type_map, type_params)?)
                     .update(&hash_type_decl(&err, type_map, type_params)?)
                     .finalize()
+            // Expand named user-defined types from the map, with generics applied.
             } else if let Some(ty) = type_map.get(name.as_str()) {
                 if generics.is_empty() {
                     hash_type(ty, type_map, None)?
@@ -145,6 +160,7 @@ fn hash_type_decl(
                 return Err(format!("type `{name}` not supported"));
             }
         }
+        // Primitives are hashed by their canonical IDL spelling.
         TypeDecl::Primitive(primitive_type) => Keccak256::new()
             .update(primitive_type.as_str().as_bytes())
             .finalize(),

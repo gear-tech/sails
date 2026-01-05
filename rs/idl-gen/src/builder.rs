@@ -9,6 +9,7 @@ pub struct ProgramBuilder {
 }
 
 impl ProgramBuilder {
+    /// Build a new program builder with the constructors and services registered in metadata.
     pub fn new<P: ProgramMeta>() -> Self {
         let mut registry = Registry::new();
         let ctors = P::constructors();
@@ -75,6 +76,7 @@ impl ProgramBuilder {
             .collect()
     }
 
+    /// Assemble the final `ProgramUnit` from resolved constructors, types, and service exports.
     pub fn build(self, name: String, services: &[ServiceUnit]) -> Result<ProgramUnit> {
         let mut exclude = BTreeSet::new();
         exclude.insert(self.ctors_type_id);
@@ -170,6 +172,7 @@ pub struct ServiceBuilder<'a> {
 }
 
 impl<'a> ServiceBuilder<'a> {
+    /// Create a builder for a single service name + metadata pair.
     pub fn new(name: &'a str, meta: &'a AnyServiceMeta) -> Self {
         let mut registry = Registry::new();
         let commands_type_id = registry.register_type(meta.commands()).id;
@@ -186,6 +189,7 @@ impl<'a> ServiceBuilder<'a> {
         }
     }
 
+    /// Build this service (and its base services) into the shared service list.
     pub fn build(self, services: &mut Vec<ServiceUnit>) -> Result<ServiceIdent> {
         let mut visited = BTreeSet::new();
         self.build_inner(services, &mut visited)
@@ -378,7 +382,6 @@ impl<'a> ServiceBuilder<'a> {
                             name: c.name.to_string(),
                             params,
                             output,
-                            // TODO: Throws type
                             throws,
                             kind: FunctionKind::Query,
                             docs: c.docs.iter().map(|s| s.to_string()).collect(),
