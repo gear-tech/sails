@@ -88,16 +88,16 @@ str::HASH    = HASH(b"String")  // str and String are structurally equivalent
 Non-zero wrapper types include both the wrapper name and the inner type:
 
 ```
-NonZeroT::HASH = HASH(b"NonZero" || T::HASH)
+NonZeroT::HASH = HASH(b"NonZeroT" || T::HASH)
 ```
-
+s
 **Examples:**
 
 ```
-NonZeroU8::HASH   = HASH(b"NonZero" || u8::HASH)
-NonZeroU32::HASH  = HASH(b"NonZero" || u32::HASH)
-NonZeroI64::HASH  = HASH(b"NonZero" || i64::HASH)
-NonZeroU256::HASH = HASH(b"NonZero" || U256::HASH)
+NonZeroU8::HASH   = HASH(b"NonZeroU8" || u8::HASH)
+NonZeroU32::HASH  = HASH(b"NonZeroU32" || u32::HASH)
+NonZeroI64::HASH  = HASH(b"NonZeroI64" || i64::HASH)
+NonZeroU256::HASH = HASH(b"NonZeroU256" || U256::HASH)
 ```
 
 ### References

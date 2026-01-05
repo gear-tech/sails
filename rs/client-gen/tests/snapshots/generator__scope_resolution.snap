@@ -70,16 +70,16 @@ pub mod my_service {
     }
     pub trait MyService {
         type Env: sails_rs::client::GearEnv;
-        /// Uses CommonType from program scope.
-        fn do_something(
-            &mut self,
-            input: CommonType,
-        ) -> sails_rs::client::PendingCall<io::DoSomething, Self::Env>;
         /// Uses CommonType from service scope.
         fn another_action(
             &mut self,
             input: ServiceCommonType,
         ) -> sails_rs::client::PendingCall<io::AnotherAction, Self::Env>;
+        /// Uses CommonType from program scope.
+        fn do_something(
+            &mut self,
+            input: CommonType,
+        ) -> sails_rs::client::PendingCall<io::DoSomething, Self::Env>;
         /// Uses ProgramOnlyType from program scope.
         fn use_program_type(
             &mut self,
@@ -89,16 +89,16 @@ pub mod my_service {
     pub struct MyServiceImpl;
     impl<E: sails_rs::client::GearEnv> MyService for sails_rs::client::Service<MyServiceImpl, E> {
         type Env = E;
-        fn do_something(
-            &mut self,
-            input: CommonType,
-        ) -> sails_rs::client::PendingCall<io::DoSomething, Self::Env> {
-            self.pending_call((input,))
-        }
         fn another_action(
             &mut self,
             input: ServiceCommonType,
         ) -> sails_rs::client::PendingCall<io::AnotherAction, Self::Env> {
+            self.pending_call((input,))
+        }
+        fn do_something(
+            &mut self,
+            input: CommonType,
+        ) -> sails_rs::client::PendingCall<io::DoSomething, Self::Env> {
             self.pending_call((input,))
         }
         fn use_program_type(
@@ -111,8 +111,8 @@ pub mod my_service {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(DoSomething (input: super::CommonType) -> u32);
         sails_rs::io_struct_impl!(AnotherAction (input: super::ServiceCommonType) -> u32);
+        sails_rs::io_struct_impl!(DoSomething (input: super::CommonType) -> u32);
         sails_rs::io_struct_impl!(UseProgramType (input: super::ProgramOnlyType) -> bool);
     }
 
@@ -121,6 +121,6 @@ pub mod my_service {
     pub mod mockall {
         use super::*;
         use sails_rs::mockall::*;
-        mock! { pub MyService {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl my_service::MyService for MyService { type Env = sails_rs::client::GstdEnv; fn do_something (&mut self, input: CommonType) -> sails_rs::client::PendingCall<my_service::io::DoSomething, sails_rs::client::GstdEnv>;fn another_action (&mut self, input: ServiceCommonType) -> sails_rs::client::PendingCall<my_service::io::AnotherAction, sails_rs::client::GstdEnv>;fn use_program_type (&mut self, input: ProgramOnlyType) -> sails_rs::client::PendingCall<my_service::io::UseProgramType, sails_rs::client::GstdEnv>; } }
+        mock! { pub MyService {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl my_service::MyService for MyService { type Env = sails_rs::client::GstdEnv; fn another_action (&mut self, input: ServiceCommonType) -> sails_rs::client::PendingCall<my_service::io::AnotherAction, sails_rs::client::GstdEnv>;fn do_something (&mut self, input: CommonType) -> sails_rs::client::PendingCall<my_service::io::DoSomething, sails_rs::client::GstdEnv>;fn use_program_type (&mut self, input: ProgramOnlyType) -> sails_rs::client::PendingCall<my_service::io::UseProgramType, sails_rs::client::GstdEnv>; } }
     }
 }

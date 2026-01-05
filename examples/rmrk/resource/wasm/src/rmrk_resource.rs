@@ -162,11 +162,11 @@ pub mod rmrk_resource {
         #[codec(crate = sails_rs::scale_codec)]
         #[reflect_hash(crate = sails_rs)]
         pub enum RmrkResourceEvents {
-            ResourceAdded { resource_id: u8 },
             PartAdded { resource_id: u8, part_id: u32 },
+            ResourceAdded { resource_id: u8 },
         }
         impl sails_rs::client::Event for RmrkResourceEvents {
-            const EVENT_NAMES: &'static [Route] = &["ResourceAdded", "PartAdded"];
+            const EVENT_NAMES: &'static [Route] = &["PartAdded", "ResourceAdded"];
         }
         impl sails_rs::client::ServiceWithEvents for RmrkResourceImpl {
             type Event = RmrkResourceEvents;

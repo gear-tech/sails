@@ -110,70 +110,70 @@ impl_reflect_hash_for_primitives! {
 
 impl ReflectHash for NonZeroU8 {
     const HASH: [u8; 32] = Keccak256::new()
-        .update(b"NonZero")
+        .update(b"NonZeroU8")
         .update(&<u8 as ReflectHash>::HASH)
         .finalize();
 }
 
 impl ReflectHash for NonZeroU16 {
     const HASH: [u8; 32] = Keccak256::new()
-        .update(b"NonZero")
+        .update(b"NonZeroU16")
         .update(&<u16 as ReflectHash>::HASH)
         .finalize();
 }
 
 impl ReflectHash for NonZeroU32 {
     const HASH: [u8; 32] = Keccak256::new()
-        .update(b"NonZero")
+        .update(b"NonZeroU32")
         .update(&<u32 as ReflectHash>::HASH)
         .finalize();
 }
 
 impl ReflectHash for NonZeroU64 {
     const HASH: [u8; 32] = Keccak256::new()
-        .update(b"NonZero")
+        .update(b"NonZeroU64")
         .update(&<u64 as ReflectHash>::HASH)
         .finalize();
 }
 
 impl ReflectHash for NonZeroU128 {
     const HASH: [u8; 32] = Keccak256::new()
-        .update(b"NonZero")
+        .update(b"NonZeroU128")
         .update(&<u128 as ReflectHash>::HASH)
         .finalize();
 }
 
 impl ReflectHash for NonZeroI8 {
     const HASH: [u8; 32] = Keccak256::new()
-        .update(b"NonZero")
+        .update(b"NonZeroI8")
         .update(&<i8 as ReflectHash>::HASH)
         .finalize();
 }
 
 impl ReflectHash for NonZeroI16 {
     const HASH: [u8; 32] = Keccak256::new()
-        .update(b"NonZero")
+        .update(b"NonZeroI16")
         .update(&<i16 as ReflectHash>::HASH)
         .finalize();
 }
 
 impl ReflectHash for NonZeroI32 {
     const HASH: [u8; 32] = Keccak256::new()
-        .update(b"NonZero")
+        .update(b"NonZeroI32")
         .update(&<i32 as ReflectHash>::HASH)
         .finalize();
 }
 
 impl ReflectHash for NonZeroI64 {
     const HASH: [u8; 32] = Keccak256::new()
-        .update(b"NonZero")
+        .update(b"NonZeroI64")
         .update(&<i64 as ReflectHash>::HASH)
         .finalize();
 }
 
 impl ReflectHash for NonZeroI128 {
     const HASH: [u8; 32] = Keccak256::new()
-        .update(b"NonZero")
+        .update(b"NonZeroI128")
         .update(&<i128 as ReflectHash>::HASH)
         .finalize();
 }

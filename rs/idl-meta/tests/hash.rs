@@ -7,9 +7,9 @@ mod fixture;
 #[test]
 fn hash_counter() {
     let s = fixture::counter_service();
-    let inteface_id = s.inteface_id();
+    let interface_id = s.interface_id().unwrap();
     assert_eq!(
-        inteface_id,
+        interface_id,
         InterfaceId::from_str("0x579d6daba41b7d82").unwrap()
     )
 }

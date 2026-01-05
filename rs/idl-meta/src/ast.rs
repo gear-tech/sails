@@ -146,6 +146,14 @@ pub struct ServiceUnit {
     pub annotations: Vec<(String, Option<String>)>,
 }
 
+impl ServiceUnit {
+    pub fn normalize(&mut self) {
+        self.events.sort_by_key(|e| e.name.to_lowercase());
+        self.funcs.sort_by_key(|f| (f.kind, f.name.to_lowercase()));
+        self.extends.sort_by_key(|e| e.name.to_lowercase());
+    }
+}
+
 /// Service function entry inside `service { functions { ... } }`.
 ///
 /// - `params` is the ordered list of IDL parameters;
@@ -165,7 +173,7 @@ pub struct ServiceFunc {
 }
 
 /// Function kind based on mutability.
-#[derive(Debug, Default, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, Default, PartialEq, Eq, Clone, Copy, PartialOrd, Ord)]
 pub enum FunctionKind {
     #[default]
     Command,

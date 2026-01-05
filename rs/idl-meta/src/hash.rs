@@ -2,34 +2,37 @@ use super::*;
 use alloc::collections::btree_map::BTreeMap;
 use keccak_const::Keccak256;
 
+type Error = String;
+
 impl ServiceUnit {
-    pub fn inteface_id(&self) -> InterfaceId {
+    pub fn interface_id(&self) -> Result<InterfaceId, Error> {
         let type_map: BTreeMap<_, _> = self.types.iter().map(|ty| (ty.name.as_str(), ty)).collect();
 
         let mut hash = Keccak256::new();
         for func in &self.funcs {
-            hash = hash.update(&hash_func(func, &type_map));
+            hash = hash.update(&hash_func(func, &type_map)?);
         }
 
         if !self.events.is_empty() {
             let mut ev_hash = Keccak256::new();
             for var in &self.events {
-                ev_hash = ev_hash.update(&hash_struct(&var.name, &var.def.fields, &type_map, None))
+                ev_hash = ev_hash.update(&hash_struct(&var.name, &var.def.fields, &type_map, None)?)
             }
             hash = hash.update(&ev_hash.finalize());
         }
 
         for s in &self.extends {
-            // TODO
-            let interface_id = s.interface_id.unwrap();
+            let interface_id = s
+                .interface_id
+                .ok_or_else(|| format!("service {} does not have an `interface_id`", s.name))?;
             hash = hash.update(interface_id.as_bytes());
         }
 
-        InterfaceId::from_bytes_32(hash.finalize())
+        Ok(InterfaceId::from_bytes_32(hash.finalize()))
     }
 }
 
-fn hash_func(func: &ServiceFunc, type_map: &BTreeMap<&str, &Type>) -> [u8; 32] {
+fn hash_func(func: &ServiceFunc, type_map: &BTreeMap<&str, &Type>) -> Result<[u8; 32], Error> {
     let mut hash = Keccak256::new();
     hash = match func.kind {
         FunctionKind::Command => hash.update(b"command"),
@@ -37,25 +40,25 @@ fn hash_func(func: &ServiceFunc, type_map: &BTreeMap<&str, &Type>) -> [u8; 32] {
     };
     hash = hash.update(func.name.as_bytes());
     for p in &func.params {
-        hash = hash.update(&hash_type_decl(&p.type_decl, type_map, None));
+        hash = hash.update(&hash_type_decl(&p.type_decl, type_map, None)?);
     }
     hash = hash.update(b"res");
-    hash = hash.update(&hash_type_decl(&func.output, type_map, None));
+    hash = hash.update(&hash_type_decl(&func.output, type_map, None)?);
     if let Some(th) = &func.throws {
         hash = hash.update(b"throws");
-        hash = hash.update(&hash_type_decl(th, type_map, None));
+        hash = hash.update(&hash_type_decl(th, type_map, None)?);
     }
-    hash.finalize()
+    Ok(hash.finalize())
 }
 
 fn hash_type(
     ty: &Type,
     type_map: &BTreeMap<&str, &Type>,
     type_params: Option<&BTreeMap<String, TypeDecl>>,
-) -> [u8; 32] {
-    match &ty.def {
+) -> Result<[u8; 32], Error> {
+    let bytes = match &ty.def {
         TypeDef::Struct(StructDef { fields }) => {
-            hash_struct(&ty.name, &fields, type_map, type_params)
+            hash_struct(&ty.name, &fields, type_map, type_params)?
         }
         TypeDef::Enum(enum_def) => {
             let mut hash = Keccak256::new();
@@ -65,11 +68,12 @@ fn hash_type(
                     &var.def.fields,
                     type_map,
                     type_params,
-                ))
+                )?)
             }
             hash.finalize()
         }
-    }
+    };
+    Ok(bytes)
 }
 
 fn hash_struct(
@@ -77,33 +81,33 @@ fn hash_struct(
     fields: &[StructField],
     type_map: &BTreeMap<&str, &Type>,
     type_params: Option<&BTreeMap<String, TypeDecl>>,
-) -> [u8; 32] {
+) -> Result<[u8; 32], Error> {
     let mut hash = Keccak256::new().update(name.as_bytes());
     for f in fields {
-        hash = hash.update(hash_type_decl(&f.type_decl, type_map, type_params).as_slice())
+        hash = hash.update(hash_type_decl(&f.type_decl, type_map, type_params)?.as_slice())
     }
-    hash.finalize()
+    Ok(hash.finalize())
 }
 
 fn hash_type_decl(
     type_decl: &TypeDecl,
     type_map: &BTreeMap<&str, &Type>,
     type_params: Option<&BTreeMap<String, TypeDecl>>,
-) -> [u8; 32] {
-    match type_decl {
+) -> Result<[u8; 32], Error> {
+    let bytes = match type_decl {
         TypeDecl::Slice { item } => Keccak256::new()
             .update(b"[")
-            .update(hash_type_decl(item, type_map, type_params).as_slice())
+            .update(hash_type_decl(item, type_map, type_params)?.as_slice())
             .update(b"]")
             .finalize(),
         TypeDecl::Array { item, len } => Keccak256::new()
-            .update(hash_type_decl(item, type_map, type_params).as_slice())
+            .update(hash_type_decl(item, type_map, type_params)?.as_slice())
             .update(format!("{len}").as_bytes())
             .finalize(),
         TypeDecl::Tuple { types } => {
             let mut hash = Keccak256::new();
             for ty in types {
-                hash = hash.update(&hash_type_decl(ty, type_map, type_params));
+                hash = hash.update(&hash_type_decl(ty, type_map, type_params)?);
             }
             hash.finalize()
         }
@@ -117,34 +121,35 @@ fn hash_type_decl(
             } else if let Some(ty) = TypeDecl::option_type_decl(type_decl) {
                 Keccak256::new()
                     .update(b"Option")
-                    .update(&hash_type_decl(&ty, type_map, type_params))
+                    .update(&hash_type_decl(&ty, type_map, type_params)?)
                     .finalize()
             } else if let Some((ok, err)) = TypeDecl::result_type_decl(type_decl) {
                 Keccak256::new()
                     .update(b"Result")
-                    .update(&hash_type_decl(&ok, type_map, type_params))
-                    .update(&hash_type_decl(&err, type_map, type_params))
+                    .update(&hash_type_decl(&ok, type_map, type_params)?)
+                    .update(&hash_type_decl(&err, type_map, type_params)?)
                     .finalize()
             } else if let Some(ty) = type_map.get(name.as_str()) {
                 if generics.is_empty() {
-                    hash_type(ty, type_map, None)
+                    hash_type(ty, type_map, None)?
                 } else if ty.type_params.len() == generics.len() {
                     let mut params = BTreeMap::new();
                     for (param, arg) in ty.type_params.iter().zip(generics.iter()) {
                         params.insert(param.name.clone(), arg.clone());
                     }
-                    hash_type(ty, type_map, Some(&params))
+                    hash_type(ty, type_map, Some(&params))?
                 } else {
-                    unimplemented!("generic params type `{name}` must be resolved");
+                    return Err(format!("generic params type `{name}` must be resolved"));
                 }
             } else {
-                unimplemented!("type `{name}` not supported");
+                return Err(format!("type `{name}` not supported"));
             }
         }
         TypeDecl::Primitive(primitive_type) => Keccak256::new()
             .update(primitive_type.as_str().as_bytes())
             .finalize(),
-    }
+    };
+    Ok(bytes)
 }
 
 #[cfg(test)]
@@ -159,12 +164,15 @@ mod tests {
         ($ty: ty, $p: expr) => {
             assert_eq!(
                 <$ty as ReflectHash>::HASH,
-                hash_type_decl(&$p, &BTreeMap::new(), None)
+                hash_type_decl(&$p, &BTreeMap::new(), None).unwrap()
             );
         };
 
         ($ty: ty, $p: expr, $map: expr) => {
-            assert_eq!(<$ty as ReflectHash>::HASH, hash_type_decl(&$p, &$map, None));
+            assert_eq!(
+                <$ty as ReflectHash>::HASH,
+                hash_type_decl(&$p, &$map, None).unwrap()
+            );
         };
     }
 

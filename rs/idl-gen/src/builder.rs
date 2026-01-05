@@ -234,7 +234,7 @@ impl<'a> ServiceBuilder<'a> {
             name: self.name.to_string(),
             interface_id: Some(interface_id),
         };
-        services.push(ServiceUnit {
+        let mut unit = ServiceUnit {
             name: ident.clone(),
             extends,
             funcs: [commands, queries].concat(),
@@ -242,7 +242,10 @@ impl<'a> ServiceBuilder<'a> {
             types,
             docs: vec![],
             annotations: vec![],
-        });
+        };
+        unit.normalize();
+        // assert_eq!(unit.interface_id(), Ok(interface_id));
+        services.push(unit);
         visited.remove(&key);
         Ok(ident)
     }
@@ -1434,30 +1437,11 @@ mod tests {
             service.events,
             vec![
                 ServiceEvent {
-                    name: "Zero".to_string(),
-                    def: StructDef { fields: vec![] },
-                    docs: vec![],
-                    annotations: vec![],
-                },
-                ServiceEvent {
                     name: "One".to_string(),
                     def: StructDef {
                         fields: vec![StructField {
                             name: None,
                             type_decl: Primitive(PrimitiveType::U32),
-                            docs: vec![],
-                            annotations: vec![],
-                        }],
-                    },
-                    docs: vec![],
-                    annotations: vec![],
-                },
-                ServiceEvent {
-                    name: "Two".to_string(),
-                    def: StructDef {
-                        fields: vec![StructField {
-                            name: None,
-                            type_decl: TypeDecl::named("EventTwoParams".to_string()),
                             docs: vec![],
                             annotations: vec![],
                         }],
@@ -1483,6 +1467,25 @@ mod tests {
                             },
                         ],
                     },
+                    docs: vec![],
+                    annotations: vec![],
+                },
+                ServiceEvent {
+                    name: "Two".to_string(),
+                    def: StructDef {
+                        fields: vec![StructField {
+                            name: None,
+                            type_decl: TypeDecl::named("EventTwoParams".to_string()),
+                            docs: vec![],
+                            annotations: vec![],
+                        }],
+                    },
+                    docs: vec![],
+                    annotations: vec![],
+                },
+                ServiceEvent {
+                    name: "Zero".to_string(),
+                    def: StructDef { fields: vec![] },
                     docs: vec![],
                     annotations: vec![],
                 },

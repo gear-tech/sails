@@ -131,20 +131,15 @@ pub mod my_complex_service {
     }
     pub trait MyComplexService {
         type Env: sails_rs::client::GearEnv;
+        fn get_data(
+            &mut self,
+            key: String,
+        ) -> sails_rs::client::PendingCall<io::GetData, Self::Env>;
         fn initialize(
             &mut self,
             start_data: ProgramGlobalInfo,
             max_size: NonZeroU32,
         ) -> sails_rs::client::PendingCall<io::Initialize, Self::Env>;
-        fn get_data(
-            &mut self,
-            key: String,
-        ) -> sails_rs::client::PendingCall<io::GetData, Self::Env>;
-        fn get_info(&self) -> sails_rs::client::PendingCall<io::GetInfo, Self::Env>;
-        fn get_actor_ids(
-            &self,
-            count: u32,
-        ) -> sails_rs::client::PendingCall<io::GetActorIds, Self::Env>;
         fn process_generic_data(
             &mut self,
             input_data: GenericData<u32, String>,
@@ -157,33 +152,29 @@ pub mod my_complex_service {
             new_status: ServiceStatus,
             metadata: Option<String>,
         ) -> sails_rs::client::PendingCall<io::UpdateStatus, Self::Env>;
+        fn get_actor_ids(
+            &self,
+            count: u32,
+        ) -> sails_rs::client::PendingCall<io::GetActorIds, Self::Env>;
+        fn get_info(&self) -> sails_rs::client::PendingCall<io::GetInfo, Self::Env>;
     }
     pub struct MyComplexServiceImpl;
     impl<E: sails_rs::client::GearEnv> MyComplexService
         for sails_rs::client::Service<MyComplexServiceImpl, E>
     {
         type Env = E;
-        fn initialize(
-            &mut self,
-            start_data: ProgramGlobalInfo,
-            max_size: NonZeroU32,
-        ) -> sails_rs::client::PendingCall<io::Initialize, Self::Env> {
-            self.pending_call((start_data, max_size))
-        }
         fn get_data(
             &mut self,
             key: String,
         ) -> sails_rs::client::PendingCall<io::GetData, Self::Env> {
             self.pending_call((key,))
         }
-        fn get_info(&self) -> sails_rs::client::PendingCall<io::GetInfo, Self::Env> {
-            self.pending_call(())
-        }
-        fn get_actor_ids(
-            &self,
-            count: u32,
-        ) -> sails_rs::client::PendingCall<io::GetActorIds, Self::Env> {
-            self.pending_call((count,))
+        fn initialize(
+            &mut self,
+            start_data: ProgramGlobalInfo,
+            max_size: NonZeroU32,
+        ) -> sails_rs::client::PendingCall<io::Initialize, Self::Env> {
+            self.pending_call((start_data, max_size))
         }
         fn process_generic_data(
             &mut self,
@@ -201,16 +192,25 @@ pub mod my_complex_service {
         ) -> sails_rs::client::PendingCall<io::UpdateStatus, Self::Env> {
             self.pending_call((id, new_status, metadata))
         }
+        fn get_actor_ids(
+            &self,
+            count: u32,
+        ) -> sails_rs::client::PendingCall<io::GetActorIds, Self::Env> {
+            self.pending_call((count,))
+        }
+        fn get_info(&self) -> sails_rs::client::PendingCall<io::GetInfo, Self::Env> {
+            self.pending_call(())
+        }
     }
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(Initialize (start_data: super::ProgramGlobalInfo, max_size: super::NonZeroU32) -> super::Result<(), super::ErrorType, >);
         sails_rs::io_struct_impl!(GetData (key: String) -> super::Result<super::ProgramScopedData, super::ErrorType, >);
-        sails_rs::io_struct_impl!(GetInfo () -> super::ProgramGlobalInfo);
-        sails_rs::io_struct_impl!(GetActorIds (count: u32) -> Vec<ActorId>);
+        sails_rs::io_struct_impl!(Initialize (start_data: super::ProgramGlobalInfo, max_size: super::NonZeroU32) -> super::Result<(), super::ErrorType, >);
         sails_rs::io_struct_impl!(ProcessGenericData (input_data: super::GenericData<u32, String, >, list_of_generics: Vec<super::GenericData<ActorId, U256, >>, optional_generic_result: super::Option<super::GenericResult<bool, >, >) -> super::GenericData<bool, u8, >);
         sails_rs::io_struct_impl!(UpdateStatus (id: u64, new_status: super::ServiceStatus, metadata: super::Option<String, >) -> super::GenericResult<u32, >);
+        sails_rs::io_struct_impl!(GetActorIds (count: u32) -> Vec<ActorId>);
+        sails_rs::io_struct_impl!(GetInfo () -> super::ProgramGlobalInfo);
     }
 
     #[cfg(feature = "with_mocks")]
@@ -218,7 +218,7 @@ pub mod my_complex_service {
     pub mod mockall {
         use super::*;
         use sails_rs::mockall::*;
-        mock! { pub MyComplexService {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl my_complex_service::MyComplexService for MyComplexService { type Env = sails_rs::client::GstdEnv; fn initialize (&mut self, start_data: ProgramGlobalInfo, max_size: NonZeroU32) -> sails_rs::client::PendingCall<my_complex_service::io::Initialize, sails_rs::client::GstdEnv>;fn get_data (&mut self, key: String) -> sails_rs::client::PendingCall<my_complex_service::io::GetData, sails_rs::client::GstdEnv>;fn get_info (&self, ) -> sails_rs::client::PendingCall<my_complex_service::io::GetInfo, sails_rs::client::GstdEnv>;fn get_actor_ids (&self, count: u32) -> sails_rs::client::PendingCall<my_complex_service::io::GetActorIds, sails_rs::client::GstdEnv>;fn process_generic_data (&mut self, input_data: GenericData<u32, String, >, list_of_generics: Vec<GenericData<ActorId, U256, >>, optional_generic_result: Option<GenericResult<bool, >, >) -> sails_rs::client::PendingCall<my_complex_service::io::ProcessGenericData, sails_rs::client::GstdEnv>;fn update_status (&mut self, id: u64, new_status: ServiceStatus, metadata: Option<String, >) -> sails_rs::client::PendingCall<my_complex_service::io::UpdateStatus, sails_rs::client::GstdEnv>; } }
+        mock! { pub MyComplexService {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl my_complex_service::MyComplexService for MyComplexService { type Env = sails_rs::client::GstdEnv; fn get_data (&mut self, key: String) -> sails_rs::client::PendingCall<my_complex_service::io::GetData, sails_rs::client::GstdEnv>;fn initialize (&mut self, start_data: ProgramGlobalInfo, max_size: NonZeroU32) -> sails_rs::client::PendingCall<my_complex_service::io::Initialize, sails_rs::client::GstdEnv>;fn process_generic_data (&mut self, input_data: GenericData<u32, String, >, list_of_generics: Vec<GenericData<ActorId, U256, >>, optional_generic_result: Option<GenericResult<bool, >, >) -> sails_rs::client::PendingCall<my_complex_service::io::ProcessGenericData, sails_rs::client::GstdEnv>;fn update_status (&mut self, id: u64, new_status: ServiceStatus, metadata: Option<String, >) -> sails_rs::client::PendingCall<my_complex_service::io::UpdateStatus, sails_rs::client::GstdEnv>;fn get_actor_ids (&self, count: u32) -> sails_rs::client::PendingCall<my_complex_service::io::GetActorIds, sails_rs::client::GstdEnv>;fn get_info (&self, ) -> sails_rs::client::PendingCall<my_complex_service::io::GetInfo, sails_rs::client::GstdEnv>; } }
     }
 }
 

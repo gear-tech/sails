@@ -23,21 +23,27 @@ pub mod service {
     }
     pub trait Service {
         type Env: my_crate::sails::client::GearEnv;
+        fn do_that(
+            &mut self,
+            p1: (u8, u32),
+        ) -> my_crate::sails::client::PendingCall<io::DoThat, Self::Env>;
         fn do_this(
             &mut self,
             p1: u32,
             p2: MyParam,
         ) -> my_crate::sails::client::PendingCall<io::DoThis, Self::Env>;
-        fn do_that(
-            &mut self,
-            p1: (u8, u32),
-        ) -> my_crate::sails::client::PendingCall<io::DoThat, Self::Env>;
     }
     pub struct ServiceImpl;
     impl<E: my_crate::sails::client::GearEnv> Service
         for my_crate::sails::client::Service<ServiceImpl, E>
     {
         type Env = E;
+        fn do_that(
+            &mut self,
+            p1: (u8, u32),
+        ) -> my_crate::sails::client::PendingCall<io::DoThat, Self::Env> {
+            self.pending_call((p1,))
+        }
         fn do_this(
             &mut self,
             p1: u32,
@@ -45,17 +51,11 @@ pub mod service {
         ) -> my_crate::sails::client::PendingCall<io::DoThis, Self::Env> {
             self.pending_call((p1, p2))
         }
-        fn do_that(
-            &mut self,
-            p1: (u8, u32),
-        ) -> my_crate::sails::client::PendingCall<io::DoThat, Self::Env> {
-            self.pending_call((p1,))
-        }
     }
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(DoThis (p1: u32, p2: super::MyParam) -> u16);
         my_crate::sails::io_struct_impl!(DoThat (p1: (u8, u32, )) -> u8);
+        my_crate::sails::io_struct_impl!(DoThis (p1: u32, p2: super::MyParam) -> u16);
     }
 }

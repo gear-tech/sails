@@ -260,12 +260,12 @@ pub mod dog {
     pub trait Dog {
         type Env: sails_rs::client::GearEnv;
         fn make_sound(&mut self) -> sails_rs::client::PendingCall<io::MakeSound, Self::Env>;
-        fn walker_service(
-            &self,
-        ) -> sails_rs::client::Service<super::walker_service::WalkerServiceImpl, Self::Env>;
         fn mammal_service(
             &self,
         ) -> sails_rs::client::Service<super::mammal_service::MammalServiceImpl, Self::Env>;
+        fn walker_service(
+            &self,
+        ) -> sails_rs::client::Service<super::walker_service::WalkerServiceImpl, Self::Env>;
     }
     pub struct DogImpl;
     impl<E: sails_rs::client::GearEnv> Dog for sails_rs::client::Service<DogImpl, E> {
@@ -273,15 +273,15 @@ pub mod dog {
         fn make_sound(&mut self) -> sails_rs::client::PendingCall<io::MakeSound, Self::Env> {
             self.pending_call(())
         }
-        fn walker_service(
-            &self,
-        ) -> sails_rs::client::Service<super::walker_service::WalkerServiceImpl, Self::Env>
-        {
-            self.base_service()
-        }
         fn mammal_service(
             &self,
         ) -> sails_rs::client::Service<super::mammal_service::MammalServiceImpl, Self::Env>
+        {
+            self.base_service()
+        }
+        fn walker_service(
+            &self,
+        ) -> sails_rs::client::Service<super::walker_service::WalkerServiceImpl, Self::Env>
         {
             self.base_service()
         }
@@ -314,7 +314,7 @@ pub mod dog {
     pub mod mockall {
         use super::*;
         use sails_rs::mockall::*;
-        mock! { pub Dog {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl dog::Dog for Dog { type Env = sails_rs::client::GstdEnv; fn make_sound (&mut self, ) -> sails_rs::client::PendingCall<dog::io::MakeSound, sails_rs::client::GstdEnv>;fn walker_service (&self, ) -> sails_rs::client::Service<super::walker_service::WalkerServiceImpl, sails_rs::client::GstdEnv>;fn mammal_service (&self, ) -> sails_rs::client::Service<super::mammal_service::MammalServiceImpl, sails_rs::client::GstdEnv>; } }
+        mock! { pub Dog {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl dog::Dog for Dog { type Env = sails_rs::client::GstdEnv; fn make_sound (&mut self, ) -> sails_rs::client::PendingCall<dog::io::MakeSound, sails_rs::client::GstdEnv>;fn mammal_service (&self, ) -> sails_rs::client::Service<super::mammal_service::MammalServiceImpl, sails_rs::client::GstdEnv>;fn walker_service (&self, ) -> sails_rs::client::Service<super::walker_service::WalkerServiceImpl, sails_rs::client::GstdEnv>; } }
     }
 }
 

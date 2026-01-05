@@ -395,7 +395,7 @@ fn parse_service(p: Pair<Rule>) -> Result<ServiceUnit> {
         }
     }
 
-    Ok(ServiceUnit {
+    let mut unit = ServiceUnit {
         name,
         extends,
         events,
@@ -403,7 +403,9 @@ fn parse_service(p: Pair<Rule>) -> Result<ServiceUnit> {
         types,
         docs,
         annotations,
-    })
+    };
+    unit.normalize();
+    Ok(unit)
 }
 
 fn parse_ctor_func(p: Pair<Rule>) -> Result<CtorFunc> {
