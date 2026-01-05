@@ -2,106 +2,126 @@
 source: rs/idl-gen/tests/generator.rs
 expression: generated_idl
 ---
-/// TupleStruct docs
-type TupleStruct = struct {
-  bool,
-};
-
-/// GenericStruct docs
-type GenericStructForH256 = struct {
-  /// GenericStruct field `p1`
-  p1: h256,
-};
-
-/// GenericStruct docs
-type GenericStructForStr = struct {
-  /// GenericStruct field `p1`
-  p1: str,
-};
-
-/// GenericConstStruct docs
-type GenericConstStruct1 = struct {
-  /// GenericStruct field `field`
-  field: [u8, 8],
-};
-
-/// GenericConstStruct docs
-type GenericConstStruct2 = struct {
-  /// GenericStruct field `field`
-  field: [u8, 32],
-};
-
-type DoThatParam = struct {
-  p1: u32,
-  p2: str,
-  p3: ManyVariants,
-};
-
-type ManyVariants = enum {
-  One,
-  Two: u32,
-  Three: opt vec u256,
-  Four: struct {
-    a: u32,
-    b: opt u16,
-  },
-  Five: struct {
-    str,
-    vec u8,
-  },
-  Six: struct { u32 },
-  Seven: GenericEnumForU32AndStr,
-  Eight: [map (u32, str), 10],
-};
-
-/// GenericEnum docs
-/// with two lines
-type GenericEnumForU32AndStr = enum {
-  /// GenericEnum `Variant1` of type 'T1'
-  Variant1: u32,
-  /// GenericEnum `Variant2` of type 'T2'
-  Variant2: str,
-};
-
-/// GenericEnum docs
-/// with two lines
-type GenericEnumForBoolAndU32 = enum {
-  /// GenericEnum `Variant1` of type 'T1'
-  Variant1: bool,
-  /// GenericEnum `Variant2` of type 'T2'
-  Variant2: u32,
-};
-
-type ThatParam = struct {
-  p1: ManyVariants,
-};
+!@sails: 2.0.0
 
 service {
-  /// Some description
-  DoThis : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: TupleStruct, p5: GenericStructForH256, p6: GenericStructForStr, p7: GenericConstStruct1, p8: GenericConstStruct2) -> str;
-  /// Some multiline description
-  /// Second line
-  /// Third line
-  DoThat : (par1: DoThatParam) -> result (struct { str, u32 }, struct { str });
-  /// This is a query
-  query This : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: TupleStruct, p5: GenericEnumForBoolAndU32) -> result (struct { str, u32 }, str);
-  /// This is a second query
-  /// This is a second line
-  query That : (pr1: ThatParam) -> str;
+    events {
+        /// `This` Done
+        ThisDone (
+            /// This is unnamed field, comments ignored
+            u32
+        ),
+        ThisDoneTwice (
+            /// This is the first unnamed field
+            u32,
+            /// This is the second unnamed field
+            u32
+        ),
+        /// `That` Done too
+        ThatDone {
+            /// This is `p1` field
+            p1: String,
+        },
+    }
 
-  events {
-    /// `This` Done
-    ThisDone: u32;
-    ThisDoneTwice: struct {
-      /// This is the first unnamed field
-      u32,
-      /// This is the second unnamed field
-      u32,
-    };
-    /// `That` Done too
-    ThatDone: struct {
-      /// This is `p1` field
-      p1: str
-    };
-  }
-};
+    functions {
+        /// Some description
+        DoThis(p1: u32, p2: String, p3: (Option<String>, u8), p4: TupleStruct, p5: GenericStruct<H256>, p6: GenericStruct<String>, p7: GenericConstStruct1, p8: GenericConstStruct2) -> String;
+
+        /// Some multiline description
+        /// Second line
+        /// Third line
+        DoThat(par1: DoThatParam) -> (String, u32) throws (String,);
+
+        /// This is a query
+        @query
+        This(p1: u32, p2: String, p3: (Option<String>, u8), p4: TupleStruct, p5: GenericEnum<bool, u32>) -> (String, u32) throws String;
+
+        /// This is a second query
+        /// This is a second line
+        @query
+        That(pr1: ThatParam) -> String;
+    }
+
+    types {
+        /// TupleStruct docs
+        struct TupleStruct(bool);
+
+        /// GenericStruct docs
+        struct GenericStruct<T> {
+            /// GenericStruct field `p1`
+            p1: T,
+        }
+
+        /// GenericConstStruct docs
+        struct GenericConstStruct1 {
+            /// GenericStruct field `field`
+            field: [u8; 8],
+        }
+
+        /// GenericConstStruct docs
+        struct GenericConstStruct2 {
+            /// GenericStruct field `field`
+            field: [u8; 32],
+        }
+
+        struct DoThatParam {
+            p1: u32,
+            p2: String,
+            p3: ManyVariants,
+        }
+
+        enum ManyVariants {
+            One,
+            Two(u32),
+            Three(Option<[u256]>),
+            Four {
+                a: u32,
+                b: Option<u16>,
+            },
+            Five(String, [u8]),
+            Six((u32,)),
+            Seven(GenericEnum<u32, String>),
+            Eight([[(u32, String)]; 10]),
+            Nine(TupleVariantsDocs),
+        }
+
+        /// GenericEnum docs
+        /// with two lines
+        enum GenericEnum<T1, T2> {
+            /// GenericEnum `Variant1` of type 'T1'
+            Variant1(T1),
+            /// GenericEnum `Variant2` of type 'T2'
+            Variant2(T2),
+        }
+
+        enum TupleVariantsDocs {
+            /// Docs for no tuple docs 1
+            NoTupleDocs1(u32, String),
+            NoTupleDocs2(CodeId, [u8]),
+            /// Docs for tuple docs 1
+            TupleDocs1 (
+                u32,
+                /// This is the second field
+                String
+            ),
+            TupleDocs2 (
+                /// This is the first field
+                u32,
+                /// This is the second field
+                String
+            ),
+            /// Docs for struct docs
+            StructDocs {
+                /// This is field `a`
+                a: u32,
+                /// This is field `b`
+                b: String,
+            },
+        }
+
+        struct ThatParam {
+            p1: ManyVariants,
+        }
+    }
+}

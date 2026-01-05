@@ -1,0 +1,146 @@
+service{{#if name}} {{name}}{{/if}} {
+    {{#if extends}}
+    extends {
+        {{#each extends}}
+        {{this}}{{#unless @last}}, {{/unless}}
+        {{/each}}
+    }
+
+    {{/if}}
+    {{#if events}}
+    events {
+    {{#each events}}
+        {{#each docs}}
+        /// {{{this}}}
+        {{/each}}
+        {{name}}{{~#if fields}}
+        {{~#if fields.[0].name}} {
+            {{#each fields}}
+            {{#each docs}}
+            /// {{{this}}}
+            {{/each}}
+            {{name}}: {{{lookup ../../concrete_names type}}},
+            {{/each}}
+        }{{~else~}}
+        {{~#if (any_field_has_docs fields)}} (
+            {{#each fields}}
+            {{#each docs}}
+            /// {{{this}}}
+            {{/each}}
+            {{{lookup ../../concrete_names type}}}{{#unless @last}},{{/unless}}
+            {{/each}}
+        )
+        {{~else~}}
+        ({{#each fields}}{{{lookup ../../concrete_names type}}}{{#unless @last}}, {{/unless}}{{/each}})
+        {{~/if}}
+        {{~/if}}{{~/if}},
+    {{/each}}
+    }
+
+    {{/if}}
+    {{#if (has_functions functions)}}
+    functions {
+    {{#if functions.commands}}
+    {{#each functions.commands}}
+        {{#each docs}}
+        /// {{{this}}}
+        {{/each}}
+        {{name}}({{#each args}}{{#if @index}}, {{/if}}{{name}}: {{{lookup ../../concrete_names type}}}{{/each}}){{#if result_ty}}{{#if (has_key result_ty "res")}} -> {{{lookup ../concrete_names result_ty.res}}}{{/if}}{{#if (has_key result_ty "err")}} throws {{{lookup ../concrete_names result_ty.err}}}{{/if}}{{/if}};
+    {{#unless @last}}
+
+    {{/unless}}
+    {{/each}}
+    {{#if functions.queries}}
+
+    {{/if}}
+    {{/if}}
+    {{#each functions.queries}}
+        {{#each docs}}
+        /// {{{this}}}
+        {{/each}}
+        @query
+        {{name}}({{#each args}}{{#if @index}}, {{/if}}{{name}}: {{{lookup ../../concrete_names type}}}{{/each}}){{#if result_ty}}{{#if (has_key result_ty "res")}} -> {{{lookup ../concrete_names result_ty.res}}}{{/if}}{{#if (has_key result_ty "err")}} throws {{{lookup ../concrete_names result_ty.err}}}{{/if}}{{/if}};
+    {{#unless @last}}
+
+    {{/unless}}
+    {{/each}}
+    }
+    {{#if types}}
+
+    {{/if}}
+    {{/if}}
+    {{#if types}}
+    types {
+{{#each types}}
+{{#if this.enum}}
+        {{#each this.enum.docs}}
+        /// {{{this}}}
+        {{/each}}
+        enum {{{this.enum.own_name}}} {
+        {{#each this.enum.fields}}
+            {{#each docs}}
+            /// {{{this}}}
+            {{/each}}
+            {{own_name}}{{~#if fields}}
+            {{~#if fields.[0].name}} {
+                {{#each fields}}
+                {{#each docs}}
+                /// {{{this}}}
+                {{/each}}
+                {{name}}: {{{type_name}}},
+                {{/each}}
+            }
+            {{~else~}}
+            {{~#if (any_field_has_docs fields)}} (
+                {{#each fields}}
+                {{#each docs}}
+                /// {{{this}}}
+                {{/each}}
+                {{{type_name}}}{{#unless @last}},{{/unless}}
+                {{/each}}
+            )
+            {{~else~}}
+            ({{#each fields}}{{{type_name}}}{{#unless @last}}, {{/unless}}{{/each}})
+            {{~/if}}
+            {{~/if}}{{~/if}},
+        {{/each}}
+        }
+{{else}}
+        {{#each this.struct.docs}}
+        /// {{{this}}}
+        {{/each}}
+    {{#if this.struct.fields}}
+        {{#if this.struct.fields.[0].name}}
+        struct {{{this.struct.own_name}}} {
+            {{#each this.struct.fields}}
+            {{#each docs}}
+            /// {{{this}}}
+            {{/each}}
+            {{name}}: {{{type_name}}},
+            {{/each}}
+        }
+        {{else}}
+        {{#if (any_field_has_docs this.struct.fields)}}
+        struct {{{this.struct.own_name}}} (
+            {{#each this.struct.fields}}
+            {{#each docs}}
+            /// {{{this}}}
+            {{/each}}
+            {{{type_name}}},
+            {{/each}}
+        );
+        {{else}}
+        struct {{{this.struct.own_name}}}({{#each this.struct.fields}}{{{type_name}}}{{#unless @last}}, {{/unless}}{{/each}});
+        {{/if}}
+        {{/if}}
+    {{else}}
+        struct {{{this.struct.own_name}}};
+    {{/if}}
+{{/if}}
+{{#unless @last}}
+
+{{/unless}}
+{{/each}}
+    }
+    {{/if}}
+}
