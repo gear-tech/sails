@@ -2,7 +2,10 @@ use crate::helpers::fn_args_with_types_path;
 use convert_case::{Case, Casing};
 use genco::prelude::*;
 use rust::Tokens;
-use sails_idl_parser_v2::{ast, visitor, visitor::Visitor};
+use sails_idl_parser_v2::{
+    ast::{self, ServiceIdent},
+    visitor::{self, Visitor},
+};
 
 pub(crate) struct MockGenerator<'ast> {
     service_name: &'ast str,
@@ -40,10 +43,14 @@ impl<'ast> Visitor<'ast> for MockGenerator<'ast> {
     fn visit_service_unit(&mut self, service: &'ast ast::ServiceUnit) {
         visitor::accept_service_unit(service, self);
 
-        for extended_service_name in &service.extends {
-            let method_name = extended_service_name.to_case(Case::Snake);
-            let impl_name = extended_service_name.to_case(Case::Pascal);
-            let mod_name = extended_service_name.to_case(Case::Snake);
+        for ServiceIdent {
+            name,
+            interface_id: _,
+        } in &service.extends
+        {
+            let method_name = name.to_case(Case::Snake);
+            let impl_name = name.to_case(Case::Pascal);
+            let mod_name = name.to_case(Case::Snake);
 
             quote_in! { self.tokens =>
                 fn $(&method_name) (&self, ) -> $(self.sails_path)::client::Service<super::$(mod_name.as_str())::$(impl_name.as_str())Impl, $(self.sails_path)::client::GstdEnv>;

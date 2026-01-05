@@ -124,8 +124,11 @@ pub fn enum_variants_type() -> Type {
 
 pub fn counter_service() -> ServiceUnit {
     ServiceUnit {
-        name: "Counter".to_string(),
-        extends: vec!["BaseService".to_string(), "AnotherBaseService".to_string()],
+        name: "Counter".parse().unwrap(),
+        extends: vec![
+            "BaseService".parse().unwrap(),
+            "AnotherBaseService".parse().unwrap(),
+        ],
         funcs: vec![
             ServiceFunc {
                 name: "Add".to_string(),
@@ -232,7 +235,7 @@ pub fn service_func() -> ServiceFunc {
 
 pub fn this_that_service() -> ServiceUnit {
     ServiceUnit {
-        name: "ThisThat".to_string(),
+        name: "ThisThat".parse().unwrap(),
         extends: vec![],
         funcs: vec![service_func()],
         events: vec![],
@@ -409,20 +412,23 @@ pub fn program_unit() -> ProgramUnit {
         ],
         services: vec![
             ServiceExpo {
-                name: "Ping".to_string(),
+                name: "Ping".parse().unwrap(),
                 route: None,
+                route_idx: 1,
                 docs: vec![],
                 annotations: vec![],
             },
             ServiceExpo {
-                name: "Counter".to_string(),
+                name: "Counter".parse().unwrap(),
                 route: None,
+                route_idx: 2,
                 docs: vec![],
                 annotations: vec![],
             },
             ServiceExpo {
-                name: "Counter".to_string(),
+                name: "Counter".parse().unwrap(),
                 route: Some("Counter2".to_string()),
+                route_idx: 3,
                 docs: vec!["Another Counter service".to_owned()],
                 annotations: vec![],
             },

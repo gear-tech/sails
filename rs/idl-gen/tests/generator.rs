@@ -1,9 +1,7 @@
 use gprimitives::*;
 use meta_params::*;
 use sails_idl_gen::{program, service};
-use sails_idl_meta::{
-    AnyServiceMeta, AnyServiceMetaFn, InterfaceId, ProgramMeta, ServiceMeta as RtlServiceMeta,
-};
+use sails_idl_meta::{AnyServiceMeta, AnyServiceMetaFn, InterfaceId, ProgramMeta, ServiceMeta};
 use scale_info::{StaticTypeInfo, TypeInfo};
 use std::{collections::BTreeMap, result::Result as StdResult};
 
@@ -178,32 +176,32 @@ enum AmbiguousBaseEventsMeta {
     ThatDoneBase { p1: u16 },
 }
 
-struct ServiceMeta<C, Q, E> {
+struct GenericService<C, Q, E> {
     _commands: std::marker::PhantomData<C>,
     _queries: std::marker::PhantomData<Q>,
     _events: std::marker::PhantomData<E>,
 }
 
-impl<C: StaticTypeInfo, Q: StaticTypeInfo, E: StaticTypeInfo> RtlServiceMeta
-    for ServiceMeta<C, Q, E>
+impl<C: StaticTypeInfo, Q: StaticTypeInfo, E: StaticTypeInfo> ServiceMeta
+    for GenericService<C, Q, E>
 {
     type CommandsMeta = C;
     type QueriesMeta = Q;
     type EventsMeta = E;
     const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
     const ASYNC: bool = false;
-    const INTERFACE_ID: InterfaceId = InterfaceId([0u8; 8]);
+    const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(1);
 }
 
-struct ServiceMetaWithBase<C, Q, E, B> {
+struct GenericServiceWithBase<C, Q, E, B> {
     _commands: std::marker::PhantomData<C>,
     _queries: std::marker::PhantomData<Q>,
     _events: std::marker::PhantomData<E>,
     _base: std::marker::PhantomData<B>,
 }
 
-impl<C: StaticTypeInfo, Q: StaticTypeInfo, E: StaticTypeInfo, B: RtlServiceMeta> RtlServiceMeta
-    for ServiceMetaWithBase<C, Q, E, B>
+impl<C: StaticTypeInfo, Q: StaticTypeInfo, E: StaticTypeInfo, B: ServiceMeta> ServiceMeta
+    for GenericServiceWithBase<C, Q, E, B>
 {
     type CommandsMeta = C;
     type QueriesMeta = Q;
@@ -211,10 +209,10 @@ impl<C: StaticTypeInfo, Q: StaticTypeInfo, E: StaticTypeInfo, B: RtlServiceMeta>
     const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] =
         &[("B", AnyServiceMeta::new::<B>)];
     const ASYNC: bool = false;
-    const INTERFACE_ID: InterfaceId = InterfaceId([0u8; 8]);
+    const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(2);
 }
 
-type TestServiceMeta = ServiceMeta<CommandsMeta, QueriesMeta, EventsMeta>;
+type TestServiceMeta = GenericService<CommandsMeta, QueriesMeta, EventsMeta>;
 
 #[allow(dead_code)]
 #[derive(TypeInfo)]
@@ -320,14 +318,10 @@ fn program_idl_works_with_multiple_services() {
     assert!(generated_idl_program.program.is_some());
     let program = generated_idl_program.program.unwrap();
     assert!(program.ctors.is_empty());
-    assert_eq!(generated_idl_program.services.len(), 2);
-    assert_eq!(generated_idl_program.services[0].name, "Service");
+    assert_eq!(generated_idl_program.services.len(), 1);
+    assert_eq!(generated_idl_program.services[0].name.name, "Service");
     assert_eq!(generated_idl_program.services[0].funcs.len(), 4);
     assert_eq!(generated_idl_program.services[0].types.len(), 8);
-    // TODO: dedup services by id
-    assert_eq!(generated_idl_program.services[1].name, "SomeService");
-    assert_eq!(generated_idl_program.services[1].funcs.len(), 4);
-    assert_eq!(generated_idl_program.services[1].types.len(), 8);
 }
 
 #[test]
@@ -348,11 +342,11 @@ fn service_idl_works_with_basics() {
 fn service_idl_works_with_base_services() {
     let mut idl = String::new();
     service::generate_idl::<
-        ServiceMetaWithBase<
+        GenericServiceWithBase<
             CommandsMeta,
             QueriesMeta,
             EventsMeta,
-            ServiceMeta<BaseCommandsMeta, BaseQueriesMeta, BaseEventsMeta>,
+            GenericService<BaseCommandsMeta, BaseQueriesMeta, BaseEventsMeta>,
         >,
     >("ServiceMetaWithBase", &mut idl)
     .unwrap();

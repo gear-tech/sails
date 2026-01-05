@@ -5,6 +5,10 @@ extern crate alloc;
 #[cfg(feature = "ast")]
 mod ast;
 
+use alloc::{
+    format,
+    string::{String, ToString as _},
+};
 #[cfg(feature = "ast")]
 pub use ast::*;
 use parity_scale_codec::{Decode, Encode, Error};
@@ -67,6 +71,41 @@ impl InterfaceId {
     }
 }
 
+impl core::fmt::Display for InterfaceId {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str("0x")?;
+        for byte in self.as_bytes() {
+            write!(f, "{byte:02x}")?;
+        }
+        Ok(())
+    }
+}
+
+impl core::str::FromStr for InterfaceId {
+    type Err = String;
+
+    fn from_str(mut s: &str) -> Result<Self, Self::Err> {
+        // Strip optional 0x / 0X prefix
+        if let Some(rest) = s.strip_prefix("0x").or_else(|| s.strip_prefix("0X")) {
+            s = rest;
+        }
+
+        if s.len() != 16 {
+            return Err(format!("expected 16 hex digits (8 bytes), got {}", s.len()));
+        }
+
+        let mut bytes = [0u8; 8];
+        for (i, chunk) in s.as_bytes().chunks_exact(2).enumerate() {
+            let hex = core::str::from_utf8(chunk).map_err(|_| "invalid UTF-8".to_string())?;
+
+            bytes[i] =
+                u8::from_str_radix(hex, 16).map_err(|_| format!("invalid hex byte: {hex}"))?;
+        }
+
+        Ok(InterfaceId(bytes))
+    }
+}
+
 impl Encode for InterfaceId {
     fn encode_to<O: parity_scale_codec::Output + ?Sized>(&self, dest: &mut O) {
         dest.write(self.as_bytes());
@@ -111,7 +150,7 @@ pub struct AnyServiceMeta {
     commands: MetaType,
     queries: MetaType,
     events: MetaType,
-    base_services: Vec<(&'static str, AnyServiceMeta)>,
+    base_services: Vec<(&'static str, AnyServiceMetaFn)>,
     interface_id: InterfaceId,
 }
 
@@ -121,7 +160,7 @@ impl AnyServiceMeta {
             commands: S::commands(),
             queries: S::queries(),
             events: S::events(),
-            base_services: S::base_services().collect(),
+            base_services: S::BASE_SERVICES.to_vec(),
             interface_id: S::INTERFACE_ID,
         }
     }
@@ -138,10 +177,8 @@ impl AnyServiceMeta {
         &self.events
     }
 
-    pub fn base_services(&self) -> impl Iterator<Item = (&'static str, &AnyServiceMeta)> {
-        self.base_services
-            .iter()
-            .map(|&(name, ref meta)| (name, meta))
+    pub fn base_services(&self) -> impl Iterator<Item = (&'static str, AnyServiceMeta)> {
+        self.base_services.iter().map(|&(name, f)| (name, f()))
     }
 
     pub fn interface_id(&self) -> InterfaceId {

@@ -1,10 +1,10 @@
 ---
 source: rs/idl-gen/tests/generator.rs
-expression: generated_idl
+expression: idl
 ---
 !@sails: 0.9.2
 
-service Service {
+service Service@0x0100000000000000 {
     events {
         /// `This` Done
         ThisDone (
@@ -90,6 +90,6 @@ service Service {
 
 program TestProgramWithEmptyCtorsMeta {
     services {
-        Service,
+        Service@0x0100000000000000,
     }
 }
