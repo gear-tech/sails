@@ -58,7 +58,7 @@ fn hash_type(
 ) -> Result<[u8; 32], Error> {
     let bytes = match &ty.def {
         TypeDef::Struct(StructDef { fields }) => {
-            hash_struct(&ty.name, &fields, type_map, type_params)?
+            hash_struct(&ty.name, fields, type_map, type_params)?
         }
         TypeDef::Enum(enum_def) => {
             let mut hash = Keccak256::new();
