@@ -292,7 +292,7 @@ impl ReflectHash for U256 {
 
 impl ReflectHash for NonZeroU256 {
     const HASH: [u8; 32] = Keccak256::new()
-        .update(b"NonZero")
+        .update(b"NonZeroU256")
         .update(&U256::HASH)
         .finalize();
 }
