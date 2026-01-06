@@ -83,9 +83,7 @@ fn parse_ident(p: Pair<Rule>) -> Result<String> {
 
 fn parse_service_ident(p: Pair<Rule>) -> Result<ServiceIdent> {
     if p.as_rule() == Rule::ServiceIdent {
-        p.as_str()
-            .parse::<ServiceIdent>()
-            .map_err(|e| Error::Parse(e.to_string()))
+        p.as_str().parse::<ServiceIdent>().map_err(Error::Parse)
     } else {
         Err(Error::Rule("expected ServiceIdent".to_string()))
     }
@@ -686,8 +684,8 @@ mod tests {
 
         let doc = parse_idl(SRC).expect("parse idl");
 
-        assert_eq!(3, doc.globals.len());
-        assert_eq!(2, doc.services.len());
+        assert_eq!(2, doc.globals.len());
+        assert_eq!(4, doc.services.len());
     }
 
     #[test]

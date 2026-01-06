@@ -1,6 +1,6 @@
 use crate::ast;
 use crate::{
-    ast::{IdlDoc, PrimitiveType},
+    ast::{IdlDoc, InterfaceId, PrimitiveType},
     error::{Error, Result},
     visitor::{self, Visitor},
 };
@@ -55,6 +55,10 @@ pub fn validate_and_post_process(doc: &mut IdlDoc) -> Result<()> {
             .collect();
         return Err(Error::Validation(error_messages.join("\n")));
     }
+
+    // 5. Compute `interface_id` for each service in doc
+    let mut service_ids = ServiceInterfaceId::new(doc);
+    service_ids.update_service_id()?;
 
     Ok(())
 }
@@ -152,5 +156,90 @@ impl<'a> visitor::Visitor<'a> for Validator<'a> {
         }
 
         visitor::accept_struct_def(struct_def, self);
+    }
+}
+
+struct ServiceInterfaceId<'a> {
+    doc: &'a mut IdlDoc,
+    service_idx: BTreeMap<String, usize>,
+    computed: BTreeMap<String, InterfaceId>,
+}
+
+impl<'a> ServiceInterfaceId<'a> {
+    fn new(doc: &'a mut IdlDoc) -> Self {
+        let service_index = doc
+            .services
+            .iter()
+            .enumerate()
+            .map(|(idx, s)| (s.name.name.to_string(), idx))
+            .collect();
+        Self {
+            doc,
+            service_idx: service_index,
+            computed: BTreeMap::new(),
+        }
+    }
+
+    fn update_service_id(&mut self) -> Result<()> {
+        let names: Vec<_> = self
+            .doc
+            .services
+            .iter()
+            .map(|s| s.name.name.to_string())
+            .collect();
+        for name in names {
+            self.compute_service_id(name.as_str())?;
+        }
+        if let Some(program) = &mut self.doc.program {
+            for expo in &mut program.services {
+                if let Some(id) = self.computed.get(&expo.name.name) {
+                    expo.name.interface_id = Some(InterfaceId(id.0));
+                } else {
+                    return Err(Error::Validation(format!(
+                        "service `{}`: `interface_id` is not copmputed",
+                        expo.name.name
+                    )));
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn compute_service_id(&mut self, name: &str) -> Result<InterfaceId> {
+        if let Some(id) = self.computed.get(name) {
+            return Ok(*id);
+        }
+        let &idx = self
+            .service_idx
+            .get(name)
+            .ok_or_else(|| Error::Validation(format!("service `{name}` not found in IDL")))?;
+
+        let base_names: Vec<String> = self.doc.services[idx]
+            .extends
+            .iter()
+            .map(|base| base.name.clone())
+            .collect();
+
+        for base in base_names {
+            let _ = self.compute_service_id(&base);
+        }
+
+        let service = &mut self.doc.services[idx];
+        for ext in &mut service.extends {
+            if let Some(id) = self.computed.get(&ext.name) {
+                ext.interface_id = Some(InterfaceId(id.0));
+            }
+        }
+        let id = service.interface_id().map_err(Error::Validation)?;
+        if let Some(current_id) = service.name.interface_id
+            && current_id != id
+        {
+            return Err(Error::Validation(format!(
+                "service `{name}` computed interface_id {id} is not equal to {current_id} in IDL"
+            )));
+        }
+        service.name.interface_id = Some(id);
+        self.computed.insert(name.to_string(), id);
+        Ok(id)
     }
 }

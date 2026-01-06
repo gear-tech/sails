@@ -6,41 +6,6 @@ program ComplexTypesProgram {
         MyComplexService,
         AnotherService,
     }
-    types {
-        struct ProgramGlobalInfo {
-            id: ActorId,
-            config_version: u32,
-            map_of_data: [(string, ProgramScopedData)],
-            optional_value: Option<u64>,
-            result_status: Result<(u32, bool), ErrorType>,
-            values_vec: [u8],
-            non_zero_id: NonZeroU16,
-            h256_hash: H256,
-        }
-
-        struct ProgramScopedData {
-            name: string,
-            value: U256,
-            sub_id: u32,
-        }
-
-        enum ErrorType {
-            InvalidInput,
-            NotFound(string),
-            AccessDenied { id: ActorId, reason: string },
-        }
-
-        struct GenericData<T, U> {
-            value_t: T,
-            value_u: U,
-            description: string,
-        }
-
-        enum GenericResult<V> {
-            Success(V),
-            Failure(ErrorType),
-        }
-    }
 }
 
 service MyComplexService {
@@ -82,6 +47,44 @@ service MyComplexService {
             Paused,
             Error(ErrorType),
         }
+
+        struct ProgramGlobalInfo {
+            id: ActorId,
+            config_version: u32,
+            map_of_data: [(string, ProgramScopedData)],
+            optional_value: Option<u64>,
+            result_status: Result<(u32, bool), ErrorType>,
+            values_vec: [u8],
+            non_zero_id: NonZeroU16,
+            h256_hash: H256,
+        }
+
+        struct ProgramScopedData {
+            name: string,
+            value: U256,
+            sub_id: u32,
+        }
+
+        enum ErrorType {
+            InvalidInput,
+            NotFound(string),
+            AccessDenied { id: ActorId, reason: string },
+        }
+
+        struct GenericData<T, U> {
+            value_t: T,
+            value_u: U,
+            description: string,
+        }
+
+        enum GenericResult<V> {
+            Success(V),
+            Failure(ErrorType),
+        }
+
+        struct NonZeroU8(u8);
+        struct NonZeroU16(u16);
+        struct NonZeroU32(u32);
     }
 }
 
@@ -89,5 +92,12 @@ service AnotherService {
     functions {
         Ping() -> string;
         ProcessValues(data: [U256]) -> Result<(), ErrorType>;
+    }
+    types {
+        enum ErrorType {
+            InvalidInput,
+            NotFound(string),
+            AccessDenied { id: ActorId, reason: string },
+        }
     }
 }

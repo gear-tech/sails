@@ -33,7 +33,7 @@ impl ServiceUnit {
         for s in &self.extends {
             let interface_id = s
                 .interface_id
-                .ok_or_else(|| format!("service {} does not have an `interface_id`", s.name))?;
+                .ok_or_else(|| format!("service `{}` does not have an `interface_id`", s.name))?;
             hash = hash.update(interface_id.as_bytes());
         }
 

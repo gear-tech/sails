@@ -4,7 +4,7 @@ expression: idl
 ---
 !@sails: 0.9.2
 
-service Test@0x0100000000000000 {
+service Test@0xd6ed5296008aed60 {
     events {
         /// `That` Done too
         ThatDone {
@@ -97,6 +97,6 @@ program TestProgramWithNonEmptyCtorsMeta {
         FromStr(p1: String);
     }
     services {
-        Test@0x0100000000000000,
+        Test@0xd6ed5296008aed60,
     }
 }

@@ -934,6 +934,14 @@ pub mod basic {
 
 pub mod another_service {
     use super::*;
+    #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
+    #[codec(crate = my_crate::sails::scale_codec)]
+    #[scale_info(crate = my_crate::sails::scale_info)]
+    #[reflect_hash(crate = my_crate::sails)]
+    pub enum ProgramError {
+        InvalidOwner,
+        ConfigError(String),
+    }
     pub trait AnotherService {
         type Env: my_crate::sails::client::GearEnv;
         fn ping(&mut self) -> my_crate::sails::client::PendingCall<io::Ping, Self::Env>;
@@ -1034,6 +1042,14 @@ pub mod my_complex_service {
         Paused,
         Error(ProgramError),
     }
+    #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
+    #[codec(crate = my_crate::sails::scale_codec)]
+    #[scale_info(crate = my_crate::sails::scale_info)]
+    #[reflect_hash(crate = my_crate::sails)]
+    pub enum ProgramError {
+        InvalidOwner,
+        ConfigError(String),
+    }
     pub trait MyComplexService {
         type Env: my_crate::sails::client::GearEnv;
         fn get_actor_ids(
@@ -1116,5 +1132,22 @@ pub mod my_complex_service {
         my_crate::sails::io_struct_impl!(Initialize (start_data: super::ProgramGlobalInfo, max_size: u32) -> super::Result<(), super::ProgramError>);
         my_crate::sails::io_struct_impl!(ProcessGenericData (input_data: super::GenericData<u32, String, >, list_of_generics: Vec<super::GenericData<ActorId, U256, >>, optional_generic_result: super::Option<super::GenericResult<bool, >, >) -> super::GenericData<bool, u8, >);
         my_crate::sails::io_struct_impl!(UpdateStatus (id: u64, new_status: super::ServiceStatus, metadata: super::Option<String, >) -> super::GenericResult<u32, >);
+    }
+}
+
+pub mod rmrk_catalog {
+    use super::*;
+    pub trait RmrkCatalog {
+        type Env: my_crate::sails::client::GearEnv;
+    }
+    pub struct RmrkCatalogImpl;
+    impl<E: my_crate::sails::client::GearEnv> RmrkCatalog
+        for my_crate::sails::client::Service<RmrkCatalogImpl, E>
+    {
+        type Env = E;
+    }
+
+    pub mod io {
+        use super::*;
     }
 }

@@ -46,7 +46,12 @@ impl InterfaceId {
 
     /// Create interface ID from u64.
     pub const fn from_u64(int: u64) -> Self {
-        Self(int.to_le_bytes())
+        Self(int.to_be_bytes())
+    }
+
+    /// Get interface ID as a u64.
+    pub const fn as_u64(&self) -> u64 {
+        u64::from_be_bytes(self.0)
     }
 
     /// Get interface ID as a byte slice
