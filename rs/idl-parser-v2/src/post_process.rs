@@ -188,18 +188,17 @@ impl<'a> ServiceInterfaceId<'a> {
             .map(|s| s.name.name.to_string())
             .collect();
         for name in names {
-            self.compute_service_id(name.as_str())?;
+            _ = self.compute_service_id(name.as_str())?;
         }
         if let Some(program) = &mut self.doc.program {
             for expo in &mut program.services {
-                if let Some(id) = self.computed.get(&expo.name.name) {
-                    expo.name.interface_id = Some(InterfaceId(id.0));
-                } else {
-                    return Err(Error::Validation(format!(
+                let id = self.computed.get(&expo.name.name).ok_or_else(|| {
+                    Error::Validation(format!(
                         "service `{}`: `interface_id` is not copmputed",
                         expo.name.name
-                    )));
-                }
+                    ))
+                })?;
+                expo.name.interface_id = Some(*id);
             }
         }
         Ok(())
@@ -221,14 +220,18 @@ impl<'a> ServiceInterfaceId<'a> {
             .collect();
 
         for base in base_names {
-            let _ = self.compute_service_id(&base);
+            _ = self.compute_service_id(&base)?;
         }
 
         let service = &mut self.doc.services[idx];
         for ext in &mut service.extends {
-            if let Some(id) = self.computed.get(&ext.name) {
-                ext.interface_id = Some(InterfaceId(id.0));
-            }
+            let id = self.computed.get(&ext.name).ok_or_else(|| {
+                Error::Validation(format!(
+                    "service `{}`: `interface_id` is not copmputed",
+                    ext.name
+                ))
+            })?;
+            ext.interface_id = Some(*id);
         }
         let id = service.interface_id().map_err(Error::Validation)?;
         if let Some(current_id) = service.name.interface_id
