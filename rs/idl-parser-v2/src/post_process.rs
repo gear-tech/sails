@@ -194,7 +194,7 @@ impl<'a> ServiceInterfaceId<'a> {
             for expo in &mut program.services {
                 let id = self.computed.get(&expo.name.name).ok_or_else(|| {
                     Error::Validation(format!(
-                        "service `{}`: `interface_id` is not copmputed",
+                        "service `{}`: `interface_id` is not computed",
                         expo.name.name
                     ))
                 })?;
@@ -227,7 +227,7 @@ impl<'a> ServiceInterfaceId<'a> {
         for ext in &mut service.extends {
             let id = self.computed.get(&ext.name).ok_or_else(|| {
                 Error::Validation(format!(
-                    "service `{}`: `interface_id` is not copmputed",
+                    "service `{}`: `interface_id` is not computed",
                     ext.name
                 ))
             })?;
