@@ -12,7 +12,9 @@ impl<E: sails_rs::client::GearEnv> RedirectClient
 {
     type Env = E;
     fn redirect(&self) -> sails_rs::client::Service<redirect::RedirectImpl, Self::Env> {
-        self.service(stringify!(Redirect))
+        self.service(sails_rs::InterfaceId::from_bytes_8([
+            186, 88, 222, 225, 203, 117, 81, 30,
+        ]))
     }
 }
 pub trait RedirectClientCtors {
@@ -32,7 +34,7 @@ impl<E: sails_rs::client::GearEnv> RedirectClientCtors
 
 pub mod io {
     use super::*;
-    sails_rs::io_struct_impl!(New () -> ());
+    sails_rs::io_struct_impl!(New () -> (), 0);
 }
 
 pub mod redirect {
@@ -63,7 +65,7 @@ pub mod redirect {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(Exit (inheritor_id: ActorId) -> ());
-        sails_rs::io_struct_impl!(GetProgramId () -> ActorId);
+        sails_rs::io_struct_impl!(Exit (inheritor_id: ActorId) -> (), 0);
+        sails_rs::io_struct_impl!(GetProgramId () -> ActorId, 1);
     }
 }

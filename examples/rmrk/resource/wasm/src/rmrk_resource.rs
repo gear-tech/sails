@@ -16,7 +16,9 @@ impl<E: sails_rs::client::GearEnv> RmrkResource
     fn rmrk_resource(
         &self,
     ) -> sails_rs::client::Service<rmrk_resource::RmrkResourceImpl, Self::Env> {
-        self.service(stringify!(RmrkResource))
+        self.service(sails_rs::InterfaceId::from_bytes_8([
+            215, 56, 96, 51, 70, 205, 63, 27,
+        ]))
     }
 }
 pub trait RmrkResourceCtors {
@@ -36,7 +38,7 @@ impl<E: sails_rs::client::GearEnv> RmrkResourceCtors
 
 pub mod io {
     use super::*;
-    sails_rs::io_struct_impl!(New () -> ());
+    sails_rs::io_struct_impl!(New () -> (), 0);
 }
 
 pub mod rmrk_resource {
@@ -150,9 +152,9 @@ pub mod rmrk_resource {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(AddPartToResource (resource_id: u8, part_id: u32) -> super::Result<u32, super::Error, >);
-        sails_rs::io_struct_impl!(AddResourceEntry (resource_id: u8, resource: super::Resource) -> super::Result<(u8, super::Resource, ), super::Error, >);
-        sails_rs::io_struct_impl!(Resource (resource_id: u8) -> super::Result<super::Resource, super::Error, >);
+        sails_rs::io_struct_impl!(AddPartToResource (resource_id: u8, part_id: u32) -> super::Result<u32, super::Error, >, 0);
+        sails_rs::io_struct_impl!(AddResourceEntry (resource_id: u8, resource: super::Resource) -> super::Result<(u8, super::Resource, ), super::Error, >, 1);
+        sails_rs::io_struct_impl!(Resource (resource_id: u8) -> super::Result<super::Resource, super::Error, >, 3);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -162,12 +164,12 @@ pub mod rmrk_resource {
         #[codec(crate = sails_rs::scale_codec)]
         #[reflect_hash(crate = sails_rs)]
         pub enum RmrkResourceEvents {
+            #[codec(index = 2)]
             PartAdded { resource_id: u8, part_id: u32 },
+            #[codec(index = 4)]
             ResourceAdded { resource_id: u8 },
         }
-        impl sails_rs::client::Event for RmrkResourceEvents {
-            const EVENT_NAMES: &'static [Route] = &["PartAdded", "ResourceAdded"];
-        }
+        impl sails_rs::client::Event for RmrkResourceEvents {}
         impl sails_rs::client::ServiceWithEvents for RmrkResourceImpl {
             type Event = RmrkResourceEvents;
         }

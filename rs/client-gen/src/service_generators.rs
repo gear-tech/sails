@@ -5,7 +5,6 @@ use crate::type_generators::{TopLevelTypeGenerator, generate_type_decl_with_path
 use convert_case::{Case, Casing};
 use genco::prelude::*;
 use rust::Tokens;
-use sails_idl_meta::ServiceIdent;
 use sails_idl_parser_v2::{ast, visitor, visitor::Visitor};
 use std::collections::HashMap;
 
@@ -21,6 +20,7 @@ pub(crate) struct ServiceGenerator<'ast> {
     events_tokens: Tokens,
     types_tokens: Tokens,
     mocks_tokens: Tokens,
+    entry_ids: HashMap<String, u16>,
     no_derive_traits: bool,
 }
 
@@ -43,6 +43,7 @@ impl<'ast> ServiceGenerator<'ast> {
             events_tokens: Tokens::new(),
             types_tokens: Tokens::new(),
             mocks_tokens: Tokens::new(),
+            entry_ids: HashMap::new(),
             no_derive_traits,
         }
     }
@@ -99,13 +100,26 @@ impl<'ast> ServiceGenerator<'ast> {
 // using quote_in instead of tokens.append
 impl<'ast> Visitor<'ast> for ServiceGenerator<'ast> {
     fn visit_service_unit(&mut self, service: &'ast ast::ServiceUnit) {
+        // Collect all entry names: funcs + events
+        let mut entries: Vec<_> = service
+            .funcs
+            .iter()
+            .map(|f| &f.name)
+            .chain(service.events.iter().map(|e| &e.name))
+            .collect();
+
+        // Sort lexicographically as per spec
+        entries.sort();
+
+        // Assign IDs
+        for (idx, name) in entries.into_iter().enumerate() {
+            self.entry_ids.insert(name.clone(), idx as u16);
+        }
+
         visitor::accept_service_unit(service, self);
 
-        for ServiceIdent {
-            name,
-            interface_id: _,
-        } in &service.extends
-        {
+        for service_ident in &service.extends {
+            let name = &service_ident.name;
             let method_name = name.to_case(Case::Snake);
             let impl_name = name.to_case(Case::Pascal);
             let mod_name = name.to_case(Case::Snake);
@@ -126,7 +140,11 @@ impl<'ast> Visitor<'ast> for ServiceGenerator<'ast> {
         self.mocks_tokens.extend(mock_gen.finalize());
 
         if !service.events.is_empty() {
-            let mut events_mod_gen = EventsModuleGenerator::new(self.service_name, self.sails_path);
+            let mut events_mod_gen = EventsModuleGenerator::new(
+                self.service_name,
+                self.sails_path,
+                self.entry_ids.clone(),
+            );
             events_mod_gen.visit_service_unit(service);
             self.events_tokens = events_mod_gen.finalize();
         }
@@ -176,8 +194,10 @@ impl<'ast> Visitor<'ast> for ServiceGenerator<'ast> {
         };
 
         let params_with_types_super = &fn_args_with_types_path(&func.params, "super");
+        let entry_id = self.entry_ids.get(&func.name).copied().unwrap_or(0);
+
         quote_in! { self.io_tokens =>
-            $(self.sails_path)::io_struct_impl!($fn_name ($params_with_types_super) -> $output_type_decl_code);
+            $(self.sails_path)::io_struct_impl!($fn_name ($params_with_types_super) -> $output_type_decl_code, $entry_id);
         };
     }
 }

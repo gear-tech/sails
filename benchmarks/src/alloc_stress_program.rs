@@ -10,7 +10,9 @@ pub trait AllocStress {
 impl<E: sails_rs::client::GearEnv> AllocStress for sails_rs::client::Actor<AllocStressProgram, E> {
     type Env = E;
     fn alloc_stress(&self) -> sails_rs::client::Service<alloc_stress::AllocStressImpl, Self::Env> {
-        self.service(stringify!(AllocStress))
+        self.service(sails_rs::InterfaceId::from_bytes_8([
+            9, 48, 193, 195, 84, 117, 173, 52,
+        ]))
     }
 }
 pub trait AllocStressCtors {
@@ -32,7 +34,7 @@ impl<E: sails_rs::client::GearEnv> AllocStressCtors
 
 pub mod io {
     use super::*;
-    sails_rs::io_struct_impl!(NewForBench () -> ());
+    sails_rs::io_struct_impl!(NewForBench () -> (), 0);
 }
 
 pub mod alloc_stress {
@@ -64,6 +66,6 @@ pub mod alloc_stress {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(AllocStress (n: u32) -> super::AllocStressResult);
+        sails_rs::io_struct_impl!(AllocStress (n: u32) -> super::AllocStressResult, 0);
     }
 }

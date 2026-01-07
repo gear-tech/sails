@@ -3,6 +3,7 @@ use convert_case::{Case, Casing};
 use genco::prelude::*;
 use rust::Tokens;
 use sails_idl_parser_v2::{ast, visitor::Visitor};
+use std::collections::HashMap;
 
 pub(crate) struct CtorGenerator<'ast> {
     program_name: &'ast str,
@@ -10,6 +11,7 @@ pub(crate) struct CtorGenerator<'ast> {
     ctor_tokens: Tokens,
     io_tokens: Tokens,
     trait_ctors_tokens: Tokens,
+    entry_ids: HashMap<String, u16>,
 }
 
 impl<'ast> CtorGenerator<'ast> {
@@ -20,6 +22,7 @@ impl<'ast> CtorGenerator<'ast> {
             ctor_tokens: Tokens::new(),
             io_tokens: Tokens::new(),
             trait_ctors_tokens: Tokens::new(),
+            entry_ids: HashMap::new(),
         }
     }
 
@@ -45,6 +48,17 @@ impl<'ast> CtorGenerator<'ast> {
 }
 
 impl<'ast> Visitor<'ast> for CtorGenerator<'ast> {
+    fn visit_program_unit(&mut self, program: &'ast ast::ProgramUnit) {
+        let mut ctors: Vec<_> = program.ctors.iter().map(|c| &c.name).collect();
+        ctors.sort();
+
+        for (idx, name) in ctors.into_iter().enumerate() {
+            self.entry_ids.insert(name.clone(), idx as u16);
+        }
+
+        sails_idl_parser_v2::visitor::accept_program_unit(program, self);
+    }
+
     fn visit_ctor_func(&mut self, func: &'ast ast::CtorFunc) {
         let fn_name = &func.name;
         let fn_name_snake = &fn_name.to_case(Case::Snake);
@@ -74,8 +88,9 @@ impl<'ast> Visitor<'ast> for CtorGenerator<'ast> {
         };
 
         let params_with_types_super = &fn_args_with_types_path(&func.params, "super");
+        let entry_id = self.entry_ids.get(&func.name).copied().unwrap_or(0);
         quote_in! { self.io_tokens =>
-            $(self.sails_path)::io_struct_impl!($fn_name ($params_with_types_super) -> ());
+            $(self.sails_path)::io_struct_impl!($fn_name ($params_with_types_super) -> (), $entry_id);
         };
     }
 }

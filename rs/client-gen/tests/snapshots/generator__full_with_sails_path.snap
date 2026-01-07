@@ -50,53 +50,77 @@ impl<E: my_crate::sails::client::GearEnv> FullCoverageProgram
 {
     type Env = E;
     fn canvas(&self) -> my_crate::sails::client::Service<canvas::CanvasImpl, Self::Env> {
-        self.service(stringify!(Canvas))
+        self.service(my_crate::sails::InterfaceId::from_bytes_8([
+            159, 96, 48, 64, 97, 141, 24, 70,
+        ]))
     }
     fn ping_pong(&self) -> my_crate::sails::client::Service<ping_pong::PingPongImpl, Self::Env> {
-        self.service(stringify!(PingPong))
+        self.service(my_crate::sails::InterfaceId::from_bytes_8([
+            33, 189, 154, 154, 165, 29, 162, 100,
+        ]))
     }
     fn counter(&self) -> my_crate::sails::client::Service<counter::CounterImpl, Self::Env> {
-        self.service(stringify!(Counter))
+        self.service(my_crate::sails::InterfaceId::from_bytes_8([
+            87, 157, 109, 171, 164, 27, 125, 130,
+        ]))
     }
     fn references(
         &self,
     ) -> my_crate::sails::client::Service<references::ReferencesImpl, Self::Env> {
-        self.service(stringify!(References))
+        self.service(my_crate::sails::InterfaceId::from_bytes_8([
+            61, 171, 145, 177, 150, 71, 129, 98,
+        ]))
     }
     fn this_that(&self) -> my_crate::sails::client::Service<this_that::ThisThatImpl, Self::Env> {
-        self.service(stringify!(ThisThat))
+        self.service(my_crate::sails::InterfaceId::from_bytes_8([
+            220, 131, 135, 131, 19, 27, 44, 105,
+        ]))
     }
     fn value_fee(&self) -> my_crate::sails::client::Service<value_fee::ValueFeeImpl, Self::Env> {
-        self.service(stringify!(ValueFee))
+        self.service(my_crate::sails::InterfaceId::from_bytes_8([
+            65, 193, 8, 11, 78, 30, 141, 197,
+        ]))
     }
     fn rmrk_catalog(
         &self,
     ) -> my_crate::sails::client::Service<rmrk_catalog::RmrkCatalogImpl, Self::Env> {
-        self.service(stringify!(RmrkCatalog))
+        self.service(my_crate::sails::InterfaceId::from_bytes_8([
+            197, 210, 70, 1, 134, 247, 35, 60,
+        ]))
     }
     fn non_zero_params(
         &self,
     ) -> my_crate::sails::client::Service<non_zero_params::NonZeroParamsImpl, Self::Env> {
-        self.service(stringify!(NonZeroParams))
+        self.service(my_crate::sails::InterfaceId::from_bytes_8([
+            247, 238, 3, 214, 44, 137, 30, 3,
+        ]))
     }
     fn service_with_events(
         &self,
     ) -> my_crate::sails::client::Service<service_with_events::ServiceWithEventsImpl, Self::Env>
     {
-        self.service(stringify!(ServiceWithEvents))
+        self.service(my_crate::sails::InterfaceId::from_bytes_8([
+            192, 205, 152, 45, 145, 112, 193, 0,
+        ]))
     }
     fn basic(&self) -> my_crate::sails::client::Service<basic::BasicImpl, Self::Env> {
-        self.service(stringify!(Basic))
+        self.service(my_crate::sails::InterfaceId::from_bytes_8([
+            82, 241, 49, 169, 231, 31, 0, 230,
+        ]))
     }
     fn another_service(
         &self,
     ) -> my_crate::sails::client::Service<another_service::AnotherServiceImpl, Self::Env> {
-        self.service(stringify!(AnotherService))
+        self.service(my_crate::sails::InterfaceId::from_bytes_8([
+            98, 254, 176, 83, 233, 74, 173, 234,
+        ]))
     }
     fn my_complex_service(
         &self,
     ) -> my_crate::sails::client::Service<my_complex_service::MyComplexServiceImpl, Self::Env> {
-        self.service(stringify!(MyComplexService))
+        self.service(my_crate::sails::InterfaceId::from_bytes_8([
+            86, 209, 202, 3, 195, 8, 232, 253,
+        ]))
     }
 }
 pub trait FullCoverageProgramCtors {
@@ -134,8 +158,8 @@ impl<E: my_crate::sails::client::GearEnv> FullCoverageProgramCtors
 
 pub mod io {
     use super::*;
-    my_crate::sails::io_struct_impl!(Default () -> ());
-    my_crate::sails::io_struct_impl!(WithOwner (owner: ActorId, initial_config: super::ProgramConfig) -> ());
+    my_crate::sails::io_struct_impl!(Default () -> (), 0);
+    my_crate::sails::io_struct_impl!(WithOwner (owner: ActorId, initial_config: super::ProgramConfig) -> (), 1);
 }
 #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
 #[codec(crate = my_crate::sails::scale_codec)]
@@ -282,10 +306,10 @@ pub mod canvas {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(ColorPoint (point: super::Point<u32, >, color: super::Color) -> super::Result<(), super::ColorError>);
-        my_crate::sails::io_struct_impl!(KillPoint (point: super::Point<u32, >) -> super::Result<bool, String>);
-        my_crate::sails::io_struct_impl!(Points (offset: u32, len: u32) -> super::Result<Vec<(super::Point<u32, >, super::PointStatus, )>, String>);
-        my_crate::sails::io_struct_impl!(PointStatus (point: super::Point<u32, >) -> super::Option<super::PointStatus, >);
+        my_crate::sails::io_struct_impl!(ColorPoint (point: super::Point<u32, >, color: super::Color) -> super::Result<(), super::ColorError>, 0);
+        my_crate::sails::io_struct_impl!(KillPoint (point: super::Point<u32, >) -> super::Result<bool, String>, 3);
+        my_crate::sails::io_struct_impl!(Points (offset: u32, len: u32) -> super::Result<Vec<(super::Point<u32, >, super::PointStatus, )>, String>, 5);
+        my_crate::sails::io_struct_impl!(PointStatus (point: super::Point<u32, >) -> super::Option<super::PointStatus, >, 4);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -295,17 +319,18 @@ pub mod canvas {
         #[codec(crate = my_crate::sails::scale_codec)]
         #[reflect_hash(crate = my_crate::sails)]
         pub enum CanvasEvents {
+            #[codec(index = 1)]
             E1,
+            #[codec(index = 2)]
             Jubilee {
                 /// Amount of alive points.
                 amount: u64,
                 bits: Vec<u8>,
             },
+            #[codec(index = 6)]
             StatusChanged(Point<u32>),
         }
-        impl my_crate::sails::client::Event for CanvasEvents {
-            const EVENT_NAMES: &'static [Route] = &["E1", "Jubilee", "StatusChanged"];
-        }
+        impl my_crate::sails::client::Event for CanvasEvents {}
         impl my_crate::sails::client::ServiceWithEvents for CanvasImpl {
             type Event = CanvasEvents;
         }
@@ -336,7 +361,7 @@ pub mod ping_pong {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(Ping (input: String) -> super::Result<String, String>);
+        my_crate::sails::io_struct_impl!(Ping (input: String) -> super::Result<String, String>, 0);
     }
 }
 
@@ -369,9 +394,9 @@ pub mod counter {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(Add (value: u32) -> u32);
-        my_crate::sails::io_struct_impl!(Sub (value: u32) -> u32);
-        my_crate::sails::io_struct_impl!(Value () -> u32);
+        my_crate::sails::io_struct_impl!(Add (value: u32) -> u32, 0);
+        my_crate::sails::io_struct_impl!(Sub (value: u32) -> u32, 2);
+        my_crate::sails::io_struct_impl!(Value () -> u32, 4);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -382,13 +407,13 @@ pub mod counter {
         #[reflect_hash(crate = my_crate::sails)]
         pub enum CounterEvents {
             /// Emitted when a new value is added to the counter
+            #[codec(index = 1)]
             Added(u32),
             /// Emitted when a value is subtracted from the counter
+            #[codec(index = 3)]
             Subtracted(u32),
         }
-        impl my_crate::sails::client::Event for CounterEvents {
-            const EVENT_NAMES: &'static [Route] = &["Added", "Subtracted"];
-        }
+        impl my_crate::sails::client::Event for CounterEvents {}
         impl my_crate::sails::client::ServiceWithEvents for CounterImpl {
             type Event = CounterEvents;
         }
@@ -431,10 +456,10 @@ pub mod dog {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(MakeSound () -> String);
-        my_crate::sails::io_struct_impl!(Walk (dx: i32, dy: i32) -> ());
-        my_crate::sails::io_struct_impl!(AvgWeight () -> u32);
-        my_crate::sails::io_struct_impl!(Position () -> (i32, i32, ));
+        my_crate::sails::io_struct_impl!(MakeSound () -> String, 2);
+        my_crate::sails::io_struct_impl!(Walk (dx: i32, dy: i32) -> (), 4);
+        my_crate::sails::io_struct_impl!(AvgWeight () -> u32, 0);
+        my_crate::sails::io_struct_impl!(Position () -> (i32, i32, ), 3);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -444,12 +469,12 @@ pub mod dog {
         #[codec(crate = my_crate::sails::scale_codec)]
         #[reflect_hash(crate = my_crate::sails)]
         pub enum DogEvents {
+            #[codec(index = 1)]
             Barked,
+            #[codec(index = 5)]
             Walked { from: (i32, i32), to: (i32, i32) },
         }
-        impl my_crate::sails::client::Event for DogEvents {
-            const EVENT_NAMES: &'static [Route] = &["Barked", "Walked"];
-        }
+        impl my_crate::sails::client::Event for DogEvents {}
         impl my_crate::sails::client::ServiceWithEvents for DogImpl {
             type Event = DogEvents;
         }
@@ -525,14 +550,14 @@ pub mod references {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(Add (v: u32) -> u32);
-        my_crate::sails::io_struct_impl!(AddByte (byte: u8) -> Vec<u8>);
-        my_crate::sails::io_struct_impl!(GuessNum (number: u8) -> super::Result<String, String>);
-        my_crate::sails::io_struct_impl!(Incr () -> super::ReferenceCount);
-        my_crate::sails::io_struct_impl!(SetNum (number: u8) -> super::Result<(), String>);
-        my_crate::sails::io_struct_impl!(Baked () -> String);
-        my_crate::sails::io_struct_impl!(LastByte () -> super::Option<u8, >);
-        my_crate::sails::io_struct_impl!(Message () -> super::Option<String, >);
+        my_crate::sails::io_struct_impl!(Add (v: u32) -> u32, 0);
+        my_crate::sails::io_struct_impl!(AddByte (byte: u8) -> Vec<u8>, 1);
+        my_crate::sails::io_struct_impl!(GuessNum (number: u8) -> super::Result<String, String>, 3);
+        my_crate::sails::io_struct_impl!(Incr () -> super::ReferenceCount, 4);
+        my_crate::sails::io_struct_impl!(SetNum (number: u8) -> super::Result<(), String>, 7);
+        my_crate::sails::io_struct_impl!(Baked () -> String, 2);
+        my_crate::sails::io_struct_impl!(LastByte () -> super::Option<u8, >, 5);
+        my_crate::sails::io_struct_impl!(Message () -> super::Option<String, >, 6);
     }
 }
 
@@ -626,11 +651,11 @@ pub mod this_that {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(DoThat (param: super::DoThatParam) -> super::Result<(ActorId, u32, super::ManyVariantsReply, ), (String, )>);
-        my_crate::sails::io_struct_impl!(DoThis (p1: u32, p2: String, p3: (super::Option<H160, >, u8, ), p4: super::TupleStruct) -> (String, u32, ));
-        my_crate::sails::io_struct_impl!(Noop () -> ());
-        my_crate::sails::io_struct_impl!(That () -> super::Result<String, String>);
-        my_crate::sails::io_struct_impl!(This () -> u32);
+        my_crate::sails::io_struct_impl!(DoThat (param: super::DoThatParam) -> super::Result<(ActorId, u32, super::ManyVariantsReply, ), (String, )>, 0);
+        my_crate::sails::io_struct_impl!(DoThis (p1: u32, p2: String, p3: (super::Option<H160, >, u8, ), p4: super::TupleStruct) -> (String, u32, ), 1);
+        my_crate::sails::io_struct_impl!(Noop () -> (), 2);
+        my_crate::sails::io_struct_impl!(That () -> super::Result<String, String>, 3);
+        my_crate::sails::io_struct_impl!(This () -> u32, 4);
     }
 }
 
@@ -658,7 +683,7 @@ pub mod value_fee {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(DoSomethingAndTakeFee () -> bool);
+        my_crate::sails::io_struct_impl!(DoSomethingAndTakeFee () -> bool, 0);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -668,11 +693,10 @@ pub mod value_fee {
         #[codec(crate = my_crate::sails::scale_codec)]
         #[reflect_hash(crate = my_crate::sails)]
         pub enum ValueFeeEvents {
+            #[codec(index = 1)]
             Withheld(u128),
         }
-        impl my_crate::sails::client::Event for ValueFeeEvents {
-            const EVENT_NAMES: &'static [Route] = &["Withheld"];
-        }
+        impl my_crate::sails::client::Event for ValueFeeEvents {}
         impl my_crate::sails::client::ServiceWithEvents for ValueFeeImpl {
             type Event = ValueFeeEvents;
         }
@@ -706,8 +730,8 @@ pub mod pausable {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(Pause () -> ());
-        my_crate::sails::io_struct_impl!(Unpause () -> ());
+        my_crate::sails::io_struct_impl!(Pause () -> (), 0);
+        my_crate::sails::io_struct_impl!(Unpause () -> (), 2);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -717,12 +741,12 @@ pub mod pausable {
         #[codec(crate = my_crate::sails::scale_codec)]
         #[reflect_hash(crate = my_crate::sails)]
         pub enum PausableEvents {
+            #[codec(index = 1)]
             Paused,
+            #[codec(index = 3)]
             Unpaused,
         }
-        impl my_crate::sails::client::Event for PausableEvents {
-            const EVENT_NAMES: &'static [Route] = &["Paused", "Unpaused"];
-        }
+        impl my_crate::sails::client::Event for PausableEvents {}
         impl my_crate::sails::client::ServiceWithEvents for PausableImpl {
             type Event = PausableEvents;
         }
@@ -747,7 +771,7 @@ pub mod ownable {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(GetOwner () -> ActorId);
+        my_crate::sails::io_struct_impl!(GetOwner () -> ActorId, 0);
     }
 }
 
@@ -773,7 +797,7 @@ pub mod tippable {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(Tip (amount: u128) -> ());
+        my_crate::sails::io_struct_impl!(Tip (amount: u128) -> (), 0);
     }
 }
 
@@ -812,7 +836,7 @@ pub mod non_zero_params {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(DoThis (p1: U256, p2: super::MyParam) -> u64);
+        my_crate::sails::io_struct_impl!(DoThis (p1: U256, p2: super::MyParam) -> u64, 0);
     }
 }
 
@@ -851,7 +875,7 @@ pub mod service_with_events {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(DoThis (p1: U256, p2: super::MyParam) -> u64);
+        my_crate::sails::io_struct_impl!(DoThis (p1: U256, p2: super::MyParam) -> u64, 0);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -861,12 +885,12 @@ pub mod service_with_events {
         #[codec(crate = my_crate::sails::scale_codec)]
         #[reflect_hash(crate = my_crate::sails)]
         pub enum ServiceWithEventsEvents {
+            #[codec(index = 1)]
             Event1(u32),
+            #[codec(index = 2)]
             Event2 { field1: String, field2: u64 },
         }
-        impl my_crate::sails::client::Event for ServiceWithEventsEvents {
-            const EVENT_NAMES: &'static [Route] = &["Event1", "Event2"];
-        }
+        impl my_crate::sails::client::Event for ServiceWithEventsEvents {}
         impl my_crate::sails::client::ServiceWithEvents for ServiceWithEventsImpl {
             type Event = ServiceWithEventsEvents;
         }
@@ -927,8 +951,8 @@ pub mod basic {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(DoThat (p1: (u8, u32, )) -> u8);
-        my_crate::sails::io_struct_impl!(DoThis (p1: u32, p2: super::MyParam) -> u16);
+        my_crate::sails::io_struct_impl!(DoThat (p1: (u8, u32, )) -> u8, 0);
+        my_crate::sails::io_struct_impl!(DoThis (p1: u32, p2: super::MyParam) -> u16, 1);
     }
 }
 
@@ -968,8 +992,8 @@ pub mod another_service {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(Ping () -> String);
-        my_crate::sails::io_struct_impl!(ProcessValues (data: Vec<U256>) -> super::Result<(), super::ProgramError>);
+        my_crate::sails::io_struct_impl!(Ping () -> String, 0);
+        my_crate::sails::io_struct_impl!(ProcessValues (data: Vec<U256>) -> super::Result<(), super::ProgramError>, 1);
     }
 }
 
@@ -1126,12 +1150,12 @@ pub mod my_complex_service {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(GetActorIds (count: u32) -> Vec<ActorId>);
-        my_crate::sails::io_struct_impl!(GetData (key: String) -> super::Result<super::ProgramScopedData, super::ProgramError>);
-        my_crate::sails::io_struct_impl!(GetInfo () -> super::ProgramGlobalInfo);
-        my_crate::sails::io_struct_impl!(Initialize (start_data: super::ProgramGlobalInfo, max_size: u32) -> super::Result<(), super::ProgramError>);
-        my_crate::sails::io_struct_impl!(ProcessGenericData (input_data: super::GenericData<u32, String, >, list_of_generics: Vec<super::GenericData<ActorId, U256, >>, optional_generic_result: super::Option<super::GenericResult<bool, >, >) -> super::GenericData<bool, u8, >);
-        my_crate::sails::io_struct_impl!(UpdateStatus (id: u64, new_status: super::ServiceStatus, metadata: super::Option<String, >) -> super::GenericResult<u32, >);
+        my_crate::sails::io_struct_impl!(GetActorIds (count: u32) -> Vec<ActorId>, 0);
+        my_crate::sails::io_struct_impl!(GetData (key: String) -> super::Result<super::ProgramScopedData, super::ProgramError>, 1);
+        my_crate::sails::io_struct_impl!(GetInfo () -> super::ProgramGlobalInfo, 2);
+        my_crate::sails::io_struct_impl!(Initialize (start_data: super::ProgramGlobalInfo, max_size: u32) -> super::Result<(), super::ProgramError>, 3);
+        my_crate::sails::io_struct_impl!(ProcessGenericData (input_data: super::GenericData<u32, String, >, list_of_generics: Vec<super::GenericData<ActorId, U256, >>, optional_generic_result: super::Option<super::GenericResult<bool, >, >) -> super::GenericData<bool, u8, >, 4);
+        my_crate::sails::io_struct_impl!(UpdateStatus (id: u64, new_status: super::ServiceStatus, metadata: super::Option<String, >) -> super::GenericResult<u32, >, 5);
     }
 }
 

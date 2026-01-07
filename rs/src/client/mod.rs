@@ -1,4 +1,6 @@
 use crate::prelude::*;
+pub use sails_idl_meta::InterfaceId;
+use crate::header::SailsMessageHeader;
 use core::{
     any::TypeId,
     error::Error,
@@ -49,8 +51,6 @@ pub trait Program: Sized {
         Actor::new(GstdEnv, program_id)
     }
 }
-
-pub type Route = &'static str;
 
 #[derive(Debug, Clone)]
 pub struct Deployment<A, E: GearEnv = GstdEnv> {
@@ -128,8 +128,12 @@ impl<A, E: GearEnv> Actor<A, E> {
         self
     }
 
-    pub fn service<S>(&self, route: Route) -> Service<S, E> {
-        Service::new(self.env.clone(), self.id, route)
+    pub fn service<S>(&self, interface_id: InterfaceId) -> Service<S, E> {
+        Service::new(self.env.clone(), self.id, interface_id, 0)
+    }
+
+    pub fn service_at<S>(&self, interface_id: InterfaceId, route_idx: u8) -> Service<S, E> {
+        Service::new(self.env.clone(), self.id, interface_id, route_idx)
     }
 }
 
@@ -137,16 +141,18 @@ impl<A, E: GearEnv> Actor<A, E> {
 pub struct Service<S, E: GearEnv = GstdEnv> {
     env: E,
     actor_id: ActorId,
-    route: Route,
+    interface_id: InterfaceId,
+    route_idx: u8,
     _phantom: PhantomData<S>,
 }
 
 impl<S, E: GearEnv> Service<S, E> {
-    pub fn new(env: E, actor_id: ActorId, route: Route) -> Self {
+    pub fn new(env: E, actor_id: ActorId, interface_id: InterfaceId, route_idx: u8) -> Self {
         Service {
             env,
             actor_id,
-            route,
+            interface_id,
+            route_idx,
             _phantom: PhantomData,
         }
     }
@@ -155,8 +161,12 @@ impl<S, E: GearEnv> Service<S, E> {
         self.actor_id
     }
 
-    pub fn route(&self) -> Route {
-        self.route
+    pub fn interface_id(&self) -> InterfaceId {
+        self.interface_id
+    }
+
+    pub fn route_idx(&self) -> u8 {
+        self.route_idx
     }
 
     pub fn with_actor_id(mut self, actor_id: ActorId) -> Self {
@@ -165,11 +175,11 @@ impl<S, E: GearEnv> Service<S, E> {
     }
 
     pub fn pending_call<T: CallCodec>(&self, args: T::Params) -> PendingCall<T, E> {
-        PendingCall::new(self.env.clone(), self.actor_id, self.route, args)
+        PendingCall::new(self.env.clone(), self.actor_id, self.interface_id, self.route_idx, args)
     }
 
     pub fn base_service<B>(&self) -> Service<B, E> {
-        Service::new(self.env.clone(), self.actor_id, self.route)
+        Service::new(self.env.clone(), self.actor_id, self.interface_id, self.route_idx)
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -177,7 +187,7 @@ impl<S, E: GearEnv> Service<S, E> {
     where
         S: ServiceWithEvents,
     {
-        ServiceListener::new(self.env.clone(), self.actor_id, self.route)
+        ServiceListener::new(self.env.clone(), self.actor_id, self.interface_id, self.route_idx)
     }
 }
 
@@ -190,17 +200,19 @@ pub trait ServiceWithEvents {
 pub struct ServiceListener<D: Event, E: GearEnv> {
     env: E,
     actor_id: ActorId,
-    route: Route,
+    interface_id: InterfaceId,
+    route_idx: u8,
     _phantom: PhantomData<D>,
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 impl<D: Event, E: GearEnv> ServiceListener<D, E> {
-    pub fn new(env: E, actor_id: ActorId, route: Route) -> Self {
+    pub fn new(env: E, actor_id: ActorId, interface_id: InterfaceId, route_idx: u8) -> Self {
         ServiceListener {
             env,
             actor_id,
-            route,
+            interface_id,
+            route_idx,
             _phantom: PhantomData,
         }
     }
@@ -212,13 +224,14 @@ impl<D: Event, E: GearEnv> ServiceListener<D, E> {
         E: Listener<Error = <E as GearEnv>::Error>,
     {
         let self_id = self.actor_id;
-        let prefix = self.route;
+        let interface_id = self.interface_id;
+        let route_idx = self.route_idx;
         self.env
             .listen(move |(actor_id, payload)| {
                 if actor_id != self_id {
                     return None;
                 }
-                D::decode_event(prefix, payload).ok().map(|e| (actor_id, e))
+                D::decode_event(interface_id, route_idx, payload).ok().map(|e| (actor_id, e))
             })
             .await
     }
@@ -228,7 +241,8 @@ pin_project_lite::pin_project! {
     pub struct PendingCall<T: CallCodec, E: GearEnv> {
         env: E,
         destination: ActorId,
-        route: Route,
+        interface_id: InterfaceId,
+        route_idx: u8,
         params: Option<E::Params>,
         args: Option<T::Params>,
         #[pin]
@@ -237,11 +251,12 @@ pin_project_lite::pin_project! {
 }
 
 impl<T: CallCodec, E: GearEnv> PendingCall<T, E> {
-    pub fn new(env: E, destination: ActorId, route: Route, args: T::Params) -> Self {
+    pub fn new(env: E, destination: ActorId, interface_id: InterfaceId, route_idx: u8, args: T::Params) -> Self {
         PendingCall {
             env,
             destination,
-            route,
+            interface_id,
+            route_idx,
             params: None,
             args: Some(args),
             state: None,
@@ -264,7 +279,7 @@ impl<T: CallCodec, E: GearEnv> PendingCall<T, E> {
             .args
             .take()
             .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
-        let payload = T::encode_params_with_prefix(self.route, &args);
+        let payload = T::encode_params_with_header(self.interface_id, self.route_idx, &args);
         let params = self.params.take().unwrap_or_default();
         (payload, params)
     }
@@ -305,26 +320,24 @@ impl<A, T: CallCodec, E: GearEnv> PendingCtor<A, T, E> {
 }
 
 pub trait CallCodec {
-    const ROUTE: Route;
+    const ENTRY_ID: u16;
     type Params: Encode;
     type Reply: Decode + 'static;
 
     fn encode_params(value: &Self::Params) -> Vec<u8> {
-        let size = Encode::encoded_size(Self::ROUTE) + Encode::encoded_size(value);
-        let mut result = Vec::with_capacity(size);
-        Encode::encode_to(Self::ROUTE, &mut result);
-        Encode::encode_to(value, &mut result);
-        result
+        Self::encode_params_with_header(InterfaceId::zero(), 0, value)
     }
 
-    fn encode_params_with_prefix(prefix: Route, value: &Self::Params) -> Vec<u8> {
-        let size = Encode::encoded_size(prefix)
-            + Encode::encoded_size(Self::ROUTE)
-            + Encode::encoded_size(value);
-        let mut result = Vec::with_capacity(size);
-        Encode::encode_to(prefix, &mut result);
-        Encode::encode_to(Self::ROUTE, &mut result);
-        Encode::encode_to(value, &mut result);
+    fn encode_params_with_header(interface_id: InterfaceId, route_idx: u8, value: &Self::Params) -> Vec<u8> {
+        let header = SailsMessageHeader::new(
+            crate::header::Version::v1(),
+            crate::header::HeaderLength::new(crate::header::MINIMAL_HLEN).unwrap(),
+            interface_id,
+            route_idx,
+            Self::ENTRY_ID,
+        );
+        let mut result = header.to_bytes();
+        value.encode_to(&mut result);
         result
     }
 
@@ -333,46 +346,52 @@ pub trait CallCodec {
         if Self::is_empty_tuple::<Self::Reply>() {
             return Decode::decode(&mut value);
         }
-        // Decode payload as `(String, Self::Reply)`
-        let route = String::decode(&mut value)?;
-        if route != Self::ROUTE {
-            return Err("Invalid reply prefix".into());
+        let header = SailsMessageHeader::decode(&mut value)?;
+        if header.entry_id() != Self::ENTRY_ID {
+            return Err("Invalid reply entry_id".into());
         }
         Decode::decode(&mut value)
     }
 
-    fn decode_reply_with_prefix(
-        prefix: Route,
+    fn decode_reply_with_header(
+        interface_id: InterfaceId,
+        route_idx: u8,
         payload: impl AsRef<[u8]>,
     ) -> Result<Self::Reply, parity_scale_codec::Error> {
         let mut value = payload.as_ref();
         if Self::is_empty_tuple::<Self::Reply>() {
             return Decode::decode(&mut value);
         }
-        // Decode payload as `(String, String, Self::Reply)`
-        let route = String::decode(&mut value)?;
-        if route != prefix {
-            return Err("Invalid reply prefix".into());
+        let header = SailsMessageHeader::decode(&mut value)?;
+        if header.interface_id() != interface_id {
+            return Err("Invalid reply interface_id".into());
         }
-        let route = String::decode(&mut value)?;
-        if route != Self::ROUTE {
-            return Err("Invalid reply prefix".into());
+        if header.route_id() != route_idx {
+            return Err("Invalid reply route_idx".into());
+        }
+        if header.entry_id() != Self::ENTRY_ID {
+            return Err("Invalid reply entry_id".into());
         }
         Decode::decode(&mut value)
     }
 
     fn with_optimized_encode<R>(
-        prefix: Route,
+        interface_id: InterfaceId,
+        route_idx: u8,
         value: &Self::Params,
         f: impl FnOnce(&[u8]) -> R,
     ) -> R {
-        let size = Encode::encoded_size(prefix)
-            + Encode::encoded_size(Self::ROUTE)
-            + Encode::encoded_size(value);
+        let header = SailsMessageHeader::new(
+            crate::header::Version::v1(),
+            crate::header::HeaderLength::new(crate::header::MINIMAL_HLEN).unwrap(),
+            interface_id,
+            route_idx,
+            Self::ENTRY_ID,
+        );
+        let size = (crate::header::MINIMAL_HLEN as usize) + Encode::encoded_size(value);
         gcore::stack_buffer::with_byte_buffer(size, |buffer| {
             let mut buffer_writer = crate::utils::MaybeUninitBufferWriter::new(buffer);
-            Encode::encode_to(prefix, &mut buffer_writer);
-            Encode::encode_to(Self::ROUTE, &mut buffer_writer);
+            header.encode_to(&mut buffer_writer);
             Encode::encode_to(value, &mut buffer_writer);
             buffer_writer.with_buffer(f)
         })
@@ -477,19 +496,19 @@ macro_rules! params_for_pending_impl {
 #[macro_export]
 macro_rules! io_struct_impl {
     (
-        $name:ident ( $( $param:ident : $ty:ty ),* ) -> $reply:ty
+        $name:ident ( $( $param:ident : $ty:ty ),* ) -> $reply:ty, $entry_id:expr
     ) => {
         pub struct $name(());
         impl $name {
             pub fn encode_params($( $param: $ty, )* ) -> Vec<u8> {
                 <$name as CallCodec>::encode_params(&( $( $param, )* ))
             }
-            pub fn encode_params_with_prefix(prefix: Route, $( $param: $ty, )* ) -> Vec<u8> {
-                <$name as CallCodec>::encode_params_with_prefix(prefix, &( $( $param, )* ))
+            pub fn encode_params_with_header(interface_id: $crate::client::InterfaceId, route_idx: u8, $( $param: $ty, )* ) -> Vec<u8> {
+                <$name as CallCodec>::encode_params_with_header(interface_id, route_idx, &( $( $param, )* ))
             }
         }
         impl CallCodec for $name {
-            const ROUTE: &'static str = stringify!($name);
+            const ENTRY_ID: u16 = $entry_id;
             type Params = ( $( $ty, )* );
             type Reply = $reply;
         }
@@ -532,67 +551,29 @@ pub trait Listener {
 
 #[cfg(not(target_arch = "wasm32"))]
 pub trait Event: Decode {
-    const EVENT_NAMES: &'static [Route];
-
     fn decode_event(
-        prefix: Route,
+        interface_id: InterfaceId,
+        route_idx: u8,
         payload: impl AsRef<[u8]>,
     ) -> Result<Self, parity_scale_codec::Error> {
         let mut payload = payload.as_ref();
-        let route = String::decode(&mut payload)?;
-        if route != prefix {
-            return Err("Invalid event prefix".into());
+        
+        let header = SailsMessageHeader::decode(&mut payload)?;
+        if header.interface_id() != interface_id {
+            return Err("Invalid event interface_id".into());
         }
-        let evt_name = String::decode(&mut payload)?;
-        for (idx, &name) in Self::EVENT_NAMES.iter().enumerate() {
-            if evt_name == name {
-                let idx = idx as u8;
-                let bytes = [&[idx], payload].concat();
-                let mut event_bytes = &bytes[..];
-                return Decode::decode(&mut event_bytes);
-            }
+        if header.route_id() != route_idx {
+            return Err("Invalid event route_idx".into());
         }
-        Err("Invalid event name".into())
-    }
-}
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    io_struct_impl!(Add (value: u32) -> u32);
-    io_struct_impl!(Value () -> u32);
-
-    #[test]
-    fn test_str_encode() {
-        const ADD: &[u8] = str_scale_encode!(Add);
-        assert_eq!(ADD, &[12, 65, 100, 100]);
-
-        const VALUE: &[u8] = str_scale_encode!(Value);
-        assert_eq!(VALUE, &[20, 86, 97, 108, 117, 101]);
-    }
-
-    #[test]
-    fn test_io_struct_impl() {
-        let add = Add::encode_params(42);
-        assert_eq!(add, &[12, 65, 100, 100, 42, 0, 0, 0]);
-
-        let value = Add::encode_params_with_prefix("Counter", 42);
-        assert_eq!(
-            value,
-            &[
-                28, 67, 111, 117, 110, 116, 101, 114, 12, 65, 100, 100, 42, 0, 0, 0
-            ]
-        );
-
-        let value = Value::encode_params();
-        assert_eq!(value, &[20, 86, 97, 108, 117, 101]);
-
-        let value = Value::encode_params_with_prefix("Counter");
-        assert_eq!(
-            value,
-            &[
-                28, 67, 111, 117, 110, 116, 101, 114, 20, 86, 97, 108, 117, 101
-            ]
-        );
+        let entry_id = header.entry_id();
+        if entry_id > 255 {
+            return Err("Entry ID exceeds u8 limit for SCALE enum".into());
+        }
+        
+        let variant_index = entry_id as u8;
+        let bytes = [&[variant_index], payload].concat();
+        let mut event_bytes = &bytes[..];
+        Decode::decode(&mut event_bytes)
     }
 }

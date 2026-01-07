@@ -16,7 +16,9 @@ impl<E: sails_rs::client::GearEnv> PingPongStack
     fn ping_pong_stack(
         &self,
     ) -> sails_rs::client::Service<ping_pong_stack::PingPongStackImpl, Self::Env> {
-        self.service(stringify!(PingPongStack))
+        self.service(sails_rs::InterfaceId::from_bytes_8([
+            48, 181, 231, 61, 179, 133, 133, 236,
+        ]))
     }
 }
 pub trait PingPongStackCtors {
@@ -48,8 +50,8 @@ impl<E: sails_rs::client::GearEnv> PingPongStackCtors
 
 pub mod io {
     use super::*;
-    sails_rs::io_struct_impl!(CreatePing (code_id: CodeId) -> ());
-    sails_rs::io_struct_impl!(CreatePong () -> ());
+    sails_rs::io_struct_impl!(CreatePing (code_id: CodeId) -> (), 0);
+    sails_rs::io_struct_impl!(CreatePong () -> (), 1);
 }
 
 pub mod ping_pong_stack {
@@ -74,7 +76,7 @@ pub mod ping_pong_stack {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(Ping (countdown: u32) -> ());
-        sails_rs::io_struct_impl!(Start (limit: u32) -> ());
+        sails_rs::io_struct_impl!(Ping (countdown: u32) -> (), 0);
+        sails_rs::io_struct_impl!(Start (limit: u32) -> (), 1);
     }
 }

@@ -23,25 +23,39 @@ pub trait DemoClient {
 impl<E: sails_rs::client::GearEnv> DemoClient for sails_rs::client::Actor<DemoClientProgram, E> {
     type Env = E;
     fn ping_pong(&self) -> sails_rs::client::Service<ping_pong::PingPongImpl, Self::Env> {
-        self.service(stringify!(PingPong))
+        self.service(sails_rs::InterfaceId::from_bytes_8([
+            33, 189, 154, 154, 165, 29, 162, 100,
+        ]))
     }
     fn counter(&self) -> sails_rs::client::Service<counter::CounterImpl, Self::Env> {
-        self.service(stringify!(Counter))
+        self.service(sails_rs::InterfaceId::from_bytes_8([
+            87, 157, 109, 171, 164, 27, 125, 130,
+        ]))
     }
     fn dog(&self) -> sails_rs::client::Service<dog::DogImpl, Self::Env> {
-        self.service(stringify!(Dog))
+        self.service(sails_rs::InterfaceId::from_bytes_8([
+            24, 102, 110, 103, 162, 25, 23, 161,
+        ]))
     }
     fn references(&self) -> sails_rs::client::Service<references::ReferencesImpl, Self::Env> {
-        self.service(stringify!(References))
+        self.service(sails_rs::InterfaceId::from_bytes_8([
+            61, 171, 145, 177, 150, 71, 129, 98,
+        ]))
     }
     fn this_that(&self) -> sails_rs::client::Service<this_that::ThisThatImpl, Self::Env> {
-        self.service(stringify!(ThisThat))
+        self.service(sails_rs::InterfaceId::from_bytes_8([
+            68, 91, 237, 110, 251, 232, 230, 221,
+        ]))
     }
     fn value_fee(&self) -> sails_rs::client::Service<value_fee::ValueFeeImpl, Self::Env> {
-        self.service(stringify!(ValueFee))
+        self.service(sails_rs::InterfaceId::from_bytes_8([
+            65, 193, 8, 11, 78, 30, 141, 197,
+        ]))
     }
     fn chaos(&self) -> sails_rs::client::Service<chaos::ChaosImpl, Self::Env> {
-        self.service(stringify!(Chaos))
+        self.service(sails_rs::InterfaceId::from_bytes_8([
+            240, 200, 200, 13, 250, 191, 114, 213,
+        ]))
     }
 }
 pub trait DemoClientCtors {
@@ -75,8 +89,8 @@ impl<E: sails_rs::client::GearEnv> DemoClientCtors
 
 pub mod io {
     use super::*;
-    sails_rs::io_struct_impl!(Default () -> ());
-    sails_rs::io_struct_impl!(New (counter: super::Option<u32, >, dog_position: super::Option<(i32, i32, ), >) -> ());
+    sails_rs::io_struct_impl!(Default () -> (), 0);
+    sails_rs::io_struct_impl!(New (counter: super::Option<u32, >, dog_position: super::Option<(i32, i32, ), >) -> (), 1);
 }
 
 pub mod ping_pong {
@@ -95,7 +109,7 @@ pub mod ping_pong {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(Ping (input: String) -> super::Result<String, String>);
+        sails_rs::io_struct_impl!(Ping (input: String) -> super::Result<String, String>, 0);
     }
 
     #[cfg(feature = "with_mocks")]
@@ -134,9 +148,9 @@ pub mod counter {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(Add (value: u32) -> u32);
-        sails_rs::io_struct_impl!(Sub (value: u32) -> u32);
-        sails_rs::io_struct_impl!(Value () -> u32);
+        sails_rs::io_struct_impl!(Add (value: u32) -> u32, 0);
+        sails_rs::io_struct_impl!(Sub (value: u32) -> u32, 2);
+        sails_rs::io_struct_impl!(Value () -> u32, 4);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -147,13 +161,13 @@ pub mod counter {
         #[reflect_hash(crate = sails_rs)]
         pub enum CounterEvents {
             /// Emitted when a new value is added to the counter
+            #[codec(index = 1)]
             Added(u32),
             /// Emitted when a value is subtracted from the counter
+            #[codec(index = 3)]
             Subtracted(u32),
         }
-        impl sails_rs::client::Event for CounterEvents {
-            const EVENT_NAMES: &'static [Route] = &["Added", "Subtracted"];
-        }
+        impl sails_rs::client::Event for CounterEvents {}
         impl sails_rs::client::ServiceWithEvents for CounterImpl {
             type Event = CounterEvents;
         }
@@ -190,8 +204,8 @@ pub mod walker_service {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(Walk (dx: i32, dy: i32) -> ());
-        sails_rs::io_struct_impl!(Position () -> (i32, i32, ));
+        sails_rs::io_struct_impl!(Walk (dx: i32, dy: i32) -> (), 1);
+        sails_rs::io_struct_impl!(Position () -> (i32, i32, ), 0);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -201,11 +215,10 @@ pub mod walker_service {
         #[codec(crate = sails_rs::scale_codec)]
         #[reflect_hash(crate = sails_rs)]
         pub enum WalkerServiceEvents {
+            #[codec(index = 2)]
             Walked { from: (i32, i32), to: (i32, i32) },
         }
-        impl sails_rs::client::Event for WalkerServiceEvents {
-            const EVENT_NAMES: &'static [Route] = &["Walked"];
-        }
+        impl sails_rs::client::Event for WalkerServiceEvents {}
         impl sails_rs::client::ServiceWithEvents for WalkerServiceImpl {
             type Event = WalkerServiceEvents;
         }
@@ -242,8 +255,8 @@ pub mod mammal_service {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(MakeSound () -> String);
-        sails_rs::io_struct_impl!(AvgWeight () -> u32);
+        sails_rs::io_struct_impl!(MakeSound () -> String, 1);
+        sails_rs::io_struct_impl!(AvgWeight () -> u32, 0);
     }
 
     #[cfg(feature = "with_mocks")]
@@ -289,7 +302,7 @@ pub mod dog {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(MakeSound () -> String);
+        sails_rs::io_struct_impl!(MakeSound () -> String, 1);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -299,11 +312,10 @@ pub mod dog {
         #[codec(crate = sails_rs::scale_codec)]
         #[reflect_hash(crate = sails_rs)]
         pub enum DogEvents {
+            #[codec(index = 0)]
             Barked,
         }
-        impl sails_rs::client::Event for DogEvents {
-            const EVENT_NAMES: &'static [Route] = &["Barked"];
-        }
+        impl sails_rs::client::Event for DogEvents {}
         impl sails_rs::client::ServiceWithEvents for DogImpl {
             type Event = DogEvents;
         }
@@ -373,14 +385,14 @@ pub mod references {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(Add (v: u32) -> u32);
-        sails_rs::io_struct_impl!(AddByte (byte: u8) -> Vec<u8>);
-        sails_rs::io_struct_impl!(GuessNum (number: u8) -> super::Result<String, String>);
-        sails_rs::io_struct_impl!(Incr () -> super::ReferenceCount);
-        sails_rs::io_struct_impl!(SetNum (number: u8) -> super::Result<(), String>);
-        sails_rs::io_struct_impl!(Baked () -> String);
-        sails_rs::io_struct_impl!(LastByte () -> super::Option<u8, >);
-        sails_rs::io_struct_impl!(Message () -> super::Option<String, >);
+        sails_rs::io_struct_impl!(Add (v: u32) -> u32, 0);
+        sails_rs::io_struct_impl!(AddByte (byte: u8) -> Vec<u8>, 1);
+        sails_rs::io_struct_impl!(GuessNum (number: u8) -> super::Result<String, String>, 3);
+        sails_rs::io_struct_impl!(Incr () -> super::ReferenceCount, 4);
+        sails_rs::io_struct_impl!(SetNum (number: u8) -> super::Result<(), String>, 7);
+        sails_rs::io_struct_impl!(Baked () -> String, 2);
+        sails_rs::io_struct_impl!(LastByte () -> super::Option<u8, >, 5);
+        sails_rs::io_struct_impl!(Message () -> super::Option<String, >, 6);
     }
 
     #[cfg(feature = "with_mocks")]
@@ -480,11 +492,11 @@ pub mod this_that {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(DoThat (param: super::DoThatParam) -> super::Result<(ActorId, super::NonZeroU32, super::ManyVariantsReply, ), (String, )>);
-        sails_rs::io_struct_impl!(DoThis (p1: u32, p2: String, p3: (super::Option<H160, >, super::NonZeroU8, ), p4: super::TupleStruct) -> (String, u32, ));
-        sails_rs::io_struct_impl!(Noop () -> ());
-        sails_rs::io_struct_impl!(That () -> super::Result<String, String>);
-        sails_rs::io_struct_impl!(This () -> u32);
+        sails_rs::io_struct_impl!(DoThat (param: super::DoThatParam) -> super::Result<(ActorId, super::NonZeroU32, super::ManyVariantsReply, ), (String, )>, 0);
+        sails_rs::io_struct_impl!(DoThis (p1: u32, p2: String, p3: (super::Option<H160, >, super::NonZeroU8, ), p4: super::TupleStruct) -> (String, u32, ), 1);
+        sails_rs::io_struct_impl!(Noop () -> (), 2);
+        sails_rs::io_struct_impl!(That () -> super::Result<String, String>, 3);
+        sails_rs::io_struct_impl!(This () -> u32, 4);
     }
 
     #[cfg(feature = "with_mocks")]
@@ -518,7 +530,7 @@ pub mod value_fee {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(DoSomethingAndTakeFee () -> bool);
+        sails_rs::io_struct_impl!(DoSomethingAndTakeFee () -> bool, 0);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -528,11 +540,10 @@ pub mod value_fee {
         #[codec(crate = sails_rs::scale_codec)]
         #[reflect_hash(crate = sails_rs)]
         pub enum ValueFeeEvents {
+            #[codec(index = 1)]
             Withheld(u128),
         }
-        impl sails_rs::client::Event for ValueFeeEvents {
-            const EVENT_NAMES: &'static [Route] = &["Withheld"];
-        }
+        impl sails_rs::client::Event for ValueFeeEvents {}
         impl sails_rs::client::ServiceWithEvents for ValueFeeImpl {
             type Event = ValueFeeEvents;
         }
@@ -575,9 +586,9 @@ pub mod chaos {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(PanicAfterWait () -> ());
-        sails_rs::io_struct_impl!(ReplyHookCounter () -> u32);
-        sails_rs::io_struct_impl!(TimeoutWait () -> ());
+        sails_rs::io_struct_impl!(PanicAfterWait () -> (), 0);
+        sails_rs::io_struct_impl!(ReplyHookCounter () -> u32, 1);
+        sails_rs::io_struct_impl!(TimeoutWait () -> (), 2);
     }
 
     #[cfg(feature = "with_mocks")]

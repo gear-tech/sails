@@ -16,7 +16,9 @@ impl<E: sails_rs::client::GearEnv> ComputeStress
     fn compute_stress(
         &self,
     ) -> sails_rs::client::Service<compute_stress::ComputeStressImpl, Self::Env> {
-        self.service(stringify!(ComputeStress))
+        self.service(sails_rs::InterfaceId::from_bytes_8([
+            254, 138, 70, 56, 122, 195, 121, 54,
+        ]))
     }
 }
 pub trait ComputeStressCtors {
@@ -38,7 +40,7 @@ impl<E: sails_rs::client::GearEnv> ComputeStressCtors
 
 pub mod io {
     use super::*;
-    sails_rs::io_struct_impl!(NewForBench () -> ());
+    sails_rs::io_struct_impl!(NewForBench () -> (), 0);
 }
 
 pub mod compute_stress {
@@ -72,6 +74,6 @@ pub mod compute_stress {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(ComputeStress (n: u32) -> super::ComputeStressResult);
+        sails_rs::io_struct_impl!(ComputeStress (n: u32) -> super::ComputeStressResult, 0);
     }
 }

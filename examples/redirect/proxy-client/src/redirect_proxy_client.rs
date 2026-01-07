@@ -12,7 +12,9 @@ impl<E: sails_rs::client::GearEnv> RedirectProxyClient
 {
     type Env = E;
     fn proxy(&self) -> sails_rs::client::Service<proxy::ProxyImpl, Self::Env> {
-        self.service(stringify!(Proxy))
+        self.service(sails_rs::InterfaceId::from_bytes_8([
+            115, 132, 52, 118, 255, 19, 124, 126,
+        ]))
     }
 }
 pub trait RedirectProxyClientCtors {
@@ -39,7 +41,7 @@ impl<E: sails_rs::client::GearEnv> RedirectProxyClientCtors
 
 pub mod io {
     use super::*;
-    sails_rs::io_struct_impl!(New (target: ActorId) -> ());
+    sails_rs::io_struct_impl!(New (target: ActorId) -> (), 0);
 }
 
 pub mod proxy {
@@ -59,6 +61,6 @@ pub mod proxy {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(GetProgramId () -> ActorId);
+        sails_rs::io_struct_impl!(GetProgramId () -> ActorId, 0);
     }
 }

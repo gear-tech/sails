@@ -44,7 +44,7 @@ pub mod service_with_events {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(DoThis (p1: U256, p2: super::MyParam) -> u64);
+        sails_rs::io_struct_impl!(DoThis (p1: U256, p2: super::MyParam) -> u64, 0);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -54,14 +54,16 @@ pub mod service_with_events {
         #[codec(crate = sails_rs::scale_codec)]
         #[reflect_hash(crate = sails_rs)]
         pub enum ServiceWithEventsEvents {
+            #[codec(index = 1)]
             One(u64),
+            #[codec(index = 2)]
             Reset,
+            #[codec(index = 3)]
             Three(MyParam),
+            #[codec(index = 4)]
             Two { id: u8, reference: u64 },
         }
-        impl sails_rs::client::Event for ServiceWithEventsEvents {
-            const EVENT_NAMES: &'static [Route] = &["One", "Reset", "Three", "Two"];
-        }
+        impl sails_rs::client::Event for ServiceWithEventsEvents {}
         impl sails_rs::client::ServiceWithEvents for ServiceWithEventsImpl {
             type Event = ServiceWithEventsEvents;
         }

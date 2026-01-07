@@ -16,7 +16,9 @@ impl<E: sails_rs::client::GearEnv> CounterBench
     fn counter_bench(
         &self,
     ) -> sails_rs::client::Service<counter_bench::CounterBenchImpl, Self::Env> {
-        self.service(stringify!(CounterBench))
+        self.service(sails_rs::InterfaceId::from_bytes_8([
+            149, 170, 24, 82, 218, 19, 238, 13,
+        ]))
     }
 }
 pub trait CounterBenchCtors {
@@ -38,7 +40,7 @@ impl<E: sails_rs::client::GearEnv> CounterBenchCtors
 
 pub mod io {
     use super::*;
-    sails_rs::io_struct_impl!(NewForBench () -> ());
+    sails_rs::io_struct_impl!(NewForBench () -> (), 0);
 }
 
 pub mod counter_bench {
@@ -61,7 +63,7 @@ pub mod counter_bench {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(Inc () -> u64);
-        sails_rs::io_struct_impl!(IncAsync () -> u64);
+        sails_rs::io_struct_impl!(Inc () -> u64, 0);
+        sails_rs::io_struct_impl!(IncAsync () -> u64, 1);
     }
 }
