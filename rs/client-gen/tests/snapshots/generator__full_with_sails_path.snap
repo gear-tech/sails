@@ -44,10 +44,6 @@ pub trait FullCoverageProgram {
     fn my_complex_service(
         &self,
     ) -> my_crate::sails::client::Service<my_complex_service::MyComplexServiceImpl, Self::Env>;
-    fn dog(&self) -> my_crate::sails::client::Service<dog::DogImpl, Self::Env>;
-    fn pausable(&self) -> my_crate::sails::client::Service<pausable::PausableImpl, Self::Env>;
-    fn ownable(&self) -> my_crate::sails::client::Service<ownable::OwnableImpl, Self::Env>;
-    fn tippable(&self) -> my_crate::sails::client::Service<tippable::TippableImpl, Self::Env>;
 }
 impl<E: my_crate::sails::client::GearEnv> FullCoverageProgram
     for my_crate::sails::client::Actor<FullCoverageProgramProgram, E>
@@ -101,18 +97,6 @@ impl<E: my_crate::sails::client::GearEnv> FullCoverageProgram
         &self,
     ) -> my_crate::sails::client::Service<my_complex_service::MyComplexServiceImpl, Self::Env> {
         self.service(stringify!(MyComplexService))
-    }
-    fn dog(&self) -> my_crate::sails::client::Service<dog::DogImpl, Self::Env> {
-        self.service(stringify!(Dog))
-    }
-    fn pausable(&self) -> my_crate::sails::client::Service<pausable::PausableImpl, Self::Env> {
-        self.service(stringify!(Pausable))
-    }
-    fn ownable(&self) -> my_crate::sails::client::Service<ownable::OwnableImpl, Self::Env> {
-        self.service(stringify!(Ownable))
-    }
-    fn tippable(&self) -> my_crate::sails::client::Service<tippable::TippableImpl, Self::Env> {
-        self.service(stringify!(Tippable))
     }
 }
 pub trait FullCoverageProgramCtors {
@@ -238,6 +222,15 @@ pub mod canvas {
             &self,
             point: Point<u32>,
         ) -> my_crate::sails::client::PendingCall<io::PointStatus, Self::Env>;
+        fn ownable(
+            &self,
+        ) -> my_crate::sails::client::Service<super::ownable::OwnableImpl, Self::Env>;
+        fn pausable(
+            &self,
+        ) -> my_crate::sails::client::Service<super::pausable::PausableImpl, Self::Env>;
+        fn tippable(
+            &self,
+        ) -> my_crate::sails::client::Service<super::tippable::TippableImpl, Self::Env>;
     }
     pub struct CanvasImpl;
     impl<E: my_crate::sails::client::GearEnv> Canvas
@@ -270,13 +263,28 @@ pub mod canvas {
         ) -> my_crate::sails::client::PendingCall<io::PointStatus, Self::Env> {
             self.pending_call((point,))
         }
+        fn ownable(
+            &self,
+        ) -> my_crate::sails::client::Service<super::ownable::OwnableImpl, Self::Env> {
+            self.base_service()
+        }
+        fn pausable(
+            &self,
+        ) -> my_crate::sails::client::Service<super::pausable::PausableImpl, Self::Env> {
+            self.base_service()
+        }
+        fn tippable(
+            &self,
+        ) -> my_crate::sails::client::Service<super::tippable::TippableImpl, Self::Env> {
+            self.base_service()
+        }
     }
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(ColorPoint (point: super::Point<u32, >, color: super::Color) -> Result<(), super::ColorError>);
-        my_crate::sails::io_struct_impl!(KillPoint (point: super::Point<u32, >) -> Result<bool, String>);
-        my_crate::sails::io_struct_impl!(Points (offset: u32, len: u32) -> Result<Vec<(Point<u32, >, PointStatus, )>, String>);
+        my_crate::sails::io_struct_impl!(ColorPoint (point: super::Point<u32, >, color: super::Color) -> super::Result<(), super::ColorError>);
+        my_crate::sails::io_struct_impl!(KillPoint (point: super::Point<u32, >) -> super::Result<bool, String>);
+        my_crate::sails::io_struct_impl!(Points (offset: u32, len: u32) -> super::Result<Vec<(super::Point<u32, >, super::PointStatus, )>, String>);
         my_crate::sails::io_struct_impl!(PointStatus (point: super::Point<u32, >) -> super::Option<super::PointStatus, >);
     }
 
@@ -287,16 +295,16 @@ pub mod canvas {
         #[codec(crate = my_crate::sails::scale_codec)]
         #[reflect_hash(crate = my_crate::sails)]
         pub enum CanvasEvents {
-            StatusChanged(Point<u32>),
+            E1,
             Jubilee {
                 /// Amount of alive points.
                 amount: u64,
                 bits: Vec<u8>,
             },
-            E1,
+            StatusChanged(Point<u32>),
         }
         impl my_crate::sails::client::Event for CanvasEvents {
-            const EVENT_NAMES: &'static [Route] = &["StatusChanged", "Jubilee", "E1"];
+            const EVENT_NAMES: &'static [Route] = &["E1", "Jubilee", "StatusChanged"];
         }
         impl my_crate::sails::client::ServiceWithEvents for CanvasImpl {
             type Event = CanvasEvents;
@@ -328,7 +336,7 @@ pub mod ping_pong {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(Ping (input: String) -> Result<String, String>);
+        my_crate::sails::io_struct_impl!(Ping (input: String) -> super::Result<String, String>);
     }
 }
 
@@ -519,9 +527,9 @@ pub mod references {
         use super::*;
         my_crate::sails::io_struct_impl!(Add (v: u32) -> u32);
         my_crate::sails::io_struct_impl!(AddByte (byte: u8) -> Vec<u8>);
-        my_crate::sails::io_struct_impl!(GuessNum (number: u8) -> Result<String, String>);
+        my_crate::sails::io_struct_impl!(GuessNum (number: u8) -> super::Result<String, String>);
         my_crate::sails::io_struct_impl!(Incr () -> super::ReferenceCount);
-        my_crate::sails::io_struct_impl!(SetNum (number: u8) -> Result<(), String>);
+        my_crate::sails::io_struct_impl!(SetNum (number: u8) -> super::Result<(), String>);
         my_crate::sails::io_struct_impl!(Baked () -> String);
         my_crate::sails::io_struct_impl!(LastByte () -> super::Option<u8, >);
         my_crate::sails::io_struct_impl!(Message () -> super::Option<String, >);
@@ -618,10 +626,10 @@ pub mod this_that {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(DoThat (param: super::DoThatParam) -> Result<(ActorId, u32, ManyVariantsReply, ), (String, )>);
+        my_crate::sails::io_struct_impl!(DoThat (param: super::DoThatParam) -> super::Result<(ActorId, u32, super::ManyVariantsReply, ), (String, )>);
         my_crate::sails::io_struct_impl!(DoThis (p1: u32, p2: String, p3: (super::Option<H160, >, u8, ), p4: super::TupleStruct) -> (String, u32, ));
         my_crate::sails::io_struct_impl!(Noop () -> ());
-        my_crate::sails::io_struct_impl!(That () -> Result<String, String>);
+        my_crate::sails::io_struct_impl!(That () -> super::Result<String, String>);
         my_crate::sails::io_struct_impl!(This () -> u32);
     }
 }
@@ -889,19 +897,25 @@ pub mod basic {
     }
     pub trait Basic {
         type Env: my_crate::sails::client::GearEnv;
+        fn do_that(
+            &mut self,
+            p1: (u8, u32),
+        ) -> my_crate::sails::client::PendingCall<io::DoThat, Self::Env>;
         fn do_this(
             &mut self,
             p1: u32,
             p2: MyParam,
         ) -> my_crate::sails::client::PendingCall<io::DoThis, Self::Env>;
-        fn do_that(
-            &mut self,
-            p1: (u8, u32),
-        ) -> my_crate::sails::client::PendingCall<io::DoThat, Self::Env>;
     }
     pub struct BasicImpl;
     impl<E: my_crate::sails::client::GearEnv> Basic for my_crate::sails::client::Service<BasicImpl, E> {
         type Env = E;
+        fn do_that(
+            &mut self,
+            p1: (u8, u32),
+        ) -> my_crate::sails::client::PendingCall<io::DoThat, Self::Env> {
+            self.pending_call((p1,))
+        }
         fn do_this(
             &mut self,
             p1: u32,
@@ -909,23 +923,25 @@ pub mod basic {
         ) -> my_crate::sails::client::PendingCall<io::DoThis, Self::Env> {
             self.pending_call((p1, p2))
         }
-        fn do_that(
-            &mut self,
-            p1: (u8, u32),
-        ) -> my_crate::sails::client::PendingCall<io::DoThat, Self::Env> {
-            self.pending_call((p1,))
-        }
     }
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(DoThis (p1: u32, p2: super::MyParam) -> u16);
         my_crate::sails::io_struct_impl!(DoThat (p1: (u8, u32, )) -> u8);
+        my_crate::sails::io_struct_impl!(DoThis (p1: u32, p2: super::MyParam) -> u16);
     }
 }
 
 pub mod another_service {
     use super::*;
+    #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
+    #[codec(crate = my_crate::sails::scale_codec)]
+    #[scale_info(crate = my_crate::sails::scale_info)]
+    #[reflect_hash(crate = my_crate::sails)]
+    pub enum ProgramError {
+        InvalidOwner,
+        ConfigError(String),
+    }
     pub trait AnotherService {
         type Env: my_crate::sails::client::GearEnv;
         fn ping(&mut self) -> my_crate::sails::client::PendingCall<io::Ping, Self::Env>;
@@ -953,7 +969,7 @@ pub mod another_service {
     pub mod io {
         use super::*;
         my_crate::sails::io_struct_impl!(Ping () -> String);
-        my_crate::sails::io_struct_impl!(ProcessValues (data: Vec<U256>) -> Result<(), super::ProgramError>);
+        my_crate::sails::io_struct_impl!(ProcessValues (data: Vec<U256>) -> super::Result<(), super::ProgramError>);
     }
 }
 
@@ -1026,22 +1042,30 @@ pub mod my_complex_service {
         Paused,
         Error(ProgramError),
     }
+    #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
+    #[codec(crate = my_crate::sails::scale_codec)]
+    #[scale_info(crate = my_crate::sails::scale_info)]
+    #[reflect_hash(crate = my_crate::sails)]
+    pub enum ProgramError {
+        InvalidOwner,
+        ConfigError(String),
+    }
     pub trait MyComplexService {
         type Env: my_crate::sails::client::GearEnv;
-        fn initialize(
+        fn get_actor_ids(
             &mut self,
-            start_data: ProgramGlobalInfo,
-            max_size: u32,
-        ) -> my_crate::sails::client::PendingCall<io::Initialize, Self::Env>;
+            count: u32,
+        ) -> my_crate::sails::client::PendingCall<io::GetActorIds, Self::Env>;
         fn get_data(
             &mut self,
             key: String,
         ) -> my_crate::sails::client::PendingCall<io::GetData, Self::Env>;
         fn get_info(&mut self) -> my_crate::sails::client::PendingCall<io::GetInfo, Self::Env>;
-        fn get_actor_ids(
+        fn initialize(
             &mut self,
-            count: u32,
-        ) -> my_crate::sails::client::PendingCall<io::GetActorIds, Self::Env>;
+            start_data: ProgramGlobalInfo,
+            max_size: u32,
+        ) -> my_crate::sails::client::PendingCall<io::Initialize, Self::Env>;
         fn process_generic_data(
             &mut self,
             input_data: GenericData<u32, String>,
@@ -1060,12 +1084,11 @@ pub mod my_complex_service {
         for my_crate::sails::client::Service<MyComplexServiceImpl, E>
     {
         type Env = E;
-        fn initialize(
+        fn get_actor_ids(
             &mut self,
-            start_data: ProgramGlobalInfo,
-            max_size: u32,
-        ) -> my_crate::sails::client::PendingCall<io::Initialize, Self::Env> {
-            self.pending_call((start_data, max_size))
+            count: u32,
+        ) -> my_crate::sails::client::PendingCall<io::GetActorIds, Self::Env> {
+            self.pending_call((count,))
         }
         fn get_data(
             &mut self,
@@ -1076,11 +1099,12 @@ pub mod my_complex_service {
         fn get_info(&mut self) -> my_crate::sails::client::PendingCall<io::GetInfo, Self::Env> {
             self.pending_call(())
         }
-        fn get_actor_ids(
+        fn initialize(
             &mut self,
-            count: u32,
-        ) -> my_crate::sails::client::PendingCall<io::GetActorIds, Self::Env> {
-            self.pending_call((count,))
+            start_data: ProgramGlobalInfo,
+            max_size: u32,
+        ) -> my_crate::sails::client::PendingCall<io::Initialize, Self::Env> {
+            self.pending_call((start_data, max_size))
         }
         fn process_generic_data(
             &mut self,
@@ -1102,11 +1126,28 @@ pub mod my_complex_service {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(Initialize (start_data: super::ProgramGlobalInfo, max_size: u32) -> Result<(), super::ProgramError>);
-        my_crate::sails::io_struct_impl!(GetData (key: String) -> Result<ProgramScopedData, super::ProgramError>);
-        my_crate::sails::io_struct_impl!(GetInfo () -> super::ProgramGlobalInfo);
         my_crate::sails::io_struct_impl!(GetActorIds (count: u32) -> Vec<ActorId>);
+        my_crate::sails::io_struct_impl!(GetData (key: String) -> super::Result<super::ProgramScopedData, super::ProgramError>);
+        my_crate::sails::io_struct_impl!(GetInfo () -> super::ProgramGlobalInfo);
+        my_crate::sails::io_struct_impl!(Initialize (start_data: super::ProgramGlobalInfo, max_size: u32) -> super::Result<(), super::ProgramError>);
         my_crate::sails::io_struct_impl!(ProcessGenericData (input_data: super::GenericData<u32, String, >, list_of_generics: Vec<super::GenericData<ActorId, U256, >>, optional_generic_result: super::Option<super::GenericResult<bool, >, >) -> super::GenericData<bool, u8, >);
         my_crate::sails::io_struct_impl!(UpdateStatus (id: u64, new_status: super::ServiceStatus, metadata: super::Option<String, >) -> super::GenericResult<u32, >);
+    }
+}
+
+pub mod rmrk_catalog {
+    use super::*;
+    pub trait RmrkCatalog {
+        type Env: my_crate::sails::client::GearEnv;
+    }
+    pub struct RmrkCatalogImpl;
+    impl<E: my_crate::sails::client::GearEnv> RmrkCatalog
+        for my_crate::sails::client::Service<RmrkCatalogImpl, E>
+    {
+        type Env = E;
+    }
+
+    pub mod io {
+        use super::*;
     }
 }

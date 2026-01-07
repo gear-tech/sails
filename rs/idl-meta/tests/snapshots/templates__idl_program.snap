@@ -19,7 +19,7 @@ program Demo {
         Ping,
         Counter,
         /// Another Counter service
-        Counter2: Counter,
+        Counter: Counter2,
     }
     types {
         struct DoThatParam {

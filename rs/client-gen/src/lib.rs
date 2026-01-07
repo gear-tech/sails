@@ -1,8 +1,7 @@
 use anyhow::{Context, Result};
-use convert_case::{Case, Casing};
 use root_generator::RootGenerator;
 use sails_idl_parser_v2::{parse_idl, visitor};
-use std::{collections::HashMap, ffi::OsStr, fs, io::Write, path::Path};
+use std::{collections::HashMap, fs, io::Write, path::Path};
 
 mod ctor_generators;
 mod events_generator;
@@ -106,11 +105,8 @@ impl<'ast> ClientGenerator<'ast, IdlPath<'ast>> {
         let idl = fs::read_to_string(idl_path)
             .with_context(|| format!("Failed to open {} for reading", idl_path.display()))?;
 
-        let file_name = idl_path.file_stem().unwrap_or(OsStr::new("service"));
-        let service_name = file_name.to_string_lossy().to_case(Case::Pascal);
-
         self.with_idl(&idl)
-            .generate_to(&service_name, client_path)
+            .generate_to(client_path)
             .context("failed to generate client")?;
         Ok(())
     }
@@ -121,11 +117,8 @@ impl<'ast> ClientGenerator<'ast, IdlPath<'ast>> {
         let idl = fs::read_to_string(idl_path)
             .with_context(|| format!("Failed to open {} for reading", idl_path.display()))?;
 
-        let file_name = idl_path.file_stem().unwrap_or(OsStr::new("service"));
-        let service_name = file_name.to_string_lossy().to_case(Case::Pascal);
-
         self.with_idl(&idl)
-            .generate_to(&service_name, out_path)
+            .generate_to(out_path)
             .context("failed to generate client")?;
         Ok(())
     }
@@ -156,11 +149,10 @@ impl<'ast> ClientGenerator<'ast, IdlString<'ast>> {
         }
     }
 
-    pub fn generate(self, anonymous_service_name: &str) -> Result<String> {
+    pub fn generate(self) -> Result<String> {
         let idl = self.idl.0;
         let sails_path = self.sails_path.unwrap_or(SAILS);
         let mut generator = RootGenerator::new(
-            anonymous_service_name,
             self.mocks_feature_name,
             sails_path,
             self.external_types,
@@ -177,15 +169,9 @@ impl<'ast> ClientGenerator<'ast, IdlString<'ast>> {
         Ok(code)
     }
 
-    pub fn generate_to(
-        self,
-        anonymous_service_name: &str,
-        out_path: impl AsRef<Path>,
-    ) -> Result<()> {
+    pub fn generate_to(self, out_path: impl AsRef<Path>) -> Result<()> {
         let out_path = out_path.as_ref();
-        let code = self
-            .generate(anonymous_service_name)
-            .context("failed to generate client")?;
+        let code = self.generate().context("failed to generate client")?;
 
         fs::write(out_path, code).with_context(|| {
             format!("Failed to write generated client to {}", out_path.display())

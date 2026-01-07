@@ -28,7 +28,7 @@ service MyService {
         /// Uses CommonType from service scope.
         AnotherAction(input: ServiceCommonType) -> u32;
 
-        /// Uses ProgramOnlyType from program scope.
+        /// TBD: Uses ProgramOnlyType from program scope.
         UseProgramType(input: ProgramOnlyType) -> bool;
     }
 
@@ -39,6 +39,10 @@ service MyService {
 
         struct ServiceCommonType {
             service_id: u64,
+        }
+
+        struct ProgramOnlyType {
+            data: CommonType,
         }
     }
 }

@@ -177,8 +177,15 @@ impl ProgramBuilder {
                     );
                 }
 
-                let fn_builder =
-                    FnBuilder::from(route, true, fn_item, unwrap_result, self.sails_path());
+                let route_idx = (routes.len() + 1) as u8;
+                let fn_builder = FnBuilder::from(
+                    route,
+                    route_idx,
+                    true,
+                    fn_item,
+                    unwrap_result,
+                    self.sails_path(),
+                );
 
                 let original_service_ctor_fn = fn_builder.original_service_ctor_fn();
                 let wrapping_service_ctor_fn =
@@ -254,7 +261,7 @@ impl ProgramBuilder {
         let services_count_expr = {
             let count_exprs = services_count_data.iter().map(|service_type| {
                 quote! {
-                    + #sails_path::count_base_services::<#service_type>()
+                    + #sails_path::meta::count_base_services::<#service_type>()
                 }
             });
 
@@ -268,13 +275,13 @@ impl ProgramBuilder {
         let services_ids_expr = {
             let ids_exprs = services_ids_data.iter().map(|service_type| {
                 quote! {
-                    #sails_path::meta::AnyServiceIds::new::<#service_type>(),
+                    #sails_path::meta::BaseServiceMeta::new::<#service_type>(""),
                 }
             });
 
             quote! {
                 const INTERFACE_IDS: &'static [(#sails_path::meta::InterfaceId, u8)] =
-                    &#sails_path::interface_ids::<SERVICES_COUNT>(&[
+                    &#sails_path::meta::interface_ids::<SERVICES_COUNT>(&[
                         #(#ids_exprs)*
                     ]);
             }

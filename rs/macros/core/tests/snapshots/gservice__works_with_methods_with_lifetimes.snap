@@ -11,38 +11,26 @@ for ReferenceServiceExposure<T> {
     fn route(&self) -> &'static [u8] {
         self.route
     }
-    fn check_asyncness(input: &[u8]) -> Option<bool> {
-        use sails_rs::gstd::InvocationIo;
+    fn check_asyncness(
+        interface_id: sails_rs::meta::InterfaceId,
+        entry_id: u16,
+    ) -> Option<bool> {
         use sails_rs::gstd::services::{Service, Exposure};
         if !T::ASYNC {
             return Some(false);
         }
-        if let Ok(is_async) = reference_service_meta::__AddByteParams::check_asyncness(
-            input,
-        ) {
-            return Some(is_async);
+        if interface_id == T::INTERFACE_ID {
+            match entry_id {
+                0u16 => Some(false),
+                1u16 => Some(false),
+                2u16 => Some(false),
+                3u16 => Some(true),
+                4u16 => Some(true),
+                _ => None,
+            }
+        } else {
+            None
         }
-        if let Ok(is_async) = reference_service_meta::__BakedParams::check_asyncness(
-            input,
-        ) {
-            return Some(is_async);
-        }
-        if let Ok(is_async) = reference_service_meta::__FirstByteParams::check_asyncness(
-            input,
-        ) {
-            return Some(is_async);
-        }
-        if let Ok(is_async) = reference_service_meta::__IncrParams::check_asyncness(
-            input,
-        ) {
-            return Some(is_async);
-        }
-        if let Ok(is_async) = reference_service_meta::__LastByteParams::check_asyncness(
-            input,
-        ) {
-            return Some(is_async);
-        }
-        None
     }
 }
 impl<T> core::ops::Deref for ReferenceServiceExposure<T> {
@@ -83,102 +71,143 @@ impl ReferenceServiceExposure<ReferenceService> {
     pub async fn last_byte<'a>(&self) -> Option<&'a u8> {
         unsafe { BYTES.last() }
     }
-    pub fn check_asyncness(&self, input: &[u8]) -> Option<bool> {
-        <Self as sails_rs::gstd::services::Exposure>::check_asyncness(input)
+    pub fn check_asyncness(
+        &self,
+        interface_id: sails_rs::meta::InterfaceId,
+        entry_id: u16,
+    ) -> Option<bool> {
+        <Self as sails_rs::gstd::services::Exposure>::check_asyncness(
+            interface_id,
+            entry_id,
+        )
     }
     pub fn try_handle(
         mut self,
-        input: &[u8],
+        interface_id: sails_rs::meta::InterfaceId,
+        entry_id: u16,
+        input: sails_rs::Vec<u8>,
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
-        use sails_rs::gstd::InvocationIo;
+        use sails_rs::gstd::{InvocationIo, CommandReply};
         use sails_rs::gstd::services::{Service, Exposure};
-        if let Ok(request) = reference_service_meta::__AddByteParams::decode_params(
-            input,
-        ) {
-            let result = self.add_byte(request.byte);
-            let value = 0u128;
-            if !reference_service_meta::__AddByteParams::is_empty_tuple::<
-                &'static [u8],
-            >() {
-                reference_service_meta::__AddByteParams::with_optimized_encode(
-                    &result,
-                    self.route().as_ref(),
-                    |encoded_result| result_handler(encoded_result, value),
-                );
+        if interface_id
+            == <ReferenceService as sails_rs::meta::ServiceMeta>::INTERFACE_ID
+        {
+            match entry_id {
+                0u16 => {
+                    let request = <reference_service_meta::__AddByteParams as sails_rs::gstd::InvocationIo>::decode_params(
+                            &input,
+                        )
+                        .expect("Failed to decode params");
+                    let result = self.add_byte(request.byte);
+                    let value = 0u128;
+                    if !<reference_service_meta::__AddByteParams as sails_rs::gstd::InvocationIo>::is_empty_tuple::<
+                        &'static [u8],
+                    >() {
+                        <reference_service_meta::__AddByteParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                            &result,
+                            self.route().as_ref(),
+                            |encoded_result| result_handler(encoded_result, value),
+                        );
+                    }
+                    return Some(());
+                }
+                1u16 => {
+                    let request = <reference_service_meta::__IncrParams as sails_rs::gstd::InvocationIo>::decode_params(
+                            &input,
+                        )
+                        .expect("Failed to decode params");
+                    let result = self.incr();
+                    let value = 0u128;
+                    if !<reference_service_meta::__IncrParams as sails_rs::gstd::InvocationIo>::is_empty_tuple::<
+                        &'static ReferenceCount,
+                    >() {
+                        <reference_service_meta::__IncrParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                            &result,
+                            self.route().as_ref(),
+                            |encoded_result| result_handler(encoded_result, value),
+                        );
+                    }
+                    return Some(());
+                }
+                2u16 => {
+                    let request = <reference_service_meta::__BakedParams as sails_rs::gstd::InvocationIo>::decode_params(
+                            &input,
+                        )
+                        .expect("Failed to decode params");
+                    let result = self.baked();
+                    let value = 0u128;
+                    if !<reference_service_meta::__BakedParams as sails_rs::gstd::InvocationIo>::is_empty_tuple::<
+                        &'static str,
+                    >() {
+                        <reference_service_meta::__BakedParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                            &result,
+                            self.route().as_ref(),
+                            |encoded_result| result_handler(encoded_result, value),
+                        );
+                    }
+                    return Some(());
+                }
+                _ => None,
             }
-            return Some(());
+        } else {
+            None
         }
-        if let Ok(request) = reference_service_meta::__BakedParams::decode_params(
-            input,
-        ) {
-            let result = self.baked();
-            let value = 0u128;
-            if !reference_service_meta::__BakedParams::is_empty_tuple::<&'static str>() {
-                reference_service_meta::__BakedParams::with_optimized_encode(
-                    &result,
-                    self.route().as_ref(),
-                    |encoded_result| result_handler(encoded_result, value),
-                );
-            }
-            return Some(());
-        }
-        if let Ok(request) = reference_service_meta::__IncrParams::decode_params(input) {
-            let result = self.incr();
-            let value = 0u128;
-            if !reference_service_meta::__IncrParams::is_empty_tuple::<
-                &'static ReferenceCount,
-            >() {
-                reference_service_meta::__IncrParams::with_optimized_encode(
-                    &result,
-                    self.route().as_ref(),
-                    |encoded_result| result_handler(encoded_result, value),
-                );
-            }
-            return Some(());
-        }
-        None
     }
     pub async fn try_handle_async(
         mut self,
-        input: &[u8],
+        interface_id: sails_rs::meta::InterfaceId,
+        entry_id: u16,
+        input: sails_rs::Vec<u8>,
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
-        use sails_rs::gstd::InvocationIo;
+        use sails_rs::gstd::{InvocationIo, CommandReply};
         use sails_rs::gstd::services::{Service, Exposure};
-        if let Ok(request) = reference_service_meta::__FirstByteParams::decode_params(
-            input,
-        ) {
-            let result = self.first_byte().await;
-            let value = 0u128;
-            if !reference_service_meta::__FirstByteParams::is_empty_tuple::<
-                Option<&'static u8>,
-            >() {
-                reference_service_meta::__FirstByteParams::with_optimized_encode(
-                    &result,
-                    self.route().as_ref(),
-                    |encoded_result| result_handler(encoded_result, value),
-                );
+        if interface_id
+            == <ReferenceService as sails_rs::meta::ServiceMeta>::INTERFACE_ID
+        {
+            match entry_id {
+                3u16 => {
+                    let request = <reference_service_meta::__FirstByteParams as sails_rs::gstd::InvocationIo>::decode_params(
+                            &input,
+                        )
+                        .expect("Failed to decode params");
+                    let result = self.first_byte().await;
+                    let value = 0u128;
+                    if !<reference_service_meta::__FirstByteParams as sails_rs::gstd::InvocationIo>::is_empty_tuple::<
+                        Option<&'static u8>,
+                    >() {
+                        <reference_service_meta::__FirstByteParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                            &result,
+                            self.route().as_ref(),
+                            |encoded_result| result_handler(encoded_result, value),
+                        );
+                    }
+                    return Some(());
+                }
+                4u16 => {
+                    let request = <reference_service_meta::__LastByteParams as sails_rs::gstd::InvocationIo>::decode_params(
+                            &input,
+                        )
+                        .expect("Failed to decode params");
+                    let result = self.last_byte().await;
+                    let value = 0u128;
+                    if !<reference_service_meta::__LastByteParams as sails_rs::gstd::InvocationIo>::is_empty_tuple::<
+                        Option<&'static u8>,
+                    >() {
+                        <reference_service_meta::__LastByteParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                            &result,
+                            self.route().as_ref(),
+                            |encoded_result| result_handler(encoded_result, value),
+                        );
+                    }
+                    return Some(());
+                }
+                _ => None,
             }
-            return Some(());
+        } else {
+            None
         }
-        if let Ok(request) = reference_service_meta::__LastByteParams::decode_params(
-            input,
-        ) {
-            let result = self.last_byte().await;
-            let value = 0u128;
-            if !reference_service_meta::__LastByteParams::is_empty_tuple::<
-                Option<&'static u8>,
-            >() {
-                reference_service_meta::__LastByteParams::with_optimized_encode(
-                    &result,
-                    self.route().as_ref(),
-                    |encoded_result| result_handler(encoded_result, value),
-                );
-            }
-            return Some(());
-        }
-        None
     }
 }
 impl sails_rs::gstd::services::Service for ReferenceService {
@@ -194,7 +223,7 @@ impl sails_rs::meta::ServiceMeta for ReferenceService {
     type CommandsMeta = reference_service_meta::CommandsMeta;
     type QueriesMeta = reference_service_meta::QueriesMeta;
     type EventsMeta = reference_service_meta::EventsMeta;
-    const BASE_SERVICES: &'static [sails_rs::meta::AnyServiceMetaFn] = &[];
+    const BASE_SERVICES: &'static [sails_rs::meta::BaseServiceMeta] = &[];
     const ASYNC: bool = true;
     const INTERFACE_ID: sails_rs::meta::InterfaceId = {
         let mut final_hash = sails_rs::keccak_const::Keccak256::new();
@@ -260,16 +289,7 @@ impl sails_rs::meta::ServiceMeta for ReferenceService {
             final_hash = final_hash.update(&fn_hash.finalize());
         }
         let hash = final_hash.finalize();
-        sails_rs::meta::InterfaceId([
-            hash[0],
-            hash[1],
-            hash[2],
-            hash[3],
-            hash[4],
-            hash[5],
-            hash[6],
-            hash[7],
-        ])
+        sails_rs::meta::InterfaceId::from_bytes_32(hash)
     };
 }
 mod reference_service_meta {

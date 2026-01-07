@@ -217,8 +217,8 @@ impl<'a> sails_rs::meta::ServiceMeta for ExtendedWithLifetime<'a> {
     type CommandsMeta = extended_with_lifetime_meta::CommandsMeta;
     type QueriesMeta = extended_with_lifetime_meta::QueriesMeta;
     type EventsMeta = extended_with_lifetime_meta::EventsMeta;
-    const BASE_SERVICES: &'static [sails_rs::meta::AnyServiceMetaFn] = &[
-        sails_rs::meta::AnyServiceMeta::new::<BaseWithLifetime>,
+    const BASE_SERVICES: &'static [(&'static str, sails_rs::meta::AnyServiceMetaFn)] = &[
+        ("BaseWithLifetime", sails_rs::meta::AnyServiceMeta::new::<BaseWithLifetime>),
     ];
     const ASYNC: bool = <BaseWithLifetime as sails_rs::meta::ServiceMeta>::ASYNC;
     const INTERFACE_ID: sails_rs::meta::InterfaceId = {
@@ -244,16 +244,7 @@ impl<'a> sails_rs::meta::ServiceMeta for ExtendedWithLifetime<'a> {
         final_hash = final_hash
             .update(&<BaseWithLifetime as sails_rs::meta::ServiceMeta>::INTERFACE_ID.0);
         let hash = final_hash.finalize();
-        sails_rs::meta::InterfaceId([
-            hash[0],
-            hash[1],
-            hash[2],
-            hash[3],
-            hash[4],
-            hash[5],
-            hash[6],
-            hash[7],
-        ])
+        sails_rs::meta::InterfaceId::from_bytes_32(hash)
     };
 }
 mod extended_with_lifetime_meta {

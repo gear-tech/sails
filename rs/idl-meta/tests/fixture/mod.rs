@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use sails_idl_meta::{PrimitiveType::*, TypeDecl::*, TypeDef::*, *};
 use std::string::String;
 
@@ -124,8 +126,8 @@ pub fn enum_variants_type() -> Type {
 
 pub fn counter_service() -> ServiceUnit {
     ServiceUnit {
-        name: "Counter".to_string(),
-        extends: vec!["BaseService".to_string(), "AnotherBaseService".to_string()],
+        name: "Counter".parse().unwrap(),
+        extends: vec![],
         funcs: vec![
             ServiceFunc {
                 name: "Add".to_string(),
@@ -146,7 +148,7 @@ pub fn counter_service() -> ServiceUnit {
                     type_decl: Primitive(U32),
                 }],
                 output: Primitive(U32),
-                throws: Some(Primitive(String)),
+                throws: None,
                 kind: FunctionKind::Command,
                 docs: vec!["Substract a value from the counter".to_string()],
                 annotations: vec![],
@@ -232,7 +234,7 @@ pub fn service_func() -> ServiceFunc {
 
 pub fn this_that_service() -> ServiceUnit {
     ServiceUnit {
-        name: "ThisThat".to_string(),
+        name: "ThisThat".parse().unwrap(),
         extends: vec![],
         funcs: vec![service_func()],
         events: vec![],
@@ -409,20 +411,23 @@ pub fn program_unit() -> ProgramUnit {
         ],
         services: vec![
             ServiceExpo {
-                name: "Ping".to_string(),
+                name: "Ping".parse().unwrap(),
                 route: None,
+                route_idx: 1,
                 docs: vec![],
                 annotations: vec![],
             },
             ServiceExpo {
-                name: "Counter".to_string(),
+                name: "Counter".parse().unwrap(),
                 route: None,
+                route_idx: 2,
                 docs: vec![],
                 annotations: vec![],
             },
             ServiceExpo {
-                name: "Counter".to_string(),
+                name: "Counter".parse().unwrap(),
                 route: Some("Counter2".to_string()),
+                route_idx: 3,
                 docs: vec!["Another Counter service".to_owned()],
                 annotations: vec![],
             },
@@ -456,29 +461,37 @@ pub fn program_unit() -> ProgramUnit {
                 docs: vec![],
                 annotations: vec![],
             },
-            Type {
-                name: "TupleStruct".to_string(),
-                type_params: vec![],
-                def: Struct(StructDef {
-                    fields: vec![StructField {
-                        name: None,
-                        type_decl: Primitive(U32),
-                        docs: vec![],
-                        annotations: vec![],
-                    }],
-                }),
-                docs: vec![],
-                annotations: vec![],
-            },
-            Type {
-                name: "UnitStruct".to_string(),
-                type_params: vec![],
-                def: Struct(StructDef { fields: vec![] }),
-                docs: vec![],
-                annotations: vec![],
-            },
+            type_tuple_struct(),
+            type_unit_struct(),
         ],
         docs: vec!["Demo Program".to_string()],
+        annotations: vec![],
+    }
+}
+
+pub fn type_unit_struct() -> Type {
+    Type {
+        name: "UnitStruct".to_string(),
+        type_params: vec![],
+        def: Struct(StructDef { fields: vec![] }),
+        docs: vec![],
+        annotations: vec![],
+    }
+}
+
+pub fn type_tuple_struct() -> Type {
+    Type {
+        name: "TupleStruct".to_string(),
+        type_params: vec![],
+        def: Struct(StructDef {
+            fields: vec![StructField {
+                name: None,
+                type_decl: Primitive(U32),
+                docs: vec![],
+                annotations: vec![],
+            }],
+        }),
+        docs: vec![],
         annotations: vec![],
     }
 }

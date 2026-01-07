@@ -1,6 +1,7 @@
 use super::*;
 use proc_macro2::TokenStream;
 use quote::quote;
+use std::collections::BTreeSet;
 
 impl ServiceBuilder<'_> {
     pub(super) fn meta_trait_impl(&self) -> TokenStream {
@@ -10,31 +11,26 @@ impl ServiceBuilder<'_> {
         let service_type_constraints = self.type_constraints();
         let meta_module_ident = &self.meta_module_ident;
 
-        // Sort base services lexicographically
-        let mut base_services_sorted = self
-            .base_types
-            .iter()
-            .map(|base_type| (base_type, shared::remove_lifetimes(base_type)))
-            .collect::<Vec<_>>();
-        base_services_sorted.sort_by_key(|(_, path_wo_lifetimes)| {
-            path_wo_lifetimes
+        // TODO [future]: remove the duplicates check for the Sails binary protocol
+        let mut base_names = BTreeSet::new();
+        let base_services_meta = self.base_types.iter().map(|base_type| {
+            let path_wo_lifetimes = shared::remove_lifetimes(base_type);
+            let base_type_pathless_name = path_wo_lifetimes
                 .segments
                 .last()
                 .expect("Base service path should have at least one segment")
                 .ident
-                .to_string()
-                .to_lowercase()
-        });
+                .to_string();
 
-        let base_services_meta = base_services_sorted.iter().map(|(_, path_wo_lifetimes)| {
-            quote! {
-                #sails_path::meta::AnyServiceMeta::new::< #path_wo_lifetimes >
+            if !base_names.insert(base_type_pathless_name.clone()) {
+                abort!(
+                    base_type, "Base service with the same name was defined - `{}`",
+                    base_type_pathless_name
+                );
             }
-        });
 
-        let base_services_ids = base_services_sorted.iter().map(|(_, path_wo_lifetimes)| {
             quote! {
-                #sails_path::meta::AnyServiceIds::new::< #path_wo_lifetimes >()
+                #sails_path::meta::BaseServiceMeta::new::< #path_wo_lifetimes >( #base_type_pathless_name )
             }
         });
 
@@ -48,7 +44,9 @@ impl ServiceBuilder<'_> {
         } else if self.base_types.is_empty() {
             quote!(false)
         } else {
-            let base_asyncness = base_services_sorted.iter().map(|(_, path_wo_lifetimes)| {
+            let base_asyncness = self.base_types.iter().map(|base_type| {
+                let path_wo_lifetimes = shared::remove_lifetimes(base_type);
+
                 quote! {
                     <#path_wo_lifetimes as #sails_path::meta::ServiceMeta>::ASYNC
                 }
@@ -63,11 +61,8 @@ impl ServiceBuilder<'_> {
                 type CommandsMeta = #meta_module_ident::CommandsMeta;
                 type QueriesMeta = #meta_module_ident::QueriesMeta;
                 type EventsMeta = #meta_module_ident::EventsMeta;
-                const BASE_SERVICES: &'static [#sails_path::meta::AnyServiceMetaFn] = &[
+                const BASE_SERVICES: &'static [#sails_path::meta::BaseServiceMeta] = &[
                     #( #base_services_meta ),*
-                ];
-                const BASE_SERVICES_IDS: &'static [#sails_path::meta::AnyServiceIds] = &[
-                    #( #base_services_ids ),*
                 ];
                 const ASYNC: bool = #service_meta_asyncness ;
                 const INTERFACE_ID: #sails_path::meta::InterfaceId = #interface_id_computation;
@@ -227,7 +222,7 @@ impl ServiceBuilder<'_> {
                 #base_services_hash
 
                 let hash = final_hash.finalize();
-                #sails_path::meta::InterfaceId([hash[0], hash[1], hash[2], hash[3], hash[4], hash[5], hash[6], hash[7]])
+                #sails_path::meta::InterfaceId::from_bytes_32(hash)
             }
         }
     }

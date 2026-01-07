@@ -1,3 +1,4 @@
+use crate::InterfaceId;
 use alloc::{
     boxed::Box,
     format,
@@ -5,7 +6,10 @@ use alloc::{
     vec,
     vec::Vec,
 };
-use core::fmt::{Display, Write};
+use core::{
+    fmt::{Display, Write},
+    str::FromStr,
+};
 
 // -------------------------------- IDL model ---------------------------------
 
@@ -49,16 +53,57 @@ pub struct ProgramUnit {
     pub annotations: Vec<(String, Option<String>)>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ServiceIdent {
+    pub name: String,
+    pub interface_id: Option<InterfaceId>,
+}
+
+impl Display for ServiceIdent {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(&self.name)?;
+        if let Some(id) = self.interface_id {
+            f.write_str("@")?;
+            id.fmt(f)?;
+        }
+        Ok(())
+    }
+}
+
+impl FromStr for ServiceIdent {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let (name, interface_id) = match s.split_once('@') {
+            None => (s.trim().to_string(), None),
+            Some((name, id_str)) => {
+                if name.is_empty() {
+                    return Err("name is empty".to_string());
+                }
+                if id_str.is_empty() {
+                    return Err("interface_id is empty".to_string());
+                }
+
+                // Delegate parsing to InterfaceId's FromStr
+                let id = id_str.trim().parse::<InterfaceId>()?;
+                (name.trim().to_string(), Some(id))
+            }
+        };
+        Ok(ServiceIdent { name, interface_id })
+    }
+}
+
 /// Single service export entry inside a `program { services { ... } }` section.
 ///
 /// Represents a link between:
 /// - the exported service name visible to the client,
 /// - an optional low-level `route` (transport / path) used by the runtime,
 /// - may contain documentation comments and annotations.
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ServiceExpo {
-    pub name: String,
+    pub name: ServiceIdent,
     pub route: Option<String>,
+    pub route_idx: u8,
     pub docs: Vec<String>,
     pub annotations: Vec<(String, Option<String>)>,
 }
@@ -92,13 +137,22 @@ pub struct CtorFunc {
     template(path = "service.askama", escape = "none")
 )]
 pub struct ServiceUnit {
-    pub name: String,
-    pub extends: Vec<String>,
+    pub name: ServiceIdent,
+    pub extends: Vec<ServiceIdent>,
     pub funcs: Vec<ServiceFunc>,
     pub events: Vec<ServiceEvent>,
     pub types: Vec<Type>,
     pub docs: Vec<String>,
     pub annotations: Vec<(String, Option<String>)>,
+}
+
+impl ServiceUnit {
+    /// Stabilize ordering for deterministic output and comparisons.
+    pub fn normalize(&mut self) {
+        self.events.sort_by_key(|e| e.name.to_lowercase());
+        self.funcs.sort_by_key(|f| (f.kind, f.name.to_lowercase()));
+        self.extends.sort_by_key(|e| e.name.to_lowercase());
+    }
 }
 
 /// Service function entry inside `service { functions { ... } }`.
@@ -120,7 +174,7 @@ pub struct ServiceFunc {
 }
 
 /// Function kind based on mutability.
-#[derive(Debug, Default, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, Default, PartialEq, Eq, Clone, Copy, PartialOrd, Ord)]
 pub enum FunctionKind {
     #[default]
     Command,
@@ -319,7 +373,7 @@ pub enum PrimitiveType {
 
 impl PrimitiveType {
     /// Returns the canonical textual representation used when rendering IDL.
-    pub fn as_str(&self) -> &'static str {
+    pub const fn as_str(&self) -> &'static str {
         use PrimitiveType::*;
         match self {
             Void => "()",

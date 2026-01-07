@@ -1,17 +1,20 @@
-program Proxy {
+
+!@sails: 0.9.2
+
+service Proxy@0x73843476ff137c7e {
+    functions {
+        /// Get program ID of the target program via client
+        @query
+        GetProgramId() -> ActorId;
+    }
+}
+
+program RedirectProxyClient {
     constructors {
         /// Proxy Program's constructor
         New(target: ActorId);
     }
     services {
-        Proxy,
-    }
-}
-
-service Proxy {
-    functions {
-        /// Get program ID of the target program via client
-        @query
-        GetProgramId() -> ActorId;
+        Proxy@0x73843476ff137c7e,
     }
 }

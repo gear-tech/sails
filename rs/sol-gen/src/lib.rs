@@ -117,7 +117,7 @@ fn functions_from_idl(doc: &IdlDoc) -> Result<Vec<FunctionData>> {
                 None
             };
             functions.push(FunctionData {
-                name: format!("{}{}", svc.name, f.name)
+                name: format!("{}{}", svc.name.name, f.name)
                     .as_str()
                     .to_case(Case::Camel),
                 reply_type,

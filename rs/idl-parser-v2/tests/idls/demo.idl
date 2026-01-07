@@ -94,6 +94,8 @@ service ThisThat {
             Six,
         }
         struct TupleStruct(bool);
+        struct NonZeroU8(u8);
+        struct NonZeroU32(u32);
     }
 }
 service ValueFee {

@@ -5,7 +5,7 @@ use rust::Tokens;
 use sails_idl_parser_v2::{ast, visitor::Visitor};
 
 pub(crate) struct CtorGenerator<'ast> {
-    service_name: &'ast str,
+    program_name: &'ast str,
     sails_path: &'ast str,
     ctor_tokens: Tokens,
     io_tokens: Tokens,
@@ -13,9 +13,9 @@ pub(crate) struct CtorGenerator<'ast> {
 }
 
 impl<'ast> CtorGenerator<'ast> {
-    pub(crate) fn new(service_name: &'ast str, sails_path: &'ast str) -> Self {
+    pub(crate) fn new(program_name: &'ast str, sails_path: &'ast str) -> Self {
         Self {
-            service_name,
+            program_name,
             sails_path,
             ctor_tokens: Tokens::new(),
             io_tokens: Tokens::new(),
@@ -25,12 +25,12 @@ impl<'ast> CtorGenerator<'ast> {
 
     pub(crate) fn finalize(self) -> Tokens {
         quote! {
-            pub trait $(self.service_name)Ctors {
+            pub trait $(self.program_name)Ctors {
                 type Env: $(self.sails_path)::client::GearEnv;
                 $(self.trait_ctors_tokens)
             }
 
-            impl<E: $(self.sails_path)::client::GearEnv> $(self.service_name)Ctors for $(self.sails_path)::client::Deployment<$(self.service_name)Program, E> {
+            impl<E: $(self.sails_path)::client::GearEnv> $(self.program_name)Ctors for $(self.sails_path)::client::Deployment<$(self.program_name)Program, E> {
                 type Env = E;
                 $(self.ctor_tokens)
             }
@@ -63,12 +63,12 @@ impl<'ast> Visitor<'ast> for CtorGenerator<'ast> {
 
         quote_in! { self.trait_ctors_tokens =>
             $['\r']
-            fn $fn_name_snake (self, $params_with_types) -> $(self.sails_path)::client::PendingCtor<$(self.service_name)Program, io::$fn_name, Self::Env>;
+            fn $fn_name_snake (self, $params_with_types) -> $(self.sails_path)::client::PendingCtor<$(self.program_name)Program, io::$fn_name, Self::Env>;
         };
 
         quote_in! { self.ctor_tokens =>
             $['\r']
-            fn $fn_name_snake (self, $params_with_types) -> $(self.sails_path)::client::PendingCtor<$(self.service_name)Program, io::$fn_name, Self::Env> {
+            fn $fn_name_snake (self, $params_with_types) -> $(self.sails_path)::client::PendingCtor<$(self.program_name)Program, io::$fn_name, Self::Env> {
                 self.pending_ctor($args)
             }
         };

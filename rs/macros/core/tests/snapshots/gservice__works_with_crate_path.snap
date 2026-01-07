@@ -11,19 +11,23 @@ for SomeServiceExposure<T> {
     fn route(&self) -> &'static [u8] {
         self.route
     }
-    fn check_asyncness(input: &[u8]) -> Option<bool> {
-        use sails_rename::gstd::InvocationIo;
+    fn check_asyncness(
+        interface_id: sails_rename::meta::InterfaceId,
+        entry_id: u16,
+    ) -> Option<bool> {
         use sails_rename::gstd::services::{Service, Exposure};
         if !T::ASYNC {
             return Some(false);
         }
-        if let Ok(is_async) = some_service_meta::__DoThisParams::check_asyncness(input) {
-            return Some(is_async);
+        if interface_id == T::INTERFACE_ID {
+            match entry_id {
+                0u16 => Some(true),
+                1u16 => Some(false),
+                _ => None,
+            }
+        } else {
+            None
         }
-        if let Ok(is_async) = some_service_meta::__ThisParams::check_asyncness(input) {
-            return Some(is_async);
-        }
-        None
     }
 }
 impl<T> core::ops::Deref for SomeServiceExposure<T> {
@@ -46,50 +50,87 @@ impl SomeServiceExposure<SomeService> {
     pub fn this(&self, p1: bool) -> bool {
         p1
     }
-    pub fn check_asyncness(&self, input: &[u8]) -> Option<bool> {
-        <Self as sails_rename::gstd::services::Exposure>::check_asyncness(input)
+    pub fn check_asyncness(
+        &self,
+        interface_id: sails_rename::meta::InterfaceId,
+        entry_id: u16,
+    ) -> Option<bool> {
+        <Self as sails_rename::gstd::services::Exposure>::check_asyncness(
+            interface_id,
+            entry_id,
+        )
     }
     pub fn try_handle(
         mut self,
-        input: &[u8],
+        interface_id: sails_rename::meta::InterfaceId,
+        entry_id: u16,
+        input: sails_rename::Vec<u8>,
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
-        use sails_rename::gstd::InvocationIo;
+        use sails_rename::gstd::{InvocationIo, CommandReply};
         use sails_rename::gstd::services::{Service, Exposure};
-        if let Ok(request) = some_service_meta::__ThisParams::decode_params(input) {
-            let result = self.this(request.p1);
-            let value = 0u128;
-            if !some_service_meta::__ThisParams::is_empty_tuple::<bool>() {
-                some_service_meta::__ThisParams::with_optimized_encode(
-                    &result,
-                    self.route().as_ref(),
-                    |encoded_result| result_handler(encoded_result, value),
-                );
+        if interface_id == <SomeService as sails_rename::meta::ServiceMeta>::INTERFACE_ID
+        {
+            match entry_id {
+                1u16 => {
+                    let request = <some_service_meta::__ThisParams as sails_rename::gstd::InvocationIo>::decode_params(
+                            &input,
+                        )
+                        .expect("Failed to decode params");
+                    let result = self.this(request.p1);
+                    let value = 0u128;
+                    if !<some_service_meta::__ThisParams as sails_rename::gstd::InvocationIo>::is_empty_tuple::<
+                        bool,
+                    >() {
+                        <some_service_meta::__ThisParams as sails_rename::gstd::InvocationIo>::with_optimized_encode(
+                            &result,
+                            self.route().as_ref(),
+                            |encoded_result| result_handler(encoded_result, value),
+                        );
+                    }
+                    return Some(());
+                }
+                _ => None,
             }
-            return Some(());
+        } else {
+            None
         }
-        None
     }
     pub async fn try_handle_async(
         mut self,
-        input: &[u8],
+        interface_id: sails_rename::meta::InterfaceId,
+        entry_id: u16,
+        input: sails_rename::Vec<u8>,
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
-        use sails_rename::gstd::InvocationIo;
+        use sails_rename::gstd::{InvocationIo, CommandReply};
         use sails_rename::gstd::services::{Service, Exposure};
-        if let Ok(request) = some_service_meta::__DoThisParams::decode_params(input) {
-            let result = self.do_this(request.p1, request.p2).await;
-            let value = 0u128;
-            if !some_service_meta::__DoThisParams::is_empty_tuple::<u32>() {
-                some_service_meta::__DoThisParams::with_optimized_encode(
-                    &result,
-                    self.route().as_ref(),
-                    |encoded_result| result_handler(encoded_result, value),
-                );
+        if interface_id == <SomeService as sails_rename::meta::ServiceMeta>::INTERFACE_ID
+        {
+            match entry_id {
+                0u16 => {
+                    let request = <some_service_meta::__DoThisParams as sails_rename::gstd::InvocationIo>::decode_params(
+                            &input,
+                        )
+                        .expect("Failed to decode params");
+                    let result = self.do_this(request.p1, request.p2).await;
+                    let value = 0u128;
+                    if !<some_service_meta::__DoThisParams as sails_rename::gstd::InvocationIo>::is_empty_tuple::<
+                        u32,
+                    >() {
+                        <some_service_meta::__DoThisParams as sails_rename::gstd::InvocationIo>::with_optimized_encode(
+                            &result,
+                            self.route().as_ref(),
+                            |encoded_result| result_handler(encoded_result, value),
+                        );
+                    }
+                    return Some(());
+                }
+                _ => None,
             }
-            return Some(());
+        } else {
+            None
         }
-        None
     }
 }
 impl sails_rename::gstd::services::Service for SomeService {
@@ -105,7 +146,7 @@ impl sails_rename::meta::ServiceMeta for SomeService {
     type CommandsMeta = some_service_meta::CommandsMeta;
     type QueriesMeta = some_service_meta::QueriesMeta;
     type EventsMeta = some_service_meta::EventsMeta;
-    const BASE_SERVICES: &'static [sails_rename::meta::AnyServiceMetaFn] = &[];
+    const BASE_SERVICES: &'static [sails_rename::meta::BaseServiceMeta] = &[];
     const ASYNC: bool = true;
     const INTERFACE_ID: sails_rename::meta::InterfaceId = {
         let mut final_hash = sails_rename::keccak_const::Keccak256::new();
@@ -136,16 +177,7 @@ impl sails_rename::meta::ServiceMeta for SomeService {
             final_hash = final_hash.update(&fn_hash.finalize());
         }
         let hash = final_hash.finalize();
-        sails_rename::meta::InterfaceId([
-            hash[0],
-            hash[1],
-            hash[2],
-            hash[3],
-            hash[4],
-            hash[5],
-            hash[6],
-            hash[7],
-        ])
+        sails_rename::meta::InterfaceId::from_bytes_32(hash)
     };
 }
 mod some_service_meta {

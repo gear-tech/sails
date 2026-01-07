@@ -5,6 +5,21 @@ program RmrkCatalog {
     services {
         RmrkCatalogService,
     }
+}
+
+service RmrkCatalogService {
+    functions {
+        AddEquippables(part_id: u32, collection_ids: [ActorId]) -> Result<(u32, [ActorId]), Error>;
+        AddParts(parts: [(u32, Part)]) -> Result<[(u32, Part)], Error>;
+        RemoveEquippable(part_id: u32, collection_id: ActorId) -> Result<(u32, ActorId), Error>;
+        RemoveParts(part_ids: [u32]) -> Result<[u32], Error>;
+        ResetEquippables(part_id: u32) -> Result<(), Error>;
+        SetEquippablesToAll(part_id: u32) -> Result<(), Error>;
+        @query
+        Equippable(part_id: u32, collection_id: ActorId) -> Result<bool, Error>;
+        @query
+        Part(part_id: u32) -> Option<Part>;
+    }
     types {
         enum Error {
             PartIdCantBeZero,
@@ -39,20 +54,5 @@ program RmrkCatalog {
             /// The metadata URI of the part.
             metadata_uri: string,
         }
-    }
-}
-
-service RmrkCatalogService {
-    functions {
-        AddEquippables(part_id: u32, collection_ids: [ActorId]) -> Result<(u32, [ActorId]), Error>;
-        AddParts(parts: [(u32, Part)]) -> Result<[(u32, Part)], Error>;
-        RemoveEquippable(part_id: u32, collection_id: ActorId) -> Result<(u32, ActorId), Error>;
-        RemoveParts(part_ids: [u32]) -> Result<[u32], Error>;
-        ResetEquippables(part_id: u32) -> Result<(), Error>;
-        SetEquippablesToAll(part_id: u32) -> Result<(), Error>;
-        @query
-        Equippable(part_id: u32, collection_id: ActorId) -> Result<bool, Error>;
-        @query
-        Part(part_id: u32) -> Option<Part>;
     }
 }

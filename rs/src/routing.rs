@@ -53,7 +53,7 @@ const fn fill_interface_ids_recursive(
     service: AnyServiceIds,
     route_id: u8,
 ) {
-    arr[*offset] = (InterfaceId(service.interface_id), route_id);
+    arr[*offset] = (service.interface_id, route_id);
     *offset += 1;
     let base_services = service.base_services;
     let mut idx = 0;

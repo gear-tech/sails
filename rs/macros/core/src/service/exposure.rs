@@ -70,6 +70,7 @@ impl ServiceBuilder<'_> {
     }
 
     pub(super) fn exposure_impl(&self) -> TokenStream {
+        let sails_path = self.sails_path;
         let exposure_ident = &self.exposure_ident;
         let generics = &self.generics;
         let service_type_path = self.type_path;
@@ -95,6 +96,10 @@ impl ServiceBuilder<'_> {
             #( #exposure_allow_attrs )*
             impl #generics #exposure_ident< #service_type_path > #service_type_constraints {
                 #( #exposure_funcs )*
+
+                pub fn check_asyncness(&self, interface_id: #sails_path::meta::InterfaceId, entry_id: u16) -> Option<bool> {
+                    <Self as #sails_path::gstd::services::Exposure>::check_asyncness(interface_id, entry_id)
+                }
 
                 #try_handle_impl
 

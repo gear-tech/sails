@@ -21,3 +21,6 @@ program DocProgram {
         }
     }
 }
+
+service MyService {
+}

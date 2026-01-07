@@ -10,12 +10,15 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-askama = { workspace = true, optional = true }
+askama = { workspace = true, optional = true, features = ["alloc", "derive"] }
+keccak-const.workspace = true
 scale-info.workspace = true
 parity-scale-codec = { workspace = true, features = ["derive"] }
 
 [dev-dependencies]
+gprimitives.workspace = true
 insta.workspace = true
+sails-reflect-hash.workspace = true
 
 [features]
 default = ["ast"]

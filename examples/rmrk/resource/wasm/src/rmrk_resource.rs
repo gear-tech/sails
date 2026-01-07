@@ -38,74 +38,74 @@ pub mod io {
     use super::*;
     sails_rs::io_struct_impl!(New () -> ());
 }
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
-#[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
-#[reflect_hash(crate = sails_rs)]
-pub enum Error {
-    NotAuthorized,
-    ZeroResourceId,
-    ResourceAlreadyExists,
-    ResourceNotFound,
-    WrongResourceType,
-    PartNotFound,
-}
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
-#[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
-#[reflect_hash(crate = sails_rs)]
-pub enum Resource {
-    Basic(BasicResource),
-    Slot(SlotResource),
-    Composed(ComposedResource),
-}
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
-#[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
-#[reflect_hash(crate = sails_rs)]
-pub struct BasicResource {
-    /// URI like IPFS hash
-    pub src: String,
-    /// If the resource has the thumb property, this will be a URI to a thumbnail of the given
-    /// resource.
-    pub thumb: Option<String>,
-    /// Reference to IPFS location of metadata
-    pub metadata_uri: String,
-}
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
-#[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
-#[reflect_hash(crate = sails_rs)]
-pub struct SlotResource {
-    /// URI like ipfs hash
-    pub src: String,
-    /// If the resource has the thumb property, this will be a URI to a thumbnail of the given
-    /// resource.
-    pub thumb: String,
-    /// Reference to IPFS location of metadata
-    pub metadata_uri: String,
-    pub base: ActorId,
-    /// If the resource has the slot property, it was designed to fit into a specific Base's slot.
-    pub slot: u32,
-}
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
-#[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
-#[reflect_hash(crate = sails_rs)]
-pub struct ComposedResource {
-    /// URI like ipfs hash
-    pub src: String,
-    /// If the resource has the thumb property, this will be a URI to a thumbnail of the given
-    /// resource.
-    pub thumb: String,
-    /// Reference to IPFS location of metadata
-    pub metadata_uri: String,
-    pub base: ActorId,
-    pub parts: Vec<u32>,
-}
 
 pub mod rmrk_resource {
     use super::*;
+    #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
+    #[codec(crate = sails_rs::scale_codec)]
+    #[scale_info(crate = sails_rs::scale_info)]
+    #[reflect_hash(crate = sails_rs)]
+    pub enum Error {
+        NotAuthorized,
+        ZeroResourceId,
+        ResourceAlreadyExists,
+        ResourceNotFound,
+        WrongResourceType,
+        PartNotFound,
+    }
+    #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
+    #[codec(crate = sails_rs::scale_codec)]
+    #[scale_info(crate = sails_rs::scale_info)]
+    #[reflect_hash(crate = sails_rs)]
+    pub enum Resource {
+        Basic(BasicResource),
+        Slot(SlotResource),
+        Composed(ComposedResource),
+    }
+    #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
+    #[codec(crate = sails_rs::scale_codec)]
+    #[scale_info(crate = sails_rs::scale_info)]
+    #[reflect_hash(crate = sails_rs)]
+    pub struct BasicResource {
+        /// URI like IPFS hash
+        pub src: String,
+        /// If the resource has the thumb property, this will be a URI to a thumbnail of the given
+        /// resource.
+        pub thumb: Option<String>,
+        /// Reference to IPFS location of metadata
+        pub metadata_uri: String,
+    }
+    #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
+    #[codec(crate = sails_rs::scale_codec)]
+    #[scale_info(crate = sails_rs::scale_info)]
+    #[reflect_hash(crate = sails_rs)]
+    pub struct SlotResource {
+        /// URI like ipfs hash
+        pub src: String,
+        /// If the resource has the thumb property, this will be a URI to a thumbnail of the given
+        /// resource.
+        pub thumb: String,
+        /// Reference to IPFS location of metadata
+        pub metadata_uri: String,
+        pub base: ActorId,
+        /// If the resource has the slot property, it was designed to fit into a specific Base's slot.
+        pub slot: u32,
+    }
+    #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
+    #[codec(crate = sails_rs::scale_codec)]
+    #[scale_info(crate = sails_rs::scale_info)]
+    #[reflect_hash(crate = sails_rs)]
+    pub struct ComposedResource {
+        /// URI like ipfs hash
+        pub src: String,
+        /// If the resource has the thumb property, this will be a URI to a thumbnail of the given
+        /// resource.
+        pub thumb: String,
+        /// Reference to IPFS location of metadata
+        pub metadata_uri: String,
+        pub base: ActorId,
+        pub parts: Vec<u32>,
+    }
     pub trait RmrkResource {
         type Env: sails_rs::client::GearEnv;
         fn add_part_to_resource(
@@ -162,11 +162,11 @@ pub mod rmrk_resource {
         #[codec(crate = sails_rs::scale_codec)]
         #[reflect_hash(crate = sails_rs)]
         pub enum RmrkResourceEvents {
-            ResourceAdded { resource_id: u8 },
             PartAdded { resource_id: u8, part_id: u32 },
+            ResourceAdded { resource_id: u8 },
         }
         impl sails_rs::client::Event for RmrkResourceEvents {
-            const EVENT_NAMES: &'static [Route] = &["ResourceAdded", "PartAdded"];
+            const EVENT_NAMES: &'static [Route] = &["PartAdded", "ResourceAdded"];
         }
         impl sails_rs::client::ServiceWithEvents for RmrkResourceImpl {
             type Event = RmrkResourceEvents;

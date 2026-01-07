@@ -49,11 +49,21 @@ pub mod wasm {
             gstd::unknown_input_panic("Unexpected ctor", input)
         };
     }
+    const SERVICES_COUNT: usize = 0usize;
+    const INTERFACE_IDS: &'static [(sails_rs::meta::InterfaceId, u8)] = &sails_rs::meta::interface_ids::<
+        SERVICES_COUNT,
+    >(&[]);
     #[unsafe(no_mangle)]
     extern "C" fn handle() {
-        let mut input = gstd::msg::load_bytes().expect("Failed to read input");
+        let sails_message = gstd::msg::load::<sails_rs::SailsMessage>()
+            .expect("Failed to read sails message");
         let program_ref = unsafe { PROGRAM.as_mut() }.expect("Program not initialized");
-        { gstd::unknown_input_panic("Unexpected service", &input) };
+        let (interface_id, route_id, entry_id, payload) = sails_message
+            .try_match_interfaces(INTERFACE_IDS)
+            .expect("Failed to find matching service");
+        match route_id {
+            _ => gstd::unknown_input_panic("Unknown route_id", &[route_id]),
+        }
     }
     #[unsafe(no_mangle)]
     extern "C" fn handle_reply() {

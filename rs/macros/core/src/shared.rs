@@ -123,7 +123,9 @@ pub(crate) fn discover_invocation_targets<'a>(
                         duplicate
                     );
                 }
-                let fn_builder = FnBuilder::from(route, export, fn_item, unwrap_result, sails_path);
+                let idx = (routes.len() + 1) as u8;
+                let fn_builder =
+                    FnBuilder::from(route, idx, export, fn_item, unwrap_result, sails_path);
                 return Some(fn_builder);
             }
             None
@@ -270,6 +272,7 @@ pub(crate) fn extract_result_types(tp: &TypePath) -> Option<(&Type, &Type)> {
 #[derive(Clone)]
 pub(crate) struct FnBuilder<'a> {
     pub route: String,
+    pub route_idx: u8,
     pub export: bool,
     pub encoded_route: Vec<u8>,
     pub impl_fn: &'a ImplItemFn,
@@ -285,6 +288,7 @@ pub(crate) struct FnBuilder<'a> {
 impl<'a> FnBuilder<'a> {
     pub(crate) fn from(
         route: String,
+        route_idx: u8,
         export: bool,
         impl_fn: &'a ImplItemFn,
         unwrap_result: bool,
@@ -299,6 +303,7 @@ impl<'a> FnBuilder<'a> {
 
         Self {
             route,
+            route_idx,
             export,
             encoded_route,
             impl_fn,
