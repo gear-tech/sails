@@ -176,32 +176,32 @@ enum AmbiguousBaseEventsMeta {
     ThatDoneBase { p1: u16 },
 }
 
-struct GenericService<C, Q, E> {
+struct GenericService<C, Q, E, const ID: u64> {
     _commands: std::marker::PhantomData<C>,
     _queries: std::marker::PhantomData<Q>,
     _events: std::marker::PhantomData<E>,
 }
 
-impl<C: StaticTypeInfo, Q: StaticTypeInfo, E: StaticTypeInfo> ServiceMeta
-    for GenericService<C, Q, E>
+impl<C: StaticTypeInfo, Q: StaticTypeInfo, E: StaticTypeInfo, const ID: u64> ServiceMeta
+    for GenericService<C, Q, E, ID>
 {
     type CommandsMeta = C;
     type QueriesMeta = Q;
     type EventsMeta = E;
     const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
     const ASYNC: bool = false;
-    const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(1);
+    const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(ID);
 }
 
-struct GenericServiceWithBase<C, Q, E, B> {
+struct GenericServiceWithBase<C, Q, E, B, const ID: u64> {
     _commands: std::marker::PhantomData<C>,
     _queries: std::marker::PhantomData<Q>,
     _events: std::marker::PhantomData<E>,
     _base: std::marker::PhantomData<B>,
 }
 
-impl<C: StaticTypeInfo, Q: StaticTypeInfo, E: StaticTypeInfo, B: ServiceMeta> ServiceMeta
-    for GenericServiceWithBase<C, Q, E, B>
+impl<C: StaticTypeInfo, Q: StaticTypeInfo, E: StaticTypeInfo, B: ServiceMeta, const ID: u64>
+    ServiceMeta for GenericServiceWithBase<C, Q, E, B, ID>
 {
     type CommandsMeta = C;
     type QueriesMeta = Q;
@@ -209,10 +209,10 @@ impl<C: StaticTypeInfo, Q: StaticTypeInfo, E: StaticTypeInfo, B: ServiceMeta> Se
     const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] =
         &[("B", AnyServiceMeta::new::<B>)];
     const ASYNC: bool = false;
-    const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(2);
+    const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(ID);
 }
 
-type TestServiceMeta = GenericService<CommandsMeta, QueriesMeta, EventsMeta>;
+type TestServiceMeta = GenericService<CommandsMeta, QueriesMeta, EventsMeta, 0xd6ed5296008aed60>;
 
 #[allow(dead_code)]
 #[derive(TypeInfo)]
@@ -346,7 +346,8 @@ fn service_idl_works_with_base_services() {
             CommandsMeta,
             QueriesMeta,
             EventsMeta,
-            GenericService<BaseCommandsMeta, BaseQueriesMeta, BaseEventsMeta>,
+            GenericService<BaseCommandsMeta, BaseQueriesMeta, BaseEventsMeta, 0x256fb43427bef08e>,
+            0xc4aaf5c4932ab704,
         >,
     >("ServiceMetaWithBase", &mut idl)
     .unwrap();

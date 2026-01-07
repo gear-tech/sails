@@ -49,8 +49,8 @@ service MammalService@0xff6b93e1961026fe {
 
 service Dog@0x18666e67a21917a1 {
     extends {
-        WalkerService@0xee1536b55170bf0a,
         MammalService@0xff6b93e1961026fe,
+        WalkerService@0xee1536b55170bf0a,
     }
     events {
         Barked,
@@ -60,7 +60,7 @@ service Dog@0x18666e67a21917a1 {
     }
 }
 
-service References@0xb7a968809a79420a {
+service References@0x3dab91b196478162 {
     functions {
         Add(v: u32) -> u32;
         AddByte(byte: u8) -> [u8];
@@ -79,7 +79,7 @@ service References@0xb7a968809a79420a {
     }
 }
 
-service ThisThat@0x18ff5d765e12ddad {
+service ThisThat@0x445bed6efbe8e6dd {
     functions {
         DoThat(param: DoThatParam) -> (ActorId, NonZeroU32, ManyVariantsReply) throws (String);
         DoThis(p1: u32, p2: String, p3: (Option<H160>, NonZeroU8), p4: TupleStruct) -> (String, u32);
@@ -153,8 +153,8 @@ program DemoClient {
         PingPong@0x21bd9a9aa51da264,
         Counter@0x579d6daba41b7d82,
         Dog@0x18666e67a21917a1,
-        References@0xb7a968809a79420a,
-        ThisThat@0x18ff5d765e12ddad,
+        References@0x3dab91b196478162,
+        ThisThat@0x445bed6efbe8e6dd,
         ValueFee@0x41c1080b4e1e8dc5,
         Chaos@0xf0c8c80dfabf72d5,
     }

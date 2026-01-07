@@ -56,25 +56,25 @@ pub mod ping_pong_stack {
     use super::*;
     pub trait PingPongStack {
         type Env: sails_rs::client::GearEnv;
-        fn start(&mut self, limit: u32) -> sails_rs::client::PendingCall<io::Start, Self::Env>;
         fn ping(&mut self, countdown: u32) -> sails_rs::client::PendingCall<io::Ping, Self::Env>;
+        fn start(&mut self, limit: u32) -> sails_rs::client::PendingCall<io::Start, Self::Env>;
     }
     pub struct PingPongStackImpl;
     impl<E: sails_rs::client::GearEnv> PingPongStack
         for sails_rs::client::Service<PingPongStackImpl, E>
     {
         type Env = E;
-        fn start(&mut self, limit: u32) -> sails_rs::client::PendingCall<io::Start, Self::Env> {
-            self.pending_call((limit,))
-        }
         fn ping(&mut self, countdown: u32) -> sails_rs::client::PendingCall<io::Ping, Self::Env> {
             self.pending_call((countdown,))
+        }
+        fn start(&mut self, limit: u32) -> sails_rs::client::PendingCall<io::Start, Self::Env> {
+            self.pending_call((limit,))
         }
     }
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(Start (limit: u32) -> ());
         sails_rs::io_struct_impl!(Ping (countdown: u32) -> ());
+        sails_rs::io_struct_impl!(Start (limit: u32) -> ());
     }
 }

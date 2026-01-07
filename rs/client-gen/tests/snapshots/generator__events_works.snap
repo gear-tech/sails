@@ -55,12 +55,12 @@ pub mod service_with_events {
         #[reflect_hash(crate = sails_rs)]
         pub enum ServiceWithEventsEvents {
             One(u64),
-            Two { id: u8, reference: u64 },
-            Three(MyParam),
             Reset,
+            Three(MyParam),
+            Two { id: u8, reference: u64 },
         }
         impl sails_rs::client::Event for ServiceWithEventsEvents {
-            const EVENT_NAMES: &'static [Route] = &["One", "Two", "Three", "Reset"];
+            const EVENT_NAMES: &'static [Route] = &["One", "Reset", "Three", "Two"];
         }
         impl sails_rs::client::ServiceWithEvents for ServiceWithEventsImpl {
             type Event = ServiceWithEventsEvents;

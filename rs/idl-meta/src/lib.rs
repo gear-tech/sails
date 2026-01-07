@@ -4,6 +4,8 @@ extern crate alloc;
 
 #[cfg(feature = "ast")]
 mod ast;
+#[cfg(feature = "ast")]
+mod hash;
 
 use alloc::{
     format,
@@ -19,7 +21,7 @@ pub type AnyServiceMetaFn = fn() -> AnyServiceMeta;
 /// Unique identifier for a service (or "interface" in terms of sails binary protocol).
 ///
 /// For more information about interface IDs, see the interface ID spec.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct InterfaceId(pub [u8; 8]);
 
 impl InterfaceId {
@@ -44,7 +46,12 @@ impl InterfaceId {
 
     /// Create interface ID from u64.
     pub const fn from_u64(int: u64) -> Self {
-        Self(int.to_le_bytes())
+        Self(int.to_be_bytes())
+    }
+
+    /// Get interface ID as a u64.
+    pub const fn as_u64(&self) -> u64 {
+        u64::from_be_bytes(self.0)
     }
 
     /// Get interface ID as a byte slice
@@ -68,6 +75,12 @@ impl InterfaceId {
     pub fn try_from_bytes(bytes: &[u8]) -> Result<Self, &'static str> {
         let mut slice = bytes;
         Self::try_read_bytes(&mut slice)
+    }
+}
+
+impl core::fmt::Debug for InterfaceId {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{}", &self)
     }
 }
 

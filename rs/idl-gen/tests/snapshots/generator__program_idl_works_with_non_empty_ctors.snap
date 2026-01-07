@@ -4,8 +4,13 @@ expression: idl
 ---
 !@sails: 0.9.2
 
-service Test@0x0100000000000000 {
+service Test@0xd6ed5296008aed60 {
     events {
+        /// `That` Done too
+        ThatDone {
+            /// This is `p1` field
+            p1: String,
+        },
         /// `This` Done
         ThisDone (
             /// This is unnamed field, comments ignored
@@ -17,26 +22,21 @@ service Test@0x0100000000000000 {
             /// This is the second unnamed field
             u32,
         ),
-        /// `That` Done too
-        ThatDone {
-            /// This is `p1` field
-            p1: String,
-        },
     }
     functions {
-        /// Some description
-        DoThis(p1: u32, p2: String, p3: (Option<String>, u8), p4: TupleStruct, p5: GenericStruct<H256>, p6: GenericStruct<String>, p7: GenericConstStructN8, p8: GenericConstStructN32) -> String;
         /// Some multiline description
         /// Second line
         /// Third line
         DoThat(par1: DoThatParam) -> (String, u32) throws (String);
-        /// This is a query
-        @query
-        This(p1: u32, p2: String, p3: (Option<String>, u8), p4: TupleStruct, p5: GenericEnum<bool, u32>) -> (String, u32) throws String;
+        /// Some description
+        DoThis(p1: u32, p2: String, p3: (Option<String>, u8), p4: TupleStruct, p5: GenericStruct<H256>, p6: GenericStruct<String>, p7: GenericConstStructN8, p8: GenericConstStructN32) -> String;
         /// This is a second query
         /// This is a second line
         @query
         That(pr1: ThatParam) -> String;
+        /// This is a query
+        @query
+        This(p1: u32, p2: String, p3: (Option<String>, u8), p4: TupleStruct, p5: GenericEnum<bool, u32>) -> (String, u32) throws String;
     }
     types {
         struct DoThatParam {
@@ -97,6 +97,6 @@ program TestProgramWithNonEmptyCtorsMeta {
         FromStr(p1: String);
     }
     services {
-        Test@0x0100000000000000,
+        Test@0xd6ed5296008aed60,
     }
 }
