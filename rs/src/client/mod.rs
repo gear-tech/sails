@@ -358,7 +358,7 @@ pub trait CallCodec {
     type Reply: Decode + 'static;
 
     fn encode_params(value: &Self::Params) -> Vec<u8> {
-        Self::encode_params_with_header(InterfaceId::zero(), 0, value)
+        value.encode()
     }
 
     fn encode_params_with_header(
@@ -608,9 +608,89 @@ pub trait Event: Decode {
             return Err("Entry ID exceeds u8 limit for SCALE enum".into());
         }
 
+        // Reconstruct the standard SCALE enum encoding.
+        // The network payload only contains the event data (arguments), omitting the variant index
+        // because the `entry_id` in the header already serves as the identifier.
+        // However, the standard Rust `Decode` implementation for enums expects a leading index byte.
+        // Therefore, we prepend the `entry_id` (as u8) to the payload to satisfy the decoder.
         let variant_index = entry_id as u8;
         let bytes = [&[variant_index], payload].concat();
         let mut event_bytes = &bytes[..];
         Decode::decode(&mut event_bytes)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    io_struct_impl!(Add (value: u32) -> u32, 0);
+    io_struct_impl!(Value () -> u32, 1);
+
+    #[test]
+    fn test_io_struct_impl() {
+        let add = Add::encode_params(42);
+        let expected_header_add = [
+            0x47, 0x4D, // magic ("GM")
+            1,    // version
+            16,   // hlen
+            0, 0, 0, 0, 0, 0, 0, 0, // interface_id (zero)
+            0, 0, // entry_id (0 for Add)
+            0, // route_id
+            0, // reserved
+        ];
+        let expected_add_payload = [42, 0, 0, 0]; // 42u32 LE
+
+        assert_eq!(add, expected_add_payload);
+
+        let interface_id = InterfaceId::from_bytes_8([1, 2, 3, 4, 5, 6, 7, 8]);
+        let route_idx = 5;
+
+        let add_specific = Add::encode_params_with_header(interface_id, route_idx, 42);
+
+        let mut expected_header_add_specific = expected_header_add;
+        expected_header_add_specific[4..12].copy_from_slice(interface_id.as_bytes()); // update Interface ID
+        expected_header_add_specific[14] = route_idx; // update Route Index
+
+        let mut expected_add_specific = Vec::new();
+        expected_add_specific.extend_from_slice(&expected_header_add_specific);
+        expected_add_specific.extend_from_slice(&expected_add_payload);
+
+        assert_eq!(add_specific, expected_add_specific);
+
+        let reply_payload = [42, 0, 0, 0];
+        let mut reply_with_header = expected_add_specific.clone();
+        // The reply should have the same header but payload is u32
+        reply_with_header.truncate(16);
+        reply_with_header.extend_from_slice(&reply_payload); // Add reply payload
+
+        let decoded =
+            Add::decode_reply_with_header(interface_id, route_idx, &reply_with_header).unwrap();
+        assert_eq!(decoded, 42);
+
+        let value_encoded = Value::encode_params();
+        assert_eq!(value_encoded, Vec::<u8>::new());
+
+        let value_encoded_header = Value::encode_params_with_header(interface_id, route_idx);
+        let mut expected_header_value = expected_header_add_specific; // Reuse header structure
+        expected_header_value[12] = 1; // Set entry_id to 1 (LE)
+        assert_eq!(value_encoded_header, expected_header_value);
+
+        // Test decoding reply for Value (entry_id = 1)
+        let value_header = [
+            0x47, 0x4D, // magic ("GM")
+            1,    // version
+            16,   // hlen
+            1, 2, 3, 4, 5, 6, 7, 8, // interface_id
+            1, 0, // entry_id (1 for Value)
+            5, // route_id
+            0, // reserved
+        ];
+        let mut value_reply = Vec::new();
+        value_reply.extend_from_slice(&value_header);
+        value_reply.extend_from_slice(&reply_payload);
+
+        let decoded_val =
+            Value::decode_reply_with_header(interface_id, route_idx, &value_reply).unwrap();
+        assert_eq!(decoded_val, 42);
     }
 }
