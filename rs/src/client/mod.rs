@@ -1,6 +1,5 @@
-use crate::prelude::*;
-pub use sails_idl_meta::InterfaceId;
 use crate::header::SailsMessageHeader;
+use crate::prelude::*;
 use core::{
     any::TypeId,
     error::Error,
@@ -9,6 +8,7 @@ use core::{
     task::{Context, Poll},
 };
 use futures::Stream;
+pub use sails_idl_meta::InterfaceId;
 
 #[cfg(feature = "gtest")]
 #[cfg(not(target_arch = "wasm32"))]
@@ -175,11 +175,31 @@ impl<S, E: GearEnv> Service<S, E> {
     }
 
     pub fn pending_call<T: CallCodec>(&self, args: T::Params) -> PendingCall<T, E> {
-        PendingCall::new(self.env.clone(), self.actor_id, self.interface_id, self.route_idx, args)
+        PendingCall::new(
+            self.env.clone(),
+            self.actor_id,
+            self.interface_id,
+            self.route_idx,
+            args,
+        )
     }
 
     pub fn base_service<B>(&self) -> Service<B, E> {
-        Service::new(self.env.clone(), self.actor_id, self.interface_id, self.route_idx)
+        Service::new(
+            self.env.clone(),
+            self.actor_id,
+            self.interface_id,
+            self.route_idx,
+        )
+    }
+
+    pub fn base_service_at<B>(&self, interface_id: InterfaceId) -> Service<B, E> {
+        Service::new(
+            self.env.clone(),
+            self.actor_id,
+            interface_id,
+            self.route_idx,
+        )
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -187,7 +207,12 @@ impl<S, E: GearEnv> Service<S, E> {
     where
         S: ServiceWithEvents,
     {
-        ServiceListener::new(self.env.clone(), self.actor_id, self.interface_id, self.route_idx)
+        ServiceListener::new(
+            self.env.clone(),
+            self.actor_id,
+            self.interface_id,
+            self.route_idx,
+        )
     }
 }
 
@@ -231,7 +256,9 @@ impl<D: Event, E: GearEnv> ServiceListener<D, E> {
                 if actor_id != self_id {
                     return None;
                 }
-                D::decode_event(interface_id, route_idx, payload).ok().map(|e| (actor_id, e))
+                D::decode_event(interface_id, route_idx, payload)
+                    .ok()
+                    .map(|e| (actor_id, e))
             })
             .await
     }
@@ -251,7 +278,13 @@ pin_project_lite::pin_project! {
 }
 
 impl<T: CallCodec, E: GearEnv> PendingCall<T, E> {
-    pub fn new(env: E, destination: ActorId, interface_id: InterfaceId, route_idx: u8, args: T::Params) -> Self {
+    pub fn new(
+        env: E,
+        destination: ActorId,
+        interface_id: InterfaceId,
+        route_idx: u8,
+        args: T::Params,
+    ) -> Self {
         PendingCall {
             env,
             destination,
@@ -328,7 +361,11 @@ pub trait CallCodec {
         Self::encode_params_with_header(InterfaceId::zero(), 0, value)
     }
 
-    fn encode_params_with_header(interface_id: InterfaceId, route_idx: u8, value: &Self::Params) -> Vec<u8> {
+    fn encode_params_with_header(
+        interface_id: InterfaceId,
+        route_idx: u8,
+        value: &Self::Params,
+    ) -> Vec<u8> {
         let header = SailsMessageHeader::new(
             crate::header::Version::v1(),
             crate::header::HeaderLength::new(crate::header::MINIMAL_HLEN).unwrap(),
@@ -557,7 +594,7 @@ pub trait Event: Decode {
         payload: impl AsRef<[u8]>,
     ) -> Result<Self, parity_scale_codec::Error> {
         let mut payload = payload.as_ref();
-        
+
         let header = SailsMessageHeader::decode(&mut payload)?;
         if header.interface_id() != interface_id {
             return Err("Invalid event interface_id".into());
@@ -570,7 +607,7 @@ pub trait Event: Decode {
         if entry_id > 255 {
             return Err("Entry ID exceeds u8 limit for SCALE enum".into());
         }
-        
+
         let variant_index = entry_id as u8;
         let bytes = [&[variant_index], payload].concat();
         let mut event_bytes = &bytes[..];

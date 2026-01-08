@@ -16,9 +16,10 @@ impl<E: sails_rs::client::GearEnv> ComputeStress
     fn compute_stress(
         &self,
     ) -> sails_rs::client::Service<compute_stress::ComputeStressImpl, Self::Env> {
-        self.service(sails_rs::InterfaceId::from_bytes_8([
-            254, 138, 70, 56, 122, 195, 121, 54,
-        ]))
+        self.service_at(
+            sails_rs::InterfaceId::from_bytes_8([254, 138, 70, 56, 122, 195, 121, 54]),
+            1,
+        )
     }
 }
 pub trait ComputeStressCtors {

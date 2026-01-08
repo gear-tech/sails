@@ -49,11 +49,8 @@ impl<'ast> CtorGenerator<'ast> {
 
 impl<'ast> Visitor<'ast> for CtorGenerator<'ast> {
     fn visit_program_unit(&mut self, program: &'ast ast::ProgramUnit) {
-        let mut ctors: Vec<_> = program.ctors.iter().map(|c| &c.name).collect();
-        ctors.sort();
-
-        for (idx, name) in ctors.into_iter().enumerate() {
-            self.entry_ids.insert(name.clone(), idx as u16);
+        for (idx, ctor) in program.ctors.iter().enumerate() {
+            self.entry_ids.insert(ctor.name.clone(), idx as u16);
         }
 
         sails_idl_parser_v2::visitor::accept_program_unit(program, self);

@@ -190,7 +190,8 @@ const _: () = {
                     .args
                     .as_ref()
                     .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
-                let payload = T::encode_params_with_header(self.interface_id, self.route_idx, &args);
+                let payload =
+                    T::encode_params_with_header(self.interface_id, self.route_idx, &args);
                 let destination = self.destination;
                 let params = self.params.get_or_insert_default();
                 // Send message
@@ -212,7 +213,8 @@ const _: () = {
                 // ok reply
                 Ok(payload) => {
                     let res =
-                        T::decode_reply_with_header(self.interface_id, self.route_idx, payload).map_err(Error::Decode)?;
+                        T::decode_reply_with_header(self.interface_id, self.route_idx, payload)
+                            .map_err(Error::Decode)?;
                     Poll::Ready(Ok(res))
                 }
                 // reply with ProgramExited

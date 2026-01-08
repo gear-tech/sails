@@ -12,9 +12,10 @@ impl<E: sails_rs::client::GearEnv> RedirectProxyClient
 {
     type Env = E;
     fn proxy(&self) -> sails_rs::client::Service<proxy::ProxyImpl, Self::Env> {
-        self.service(sails_rs::InterfaceId::from_bytes_8([
-            115, 132, 52, 118, 255, 19, 124, 126,
-        ]))
+        self.service_at(
+            sails_rs::InterfaceId::from_bytes_8([115, 132, 52, 118, 255, 19, 124, 126]),
+            1,
+        )
     }
 }
 pub trait RedirectProxyClientCtors {

@@ -16,9 +16,10 @@ impl<E: sails_rs::client::GearEnv> CounterBench
     fn counter_bench(
         &self,
     ) -> sails_rs::client::Service<counter_bench::CounterBenchImpl, Self::Env> {
-        self.service(sails_rs::InterfaceId::from_bytes_8([
-            149, 170, 24, 82, 218, 19, 238, 13,
-        ]))
+        self.service_at(
+            sails_rs::InterfaceId::from_bytes_8([149, 170, 24, 82, 218, 19, 238, 13]),
+            1,
+        )
     }
 }
 pub trait CounterBenchCtors {

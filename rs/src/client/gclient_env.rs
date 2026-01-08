@@ -136,10 +136,12 @@ impl<T: CallCodec> Future for PendingCall<T, GclientEnv> {
             .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
         // Poll message future
         match ready!(message_future.poll(cx)) {
-            Ok((_, payload)) => match T::decode_reply_with_header(self.interface_id, self.route_idx, payload) {
-                Ok(decoded) => Poll::Ready(Ok(decoded)),
-                Err(err) => Poll::Ready(Err(gclient::Error::Codec(err).into())),
-            },
+            Ok((_, payload)) => {
+                match T::decode_reply_with_header(self.interface_id, self.route_idx, payload) {
+                    Ok(decoded) => Poll::Ready(Ok(decoded)),
+                    Err(err) => Poll::Ready(Err(gclient::Error::Codec(err).into())),
+                }
+            }
             Err(err) => Poll::Ready(Err(err)),
         }
     }

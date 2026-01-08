@@ -10,9 +10,10 @@ pub trait AllocStress {
 impl<E: sails_rs::client::GearEnv> AllocStress for sails_rs::client::Actor<AllocStressProgram, E> {
     type Env = E;
     fn alloc_stress(&self) -> sails_rs::client::Service<alloc_stress::AllocStressImpl, Self::Env> {
-        self.service(sails_rs::InterfaceId::from_bytes_8([
-            9, 48, 193, 195, 84, 117, 173, 52,
-        ]))
+        self.service_at(
+            sails_rs::InterfaceId::from_bytes_8([9, 48, 193, 195, 84, 117, 173, 52]),
+            1,
+        )
     }
 }
 pub trait AllocStressCtors {

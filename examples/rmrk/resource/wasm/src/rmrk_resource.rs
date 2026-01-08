@@ -16,9 +16,10 @@ impl<E: sails_rs::client::GearEnv> RmrkResource
     fn rmrk_resource(
         &self,
     ) -> sails_rs::client::Service<rmrk_resource::RmrkResourceImpl, Self::Env> {
-        self.service(sails_rs::InterfaceId::from_bytes_8([
-            215, 56, 96, 51, 70, 205, 63, 27,
-        ]))
+        self.service_at(
+            sails_rs::InterfaceId::from_bytes_8([215, 56, 96, 51, 70, 205, 63, 27]),
+            1,
+        )
     }
 }
 pub trait RmrkResourceCtors {
@@ -154,7 +155,7 @@ pub mod rmrk_resource {
         use super::*;
         sails_rs::io_struct_impl!(AddPartToResource (resource_id: u8, part_id: u32) -> super::Result<u32, super::Error, >, 0);
         sails_rs::io_struct_impl!(AddResourceEntry (resource_id: u8, resource: super::Resource) -> super::Result<(u8, super::Resource, ), super::Error, >, 1);
-        sails_rs::io_struct_impl!(Resource (resource_id: u8) -> super::Result<super::Resource, super::Error, >, 3);
+        sails_rs::io_struct_impl!(Resource (resource_id: u8) -> super::Result<super::Resource, super::Error, >, 2);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -164,9 +165,9 @@ pub mod rmrk_resource {
         #[codec(crate = sails_rs::scale_codec)]
         #[reflect_hash(crate = sails_rs)]
         pub enum RmrkResourceEvents {
-            #[codec(index = 2)]
+            #[codec(index = 0)]
             PartAdded { resource_id: u8, part_id: u32 },
-            #[codec(index = 4)]
+            #[codec(index = 1)]
             ResourceAdded { resource_id: u8 },
         }
         impl sails_rs::client::Event for RmrkResourceEvents {}

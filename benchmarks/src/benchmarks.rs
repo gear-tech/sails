@@ -67,8 +67,10 @@ async fn compute_stress_bench() {
         .map(|_| {
             let message_id = service.compute_stress(input_value).send_one_way().unwrap();
             let (payload, gas) = extract_reply_and_gas(env.system(), message_id);
-            let stress_resp = crate::clients::compute_stress_client::compute_stress::io::ComputeStress::decode_reply_with_prefix(
-                "ComputeStress",
+            let interface_id = InterfaceId::from_bytes_8([254, 138, 70, 56, 122, 195, 121, 54]);
+            let stress_resp = crate::clients::compute_stress_client::compute_stress::io::ComputeStress::decode_reply_with_header(
+                interface_id,
+                0,
                 payload.as_slice(),
             )
             .unwrap();
@@ -96,11 +98,13 @@ async fn counter_bench() {
         .enumerate()
         .map(|(i, _)| {
             let is_sync = i % 2 == 0;
+            let interface_id = InterfaceId::from_bytes_8([149, 170, 24, 82, 218, 19, 238, 13]);
             let gas = if is_sync {
                 let message_id = service.inc().send_one_way().unwrap();
                 let (payload, gas) = extract_reply_and_gas(env.system(), message_id);
-                let stress_resp = crate::clients::counter_bench_client::counter_bench::io::Inc::decode_reply_with_prefix(
-                    "CounterBench",
+                let stress_resp = crate::clients::counter_bench_client::counter_bench::io::Inc::decode_reply_with_header(
+                    interface_id,
+                    0,
                     payload.as_slice(),
                 )
                 .unwrap();
@@ -111,8 +115,9 @@ async fn counter_bench() {
             } else {
                 let message_id = service.inc_async().send_one_way().unwrap();
                 let (payload, gas) = extract_reply_and_gas(env.system(), message_id);
-                let stress_resp = crate::clients::counter_bench_client::counter_bench::io::IncAsync::decode_reply_with_prefix(
-                    "CounterBench",
+                let stress_resp = crate::clients::counter_bench_client::counter_bench::io::IncAsync::decode_reply_with_header(
+                    interface_id,
+                    0,
                     payload.as_slice(),
                 )
                 .unwrap();
@@ -158,9 +163,11 @@ async fn cross_program_bench() {
                 .send_one_way()
                 .unwrap();
             let (payload, gas) = extract_reply_and_gas(env.system(), message_id);
+            let interface_id = InterfaceId::from_bytes_8([106, 114, 150, 138, 76, 98, 231, 215]);
             let stress_resp =
-                ping_pong_bench_app::client::ping_pong_service::io::Ping::decode_reply_with_prefix(
-                    "PingPongService",
+                ping_pong_bench_app::client::ping_pong_service::io::Ping::decode_reply_with_header(
+                    interface_id,
+                    0,
                     payload.as_slice(),
                 )
                 .unwrap();
@@ -199,8 +206,10 @@ async fn redirect_bench() {
             .send_one_way()
             .unwrap();
         let (payload, _gas) = extract_reply_and_gas(env.system(), message_id);
-        let resp = redirect_proxy_client::proxy::io::GetProgramId::decode_reply_with_prefix(
-            "Proxy",
+        let interface_id = InterfaceId::from_bytes_8([115, 132, 52, 118, 255, 19, 124, 126]);
+        let resp = redirect_proxy_client::proxy::io::GetProgramId::decode_reply_with_header(
+            interface_id,
+            0,
             payload.as_slice(),
         )
         .unwrap();
@@ -223,8 +232,10 @@ async fn redirect_bench() {
                 .send_one_way()
                 .unwrap();
             let (payload, gas) = extract_reply_and_gas(env.system(), message_id);
-            let resp = redirect_proxy_client::proxy::io::GetProgramId::decode_reply_with_prefix(
-                "Proxy",
+            let interface_id = InterfaceId::from_bytes_8([115, 132, 52, 118, 255, 19, 124, 126]);
+            let resp = redirect_proxy_client::proxy::io::GetProgramId::decode_reply_with_header(
+                interface_id,
+                0,
                 payload.as_slice(),
             )
             .unwrap();
@@ -269,8 +280,10 @@ async fn alloc_stress_test(n: u32) -> (usize, u64) {
     let mut service = program.alloc_stress();
     let message_id = service.alloc_stress(n).send_one_way().unwrap();
     let (payload, gas) = extract_reply_and_gas(env.system(), message_id);
-    let stress_resp = crate::clients::alloc_stress_client::alloc_stress::io::AllocStress::decode_reply_with_prefix(
-        "AllocStress",
+    let interface_id = InterfaceId::from_bytes_8([9, 48, 193, 195, 84, 117, 173, 52]);
+    let stress_resp = crate::clients::alloc_stress_client::alloc_stress::io::AllocStress::decode_reply_with_header(
+        interface_id,
+        0,
         payload.as_slice(),
     )
     .unwrap();

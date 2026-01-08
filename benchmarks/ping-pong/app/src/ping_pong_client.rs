@@ -14,9 +14,10 @@ impl<E: sails_rs::client::GearEnv> PingPong for sails_rs::client::Actor<PingPong
     fn ping_pong_service(
         &self,
     ) -> sails_rs::client::Service<ping_pong_service::PingPongServiceImpl, Self::Env> {
-        self.service(sails_rs::InterfaceId::from_bytes_8([
-            106, 114, 150, 138, 76, 98, 231, 215,
-        ]))
+        self.service_at(
+            sails_rs::InterfaceId::from_bytes_8([106, 114, 150, 138, 76, 98, 231, 215]),
+            1,
+        )
     }
 }
 pub trait PingPongCtors {

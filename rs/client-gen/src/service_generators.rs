@@ -100,20 +100,20 @@ impl<'ast> ServiceGenerator<'ast> {
 // using quote_in instead of tokens.append
 impl<'ast> Visitor<'ast> for ServiceGenerator<'ast> {
     fn visit_service_unit(&mut self, service: &'ast ast::ServiceUnit) {
-        // Collect all entry names: funcs + events
-        let mut entries: Vec<_> = service
+        let (mut commands, mut queries): (Vec<_>, Vec<_>) = service
             .funcs
             .iter()
-            .map(|f| &f.name)
-            .chain(service.events.iter().map(|e| &e.name))
-            .collect();
+            .partition(|f| f.kind != ast::FunctionKind::Query);
 
-        // Sort lexicographically as per spec
-        entries.sort();
+        commands.sort_by_key(|f| f.name.to_lowercase());
+        queries.sort_by_key(|f| f.name.to_lowercase());
 
-        // Assign IDs
-        for (idx, name) in entries.into_iter().enumerate() {
-            self.entry_ids.insert(name.clone(), idx as u16);
+        for (entry_id, func) in commands.into_iter().chain(queries.into_iter()).enumerate() {
+            self.entry_ids.insert(func.name.clone(), entry_id as u16);
+        }
+
+        for (idx, event) in service.events.iter().enumerate() {
+            self.entry_ids.insert(event.name.clone(), idx as u16);
         }
 
         visitor::accept_service_unit(service, self);
@@ -124,13 +124,19 @@ impl<'ast> Visitor<'ast> for ServiceGenerator<'ast> {
             let impl_name = name.to_case(Case::Pascal);
             let mod_name = name.to_case(Case::Snake);
 
+            let iid = service_ident.interface_id.expect("interface_id is missing");
+            let bytes = iid.as_bytes().iter().copied();
+            let iid_tokens = quote! {
+                 $(self.sails_path)::InterfaceId::from_bytes_8([ $(for b in bytes join (, ) => $b) ])
+            };
+
             quote_in! { self.trait_tokens =>
                 $['\r'] fn $(&method_name)(&self) -> $(self.sails_path)::client::Service<super::$(mod_name.as_str())::$(impl_name.as_str())Impl, Self::Env>;
             };
 
             quote_in! { self.impl_tokens =>
                 $['\r'] fn $(&method_name)(&self) -> $(self.sails_path)::client::Service<super::$(mod_name.as_str())::$(impl_name.as_str())Impl, Self::Env> {
-                    self.base_service()
+                    self.base_service_at($iid_tokens)
                 }
             };
         }

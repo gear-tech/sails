@@ -26,16 +26,18 @@ impl<E: sails_rs::client::GearEnv> ComplexTypesProgram
     fn my_complex_service(
         &self,
     ) -> sails_rs::client::Service<my_complex_service::MyComplexServiceImpl, Self::Env> {
-        self.service(sails_rs::InterfaceId::from_bytes_8([
-            125, 102, 14, 174, 143, 201, 77, 154,
-        ]))
+        self.service_at(
+            sails_rs::InterfaceId::from_bytes_8([125, 102, 14, 174, 143, 201, 77, 154]),
+            1,
+        )
     }
     fn another_service(
         &self,
     ) -> sails_rs::client::Service<another_service::AnotherServiceImpl, Self::Env> {
-        self.service(sails_rs::InterfaceId::from_bytes_8([
-            155, 46, 27, 116, 89, 52, 232, 187,
-        ]))
+        self.service_at(
+            sails_rs::InterfaceId::from_bytes_8([155, 46, 27, 116, 89, 52, 232, 187]),
+            2,
+        )
     }
 }
 pub trait ComplexTypesProgramCtors {
@@ -224,12 +226,12 @@ pub mod my_complex_service {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(GetData (key: String) -> super::Result<super::ProgramScopedData, super::ErrorType, >, 1);
-        sails_rs::io_struct_impl!(Initialize (start_data: super::ProgramGlobalInfo, max_size: super::NonZeroU32) -> super::Result<(), super::ErrorType, >, 3);
-        sails_rs::io_struct_impl!(ProcessGenericData (input_data: super::GenericData<u32, String, >, list_of_generics: Vec<super::GenericData<ActorId, U256, >>, optional_generic_result: super::Option<super::GenericResult<bool, >, >) -> super::GenericData<bool, u8, >, 4);
-        sails_rs::io_struct_impl!(UpdateStatus (id: u64, new_status: super::ServiceStatus, metadata: super::Option<String, >) -> super::GenericResult<u32, >, 5);
-        sails_rs::io_struct_impl!(GetActorIds (count: u32) -> Vec<ActorId>, 0);
-        sails_rs::io_struct_impl!(GetInfo () -> super::ProgramGlobalInfo, 2);
+        sails_rs::io_struct_impl!(GetData (key: String) -> super::Result<super::ProgramScopedData, super::ErrorType, >, 0);
+        sails_rs::io_struct_impl!(Initialize (start_data: super::ProgramGlobalInfo, max_size: super::NonZeroU32) -> super::Result<(), super::ErrorType, >, 1);
+        sails_rs::io_struct_impl!(ProcessGenericData (input_data: super::GenericData<u32, String, >, list_of_generics: Vec<super::GenericData<ActorId, U256, >>, optional_generic_result: super::Option<super::GenericResult<bool, >, >) -> super::GenericData<bool, u8, >, 2);
+        sails_rs::io_struct_impl!(UpdateStatus (id: u64, new_status: super::ServiceStatus, metadata: super::Option<String, >) -> super::GenericResult<u32, >, 3);
+        sails_rs::io_struct_impl!(GetActorIds (count: u32) -> Vec<ActorId>, 4);
+        sails_rs::io_struct_impl!(GetInfo () -> super::ProgramGlobalInfo, 5);
     }
 
     #[cfg(feature = "with_mocks")]

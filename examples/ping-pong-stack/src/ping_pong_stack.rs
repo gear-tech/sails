@@ -16,9 +16,10 @@ impl<E: sails_rs::client::GearEnv> PingPongStack
     fn ping_pong_stack(
         &self,
     ) -> sails_rs::client::Service<ping_pong_stack::PingPongStackImpl, Self::Env> {
-        self.service(sails_rs::InterfaceId::from_bytes_8([
-            48, 181, 231, 61, 179, 133, 133, 236,
-        ]))
+        self.service_at(
+            sails_rs::InterfaceId::from_bytes_8([48, 181, 231, 61, 179, 133, 133, 236]),
+            1,
+        )
     }
 }
 pub trait PingPongStackCtors {

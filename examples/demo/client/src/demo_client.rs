@@ -23,39 +23,46 @@ pub trait DemoClient {
 impl<E: sails_rs::client::GearEnv> DemoClient for sails_rs::client::Actor<DemoClientProgram, E> {
     type Env = E;
     fn ping_pong(&self) -> sails_rs::client::Service<ping_pong::PingPongImpl, Self::Env> {
-        self.service(sails_rs::InterfaceId::from_bytes_8([
-            33, 189, 154, 154, 165, 29, 162, 100,
-        ]))
+        self.service_at(
+            sails_rs::InterfaceId::from_bytes_8([33, 189, 154, 154, 165, 29, 162, 100]),
+            1,
+        )
     }
     fn counter(&self) -> sails_rs::client::Service<counter::CounterImpl, Self::Env> {
-        self.service(sails_rs::InterfaceId::from_bytes_8([
-            87, 157, 109, 171, 164, 27, 125, 130,
-        ]))
+        self.service_at(
+            sails_rs::InterfaceId::from_bytes_8([87, 157, 109, 171, 164, 27, 125, 130]),
+            2,
+        )
     }
     fn dog(&self) -> sails_rs::client::Service<dog::DogImpl, Self::Env> {
-        self.service(sails_rs::InterfaceId::from_bytes_8([
-            24, 102, 110, 103, 162, 25, 23, 161,
-        ]))
+        self.service_at(
+            sails_rs::InterfaceId::from_bytes_8([24, 102, 110, 103, 162, 25, 23, 161]),
+            3,
+        )
     }
     fn references(&self) -> sails_rs::client::Service<references::ReferencesImpl, Self::Env> {
-        self.service(sails_rs::InterfaceId::from_bytes_8([
-            61, 171, 145, 177, 150, 71, 129, 98,
-        ]))
+        self.service_at(
+            sails_rs::InterfaceId::from_bytes_8([61, 171, 145, 177, 150, 71, 129, 98]),
+            4,
+        )
     }
     fn this_that(&self) -> sails_rs::client::Service<this_that::ThisThatImpl, Self::Env> {
-        self.service(sails_rs::InterfaceId::from_bytes_8([
-            68, 91, 237, 110, 251, 232, 230, 221,
-        ]))
+        self.service_at(
+            sails_rs::InterfaceId::from_bytes_8([68, 91, 237, 110, 251, 232, 230, 221]),
+            5,
+        )
     }
     fn value_fee(&self) -> sails_rs::client::Service<value_fee::ValueFeeImpl, Self::Env> {
-        self.service(sails_rs::InterfaceId::from_bytes_8([
-            65, 193, 8, 11, 78, 30, 141, 197,
-        ]))
+        self.service_at(
+            sails_rs::InterfaceId::from_bytes_8([65, 193, 8, 11, 78, 30, 141, 197]),
+            6,
+        )
     }
     fn chaos(&self) -> sails_rs::client::Service<chaos::ChaosImpl, Self::Env> {
-        self.service(sails_rs::InterfaceId::from_bytes_8([
-            240, 200, 200, 13, 250, 191, 114, 213,
-        ]))
+        self.service_at(
+            sails_rs::InterfaceId::from_bytes_8([240, 200, 200, 13, 250, 191, 114, 213]),
+            7,
+        )
     }
 }
 pub trait DemoClientCtors {
@@ -149,8 +156,8 @@ pub mod counter {
     pub mod io {
         use super::*;
         sails_rs::io_struct_impl!(Add (value: u32) -> u32, 0);
-        sails_rs::io_struct_impl!(Sub (value: u32) -> u32, 2);
-        sails_rs::io_struct_impl!(Value () -> u32, 4);
+        sails_rs::io_struct_impl!(Sub (value: u32) -> u32, 1);
+        sails_rs::io_struct_impl!(Value () -> u32, 2);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -161,10 +168,10 @@ pub mod counter {
         #[reflect_hash(crate = sails_rs)]
         pub enum CounterEvents {
             /// Emitted when a new value is added to the counter
-            #[codec(index = 1)]
+            #[codec(index = 0)]
             Added(u32),
             /// Emitted when a value is subtracted from the counter
-            #[codec(index = 3)]
+            #[codec(index = 1)]
             Subtracted(u32),
         }
         impl sails_rs::client::Event for CounterEvents {}
@@ -204,8 +211,8 @@ pub mod walker_service {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(Walk (dx: i32, dy: i32) -> (), 1);
-        sails_rs::io_struct_impl!(Position () -> (i32, i32, ), 0);
+        sails_rs::io_struct_impl!(Walk (dx: i32, dy: i32) -> (), 0);
+        sails_rs::io_struct_impl!(Position () -> (i32, i32, ), 1);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -215,7 +222,7 @@ pub mod walker_service {
         #[codec(crate = sails_rs::scale_codec)]
         #[reflect_hash(crate = sails_rs)]
         pub enum WalkerServiceEvents {
-            #[codec(index = 2)]
+            #[codec(index = 0)]
             Walked { from: (i32, i32), to: (i32, i32) },
         }
         impl sails_rs::client::Event for WalkerServiceEvents {}
@@ -255,8 +262,8 @@ pub mod mammal_service {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(MakeSound () -> String, 1);
-        sails_rs::io_struct_impl!(AvgWeight () -> u32, 0);
+        sails_rs::io_struct_impl!(MakeSound () -> String, 0);
+        sails_rs::io_struct_impl!(AvgWeight () -> u32, 1);
     }
 
     #[cfg(feature = "with_mocks")]
@@ -290,19 +297,23 @@ pub mod dog {
             &self,
         ) -> sails_rs::client::Service<super::mammal_service::MammalServiceImpl, Self::Env>
         {
-            self.base_service()
+            self.base_service_at(sails_rs::InterfaceId::from_bytes_8([
+                255, 107, 147, 225, 150, 16, 38, 254,
+            ]))
         }
         fn walker_service(
             &self,
         ) -> sails_rs::client::Service<super::walker_service::WalkerServiceImpl, Self::Env>
         {
-            self.base_service()
+            self.base_service_at(sails_rs::InterfaceId::from_bytes_8([
+                238, 21, 54, 181, 81, 112, 191, 10,
+            ]))
         }
     }
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(MakeSound () -> String, 1);
+        sails_rs::io_struct_impl!(MakeSound () -> String, 0);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -387,12 +398,12 @@ pub mod references {
         use super::*;
         sails_rs::io_struct_impl!(Add (v: u32) -> u32, 0);
         sails_rs::io_struct_impl!(AddByte (byte: u8) -> Vec<u8>, 1);
-        sails_rs::io_struct_impl!(GuessNum (number: u8) -> super::Result<String, String>, 3);
-        sails_rs::io_struct_impl!(Incr () -> super::ReferenceCount, 4);
-        sails_rs::io_struct_impl!(SetNum (number: u8) -> super::Result<(), String>, 7);
-        sails_rs::io_struct_impl!(Baked () -> String, 2);
-        sails_rs::io_struct_impl!(LastByte () -> super::Option<u8, >, 5);
-        sails_rs::io_struct_impl!(Message () -> super::Option<String, >, 6);
+        sails_rs::io_struct_impl!(GuessNum (number: u8) -> super::Result<String, String>, 2);
+        sails_rs::io_struct_impl!(Incr () -> super::ReferenceCount, 3);
+        sails_rs::io_struct_impl!(SetNum (number: u8) -> super::Result<(), String>, 4);
+        sails_rs::io_struct_impl!(Baked () -> String, 5);
+        sails_rs::io_struct_impl!(LastByte () -> super::Option<u8, >, 6);
+        sails_rs::io_struct_impl!(Message () -> super::Option<String, >, 7);
     }
 
     #[cfg(feature = "with_mocks")]
@@ -540,7 +551,7 @@ pub mod value_fee {
         #[codec(crate = sails_rs::scale_codec)]
         #[reflect_hash(crate = sails_rs)]
         pub enum ValueFeeEvents {
-            #[codec(index = 1)]
+            #[codec(index = 0)]
             Withheld(u128),
         }
         impl sails_rs::client::Event for ValueFeeEvents {}

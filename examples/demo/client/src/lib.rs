@@ -23,7 +23,7 @@ mod tests {
         );
 
         let mut expected = vec![
-            0x47, 0x4D, 0x01, 0x0B, // Magic, Version, Header Length
+            0x47, 0x4D, 0x01, 0x10, // Magic, Version, Header Length
             68, 91, 237, 110, 251, 232, 230, 221, // Interface ID
             0, 0, // Entry ID
             0, // Route Index
@@ -31,8 +31,8 @@ mod tests {
         ];
         expected.extend_from_slice(&[
             255, 255, 255, 255, // p1
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 123, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, // p2
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 123, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, // p2
             0, // p3
         ]);
 
@@ -45,7 +45,7 @@ mod tests {
 
         let interface_id = InterfaceId::from_bytes_8([68, 91, 237, 110, 251, 232, 230, 221]);
         let mut bytes = vec![
-            0x47, 0x4D, 0x01, 0x0B, // Magic, Version, Header Length
+            0x47, 0x4D, 0x01, 0x10, // Magic, Version, Header Length
             68, 91, 237, 110, 251, 232, 230, 221, // Interface ID
             0, 0, // Entry ID
             0, // Route Index
@@ -56,7 +56,7 @@ mod tests {
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 123, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, // 123
             255, 255, 255, 255, // NonZeroU32::MAX
-            0, // ManyVariantsReply::One
+            0,   // ManyVariantsReply::One
         ]);
 
         let reply: Result<(ActorId, NonZeroU32, ManyVariantsReply), (String,)> =

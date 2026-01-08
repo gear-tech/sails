@@ -158,7 +158,10 @@ impl<'ast> Visitor<'ast> for RootGenerator<'ast> {
             $['\r'] fn $(&method_name)(&self) -> $(self.sails_path)::client::Service<$(&name_snake_case)::$(&name_pascal_case)Impl, Self::Env>;
         );
 
-        let iid = service_item.name.interface_id.expect("interface_id is missing");
+        let iid = service_item
+            .name
+            .interface_id
+            .expect("interface_id is missing");
         let bytes = iid.as_bytes().iter().copied();
         let route_arg = quote! {
              $(self.sails_path)::InterfaceId::from_bytes_8([ $(for b in bytes join (, ) => $b) ])
@@ -166,7 +169,7 @@ impl<'ast> Visitor<'ast> for RootGenerator<'ast> {
 
         quote_in!(self.service_impl_tokens =>
             $['\r'] fn $(&method_name)(&self) -> $(self.sails_path)::client::Service<$(&name_snake_case)::$(&name_pascal_case)Impl, Self::Env> {
-                self.service($route_arg)
+                self.service_at($route_arg, $(service_item.route_idx))
             }
         );
     }

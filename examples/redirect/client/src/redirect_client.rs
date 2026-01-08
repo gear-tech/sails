@@ -12,9 +12,10 @@ impl<E: sails_rs::client::GearEnv> RedirectClient
 {
     type Env = E;
     fn redirect(&self) -> sails_rs::client::Service<redirect::RedirectImpl, Self::Env> {
-        self.service(sails_rs::InterfaceId::from_bytes_8([
-            186, 88, 222, 225, 203, 117, 81, 30,
-        ]))
+        self.service_at(
+            sails_rs::InterfaceId::from_bytes_8([186, 88, 222, 225, 203, 117, 81, 30]),
+            1,
+        )
     }
 }
 pub trait RedirectClientCtors {

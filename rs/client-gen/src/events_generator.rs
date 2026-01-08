@@ -13,9 +13,9 @@ pub(crate) struct EventsModuleGenerator<'ast> {
 
 impl<'ast> EventsModuleGenerator<'ast> {
     pub(crate) fn new(
-        service_name: &'ast str, 
-        sails_path: &'ast str, 
-        entry_ids: HashMap<String, u16>
+        service_name: &'ast str,
+        sails_path: &'ast str,
+        entry_ids: HashMap<String, u16>,
     ) -> Self {
         Self {
             service_name,
@@ -85,7 +85,7 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator<'ast> {
                 field_tokens.append(", ");
             }
             quote_in! { self.tokens =>
-                $['\r'] 
+                $['\r']
                 #[codec(index = $entry_id)]
                 $variant_name($field_tokens),
             };
@@ -101,7 +101,7 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator<'ast> {
                 };
             }
             quote_in! { self.tokens =>
-                $['\r'] 
+                $['\r']
                 #[codec(index = $entry_id)]
                 $variant_name {
                     $(field_tokens)

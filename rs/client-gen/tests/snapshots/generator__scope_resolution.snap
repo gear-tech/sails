@@ -17,9 +17,10 @@ pub trait MyProgram {
 impl<E: sails_rs::client::GearEnv> MyProgram for sails_rs::client::Actor<MyProgramProgram, E> {
     type Env = E;
     fn my_service(&self) -> sails_rs::client::Service<my_service::MyServiceImpl, Self::Env> {
-        self.service(sails_rs::InterfaceId::from_bytes_8([
-            253, 255, 66, 173, 41, 217, 46, 249,
-        ]))
+        self.service_at(
+            sails_rs::InterfaceId::from_bytes_8([253, 255, 66, 173, 41, 217, 46, 249]),
+            1,
+        )
     }
 }
 pub trait MyProgramCtors {
