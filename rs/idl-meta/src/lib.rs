@@ -16,6 +16,9 @@ pub use ast::*;
 use parity_scale_codec::{Decode, Encode, Error};
 use scale_info::{MetaType, StaticTypeInfo, prelude::vec::Vec};
 
+mod header;
+pub use header::*;
+
 pub type AnyServiceMetaFn = fn() -> AnyServiceMeta;
 
 /// Unique identifier for a service (or "interface" in terms of sails binary protocol).

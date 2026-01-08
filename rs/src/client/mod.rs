@@ -1,4 +1,4 @@
-use crate::header::SailsMessageHeader;
+use crate::meta::SailsMessageHeader;
 use crate::prelude::*;
 use core::{
     any::TypeId,
@@ -367,8 +367,8 @@ pub trait CallCodec {
         value: &Self::Params,
     ) -> Vec<u8> {
         let header = SailsMessageHeader::new(
-            crate::header::Version::v1(),
-            crate::header::HeaderLength::new(crate::header::MINIMAL_HLEN).unwrap(),
+            crate::meta::Version::v1(),
+            crate::meta::HeaderLength::new(crate::meta::MINIMAL_HLEN).unwrap(),
             interface_id,
             route_idx,
             Self::ENTRY_ID,
@@ -419,13 +419,13 @@ pub trait CallCodec {
         f: impl FnOnce(&[u8]) -> R,
     ) -> R {
         let header = SailsMessageHeader::new(
-            crate::header::Version::v1(),
-            crate::header::HeaderLength::new(crate::header::MINIMAL_HLEN).unwrap(),
+            crate::meta::Version::v1(),
+            crate::meta::HeaderLength::new(crate::meta::MINIMAL_HLEN).unwrap(),
             interface_id,
             route_idx,
             Self::ENTRY_ID,
         );
-        let size = (crate::header::MINIMAL_HLEN as usize) + Encode::encoded_size(value);
+        let size = (crate::meta::MINIMAL_HLEN as usize) + Encode::encoded_size(value);
         gcore::stack_buffer::with_byte_buffer(size, |buffer| {
             let mut buffer_writer = crate::utils::MaybeUninitBufferWriter::new(buffer);
             header.encode_to(&mut buffer_writer);

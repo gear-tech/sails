@@ -1,8 +1,5 @@
-use crate::{
-    Vec,
-    meta::InterfaceId,
-    scale_codec::{Decode, Encode, Error, Input, Output},
-};
+use crate::{InterfaceId, Vec};
+use parity_scale_codec::{Decode, Encode, Error, Input, Output};
 
 /// Sails protocol highest supported version.
 pub const HIGHEST_SUPPORTED_VERSION: u8 = 1;
