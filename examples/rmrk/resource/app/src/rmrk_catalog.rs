@@ -5,6 +5,9 @@ extern crate std;
 #[allow(unused_imports)]
 use sails_rs::{client::*, collections::*, prelude::*};
 pub struct RmrkCatalogProgram;
+impl RmrkCatalogProgram {
+    pub const RMRK_CATALOG_ROUTE_ID: u8 = 1;
+}
 impl sails_rs::client::Program for RmrkCatalogProgram {}
 pub trait RmrkCatalog {
     type Env: sails_rs::client::GearEnv;
@@ -14,8 +17,8 @@ impl<E: sails_rs::client::GearEnv> RmrkCatalog for sails_rs::client::Actor<RmrkC
     type Env = E;
     fn rmrk_catalog(&self) -> sails_rs::client::Service<rmrk_catalog::RmrkCatalogImpl, Self::Env> {
         self.service_at(
-            sails_rs::InterfaceId::from_bytes_8([219, 242, 106, 161, 165, 87, 3, 164]),
-            1,
+            rmrk_catalog::INTERFACE_ID,
+            RmrkCatalogProgram::RMRK_CATALOG_ROUTE_ID,
         )
     }
 }
@@ -41,6 +44,8 @@ pub mod io {
 
 pub mod rmrk_catalog {
     use super::*;
+    pub const INTERFACE_ID: sails_rs::InterfaceId =
+        sails_rs::InterfaceId::from_bytes_8([219, 242, 106, 161, 165, 87, 3, 164]);
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
@@ -178,14 +183,14 @@ pub mod rmrk_catalog {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(AddEquippables (part_id: u32, collection_ids: Vec<ActorId>) -> super::Result<(u32, Vec<ActorId>, ), super::Error>, 0);
-        sails_rs::io_struct_impl!(AddParts (parts: Vec<(u32, super::Part, )>) -> super::Result<Vec<(u32, super::Part, )>, super::Error>, 1);
-        sails_rs::io_struct_impl!(RemoveEquippable (part_id: u32, collection_id: ActorId) -> super::Result<(u32, ActorId, ), super::Error>, 2);
-        sails_rs::io_struct_impl!(RemoveParts (part_ids: Vec<u32>) -> super::Result<Vec<u32>, super::Error>, 3);
-        sails_rs::io_struct_impl!(ResetEquippables (part_id: u32) -> super::Result<(), super::Error>, 4);
-        sails_rs::io_struct_impl!(SetEquippablesToAll (part_id: u32) -> super::Result<(), super::Error>, 5);
-        sails_rs::io_struct_impl!(Equippable (part_id: u32, collection_id: ActorId) -> super::Result<bool, super::Error>, 6);
-        sails_rs::io_struct_impl!(Part (part_id: u32) -> super::Option<super::Part, >, 7);
+        sails_rs::io_struct_impl!(AddEquippables (part_id: u32, collection_ids: Vec<ActorId>) -> super::Result<(u32, Vec<ActorId>, ), super::Error>, 0 , super::INTERFACE_ID);
+        sails_rs::io_struct_impl!(AddParts (parts: Vec<(u32, super::Part, )>) -> super::Result<Vec<(u32, super::Part, )>, super::Error>, 1 , super::INTERFACE_ID);
+        sails_rs::io_struct_impl!(RemoveEquippable (part_id: u32, collection_id: ActorId) -> super::Result<(u32, ActorId, ), super::Error>, 2 , super::INTERFACE_ID);
+        sails_rs::io_struct_impl!(RemoveParts (part_ids: Vec<u32>) -> super::Result<Vec<u32>, super::Error>, 3 , super::INTERFACE_ID);
+        sails_rs::io_struct_impl!(ResetEquippables (part_id: u32) -> super::Result<(), super::Error>, 4 , super::INTERFACE_ID);
+        sails_rs::io_struct_impl!(SetEquippablesToAll (part_id: u32) -> super::Result<(), super::Error>, 5 , super::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Equippable (part_id: u32, collection_id: ActorId) -> super::Result<bool, super::Error>, 6 , super::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Part (part_id: u32) -> super::Option<super::Part, >, 7 , super::INTERFACE_ID);
     }
 
     #[cfg(feature = "mockall")]

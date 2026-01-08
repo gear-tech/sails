@@ -2,6 +2,7 @@
 #[allow(unused_imports)]
 use sails_rs::{client::*, collections::*, prelude::*};
 pub struct NoSvcsProgProgram;
+impl NoSvcsProgProgram {}
 impl sails_rs::client::Program for NoSvcsProgProgram {}
 pub trait NoSvcsProg {
     type Env: sails_rs::client::GearEnv;

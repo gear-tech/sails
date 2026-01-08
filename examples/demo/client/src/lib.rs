@@ -11,9 +11,9 @@ mod tests {
     fn test_io_module_encode() {
         use this_that::*;
 
-        let interface_id = InterfaceId::from_bytes_8([68, 91, 237, 110, 251, 232, 230, 221]);
-        let bytes = io::DoThat::encode_params_with_header(
-            interface_id,
+        // Use the new simplified encode_call method
+        // It automatically uses the InterfaceId from the service module
+        let bytes = io::DoThat::encode_call(
             0,
             DoThatParam {
                 p1: NonZeroU32::MAX,
@@ -43,7 +43,7 @@ mod tests {
     fn test_io_module_decode_reply() {
         use this_that::*;
 
-        let interface_id = InterfaceId::from_bytes_8([68, 91, 237, 110, 251, 232, 230, 221]);
+        // We don't need manual InterfaceId anymore, it's inside decode_reply
         let mut bytes = vec![
             0x47, 0x4D, 0x01, 0x10, // Magic, Version, Header Length
             68, 91, 237, 110, 251, 232, 230, 221, // Interface ID
@@ -59,8 +59,9 @@ mod tests {
             0,   // ManyVariantsReply::One
         ]);
 
+        // Use the simplified method
         let reply: Result<(ActorId, NonZeroU32, ManyVariantsReply), (String,)> =
-            io::DoThat::decode_reply_with_header(interface_id, 0, bytes).unwrap();
+            io::DoThat::decode_reply(0, bytes).unwrap();
 
         assert_eq!(
             reply,

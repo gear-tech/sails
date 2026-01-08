@@ -112,7 +112,7 @@ async fn ping_pong_works() {
     // Use generated `io` module for encoding/decoding calls and replies
     // and send/receive bytes using `gclient` native means (env is just a wrapper)
     let ping_call_payload =
-        ping_pong::io::Ping::encode_params_with_prefix("PingPong", "ping".into());
+        ping_pong::io::Ping::encode_call(DemoClientProgram::PING_PONG_ROUTE_ID, "ping".into());
 
     // Act
     let ping_reply_payload = env
@@ -124,8 +124,11 @@ async fn ping_pong_works() {
         .await
         .unwrap();
 
-    let ping_reply =
-        ping_pong::io::Ping::decode_reply_with_prefix("PingPong", ping_reply_payload).unwrap();
+    let ping_reply = ping_pong::io::Ping::decode_reply(
+        DemoClientProgram::PING_PONG_ROUTE_ID,
+        ping_reply_payload,
+    )
+    .unwrap();
 
     // Assert
 

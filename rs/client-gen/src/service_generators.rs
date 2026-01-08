@@ -20,6 +20,7 @@ pub(crate) struct ServiceGenerator<'ast> {
     events_tokens: Tokens,
     types_tokens: Tokens,
     mocks_tokens: Tokens,
+    interface_id: Option<sails_idl_meta::InterfaceId>,
     entry_ids: HashMap<String, u16>,
     no_derive_traits: bool,
 }
@@ -30,6 +31,7 @@ impl<'ast> ServiceGenerator<'ast> {
         sails_path: &'ast str,
         external_types: &'ast HashMap<&'ast str, &'ast str>,
         mocks_feature_name: Option<&'ast str>,
+        interface_id: Option<sails_idl_meta::InterfaceId>,
         no_derive_traits: bool,
     ) -> Self {
         Self {
@@ -43,6 +45,7 @@ impl<'ast> ServiceGenerator<'ast> {
             events_tokens: Tokens::new(),
             types_tokens: Tokens::new(),
             mocks_tokens: Tokens::new(),
+            interface_id,
             entry_ids: HashMap::new(),
             no_derive_traits,
         }
@@ -64,10 +67,22 @@ impl<'ast> ServiceGenerator<'ast> {
         } else {
             quote!()
         };
+
+        let interface_id_tokens = if let Some(iid) = self.interface_id {
+            let bytes = iid.as_bytes().iter().copied();
+            quote! {
+                pub const INTERFACE_ID: $(self.sails_path)::InterfaceId = $(self.sails_path)::InterfaceId::from_bytes_8([ $(for b in bytes join (, ) => $b) ]);
+            }
+        } else {
+            quote! {}
+        };
+
         quote! {
             $['\n']
             pub mod $service_name_snake {
                 use super::*;
+
+                $interface_id_tokens
 
                 $(self.types_tokens)
 
@@ -124,19 +139,13 @@ impl<'ast> Visitor<'ast> for ServiceGenerator<'ast> {
             let impl_name = name.to_case(Case::Pascal);
             let mod_name = name.to_case(Case::Snake);
 
-            let iid = service_ident.interface_id.expect("interface_id is missing");
-            let bytes = iid.as_bytes().iter().copied();
-            let iid_tokens = quote! {
-                 $(self.sails_path)::InterfaceId::from_bytes_8([ $(for b in bytes join (, ) => $b) ])
-            };
-
             quote_in! { self.trait_tokens =>
                 $['\r'] fn $(&method_name)(&self) -> $(self.sails_path)::client::Service<super::$(mod_name.as_str())::$(impl_name.as_str())Impl, Self::Env>;
             };
 
             quote_in! { self.impl_tokens =>
                 $['\r'] fn $(&method_name)(&self) -> $(self.sails_path)::client::Service<super::$(mod_name.as_str())::$(impl_name.as_str())Impl, Self::Env> {
-                    self.base_service_at($iid_tokens)
+                    self.base_service_at(super::$(&mod_name)::INTERFACE_ID)
                 }
             };
         }
@@ -202,8 +211,14 @@ impl<'ast> Visitor<'ast> for ServiceGenerator<'ast> {
         let params_with_types_super = &fn_args_with_types_path(&func.params, "super");
         let entry_id = self.entry_ids.get(&func.name).copied().unwrap_or(0);
 
+        let iid_tokens = if self.interface_id.is_some() {
+            quote! { , super::INTERFACE_ID }
+        } else {
+            quote! {}
+        };
+
         quote_in! { self.io_tokens =>
-            $(self.sails_path)::io_struct_impl!($fn_name ($params_with_types_super) -> $output_type_decl_code, $entry_id);
+            $(self.sails_path)::io_struct_impl!($fn_name ($params_with_types_super) -> $output_type_decl_code, $entry_id $iid_tokens);
         };
     }
 }

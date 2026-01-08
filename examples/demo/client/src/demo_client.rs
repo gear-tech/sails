@@ -9,6 +9,15 @@ use core::num::NonZeroU32;
 #[allow(unused_imports)]
 use sails_rs::{client::*, collections::*, prelude::*};
 pub struct DemoClientProgram;
+impl DemoClientProgram {
+    pub const PING_PONG_ROUTE_ID: u8 = 1;
+    pub const COUNTER_ROUTE_ID: u8 = 2;
+    pub const DOG_ROUTE_ID: u8 = 3;
+    pub const REFERENCES_ROUTE_ID: u8 = 4;
+    pub const THIS_THAT_ROUTE_ID: u8 = 5;
+    pub const VALUE_FEE_ROUTE_ID: u8 = 6;
+    pub const CHAOS_ROUTE_ID: u8 = 7;
+}
 impl sails_rs::client::Program for DemoClientProgram {}
 pub trait DemoClient {
     type Env: sails_rs::client::GearEnv;
@@ -24,45 +33,36 @@ impl<E: sails_rs::client::GearEnv> DemoClient for sails_rs::client::Actor<DemoCl
     type Env = E;
     fn ping_pong(&self) -> sails_rs::client::Service<ping_pong::PingPongImpl, Self::Env> {
         self.service_at(
-            sails_rs::InterfaceId::from_bytes_8([33, 189, 154, 154, 165, 29, 162, 100]),
-            1,
+            ping_pong::INTERFACE_ID,
+            DemoClientProgram::PING_PONG_ROUTE_ID,
         )
     }
     fn counter(&self) -> sails_rs::client::Service<counter::CounterImpl, Self::Env> {
-        self.service_at(
-            sails_rs::InterfaceId::from_bytes_8([87, 157, 109, 171, 164, 27, 125, 130]),
-            2,
-        )
+        self.service_at(counter::INTERFACE_ID, DemoClientProgram::COUNTER_ROUTE_ID)
     }
     fn dog(&self) -> sails_rs::client::Service<dog::DogImpl, Self::Env> {
-        self.service_at(
-            sails_rs::InterfaceId::from_bytes_8([24, 102, 110, 103, 162, 25, 23, 161]),
-            3,
-        )
+        self.service_at(dog::INTERFACE_ID, DemoClientProgram::DOG_ROUTE_ID)
     }
     fn references(&self) -> sails_rs::client::Service<references::ReferencesImpl, Self::Env> {
         self.service_at(
-            sails_rs::InterfaceId::from_bytes_8([61, 171, 145, 177, 150, 71, 129, 98]),
-            4,
+            references::INTERFACE_ID,
+            DemoClientProgram::REFERENCES_ROUTE_ID,
         )
     }
     fn this_that(&self) -> sails_rs::client::Service<this_that::ThisThatImpl, Self::Env> {
         self.service_at(
-            sails_rs::InterfaceId::from_bytes_8([68, 91, 237, 110, 251, 232, 230, 221]),
-            5,
+            this_that::INTERFACE_ID,
+            DemoClientProgram::THIS_THAT_ROUTE_ID,
         )
     }
     fn value_fee(&self) -> sails_rs::client::Service<value_fee::ValueFeeImpl, Self::Env> {
         self.service_at(
-            sails_rs::InterfaceId::from_bytes_8([65, 193, 8, 11, 78, 30, 141, 197]),
-            6,
+            value_fee::INTERFACE_ID,
+            DemoClientProgram::VALUE_FEE_ROUTE_ID,
         )
     }
     fn chaos(&self) -> sails_rs::client::Service<chaos::ChaosImpl, Self::Env> {
-        self.service_at(
-            sails_rs::InterfaceId::from_bytes_8([240, 200, 200, 13, 250, 191, 114, 213]),
-            7,
-        )
+        self.service_at(chaos::INTERFACE_ID, DemoClientProgram::CHAOS_ROUTE_ID)
     }
 }
 pub trait DemoClientCtors {
@@ -102,6 +102,8 @@ pub mod io {
 
 pub mod ping_pong {
     use super::*;
+    pub const INTERFACE_ID: sails_rs::InterfaceId =
+        sails_rs::InterfaceId::from_bytes_8([33, 189, 154, 154, 165, 29, 162, 100]);
     pub trait PingPong {
         type Env: sails_rs::client::GearEnv;
         fn ping(&mut self, input: String) -> sails_rs::client::PendingCall<io::Ping, Self::Env>;
@@ -116,7 +118,7 @@ pub mod ping_pong {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(Ping (input: String) -> super::Result<String, String>, 0);
+        sails_rs::io_struct_impl!(Ping (input: String) -> super::Result<String, String>, 0 , super::INTERFACE_ID);
     }
 
     #[cfg(feature = "with_mocks")]
@@ -130,6 +132,8 @@ pub mod ping_pong {
 
 pub mod counter {
     use super::*;
+    pub const INTERFACE_ID: sails_rs::InterfaceId =
+        sails_rs::InterfaceId::from_bytes_8([87, 157, 109, 171, 164, 27, 125, 130]);
     pub trait Counter {
         type Env: sails_rs::client::GearEnv;
         /// Add a value to the counter
@@ -155,9 +159,9 @@ pub mod counter {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(Add (value: u32) -> u32, 0);
-        sails_rs::io_struct_impl!(Sub (value: u32) -> u32, 1);
-        sails_rs::io_struct_impl!(Value () -> u32, 2);
+        sails_rs::io_struct_impl!(Add (value: u32) -> u32, 0 , super::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Sub (value: u32) -> u32, 1 , super::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Value () -> u32, 2 , super::INTERFACE_ID);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -191,6 +195,8 @@ pub mod counter {
 
 pub mod walker_service {
     use super::*;
+    pub const INTERFACE_ID: sails_rs::InterfaceId =
+        sails_rs::InterfaceId::from_bytes_8([238, 21, 54, 181, 81, 112, 191, 10]);
     pub trait WalkerService {
         type Env: sails_rs::client::GearEnv;
         fn walk(&mut self, dx: i32, dy: i32) -> sails_rs::client::PendingCall<io::Walk, Self::Env>;
@@ -211,8 +217,8 @@ pub mod walker_service {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(Walk (dx: i32, dy: i32) -> (), 0);
-        sails_rs::io_struct_impl!(Position () -> (i32, i32, ), 1);
+        sails_rs::io_struct_impl!(Walk (dx: i32, dy: i32) -> (), 0 , super::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Position () -> (i32, i32, ), 1 , super::INTERFACE_ID);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -242,6 +248,8 @@ pub mod walker_service {
 
 pub mod mammal_service {
     use super::*;
+    pub const INTERFACE_ID: sails_rs::InterfaceId =
+        sails_rs::InterfaceId::from_bytes_8([255, 107, 147, 225, 150, 16, 38, 254]);
     pub trait MammalService {
         type Env: sails_rs::client::GearEnv;
         fn make_sound(&mut self) -> sails_rs::client::PendingCall<io::MakeSound, Self::Env>;
@@ -262,8 +270,8 @@ pub mod mammal_service {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(MakeSound () -> String, 0);
-        sails_rs::io_struct_impl!(AvgWeight () -> u32, 1);
+        sails_rs::io_struct_impl!(MakeSound () -> String, 0 , super::INTERFACE_ID);
+        sails_rs::io_struct_impl!(AvgWeight () -> u32, 1 , super::INTERFACE_ID);
     }
 
     #[cfg(feature = "with_mocks")]
@@ -277,6 +285,8 @@ pub mod mammal_service {
 
 pub mod dog {
     use super::*;
+    pub const INTERFACE_ID: sails_rs::InterfaceId =
+        sails_rs::InterfaceId::from_bytes_8([24, 102, 110, 103, 162, 25, 23, 161]);
     pub trait Dog {
         type Env: sails_rs::client::GearEnv;
         fn make_sound(&mut self) -> sails_rs::client::PendingCall<io::MakeSound, Self::Env>;
@@ -297,23 +307,19 @@ pub mod dog {
             &self,
         ) -> sails_rs::client::Service<super::mammal_service::MammalServiceImpl, Self::Env>
         {
-            self.base_service_at(sails_rs::InterfaceId::from_bytes_8([
-                255, 107, 147, 225, 150, 16, 38, 254,
-            ]))
+            self.base_service_at(super::mammal_service::INTERFACE_ID)
         }
         fn walker_service(
             &self,
         ) -> sails_rs::client::Service<super::walker_service::WalkerServiceImpl, Self::Env>
         {
-            self.base_service_at(sails_rs::InterfaceId::from_bytes_8([
-                238, 21, 54, 181, 81, 112, 191, 10,
-            ]))
+            self.base_service_at(super::walker_service::INTERFACE_ID)
         }
     }
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(MakeSound () -> String, 0);
+        sails_rs::io_struct_impl!(MakeSound () -> String, 0 , super::INTERFACE_ID);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -343,6 +349,8 @@ pub mod dog {
 
 pub mod references {
     use super::*;
+    pub const INTERFACE_ID: sails_rs::InterfaceId =
+        sails_rs::InterfaceId::from_bytes_8([61, 171, 145, 177, 150, 71, 129, 98]);
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
@@ -396,14 +404,14 @@ pub mod references {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(Add (v: u32) -> u32, 0);
-        sails_rs::io_struct_impl!(AddByte (byte: u8) -> Vec<u8>, 1);
-        sails_rs::io_struct_impl!(GuessNum (number: u8) -> super::Result<String, String>, 2);
-        sails_rs::io_struct_impl!(Incr () -> super::ReferenceCount, 3);
-        sails_rs::io_struct_impl!(SetNum (number: u8) -> super::Result<(), String>, 4);
-        sails_rs::io_struct_impl!(Baked () -> String, 5);
-        sails_rs::io_struct_impl!(LastByte () -> super::Option<u8, >, 6);
-        sails_rs::io_struct_impl!(Message () -> super::Option<String, >, 7);
+        sails_rs::io_struct_impl!(Add (v: u32) -> u32, 0 , super::INTERFACE_ID);
+        sails_rs::io_struct_impl!(AddByte (byte: u8) -> Vec<u8>, 1 , super::INTERFACE_ID);
+        sails_rs::io_struct_impl!(GuessNum (number: u8) -> super::Result<String, String>, 2 , super::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Incr () -> super::ReferenceCount, 3 , super::INTERFACE_ID);
+        sails_rs::io_struct_impl!(SetNum (number: u8) -> super::Result<(), String>, 4 , super::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Baked () -> String, 5 , super::INTERFACE_ID);
+        sails_rs::io_struct_impl!(LastByte () -> super::Option<u8, >, 6 , super::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Message () -> super::Option<String, >, 7 , super::INTERFACE_ID);
     }
 
     #[cfg(feature = "with_mocks")]
@@ -417,6 +425,8 @@ pub mod references {
 
 pub mod this_that {
     use super::*;
+    pub const INTERFACE_ID: sails_rs::InterfaceId =
+        sails_rs::InterfaceId::from_bytes_8([68, 91, 237, 110, 251, 232, 230, 221]);
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
@@ -503,11 +513,11 @@ pub mod this_that {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(DoThat (param: super::DoThatParam) -> super::Result<(ActorId, super::NonZeroU32, super::ManyVariantsReply, ), (String, )>, 0);
-        sails_rs::io_struct_impl!(DoThis (p1: u32, p2: String, p3: (super::Option<H160, >, super::NonZeroU8, ), p4: super::TupleStruct) -> (String, u32, ), 1);
-        sails_rs::io_struct_impl!(Noop () -> (), 2);
-        sails_rs::io_struct_impl!(That () -> super::Result<String, String>, 3);
-        sails_rs::io_struct_impl!(This () -> u32, 4);
+        sails_rs::io_struct_impl!(DoThat (param: super::DoThatParam) -> super::Result<(ActorId, super::NonZeroU32, super::ManyVariantsReply, ), (String, )>, 0 , super::INTERFACE_ID);
+        sails_rs::io_struct_impl!(DoThis (p1: u32, p2: String, p3: (super::Option<H160, >, super::NonZeroU8, ), p4: super::TupleStruct) -> (String, u32, ), 1 , super::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Noop () -> (), 2 , super::INTERFACE_ID);
+        sails_rs::io_struct_impl!(That () -> super::Result<String, String>, 3 , super::INTERFACE_ID);
+        sails_rs::io_struct_impl!(This () -> u32, 4 , super::INTERFACE_ID);
     }
 
     #[cfg(feature = "with_mocks")]
@@ -521,6 +531,8 @@ pub mod this_that {
 
 pub mod value_fee {
     use super::*;
+    pub const INTERFACE_ID: sails_rs::InterfaceId =
+        sails_rs::InterfaceId::from_bytes_8([65, 193, 8, 11, 78, 30, 141, 197]);
     pub trait ValueFee {
         type Env: sails_rs::client::GearEnv;
         /// Return flag if fee taken and remain value,
@@ -541,7 +553,7 @@ pub mod value_fee {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(DoSomethingAndTakeFee () -> bool, 0);
+        sails_rs::io_struct_impl!(DoSomethingAndTakeFee () -> bool, 0 , super::INTERFACE_ID);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -571,6 +583,8 @@ pub mod value_fee {
 
 pub mod chaos {
     use super::*;
+    pub const INTERFACE_ID: sails_rs::InterfaceId =
+        sails_rs::InterfaceId::from_bytes_8([240, 200, 200, 13, 250, 191, 114, 213]);
     pub trait Chaos {
         type Env: sails_rs::client::GearEnv;
         fn panic_after_wait(&self) -> sails_rs::client::PendingCall<io::PanicAfterWait, Self::Env>;
@@ -597,9 +611,9 @@ pub mod chaos {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(PanicAfterWait () -> (), 0);
-        sails_rs::io_struct_impl!(ReplyHookCounter () -> u32, 1);
-        sails_rs::io_struct_impl!(TimeoutWait () -> (), 2);
+        sails_rs::io_struct_impl!(PanicAfterWait () -> (), 0 , super::INTERFACE_ID);
+        sails_rs::io_struct_impl!(ReplyHookCounter () -> u32, 1 , super::INTERFACE_ID);
+        sails_rs::io_struct_impl!(TimeoutWait () -> (), 2 , super::INTERFACE_ID);
     }
 
     #[cfg(feature = "with_mocks")]

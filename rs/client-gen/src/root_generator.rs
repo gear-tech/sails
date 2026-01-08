@@ -12,12 +12,12 @@ pub(crate) struct RootGenerator<'ast> {
     tokens: Tokens,
     service_impl_tokens: Tokens,
     service_trait_tokens: Tokens,
+    program_meta_tokens: Tokens,
     program_name: Option<&'ast str>,
     mocks_feature_name: Option<&'ast str>,
     sails_path: &'ast str,
     external_types: HashMap<&'ast str, &'ast str>,
     no_derive_traits: bool,
-    program_exported_services: Vec<&'ast str>,
     program_types: HashSet<&'ast str>,
 }
 
@@ -32,12 +32,12 @@ impl<'ast> RootGenerator<'ast> {
             tokens: Tokens::new(),
             service_impl_tokens: Tokens::new(),
             service_trait_tokens: Tokens::new(),
+            program_meta_tokens: Tokens::new(),
             program_name: None,
             mocks_feature_name,
             sails_path,
             external_types,
             no_derive_traits,
-            program_exported_services: Vec::new(),
             program_types: HashSet::new(),
         }
     }
@@ -69,6 +69,10 @@ impl<'ast> RootGenerator<'ast> {
         if let Some(program_name) = self.program_name {
             quote_in! { tokens =>
                 pub struct $(program_name)Program;
+
+                impl $(program_name)Program {
+                    $(self.program_meta_tokens)
+                }
 
                 impl $(self.sails_path)::client::Program for  $(program_name)Program {}
 
@@ -109,14 +113,6 @@ impl<'ast> Visitor<'ast> for RootGenerator<'ast> {
         ctor_gen.visit_program_unit(program);
         self.tokens.extend(ctor_gen.finalize());
 
-        for service_item in &program.services {
-            let service_name = service_item
-                .route
-                .as_ref()
-                .unwrap_or(&service_item.name.name);
-            self.program_exported_services.push(service_name);
-        }
-
         sails_idl_parser_v2::visitor::accept_program_unit(program, self);
     }
 
@@ -126,6 +122,7 @@ impl<'ast> Visitor<'ast> for RootGenerator<'ast> {
             self.sails_path,
             &self.external_types,
             self.mocks_feature_name,
+            service.name.interface_id,
             self.no_derive_traits,
         );
         client_gen.visit_service_unit(service);
@@ -151,25 +148,24 @@ impl<'ast> Visitor<'ast> for RootGenerator<'ast> {
         let method_name = service_route.to_case(Case::Snake);
         let name_pascal_case = service_item.name.name.to_case(Case::Pascal);
         let name_snake_case = service_item.name.name.to_case(Case::Snake);
+        let program_name = self.program_name.unwrap();
+        let program_program_name = format!("{program_name}Program");
 
         generate_doc_comments(&mut self.service_trait_tokens, &service_item.docs);
+
+        let route_id_const_name = format!("{}_ROUTE_ID", service_route.to_case(Case::UpperSnake));
+
+        quote_in!(self.program_meta_tokens =>
+             pub const $(&route_id_const_name): u8 = $(service_item.route_idx);
+        );
 
         quote_in!(self.service_trait_tokens =>
             $['\r'] fn $(&method_name)(&self) -> $(self.sails_path)::client::Service<$(&name_snake_case)::$(&name_pascal_case)Impl, Self::Env>;
         );
 
-        let iid = service_item
-            .name
-            .interface_id
-            .expect("interface_id is missing");
-        let bytes = iid.as_bytes().iter().copied();
-        let route_arg = quote! {
-             $(self.sails_path)::InterfaceId::from_bytes_8([ $(for b in bytes join (, ) => $b) ])
-        };
-
         quote_in!(self.service_impl_tokens =>
             $['\r'] fn $(&method_name)(&self) -> $(self.sails_path)::client::Service<$(&name_snake_case)::$(&name_pascal_case)Impl, Self::Env> {
-                self.service_at($route_arg, $(service_item.route_idx))
+                self.service_at($(&name_snake_case)::INTERFACE_ID, $(&program_program_name)::$(&route_id_const_name))
             }
         );
     }

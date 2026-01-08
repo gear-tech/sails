@@ -2,6 +2,9 @@
 #[allow(unused_imports)]
 use sails_rs::{client::*, collections::*, prelude::*};
 pub struct RmrkResourceProgram;
+impl RmrkResourceProgram {
+    pub const RMRK_RESOURCE_ROUTE_ID: u8 = 1;
+}
 impl sails_rs::client::Program for RmrkResourceProgram {}
 pub trait RmrkResource {
     type Env: sails_rs::client::GearEnv;
@@ -17,8 +20,8 @@ impl<E: sails_rs::client::GearEnv> RmrkResource
         &self,
     ) -> sails_rs::client::Service<rmrk_resource::RmrkResourceImpl, Self::Env> {
         self.service_at(
-            sails_rs::InterfaceId::from_bytes_8([215, 56, 96, 51, 70, 205, 63, 27]),
-            1,
+            rmrk_resource::INTERFACE_ID,
+            RmrkResourceProgram::RMRK_RESOURCE_ROUTE_ID,
         )
     }
 }
@@ -44,6 +47,8 @@ pub mod io {
 
 pub mod rmrk_resource {
     use super::*;
+    pub const INTERFACE_ID: sails_rs::InterfaceId =
+        sails_rs::InterfaceId::from_bytes_8([215, 56, 96, 51, 70, 205, 63, 27]);
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
@@ -153,9 +158,9 @@ pub mod rmrk_resource {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(AddPartToResource (resource_id: u8, part_id: u32) -> super::Result<u32, super::Error, >, 0);
-        sails_rs::io_struct_impl!(AddResourceEntry (resource_id: u8, resource: super::Resource) -> super::Result<(u8, super::Resource, ), super::Error, >, 1);
-        sails_rs::io_struct_impl!(Resource (resource_id: u8) -> super::Result<super::Resource, super::Error, >, 2);
+        sails_rs::io_struct_impl!(AddPartToResource (resource_id: u8, part_id: u32) -> super::Result<u32, super::Error, >, 0 , super::INTERFACE_ID);
+        sails_rs::io_struct_impl!(AddResourceEntry (resource_id: u8, resource: super::Resource) -> super::Result<(u8, super::Resource, ), super::Error, >, 1 , super::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Resource (resource_id: u8) -> super::Result<super::Resource, super::Error, >, 2 , super::INTERFACE_ID);
     }
 
     #[cfg(not(target_arch = "wasm32"))]

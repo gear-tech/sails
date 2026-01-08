@@ -18,15 +18,23 @@
 //! ```
 
 use crate::clients::{
-    alloc_stress_client::{AllocStress as _, AllocStressCtors, alloc_stress::*},
-    compute_stress_client::{ComputeStress as _, ComputeStressCtors, compute_stress::*},
-    counter_bench_client::{CounterBench as _, CounterBenchCtors, counter_bench::*},
+    alloc_stress_client::{
+        AllocStress as _, AllocStressCtors, AllocStressProgram, alloc_stress::*,
+    },
+    compute_stress_client::{
+        ComputeStress as _, ComputeStressCtors, ComputeStressProgram, compute_stress::*,
+    },
+    counter_bench_client::{
+        CounterBench as _, CounterBenchCtors, CounterBenchProgram, counter_bench::*,
+    },
 };
 use gtest::{System, constants::DEFAULT_USER_ALICE};
 use itertools::{Either, Itertools};
-use ping_pong_bench_app::client::{PingPong, PingPongCtors, ping_pong_service::*};
+use ping_pong_bench_app::client::{PingPong, PingPongCtors, PingPongProgram, ping_pong_service::*};
 use redirect_client::{RedirectClient, RedirectClientCtors, redirect::*};
-use redirect_proxy_client::{RedirectProxyClient, RedirectProxyClientCtors, proxy::*};
+use redirect_proxy_client::{
+    RedirectProxyClient, RedirectProxyClientCtors, RedirectProxyClientProgram, proxy::*,
+};
 use sails_rs::{client::*, prelude::*};
 use std::{collections::BTreeMap, sync::atomic::AtomicU64};
 
@@ -67,13 +75,10 @@ async fn compute_stress_bench() {
         .map(|_| {
             let message_id = service.compute_stress(input_value).send_one_way().unwrap();
             let (payload, gas) = extract_reply_and_gas(env.system(), message_id);
-            let interface_id = InterfaceId::from_bytes_8([254, 138, 70, 56, 122, 195, 121, 54]);
-            let stress_resp = crate::clients::compute_stress_client::compute_stress::io::ComputeStress::decode_reply_with_header(
-                interface_id,
-                0,
-                payload.as_slice(),
-            )
-            .unwrap();
+            // Low-level approach: decoding using generated io module
+            let stress_resp =
+                crate::clients::compute_stress_client::compute_stress::io::ComputeStress::decode_reply(ComputeStressProgram::COMPUTE_STRESS_ROUTE_ID, payload.as_slice())
+                    .unwrap();
             assert_eq!(stress_resp.res, expected_sum);
             gas
         })
@@ -98,13 +103,12 @@ async fn counter_bench() {
         .enumerate()
         .map(|(i, _)| {
             let is_sync = i % 2 == 0;
-            let interface_id = InterfaceId::from_bytes_8([149, 170, 24, 82, 218, 19, 238, 13]);
             let gas = if is_sync {
                 let message_id = service.inc().send_one_way().unwrap();
                 let (payload, gas) = extract_reply_and_gas(env.system(), message_id);
-                let stress_resp = crate::clients::counter_bench_client::counter_bench::io::Inc::decode_reply_with_header(
-                    interface_id,
-                    0,
+                // Low-level approach: decoding using generated io module
+                let stress_resp = crate::clients::counter_bench_client::counter_bench::io::Inc::decode_reply(
+                    CounterBenchProgram::COUNTER_BENCH_ROUTE_ID,
                     payload.as_slice(),
                 )
                 .unwrap();
@@ -115,9 +119,9 @@ async fn counter_bench() {
             } else {
                 let message_id = service.inc_async().send_one_way().unwrap();
                 let (payload, gas) = extract_reply_and_gas(env.system(), message_id);
-                let stress_resp = crate::clients::counter_bench_client::counter_bench::io::IncAsync::decode_reply_with_header(
-                    interface_id,
-                    0,
+                // Low-level approach: decoding using generated io module
+                let stress_resp = crate::clients::counter_bench_client::counter_bench::io::IncAsync::decode_reply(
+                    CounterBenchProgram::COUNTER_BENCH_ROUTE_ID,
                     payload.as_slice(),
                 )
                 .unwrap();
@@ -163,11 +167,10 @@ async fn cross_program_bench() {
                 .send_one_way()
                 .unwrap();
             let (payload, gas) = extract_reply_and_gas(env.system(), message_id);
-            let interface_id = InterfaceId::from_bytes_8([106, 114, 150, 138, 76, 98, 231, 215]);
+            // Low-level approach: decoding using generated io module
             let stress_resp =
-                ping_pong_bench_app::client::ping_pong_service::io::Ping::decode_reply_with_header(
-                    interface_id,
-                    0,
+                ping_pong_bench_app::client::ping_pong_service::io::Ping::decode_reply(
+                    PingPongProgram::PING_PONG_SERVICE_ROUTE_ID,
                     payload.as_slice(),
                 )
                 .unwrap();
@@ -206,10 +209,9 @@ async fn redirect_bench() {
             .send_one_way()
             .unwrap();
         let (payload, _gas) = extract_reply_and_gas(env.system(), message_id);
-        let interface_id = InterfaceId::from_bytes_8([115, 132, 52, 118, 255, 19, 124, 126]);
-        let resp = redirect_proxy_client::proxy::io::GetProgramId::decode_reply_with_header(
-            interface_id,
-            0,
+        // Low-level approach: decoding using generated io module
+        let resp = redirect_proxy_client::proxy::io::GetProgramId::decode_reply(
+            RedirectProxyClientProgram::PROXY_ROUTE_ID,
             payload.as_slice(),
         )
         .unwrap();
@@ -232,10 +234,9 @@ async fn redirect_bench() {
                 .send_one_way()
                 .unwrap();
             let (payload, gas) = extract_reply_and_gas(env.system(), message_id);
-            let interface_id = InterfaceId::from_bytes_8([115, 132, 52, 118, 255, 19, 124, 126]);
-            let resp = redirect_proxy_client::proxy::io::GetProgramId::decode_reply_with_header(
-                interface_id,
-                0,
+            // Low-level approach: decoding using generated io module
+            let resp = redirect_proxy_client::proxy::io::GetProgramId::decode_reply(
+                RedirectProxyClientProgram::PROXY_ROUTE_ID,
                 payload.as_slice(),
             )
             .unwrap();
@@ -280,13 +281,13 @@ async fn alloc_stress_test(n: u32) -> (usize, u64) {
     let mut service = program.alloc_stress();
     let message_id = service.alloc_stress(n).send_one_way().unwrap();
     let (payload, gas) = extract_reply_and_gas(env.system(), message_id);
-    let interface_id = InterfaceId::from_bytes_8([9, 48, 193, 195, 84, 117, 173, 52]);
-    let stress_resp = crate::clients::alloc_stress_client::alloc_stress::io::AllocStress::decode_reply_with_header(
-        interface_id,
-        0,
-        payload.as_slice(),
-    )
-    .unwrap();
+    // Low-level approach: decoding using generated io module
+    let stress_resp =
+        crate::clients::alloc_stress_client::alloc_stress::io::AllocStress::decode_reply(
+            AllocStressProgram::ALLOC_STRESS_ROUTE_ID,
+            payload.as_slice(),
+        )
+        .unwrap();
 
     let expected_len = alloc_stress::fibonacci_sum(n) as usize;
     assert_eq!(stress_resp.inner.len(), expected_len);

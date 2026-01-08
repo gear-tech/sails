@@ -6,6 +6,20 @@ expression: code
 #[allow(unused_imports)]
 use my_crate::sails::{client::*, collections::*, prelude::*};
 pub struct FullCoverageProgramProgram;
+impl FullCoverageProgramProgram {
+    pub const CANVAS_ROUTE_ID: u8 = 1;
+    pub const PING_PONG_ROUTE_ID: u8 = 2;
+    pub const COUNTER_ROUTE_ID: u8 = 3;
+    pub const REFERENCES_ROUTE_ID: u8 = 4;
+    pub const THIS_THAT_ROUTE_ID: u8 = 5;
+    pub const VALUE_FEE_ROUTE_ID: u8 = 6;
+    pub const RMRK_CATALOG_ROUTE_ID: u8 = 7;
+    pub const NON_ZERO_PARAMS_ROUTE_ID: u8 = 8;
+    pub const SERVICE_WITH_EVENTS_ROUTE_ID: u8 = 9;
+    pub const BASIC_ROUTE_ID: u8 = 10;
+    pub const ANOTHER_SERVICE_ROUTE_ID: u8 = 11;
+    pub const MY_COMPLEX_SERVICE_ROUTE_ID: u8 = 12;
+}
 impl my_crate::sails::client::Program for FullCoverageProgramProgram {}
 pub trait FullCoverageProgram {
     type Env: my_crate::sails::client::GearEnv;
@@ -51,56 +65,56 @@ impl<E: my_crate::sails::client::GearEnv> FullCoverageProgram
     type Env = E;
     fn canvas(&self) -> my_crate::sails::client::Service<canvas::CanvasImpl, Self::Env> {
         self.service_at(
-            my_crate::sails::InterfaceId::from_bytes_8([159, 96, 48, 64, 97, 141, 24, 70]),
-            1,
+            canvas::INTERFACE_ID,
+            FullCoverageProgramProgram::CANVAS_ROUTE_ID,
         )
     }
     fn ping_pong(&self) -> my_crate::sails::client::Service<ping_pong::PingPongImpl, Self::Env> {
         self.service_at(
-            my_crate::sails::InterfaceId::from_bytes_8([33, 189, 154, 154, 165, 29, 162, 100]),
-            2,
+            ping_pong::INTERFACE_ID,
+            FullCoverageProgramProgram::PING_PONG_ROUTE_ID,
         )
     }
     fn counter(&self) -> my_crate::sails::client::Service<counter::CounterImpl, Self::Env> {
         self.service_at(
-            my_crate::sails::InterfaceId::from_bytes_8([87, 157, 109, 171, 164, 27, 125, 130]),
-            3,
+            counter::INTERFACE_ID,
+            FullCoverageProgramProgram::COUNTER_ROUTE_ID,
         )
     }
     fn references(
         &self,
     ) -> my_crate::sails::client::Service<references::ReferencesImpl, Self::Env> {
         self.service_at(
-            my_crate::sails::InterfaceId::from_bytes_8([61, 171, 145, 177, 150, 71, 129, 98]),
-            4,
+            references::INTERFACE_ID,
+            FullCoverageProgramProgram::REFERENCES_ROUTE_ID,
         )
     }
     fn this_that(&self) -> my_crate::sails::client::Service<this_that::ThisThatImpl, Self::Env> {
         self.service_at(
-            my_crate::sails::InterfaceId::from_bytes_8([220, 131, 135, 131, 19, 27, 44, 105]),
-            5,
+            this_that::INTERFACE_ID,
+            FullCoverageProgramProgram::THIS_THAT_ROUTE_ID,
         )
     }
     fn value_fee(&self) -> my_crate::sails::client::Service<value_fee::ValueFeeImpl, Self::Env> {
         self.service_at(
-            my_crate::sails::InterfaceId::from_bytes_8([65, 193, 8, 11, 78, 30, 141, 197]),
-            6,
+            value_fee::INTERFACE_ID,
+            FullCoverageProgramProgram::VALUE_FEE_ROUTE_ID,
         )
     }
     fn rmrk_catalog(
         &self,
     ) -> my_crate::sails::client::Service<rmrk_catalog::RmrkCatalogImpl, Self::Env> {
         self.service_at(
-            my_crate::sails::InterfaceId::from_bytes_8([197, 210, 70, 1, 134, 247, 35, 60]),
-            7,
+            rmrk_catalog::INTERFACE_ID,
+            FullCoverageProgramProgram::RMRK_CATALOG_ROUTE_ID,
         )
     }
     fn non_zero_params(
         &self,
     ) -> my_crate::sails::client::Service<non_zero_params::NonZeroParamsImpl, Self::Env> {
         self.service_at(
-            my_crate::sails::InterfaceId::from_bytes_8([247, 238, 3, 214, 44, 137, 30, 3]),
-            8,
+            non_zero_params::INTERFACE_ID,
+            FullCoverageProgramProgram::NON_ZERO_PARAMS_ROUTE_ID,
         )
     }
     fn service_with_events(
@@ -108,30 +122,30 @@ impl<E: my_crate::sails::client::GearEnv> FullCoverageProgram
     ) -> my_crate::sails::client::Service<service_with_events::ServiceWithEventsImpl, Self::Env>
     {
         self.service_at(
-            my_crate::sails::InterfaceId::from_bytes_8([192, 205, 152, 45, 145, 112, 193, 0]),
-            9,
+            service_with_events::INTERFACE_ID,
+            FullCoverageProgramProgram::SERVICE_WITH_EVENTS_ROUTE_ID,
         )
     }
     fn basic(&self) -> my_crate::sails::client::Service<basic::BasicImpl, Self::Env> {
         self.service_at(
-            my_crate::sails::InterfaceId::from_bytes_8([82, 241, 49, 169, 231, 31, 0, 230]),
-            10,
+            basic::INTERFACE_ID,
+            FullCoverageProgramProgram::BASIC_ROUTE_ID,
         )
     }
     fn another_service(
         &self,
     ) -> my_crate::sails::client::Service<another_service::AnotherServiceImpl, Self::Env> {
         self.service_at(
-            my_crate::sails::InterfaceId::from_bytes_8([98, 254, 176, 83, 233, 74, 173, 234]),
-            11,
+            another_service::INTERFACE_ID,
+            FullCoverageProgramProgram::ANOTHER_SERVICE_ROUTE_ID,
         )
     }
     fn my_complex_service(
         &self,
     ) -> my_crate::sails::client::Service<my_complex_service::MyComplexServiceImpl, Self::Env> {
         self.service_at(
-            my_crate::sails::InterfaceId::from_bytes_8([86, 209, 202, 3, 195, 8, 232, 253]),
-            12,
+            my_complex_service::INTERFACE_ID,
+            FullCoverageProgramProgram::MY_COMPLEX_SERVICE_ROUTE_ID,
         )
     }
 }
@@ -193,6 +207,8 @@ pub enum ProgramError {
 
 pub mod canvas {
     use super::*;
+    pub const INTERFACE_ID: my_crate::sails::InterfaceId =
+        my_crate::sails::InterfaceId::from_bytes_8([159, 96, 48, 64, 97, 141, 24, 70]);
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = my_crate::sails::scale_codec)]
     #[scale_info(crate = my_crate::sails::scale_info)]
@@ -302,32 +318,26 @@ pub mod canvas {
         fn ownable(
             &self,
         ) -> my_crate::sails::client::Service<super::ownable::OwnableImpl, Self::Env> {
-            self.base_service_at(my_crate::sails::InterfaceId::from_bytes_8([
-                45, 223, 161, 186, 121, 8, 187, 243,
-            ]))
+            self.base_service_at(super::ownable::INTERFACE_ID)
         }
         fn pausable(
             &self,
         ) -> my_crate::sails::client::Service<super::pausable::PausableImpl, Self::Env> {
-            self.base_service_at(my_crate::sails::InterfaceId::from_bytes_8([
-                119, 153, 244, 54, 223, 215, 83, 198,
-            ]))
+            self.base_service_at(super::pausable::INTERFACE_ID)
         }
         fn tippable(
             &self,
         ) -> my_crate::sails::client::Service<super::tippable::TippableImpl, Self::Env> {
-            self.base_service_at(my_crate::sails::InterfaceId::from_bytes_8([
-                237, 182, 209, 207, 204, 160, 182, 70,
-            ]))
+            self.base_service_at(super::tippable::INTERFACE_ID)
         }
     }
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(ColorPoint (point: super::Point<u32, >, color: super::Color) -> super::Result<(), super::ColorError>, 0);
-        my_crate::sails::io_struct_impl!(KillPoint (point: super::Point<u32, >) -> super::Result<bool, String>, 1);
-        my_crate::sails::io_struct_impl!(Points (offset: u32, len: u32) -> super::Result<Vec<(super::Point<u32, >, super::PointStatus, )>, String>, 2);
-        my_crate::sails::io_struct_impl!(PointStatus (point: super::Point<u32, >) -> super::Option<super::PointStatus, >, 3);
+        my_crate::sails::io_struct_impl!(ColorPoint (point: super::Point<u32, >, color: super::Color) -> super::Result<(), super::ColorError>, 0 , super::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(KillPoint (point: super::Point<u32, >) -> super::Result<bool, String>, 1 , super::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(Points (offset: u32, len: u32) -> super::Result<Vec<(super::Point<u32, >, super::PointStatus, )>, String>, 2 , super::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(PointStatus (point: super::Point<u32, >) -> super::Option<super::PointStatus, >, 3 , super::INTERFACE_ID);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -357,6 +367,8 @@ pub mod canvas {
 
 pub mod ping_pong {
     use super::*;
+    pub const INTERFACE_ID: my_crate::sails::InterfaceId =
+        my_crate::sails::InterfaceId::from_bytes_8([33, 189, 154, 154, 165, 29, 162, 100]);
     pub trait PingPong {
         type Env: my_crate::sails::client::GearEnv;
         fn ping(
@@ -379,12 +391,14 @@ pub mod ping_pong {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(Ping (input: String) -> super::Result<String, String>, 0);
+        my_crate::sails::io_struct_impl!(Ping (input: String) -> super::Result<String, String>, 0 , super::INTERFACE_ID);
     }
 }
 
 pub mod counter {
     use super::*;
+    pub const INTERFACE_ID: my_crate::sails::InterfaceId =
+        my_crate::sails::InterfaceId::from_bytes_8([87, 157, 109, 171, 164, 27, 125, 130]);
     pub trait Counter {
         type Env: my_crate::sails::client::GearEnv;
         /// Add a value to the counter
@@ -412,9 +426,9 @@ pub mod counter {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(Add (value: u32) -> u32, 0);
-        my_crate::sails::io_struct_impl!(Sub (value: u32) -> u32, 1);
-        my_crate::sails::io_struct_impl!(Value () -> u32, 2);
+        my_crate::sails::io_struct_impl!(Add (value: u32) -> u32, 0 , super::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(Sub (value: u32) -> u32, 1 , super::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(Value () -> u32, 2 , super::INTERFACE_ID);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -440,6 +454,8 @@ pub mod counter {
 
 pub mod dog {
     use super::*;
+    pub const INTERFACE_ID: my_crate::sails::InterfaceId =
+        my_crate::sails::InterfaceId::from_bytes_8([75, 2, 200, 107, 128, 2, 138, 218]);
     pub trait Dog {
         type Env: my_crate::sails::client::GearEnv;
         fn make_sound(&mut self) -> my_crate::sails::client::PendingCall<io::MakeSound, Self::Env>;
@@ -474,10 +490,10 @@ pub mod dog {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(MakeSound () -> String, 0);
-        my_crate::sails::io_struct_impl!(Walk (dx: i32, dy: i32) -> (), 1);
-        my_crate::sails::io_struct_impl!(AvgWeight () -> u32, 2);
-        my_crate::sails::io_struct_impl!(Position () -> (i32, i32, ), 3);
+        my_crate::sails::io_struct_impl!(MakeSound () -> String, 0 , super::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(Walk (dx: i32, dy: i32) -> (), 1 , super::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(AvgWeight () -> u32, 2 , super::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(Position () -> (i32, i32, ), 3 , super::INTERFACE_ID);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -501,6 +517,8 @@ pub mod dog {
 
 pub mod references {
     use super::*;
+    pub const INTERFACE_ID: my_crate::sails::InterfaceId =
+        my_crate::sails::InterfaceId::from_bytes_8([61, 171, 145, 177, 150, 71, 129, 98]);
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = my_crate::sails::scale_codec)]
     #[scale_info(crate = my_crate::sails::scale_info)]
@@ -568,19 +586,21 @@ pub mod references {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(Add (v: u32) -> u32, 0);
-        my_crate::sails::io_struct_impl!(AddByte (byte: u8) -> Vec<u8>, 1);
-        my_crate::sails::io_struct_impl!(GuessNum (number: u8) -> super::Result<String, String>, 2);
-        my_crate::sails::io_struct_impl!(Incr () -> super::ReferenceCount, 3);
-        my_crate::sails::io_struct_impl!(SetNum (number: u8) -> super::Result<(), String>, 4);
-        my_crate::sails::io_struct_impl!(Baked () -> String, 5);
-        my_crate::sails::io_struct_impl!(LastByte () -> super::Option<u8, >, 6);
-        my_crate::sails::io_struct_impl!(Message () -> super::Option<String, >, 7);
+        my_crate::sails::io_struct_impl!(Add (v: u32) -> u32, 0 , super::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(AddByte (byte: u8) -> Vec<u8>, 1 , super::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(GuessNum (number: u8) -> super::Result<String, String>, 2 , super::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(Incr () -> super::ReferenceCount, 3 , super::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(SetNum (number: u8) -> super::Result<(), String>, 4 , super::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(Baked () -> String, 5 , super::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(LastByte () -> super::Option<u8, >, 6 , super::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(Message () -> super::Option<String, >, 7 , super::INTERFACE_ID);
     }
 }
 
 pub mod this_that {
     use super::*;
+    pub const INTERFACE_ID: my_crate::sails::InterfaceId =
+        my_crate::sails::InterfaceId::from_bytes_8([220, 131, 135, 131, 19, 27, 44, 105]);
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = my_crate::sails::scale_codec)]
     #[scale_info(crate = my_crate::sails::scale_info)]
@@ -669,16 +689,18 @@ pub mod this_that {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(DoThat (param: super::DoThatParam) -> super::Result<(ActorId, u32, super::ManyVariantsReply, ), (String, )>, 0);
-        my_crate::sails::io_struct_impl!(DoThis (p1: u32, p2: String, p3: (super::Option<H160, >, u8, ), p4: super::TupleStruct) -> (String, u32, ), 1);
-        my_crate::sails::io_struct_impl!(Noop () -> (), 2);
-        my_crate::sails::io_struct_impl!(That () -> super::Result<String, String>, 3);
-        my_crate::sails::io_struct_impl!(This () -> u32, 4);
+        my_crate::sails::io_struct_impl!(DoThat (param: super::DoThatParam) -> super::Result<(ActorId, u32, super::ManyVariantsReply, ), (String, )>, 0 , super::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(DoThis (p1: u32, p2: String, p3: (super::Option<H160, >, u8, ), p4: super::TupleStruct) -> (String, u32, ), 1 , super::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(Noop () -> (), 2 , super::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(That () -> super::Result<String, String>, 3 , super::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(This () -> u32, 4 , super::INTERFACE_ID);
     }
 }
 
 pub mod value_fee {
     use super::*;
+    pub const INTERFACE_ID: my_crate::sails::InterfaceId =
+        my_crate::sails::InterfaceId::from_bytes_8([65, 193, 8, 11, 78, 30, 141, 197]);
     pub trait ValueFee {
         type Env: my_crate::sails::client::GearEnv;
         /// Return flag if fee taken and remain value,
@@ -701,7 +723,7 @@ pub mod value_fee {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(DoSomethingAndTakeFee () -> bool, 0);
+        my_crate::sails::io_struct_impl!(DoSomethingAndTakeFee () -> bool, 0 , super::INTERFACE_ID);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -723,6 +745,8 @@ pub mod value_fee {
 
 pub mod pausable {
     use super::*;
+    pub const INTERFACE_ID: my_crate::sails::InterfaceId =
+        my_crate::sails::InterfaceId::from_bytes_8([119, 153, 244, 54, 223, 215, 83, 198]);
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = my_crate::sails::scale_codec)]
     #[scale_info(crate = my_crate::sails::scale_info)]
@@ -748,8 +772,8 @@ pub mod pausable {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(Pause () -> (), 0);
-        my_crate::sails::io_struct_impl!(Unpause () -> (), 1);
+        my_crate::sails::io_struct_impl!(Pause () -> (), 0 , super::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(Unpause () -> (), 1 , super::INTERFACE_ID);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -773,6 +797,8 @@ pub mod pausable {
 
 pub mod ownable {
     use super::*;
+    pub const INTERFACE_ID: my_crate::sails::InterfaceId =
+        my_crate::sails::InterfaceId::from_bytes_8([45, 223, 161, 186, 121, 8, 187, 243]);
     pub trait Ownable {
         type Env: my_crate::sails::client::GearEnv;
         fn get_owner(&mut self) -> my_crate::sails::client::PendingCall<io::GetOwner, Self::Env>;
@@ -789,12 +815,14 @@ pub mod ownable {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(GetOwner () -> ActorId, 0);
+        my_crate::sails::io_struct_impl!(GetOwner () -> ActorId, 0 , super::INTERFACE_ID);
     }
 }
 
 pub mod tippable {
     use super::*;
+    pub const INTERFACE_ID: my_crate::sails::InterfaceId =
+        my_crate::sails::InterfaceId::from_bytes_8([237, 182, 209, 207, 204, 160, 182, 70]);
     pub trait Tippable {
         type Env: my_crate::sails::client::GearEnv;
         fn tip(&mut self, amount: u128)
@@ -815,12 +843,14 @@ pub mod tippable {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(Tip (amount: u128) -> (), 0);
+        my_crate::sails::io_struct_impl!(Tip (amount: u128) -> (), 0 , super::INTERFACE_ID);
     }
 }
 
 pub mod non_zero_params {
     use super::*;
+    pub const INTERFACE_ID: my_crate::sails::InterfaceId =
+        my_crate::sails::InterfaceId::from_bytes_8([247, 238, 3, 214, 44, 137, 30, 3]);
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = my_crate::sails::scale_codec)]
     #[scale_info(crate = my_crate::sails::scale_info)]
@@ -854,12 +884,14 @@ pub mod non_zero_params {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(DoThis (p1: U256, p2: super::MyParam) -> u64, 0);
+        my_crate::sails::io_struct_impl!(DoThis (p1: U256, p2: super::MyParam) -> u64, 0 , super::INTERFACE_ID);
     }
 }
 
 pub mod service_with_events {
     use super::*;
+    pub const INTERFACE_ID: my_crate::sails::InterfaceId =
+        my_crate::sails::InterfaceId::from_bytes_8([192, 205, 152, 45, 145, 112, 193, 0]);
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = my_crate::sails::scale_codec)]
     #[scale_info(crate = my_crate::sails::scale_info)]
@@ -893,7 +925,7 @@ pub mod service_with_events {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(DoThis (p1: U256, p2: super::MyParam) -> u64, 0);
+        my_crate::sails::io_struct_impl!(DoThis (p1: U256, p2: super::MyParam) -> u64, 0 , super::INTERFACE_ID);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -917,6 +949,8 @@ pub mod service_with_events {
 
 pub mod basic {
     use super::*;
+    pub const INTERFACE_ID: my_crate::sails::InterfaceId =
+        my_crate::sails::InterfaceId::from_bytes_8([82, 241, 49, 169, 231, 31, 0, 230]);
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = my_crate::sails::scale_codec)]
     #[scale_info(crate = my_crate::sails::scale_info)]
@@ -969,13 +1003,15 @@ pub mod basic {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(DoThat (p1: (u8, u32, )) -> u8, 0);
-        my_crate::sails::io_struct_impl!(DoThis (p1: u32, p2: super::MyParam) -> u16, 1);
+        my_crate::sails::io_struct_impl!(DoThat (p1: (u8, u32, )) -> u8, 0 , super::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(DoThis (p1: u32, p2: super::MyParam) -> u16, 1 , super::INTERFACE_ID);
     }
 }
 
 pub mod another_service {
     use super::*;
+    pub const INTERFACE_ID: my_crate::sails::InterfaceId =
+        my_crate::sails::InterfaceId::from_bytes_8([98, 254, 176, 83, 233, 74, 173, 234]);
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = my_crate::sails::scale_codec)]
     #[scale_info(crate = my_crate::sails::scale_info)]
@@ -1010,13 +1046,15 @@ pub mod another_service {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(Ping () -> String, 0);
-        my_crate::sails::io_struct_impl!(ProcessValues (data: Vec<U256>) -> super::Result<(), super::ProgramError>, 1);
+        my_crate::sails::io_struct_impl!(Ping () -> String, 0 , super::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(ProcessValues (data: Vec<U256>) -> super::Result<(), super::ProgramError>, 1 , super::INTERFACE_ID);
     }
 }
 
 pub mod my_complex_service {
     use super::*;
+    pub const INTERFACE_ID: my_crate::sails::InterfaceId =
+        my_crate::sails::InterfaceId::from_bytes_8([86, 209, 202, 3, 195, 8, 232, 253]);
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = my_crate::sails::scale_codec)]
     #[scale_info(crate = my_crate::sails::scale_info)]
@@ -1168,17 +1206,19 @@ pub mod my_complex_service {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(GetActorIds (count: u32) -> Vec<ActorId>, 0);
-        my_crate::sails::io_struct_impl!(GetData (key: String) -> super::Result<super::ProgramScopedData, super::ProgramError>, 1);
-        my_crate::sails::io_struct_impl!(GetInfo () -> super::ProgramGlobalInfo, 2);
-        my_crate::sails::io_struct_impl!(Initialize (start_data: super::ProgramGlobalInfo, max_size: u32) -> super::Result<(), super::ProgramError>, 3);
-        my_crate::sails::io_struct_impl!(ProcessGenericData (input_data: super::GenericData<u32, String, >, list_of_generics: Vec<super::GenericData<ActorId, U256, >>, optional_generic_result: super::Option<super::GenericResult<bool, >, >) -> super::GenericData<bool, u8, >, 4);
-        my_crate::sails::io_struct_impl!(UpdateStatus (id: u64, new_status: super::ServiceStatus, metadata: super::Option<String, >) -> super::GenericResult<u32, >, 5);
+        my_crate::sails::io_struct_impl!(GetActorIds (count: u32) -> Vec<ActorId>, 0 , super::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(GetData (key: String) -> super::Result<super::ProgramScopedData, super::ProgramError>, 1 , super::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(GetInfo () -> super::ProgramGlobalInfo, 2 , super::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(Initialize (start_data: super::ProgramGlobalInfo, max_size: u32) -> super::Result<(), super::ProgramError>, 3 , super::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(ProcessGenericData (input_data: super::GenericData<u32, String, >, list_of_generics: Vec<super::GenericData<ActorId, U256, >>, optional_generic_result: super::Option<super::GenericResult<bool, >, >) -> super::GenericData<bool, u8, >, 4 , super::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(UpdateStatus (id: u64, new_status: super::ServiceStatus, metadata: super::Option<String, >) -> super::GenericResult<u32, >, 5 , super::INTERFACE_ID);
     }
 }
 
 pub mod rmrk_catalog {
     use super::*;
+    pub const INTERFACE_ID: my_crate::sails::InterfaceId =
+        my_crate::sails::InterfaceId::from_bytes_8([197, 210, 70, 1, 134, 247, 35, 60]);
     pub trait RmrkCatalog {
         type Env: my_crate::sails::client::GearEnv;
     }
