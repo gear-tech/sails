@@ -3,13 +3,13 @@ source: rs/macros/core/tests/gservice.rs
 expression: result
 ---
 pub struct ReferenceServiceExposure<T> {
-    route: &'static [u8],
+    route_idx: u8,
     inner: T,
 }
 impl<T: sails_rs::meta::ServiceMeta> sails_rs::gstd::services::Exposure
 for ReferenceServiceExposure<T> {
-    fn route(&self) -> &'static [u8] {
-        self.route
+    fn route_idx(&self) -> u8 {
+        self.route_idx
     }
     fn check_asyncness(
         interface_id: sails_rs::meta::InterfaceId,
@@ -71,16 +71,6 @@ impl ReferenceServiceExposure<ReferenceService> {
     pub async fn last_byte<'a>(&self) -> Option<&'a u8> {
         unsafe { BYTES.last() }
     }
-    pub fn check_asyncness(
-        &self,
-        interface_id: sails_rs::meta::InterfaceId,
-        entry_id: u16,
-    ) -> Option<bool> {
-        <Self as sails_rs::gstd::services::Exposure>::check_asyncness(
-            interface_id,
-            entry_id,
-        )
-    }
     pub fn try_handle(
         mut self,
         interface_id: sails_rs::meta::InterfaceId,
@@ -95,54 +85,45 @@ impl ReferenceServiceExposure<ReferenceService> {
         {
             match entry_id {
                 0u16 => {
-                    let request = <reference_service_meta::__AddByteParams as sails_rs::gstd::InvocationIo>::decode_params(
-                            &input,
+                    let request: reference_service_meta::__AddByteParams = sails_rs::scale_codec::Decode::decode(
+                            &mut input.as_slice(),
                         )
                         .expect("Failed to decode params");
                     let result = self.add_byte(request.byte);
                     let value = 0u128;
-                    if !<reference_service_meta::__AddByteParams as sails_rs::gstd::InvocationIo>::is_empty_tuple::<
-                        &'static [u8],
-                    >() {
-                        <reference_service_meta::__AddByteParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                    if sails_rs::gstd::is_empty_tuple::<&'static [u8]>() {
+                        sails_rs::gstd::with_optimized_encode(
                             &result,
-                            self.route().as_ref(),
                             |encoded_result| result_handler(encoded_result, value),
                         );
                     }
                     return Some(());
                 }
                 1u16 => {
-                    let request = <reference_service_meta::__IncrParams as sails_rs::gstd::InvocationIo>::decode_params(
-                            &input,
+                    let request: reference_service_meta::__IncrParams = sails_rs::scale_codec::Decode::decode(
+                            &mut input.as_slice(),
                         )
                         .expect("Failed to decode params");
                     let result = self.incr();
                     let value = 0u128;
-                    if !<reference_service_meta::__IncrParams as sails_rs::gstd::InvocationIo>::is_empty_tuple::<
-                        &'static ReferenceCount,
-                    >() {
-                        <reference_service_meta::__IncrParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                    if sails_rs::gstd::is_empty_tuple::<&'static ReferenceCount>() {
+                        sails_rs::gstd::with_optimized_encode(
                             &result,
-                            self.route().as_ref(),
                             |encoded_result| result_handler(encoded_result, value),
                         );
                     }
                     return Some(());
                 }
                 2u16 => {
-                    let request = <reference_service_meta::__BakedParams as sails_rs::gstd::InvocationIo>::decode_params(
-                            &input,
+                    let request: reference_service_meta::__BakedParams = sails_rs::scale_codec::Decode::decode(
+                            &mut input.as_slice(),
                         )
                         .expect("Failed to decode params");
                     let result = self.baked();
                     let value = 0u128;
-                    if !<reference_service_meta::__BakedParams as sails_rs::gstd::InvocationIo>::is_empty_tuple::<
-                        &'static str,
-                    >() {
-                        <reference_service_meta::__BakedParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                    if sails_rs::gstd::is_empty_tuple::<&'static str>() {
+                        sails_rs::gstd::with_optimized_encode(
                             &result,
-                            self.route().as_ref(),
                             |encoded_result| result_handler(encoded_result, value),
                         );
                     }
@@ -168,36 +149,30 @@ impl ReferenceServiceExposure<ReferenceService> {
         {
             match entry_id {
                 3u16 => {
-                    let request = <reference_service_meta::__FirstByteParams as sails_rs::gstd::InvocationIo>::decode_params(
-                            &input,
+                    let request: reference_service_meta::__FirstByteParams = sails_rs::scale_codec::Decode::decode(
+                            &mut input.as_slice(),
                         )
                         .expect("Failed to decode params");
                     let result = self.first_byte().await;
                     let value = 0u128;
-                    if !<reference_service_meta::__FirstByteParams as sails_rs::gstd::InvocationIo>::is_empty_tuple::<
-                        Option<&'static u8>,
-                    >() {
-                        <reference_service_meta::__FirstByteParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                    if sails_rs::gstd::is_empty_tuple::<Option<&'static u8>>() {
+                        sails_rs::gstd::with_optimized_encode(
                             &result,
-                            self.route().as_ref(),
                             |encoded_result| result_handler(encoded_result, value),
                         );
                     }
                     return Some(());
                 }
                 4u16 => {
-                    let request = <reference_service_meta::__LastByteParams as sails_rs::gstd::InvocationIo>::decode_params(
-                            &input,
+                    let request: reference_service_meta::__LastByteParams = sails_rs::scale_codec::Decode::decode(
+                            &mut input.as_slice(),
                         )
                         .expect("Failed to decode params");
                     let result = self.last_byte().await;
                     let value = 0u128;
-                    if !<reference_service_meta::__LastByteParams as sails_rs::gstd::InvocationIo>::is_empty_tuple::<
-                        Option<&'static u8>,
-                    >() {
-                        <reference_service_meta::__LastByteParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                    if sails_rs::gstd::is_empty_tuple::<Option<&'static u8>>() {
+                        sails_rs::gstd::with_optimized_encode(
                             &result,
-                            self.route().as_ref(),
                             |encoded_result| result_handler(encoded_result, value),
                         );
                     }
@@ -212,9 +187,9 @@ impl ReferenceServiceExposure<ReferenceService> {
 }
 impl sails_rs::gstd::services::Service for ReferenceService {
     type Exposure = ReferenceServiceExposure<Self>;
-    fn expose(self, route: &'static [u8]) -> Self::Exposure {
+    fn expose(self, route_idx: u8) -> Self::Exposure {
         Self::Exposure {
-            route,
+            route_idx,
             inner: self,
         }
     }
@@ -227,67 +202,16 @@ impl sails_rs::meta::ServiceMeta for ReferenceService {
     const ASYNC: bool = true;
     const INTERFACE_ID: sails_rs::meta::InterfaceId = {
         let mut final_hash = sails_rs::keccak_const::Keccak256::new();
-        {
-            let mut fn_hash = sails_rs::keccak_const::Keccak256::new();
-            fn_hash = fn_hash.update("command".as_bytes());
-            fn_hash = fn_hash.update("AddByte".as_bytes());
-            fn_hash = fn_hash
-                .update(&<u8 as sails_rs::sails_reflect_hash::ReflectHash>::HASH);
-            fn_hash = fn_hash.update(b"res");
-            fn_hash = fn_hash
-                .update(
-                    &<&'static [u8] as sails_rs::sails_reflect_hash::ReflectHash>::HASH,
-                );
-            final_hash = final_hash.update(&fn_hash.finalize());
-        }
-        {
-            let mut fn_hash = sails_rs::keccak_const::Keccak256::new();
-            fn_hash = fn_hash.update("command".as_bytes());
-            fn_hash = fn_hash.update("Incr".as_bytes());
-            fn_hash = fn_hash.update(b"res");
-            fn_hash = fn_hash
-                .update(
-                    &<&'static ReferenceCount as sails_rs::sails_reflect_hash::ReflectHash>::HASH,
-                );
-            final_hash = final_hash.update(&fn_hash.finalize());
-        }
-        {
-            let mut fn_hash = sails_rs::keccak_const::Keccak256::new();
-            fn_hash = fn_hash.update("query".as_bytes());
-            fn_hash = fn_hash.update("Baked".as_bytes());
-            fn_hash = fn_hash.update(b"res");
-            fn_hash = fn_hash
-                .update(
-                    &<&'static str as sails_rs::sails_reflect_hash::ReflectHash>::HASH,
-                );
-            final_hash = final_hash.update(&fn_hash.finalize());
-        }
-        {
-            let mut fn_hash = sails_rs::keccak_const::Keccak256::new();
-            fn_hash = fn_hash.update("query".as_bytes());
-            fn_hash = fn_hash.update("FirstByte".as_bytes());
-            fn_hash = fn_hash.update(b"res");
-            fn_hash = fn_hash
-                .update(
-                    &<Option<
-                        &'static u8,
-                    > as sails_rs::sails_reflect_hash::ReflectHash>::HASH,
-                );
-            final_hash = final_hash.update(&fn_hash.finalize());
-        }
-        {
-            let mut fn_hash = sails_rs::keccak_const::Keccak256::new();
-            fn_hash = fn_hash.update("query".as_bytes());
-            fn_hash = fn_hash.update("LastByte".as_bytes());
-            fn_hash = fn_hash.update(b"res");
-            fn_hash = fn_hash
-                .update(
-                    &<Option<
-                        &'static u8,
-                    > as sails_rs::sails_reflect_hash::ReflectHash>::HASH,
-                );
-            final_hash = final_hash.update(&fn_hash.finalize());
-        }
+        final_hash = final_hash
+            .update(&sails_rs::hash_fn!(command AddByte(u8) -> & 'static [u8]));
+        final_hash = final_hash
+            .update(&sails_rs::hash_fn!(command Incr() -> & 'static ReferenceCount));
+        final_hash = final_hash
+            .update(&sails_rs::hash_fn!(query Baked() -> & 'static str));
+        final_hash = final_hash
+            .update(&sails_rs::hash_fn!(query FirstByte() -> Option < & 'static u8 >));
+        final_hash = final_hash
+            .update(&sails_rs::hash_fn!(query LastByte() -> Option < & 'static u8 >));
         let hash = final_hash.finalize();
         sails_rs::meta::InterfaceId::from_bytes_32(hash)
     };
@@ -295,60 +219,28 @@ impl sails_rs::meta::ServiceMeta for ReferenceService {
 mod reference_service_meta {
     use super::*;
     use sails_rs::{Decode, TypeInfo};
-    use sails_rs::gstd::InvocationIo;
     #[derive(Decode, TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub struct __AddByteParams {
         pub(super) byte: u8,
     }
-    impl InvocationIo for __AddByteParams {
-        const ROUTE: &'static [u8] = &[
-            28u8, 65u8, 100u8, 100u8, 66u8, 121u8, 116u8, 101u8,
-        ];
-        type Params = Self;
-        const ASYNC: bool = false;
-    }
     #[derive(Decode, TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub struct __BakedParams {}
-    impl InvocationIo for __BakedParams {
-        const ROUTE: &'static [u8] = &[20u8, 66u8, 97u8, 107u8, 101u8, 100u8];
-        type Params = Self;
-        const ASYNC: bool = false;
-    }
     #[derive(Decode, TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub struct __FirstByteParams {}
-    impl InvocationIo for __FirstByteParams {
-        const ROUTE: &'static [u8] = &[
-            36u8, 70u8, 105u8, 114u8, 115u8, 116u8, 66u8, 121u8, 116u8, 101u8,
-        ];
-        type Params = Self;
-        const ASYNC: bool = true;
-    }
     #[derive(Decode, TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub struct __IncrParams {}
-    impl InvocationIo for __IncrParams {
-        const ROUTE: &'static [u8] = &[16u8, 73u8, 110u8, 99u8, 114u8];
-        type Params = Self;
-        const ASYNC: bool = false;
-    }
     #[derive(Decode, TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub struct __LastByteParams {}
-    impl InvocationIo for __LastByteParams {
-        const ROUTE: &'static [u8] = &[
-            32u8, 76u8, 97u8, 115u8, 116u8, 66u8, 121u8, 116u8, 101u8,
-        ];
-        type Params = Self;
-        const ASYNC: bool = true;
-    }
     #[derive(TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum CommandsMeta {

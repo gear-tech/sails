@@ -68,7 +68,7 @@ struct ServiceBuilder<'a> {
     /// Handlers with assigned entry IDs (sorted: commands then queries)
     service_handlers_with_ids: Vec<(FnBuilder<'a>, u16)>,
     exposure_ident: Ident,
-    route_ident: Ident,
+    route_idx_ident: Ident,
     inner_ident: Ident,
     meta_module_ident: Ident,
 }
@@ -92,7 +92,7 @@ impl<'a> ServiceBuilder<'a> {
             service_ident.to_string().to_case(Case::Pascal)
         );
         let exposure_ident = Ident::new(&exposure_name, Span::call_site());
-        let route_ident = Ident::new("route", Span::call_site());
+        let route_idx_ident = Ident::new("route_idx", Span::call_site());
         let inner_ident = Ident::new("inner", Span::call_site());
         let meta_module_name = format!("{}_meta", service_ident.to_string().to_case(Case::Snake));
         let meta_module_ident = Ident::new(&meta_module_name, Span::call_site());
@@ -108,7 +108,7 @@ impl<'a> ServiceBuilder<'a> {
             service_handlers,
             service_handlers_with_ids,
             exposure_ident,
-            route_ident,
+            route_idx_ident,
             inner_ident,
             meta_module_ident,
         }
@@ -242,8 +242,6 @@ impl FnBuilder<'_> {
     fn params_struct(&self, scale_codec_path: &Path, scale_info_path: &Path) -> TokenStream {
         let params_struct_ident = &self.params_struct_ident;
         let params_struct_members = self.params().map(|(ident, ty)| quote!(#ident: #ty));
-        let handler_route_bytes = self.encoded_route.as_slice();
-        let is_async = self.is_async();
 
         quote!(
             #[derive(Decode, TypeInfo)]
@@ -251,12 +249,6 @@ impl FnBuilder<'_> {
             #[scale_info(crate = #scale_info_path )]
             pub struct #params_struct_ident {
                 #(pub(super) #params_struct_members,)*
-            }
-
-            impl InvocationIo for #params_struct_ident {
-                const ROUTE: &'static [u8] = &[ #(#handler_route_bytes),* ];
-                type Params = Self;
-                const ASYNC: bool = #is_async;
             }
         )
     }

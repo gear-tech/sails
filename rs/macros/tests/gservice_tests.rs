@@ -24,14 +24,12 @@ mod gservice_with_basics;
 /// race condition occurs.
 const SERVICE_NAME: &str = "TestService";
 /// Service route which is same as `SERVICE_NAME.encode()`
-const SERVICE_ROUTE: &[u8] = &[44, 84, 101, 115, 116, 83, 101, 114, 118, 105, 99, 101];
+// const SERVICE_ROUTE: &[u8] = &[44, 84, 101, 115, 116, 83, 101, 114, 118, 105, 99, 101];
 
 #[tokio::test]
 async fn gservice_with_basics() {
     use gservice_with_basics::DoThisParams;
     use gservice_with_basics::SomeService;
-
-    const DO_THIS: &str = "DoThis";
 
     let header = SailsMessageHeader::v1(gservice_with_basics::SomeService::INTERFACE_ID, 1, 0);
 
@@ -41,27 +39,27 @@ async fn gservice_with_basics() {
     }
     .encode();
 
-    let exposure = SomeService.expose(SERVICE_ROUTE);
-
     // Check asyncness of the service.
     assert!(
-        exposure
-            .check_asyncness(header.interface_id(), header.entry_id())
-            .unwrap()
+        <SomeService as Service>::Exposure::check_asyncness(
+            header.interface_id(),
+            header.entry_id()
+        )
+        .unwrap()
     );
 
     SomeService
-        .expose(SERVICE_ROUTE)
+        .expose(header.route_id())
         .try_handle_async(
             header.interface_id(),
             header.entry_id(),
             input,
             |mut output, _| {
-                let service_route = String::decode(&mut output).unwrap();
-                assert_eq!(service_route, SERVICE_NAME);
+                // let service_route = String::decode(&mut output).unwrap();
+                // assert_eq!(service_route, SERVICE_NAME);
 
-                let func_name = String::decode(&mut output).unwrap();
-                assert_eq!(func_name, DO_THIS);
+                // let func_name = String::decode(&mut output).unwrap();
+                // assert_eq!(func_name, DO_THIS);
 
                 let result = String::decode(&mut output).unwrap();
                 assert_eq!(result, "42: correct");

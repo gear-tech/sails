@@ -94,7 +94,6 @@ impl ServiceBuilder<'_> {
             mod #meta_module_ident {
                 use super::*;
                 use #sails_path::{Decode, TypeInfo};
-                use #sails_path::gstd::InvocationIo;
 
                 #( #invocation_params_structs )*
 
@@ -129,48 +128,29 @@ impl ServiceBuilder<'_> {
         commands.sort_by_key(|h| h.route.to_lowercase());
         queries.sort_by_key(|h| h.route.to_lowercase());
 
-        // TODO: #1124
         let fn_hash_computations: Vec<_> = commands
             .into_iter()
             .chain(queries)
             .map(|handler| {
-                let fn_type = if handler.is_query() { "query" } else { "command" };
-                let fn_name = &handler.route;
+                let fn_type = if handler.is_query() { quote! { query }  } else { quote! { command } };
+                let fn_name = Ident::new(&handler.route, Span::call_site());
 
-                // Generate ARG_HASH = REFLECT_HASH for each argument
-                let arg_hash_computations = handler.params().map(|(_, ty)| {
-                    quote!(fn_hash = fn_hash.update(&<#ty as #sails_path::sails_reflect_hash::ReflectHash>::HASH);)
-                });
+                let arg_types = handler.params().map(|(_, ty)| ty);
 
                 // Generate RES_HASH - check if result type is Result<T, E>
                 let result_type = handler.result_type_with_static_lifetime();
-                let result_hash = if let Type::Path(ref tp) = result_type && let Some((ok_ty, err_ty)) = shared::extract_result_types(tp) {
+                let result_tokens = if let Type::Path(ref tp) = result_type && let Some((ok_ty, err_ty)) = shared::extract_result_types(tp) {
                     // Result type: RES_HASH = b"res" || T::HASH || b"throws" || E::HASH
-                    quote! {
-                        fn_hash = fn_hash.update(b"res");
-                        fn_hash = fn_hash.update(&<#ok_ty as #sails_path::sails_reflect_hash::ReflectHash>::HASH);
-                        fn_hash = fn_hash.update(b"throws");
-                        fn_hash = fn_hash.update(&<#err_ty as #sails_path::sails_reflect_hash::ReflectHash>::HASH);
-                    }
+                    quote!( -> #ok_ty | #err_ty )
                 } else {
                     // Other types: RES_HASH = b"res" || REFLECT_HASH
-                    quote! {
-                        fn_hash = fn_hash.update(b"res");
-                        fn_hash = fn_hash.update(&<#result_type as #sails_path::sails_reflect_hash::ReflectHash>::HASH);
-                    }
+                    quote!( -> #result_type )
                 };
 
                 // FN_HASH = hash(bytes(FN_TYPE) || bytes(FN_NAME) || ARGS_REFLECT_HASH || RES_HASH)
                 // RES_HASH = (b"res" || REFLECT_HASH) | (b"res" || T_REFLECT_HASH || bytes("throws") || E_REFLECT_HASH)
                 quote! {
-                    {
-                        let mut fn_hash = #sails_path::keccak_const::Keccak256::new();
-                        fn_hash = fn_hash.update(#fn_type.as_bytes());
-                        fn_hash = fn_hash.update(#fn_name.as_bytes());
-                        #(#arg_hash_computations)*
-                        #result_hash
-                        final_hash = final_hash.update(&fn_hash.finalize());
-                    }
+                    final_hash = final_hash.update(& #sails_path::hash_fn!( #fn_type #fn_name ( #( #arg_types ),* ) #result_tokens ));
                 }
             })
             .collect();

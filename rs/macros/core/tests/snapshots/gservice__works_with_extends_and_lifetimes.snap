@@ -3,13 +3,13 @@ source: rs/macros/core/tests/gservice.rs
 expression: result
 ---
 pub struct ExtendedLifetimeExposure<T> {
-    route: &'static [u8],
+    route_idx: u8,
     inner: T,
 }
 impl<T: sails_rs::meta::ServiceMeta> sails_rs::gstd::services::Exposure
 for ExtendedLifetimeExposure<T> {
-    fn route(&self) -> &'static [u8] {
-        self.route
+    fn route_idx(&self) -> u8 {
+        self.route_idx
     }
     fn check_asyncness(
         interface_id: sails_rs::meta::InterfaceId,
@@ -64,16 +64,6 @@ impl<'a> ExtendedLifetimeExposure<ExtendedLifetime<'a>> {
     pub fn name(&self) -> String {
         "extended".to_string()
     }
-    pub fn check_asyncness(
-        &self,
-        interface_id: sails_rs::meta::InterfaceId,
-        entry_id: u16,
-    ) -> Option<bool> {
-        <Self as sails_rs::gstd::services::Exposure>::check_asyncness(
-            interface_id,
-            entry_id,
-        )
-    }
     pub fn try_handle(
         mut self,
         interface_id: sails_rs::meta::InterfaceId,
@@ -88,36 +78,30 @@ impl<'a> ExtendedLifetimeExposure<ExtendedLifetime<'a>> {
         {
             match entry_id {
                 0u16 => {
-                    let request = <extended_lifetime_meta::__ExtendedNameParams as sails_rs::gstd::InvocationIo>::decode_params(
-                            &input,
+                    let request: extended_lifetime_meta::__ExtendedNameParams = sails_rs::scale_codec::Decode::decode(
+                            &mut input.as_slice(),
                         )
                         .expect("Failed to decode params");
                     let result = self.extended_name();
                     let value = 0u128;
-                    if !<extended_lifetime_meta::__ExtendedNameParams as sails_rs::gstd::InvocationIo>::is_empty_tuple::<
-                        String,
-                    >() {
-                        <extended_lifetime_meta::__ExtendedNameParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                    if sails_rs::gstd::is_empty_tuple::<String>() {
+                        sails_rs::gstd::with_optimized_encode(
                             &result,
-                            self.route().as_ref(),
                             |encoded_result| result_handler(encoded_result, value),
                         );
                     }
                     return Some(());
                 }
                 1u16 => {
-                    let request = <extended_lifetime_meta::__NameParams as sails_rs::gstd::InvocationIo>::decode_params(
-                            &input,
+                    let request: extended_lifetime_meta::__NameParams = sails_rs::scale_codec::Decode::decode(
+                            &mut input.as_slice(),
                         )
                         .expect("Failed to decode params");
                     let result = self.name();
                     let value = 0u128;
-                    if !<extended_lifetime_meta::__NameParams as sails_rs::gstd::InvocationIo>::is_empty_tuple::<
-                        String,
-                    >() {
-                        <extended_lifetime_meta::__NameParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                    if sails_rs::gstd::is_empty_tuple::<String>() {
+                        sails_rs::gstd::with_optimized_encode(
                             &result,
-                            self.route().as_ref(),
                             |encoded_result| result_handler(encoded_result, value),
                         );
                     }
@@ -128,7 +112,7 @@ impl<'a> ExtendedLifetimeExposure<ExtendedLifetime<'a>> {
         } else {
             let base_services: (base::BaseLifetime<'a>) = self.inner.into();
             if base_services
-                .expose(self.route)
+                .expose(self.route_idx)
                 .try_handle(interface_id, entry_id, input.clone(), result_handler)
                 .is_some()
             {
@@ -155,7 +139,7 @@ impl<'a> ExtendedLifetimeExposure<ExtendedLifetime<'a>> {
         } else {
             let base_services: (base::BaseLifetime<'a>) = self.inner.into();
             if base_services
-                .expose(self.route)
+                .expose(self.route_idx)
                 .try_handle_async(interface_id, entry_id, input.clone(), result_handler)
                 .await
                 .is_some()
@@ -168,9 +152,9 @@ impl<'a> ExtendedLifetimeExposure<ExtendedLifetime<'a>> {
 }
 impl<'a> sails_rs::gstd::services::Service for ExtendedLifetime<'a> {
     type Exposure = ExtendedLifetimeExposure<Self>;
-    fn expose(self, route: &'static [u8]) -> Self::Exposure {
+    fn expose(self, route_idx: u8) -> Self::Exposure {
         Self::Exposure {
-            route,
+            route_idx,
             inner: self,
         }
     }
@@ -185,24 +169,9 @@ impl<'a> sails_rs::meta::ServiceMeta for ExtendedLifetime<'a> {
     const ASYNC: bool = <base::BaseLifetime as sails_rs::meta::ServiceMeta>::ASYNC;
     const INTERFACE_ID: sails_rs::meta::InterfaceId = {
         let mut final_hash = sails_rs::keccak_const::Keccak256::new();
-        {
-            let mut fn_hash = sails_rs::keccak_const::Keccak256::new();
-            fn_hash = fn_hash.update("query".as_bytes());
-            fn_hash = fn_hash.update("ExtendedName".as_bytes());
-            fn_hash = fn_hash.update(b"res");
-            fn_hash = fn_hash
-                .update(&<String as sails_rs::sails_reflect_hash::ReflectHash>::HASH);
-            final_hash = final_hash.update(&fn_hash.finalize());
-        }
-        {
-            let mut fn_hash = sails_rs::keccak_const::Keccak256::new();
-            fn_hash = fn_hash.update("query".as_bytes());
-            fn_hash = fn_hash.update("Name".as_bytes());
-            fn_hash = fn_hash.update(b"res");
-            fn_hash = fn_hash
-                .update(&<String as sails_rs::sails_reflect_hash::ReflectHash>::HASH);
-            final_hash = final_hash.update(&fn_hash.finalize());
-        }
+        final_hash = final_hash
+            .update(&sails_rs::hash_fn!(query ExtendedName() -> String));
+        final_hash = final_hash.update(&sails_rs::hash_fn!(query Name() -> String));
         final_hash = final_hash
             .update(
                 &<base::BaseLifetime as sails_rs::meta::ServiceMeta>::INTERFACE_ID.0,
@@ -214,28 +183,14 @@ impl<'a> sails_rs::meta::ServiceMeta for ExtendedLifetime<'a> {
 mod extended_lifetime_meta {
     use super::*;
     use sails_rs::{Decode, TypeInfo};
-    use sails_rs::gstd::InvocationIo;
     #[derive(Decode, TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub struct __ExtendedNameParams {}
-    impl InvocationIo for __ExtendedNameParams {
-        const ROUTE: &'static [u8] = &[
-            48u8, 69u8, 120u8, 116u8, 101u8, 110u8, 100u8, 101u8, 100u8, 78u8, 97u8,
-            109u8, 101u8,
-        ];
-        type Params = Self;
-        const ASYNC: bool = false;
-    }
     #[derive(Decode, TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub struct __NameParams {}
-    impl InvocationIo for __NameParams {
-        const ROUTE: &'static [u8] = &[16u8, 78u8, 97u8, 109u8, 101u8];
-        type Params = Self;
-        const ASYNC: bool = false;
-    }
     #[derive(TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum CommandsMeta {}

@@ -80,7 +80,7 @@ impl InterfaceId {
 
 impl core::fmt::Debug for InterfaceId {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "{}", &self)
+        core::fmt::Display::fmt(self, f)
     }
 }
 
@@ -296,6 +296,24 @@ const fn fill_interface_ids_recursive(
     while idx != base_services.len() {
         fill_interface_ids_recursive(arr, offset, &base_services[idx], route_id);
         idx += 1;
+    }
+}
+
+pub const fn service_has_interface_id(
+    service: &BaseServiceMeta,
+    interface_id: InterfaceId,
+) -> bool {
+    if service.interface_id.as_u64() == interface_id.as_u64() {
+        true
+    } else {
+        let mut idx = 0;
+        while idx != service.base.len() {
+            if service_has_interface_id(&service.base[idx], interface_id) {
+                return true;
+            }
+            idx += 1;
+        }
+        false
     }
 }
 

@@ -6,7 +6,7 @@ impl ServiceBuilder<'_> {
     pub(super) fn exposure_struct(&self) -> TokenStream {
         let sails_path = self.sails_path;
         let exposure_ident = &self.exposure_ident;
-        let route_ident = &self.route_ident;
+        let route_idx_ident = &self.route_idx_ident;
         let inner_ident = &self.inner_ident;
 
         let check_asyncness_impl = self.check_asyncness_impl();
@@ -23,13 +23,13 @@ impl ServiceBuilder<'_> {
 
         quote! {
             pub struct #exposure_ident<T> {
-                #route_ident : &'static [u8],
+                #route_idx_ident : u8,
                 #inner_ident : T,
             }
 
             impl<T: #sails_path::meta::ServiceMeta> #sails_path::gstd::services::Exposure for #exposure_ident<T> {
-                fn route(&self) -> &'static [u8] {
-                    self. #route_ident
+                fn route_idx(&self) -> u8 {
+                    self. #route_idx_ident
                 }
 
                 #check_asyncness_impl
@@ -70,7 +70,6 @@ impl ServiceBuilder<'_> {
     }
 
     pub(super) fn exposure_impl(&self) -> TokenStream {
-        let sails_path = self.sails_path;
         let exposure_ident = &self.exposure_ident;
         let generics = &self.generics;
         let service_type_path = self.type_path;
@@ -96,10 +95,6 @@ impl ServiceBuilder<'_> {
             #( #exposure_allow_attrs )*
             impl #generics #exposure_ident< #service_type_path > #service_type_constraints {
                 #( #exposure_funcs )*
-
-                pub fn check_asyncness(&self, interface_id: #sails_path::meta::InterfaceId, entry_id: u16) -> Option<bool> {
-                    <Self as #sails_path::gstd::services::Exposure>::check_asyncness(interface_id, entry_id)
-                }
 
                 #try_handle_impl
 
@@ -158,13 +153,12 @@ impl ServiceBuilder<'_> {
 
                     Some(quote! {
                         #entry_id => {
-                            let request = <#meta_module_ident::#params_struct_ident as #sails_path::gstd::InvocationIo>::decode_params(&input)
+                            let request: #meta_module_ident::#params_struct_ident = #sails_path::scale_codec::Decode::decode(&mut input.as_slice())
                                 .expect("Failed to decode params");
                             #handle_token
-                            if !<#meta_module_ident::#params_struct_ident as #sails_path::gstd::InvocationIo>::is_empty_tuple::<#result_type_static>() {
-                                <#meta_module_ident::#params_struct_ident as #sails_path::gstd::InvocationIo>::with_optimized_encode(
+                            if #sails_path::gstd::is_empty_tuple::<#result_type_static>() {
+                                #sails_path::gstd::with_optimized_encode(
                                     &result,
-                                    self.route().as_ref(),
                                     |encoded_result| result_handler(encoded_result, value),
                                 );
                             }
@@ -206,7 +200,7 @@ impl ServiceBuilder<'_> {
                         Some(quote! { . #idx_literal })
                     };
                     quote! {
-                        if base_services #idx_token .expose(self.route) . #name_ident(interface_id, entry_id, input.clone(), result_handler) #await_token.is_some() {
+                        if base_services #idx_token .expose(self.route_idx) . #name_ident(interface_id, entry_id, input.clone(), result_handler) #await_token.is_some() {
                             return Some(());
                         }
                     }
@@ -259,16 +253,16 @@ impl ServiceBuilder<'_> {
         let service_type_path = self.type_path;
         let service_type_constraints = self.type_constraints();
 
-        let route_ident = &self.route_ident;
+        let route_idx_ident = &self.route_idx_ident;
         let inner_ident = &self.inner_ident;
 
         quote!(
             impl #generics #sails_path::gstd::services::Service for #service_type_path #service_type_constraints {
                 type Exposure = #exposure_ident<Self>;
 
-                fn expose(self, #route_ident : &'static [u8]) -> Self::Exposure {
+                fn expose(self, #route_idx_ident : u8) -> Self::Exposure {
                     Self::Exposure {
-                        #route_ident ,
+                        #route_idx_ident ,
                         #inner_ident : self,
                     }
                 }

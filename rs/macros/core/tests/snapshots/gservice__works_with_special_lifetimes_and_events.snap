@@ -3,13 +3,13 @@ source: rs/macros/core/tests/gservice.rs
 expression: result
 ---
 pub struct MyGenericEventsServiceExposure<T> {
-    route: &'static [u8],
+    route_idx: u8,
     inner: T,
 }
 impl<T: sails_rs::meta::ServiceMeta> sails_rs::gstd::services::Exposure
 for MyGenericEventsServiceExposure<T> {
-    fn route(&self) -> &'static [u8] {
-        self.route
+    fn route_idx(&self) -> u8 {
+        self.route_idx
     }
     fn check_asyncness(
         interface_id: sails_rs::meta::InterfaceId,
@@ -52,16 +52,6 @@ where
     pub fn do_this(&mut self) -> u32 {
         42
     }
-    pub fn check_asyncness(
-        &self,
-        interface_id: sails_rs::meta::InterfaceId,
-        entry_id: u16,
-    ) -> Option<bool> {
-        <Self as sails_rs::gstd::services::Exposure>::check_asyncness(
-            interface_id,
-            entry_id,
-        )
-    }
     pub fn try_handle(
         mut self,
         interface_id: sails_rs::meta::InterfaceId,
@@ -80,18 +70,15 @@ where
         {
             match entry_id {
                 0u16 => {
-                    let request = <my_generic_events_service_meta::__DoThisParams as sails_rs::gstd::InvocationIo>::decode_params(
-                            &input,
+                    let request: my_generic_events_service_meta::__DoThisParams = sails_rs::scale_codec::Decode::decode(
+                            &mut input.as_slice(),
                         )
                         .expect("Failed to decode params");
                     let result = self.do_this();
                     let value = 0u128;
-                    if !<my_generic_events_service_meta::__DoThisParams as sails_rs::gstd::InvocationIo>::is_empty_tuple::<
-                        u32,
-                    >() {
-                        <my_generic_events_service_meta::__DoThisParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                    if sails_rs::gstd::is_empty_tuple::<u32>() {
+                        sails_rs::gstd::with_optimized_encode(
                             &result,
-                            self.route().as_ref(),
                             |encoded_result| result_handler(encoded_result, value),
                         );
                     }
@@ -136,9 +123,9 @@ where
     T: Clone,
 {
     type Exposure = MyGenericEventsServiceExposure<Self>;
-    fn expose(self, route: &'static [u8]) -> Self::Exposure {
+    fn expose(self, route_idx: u8) -> Self::Exposure {
         Self::Exposure {
-            route,
+            route_idx,
             inner: self,
         }
     }
@@ -154,15 +141,7 @@ where
     const ASYNC: bool = false;
     const INTERFACE_ID: sails_rs::meta::InterfaceId = {
         let mut final_hash = sails_rs::keccak_const::Keccak256::new();
-        {
-            let mut fn_hash = sails_rs::keccak_const::Keccak256::new();
-            fn_hash = fn_hash.update("command".as_bytes());
-            fn_hash = fn_hash.update("DoThis".as_bytes());
-            fn_hash = fn_hash.update(b"res");
-            fn_hash = fn_hash
-                .update(&<u32 as sails_rs::sails_reflect_hash::ReflectHash>::HASH);
-            final_hash = final_hash.update(&fn_hash.finalize());
-        }
+        final_hash = final_hash.update(&sails_rs::hash_fn!(command DoThis() -> u32));
         final_hash = final_hash
             .update(&<MyEvents as sails_rs::sails_reflect_hash::ReflectHash>::HASH);
         let hash = final_hash.finalize();
@@ -172,16 +151,10 @@ where
 mod my_generic_events_service_meta {
     use super::*;
     use sails_rs::{Decode, TypeInfo};
-    use sails_rs::gstd::InvocationIo;
     #[derive(Decode, TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub struct __DoThisParams {}
-    impl InvocationIo for __DoThisParams {
-        const ROUTE: &'static [u8] = &[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8];
-        type Params = Self;
-        const ASYNC: bool = false;
-    }
     #[derive(TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum CommandsMeta {

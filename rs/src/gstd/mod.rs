@@ -110,17 +110,13 @@ pub trait InvocationIo {
 
     fn with_optimized_encode<T: Encode, R>(
         value: &T,
-        prefix: &[u8],
+        // prefix: &[u8],
         f: impl FnOnce(&[u8]) -> R,
     ) -> R {
-        let size = prefix.len() + Self::ROUTE.len() + Encode::encoded_size(value);
+        let size = Encode::encoded_size(value);
         stack_buffer::with_byte_buffer(size, |buffer| {
             let mut buffer_writer = MaybeUninitBufferWriter::new(buffer);
-
-            buffer_writer.write(prefix);
-            buffer_writer.write(Self::ROUTE);
             Encode::encode_to(value, &mut buffer_writer);
-
             buffer_writer.with_buffer(f)
         })
     }
@@ -128,4 +124,21 @@ pub trait InvocationIo {
     fn is_empty_tuple<T: 'static>() -> bool {
         TypeId::of::<T>() == TypeId::of::<()>()
     }
+}
+
+pub fn with_optimized_encode<T: Encode, R>(
+    value: &T,
+    // prefix: &[u8],
+    f: impl FnOnce(&[u8]) -> R,
+) -> R {
+    let size = Encode::encoded_size(value);
+    stack_buffer::with_byte_buffer(size, |buffer| {
+        let mut buffer_writer = MaybeUninitBufferWriter::new(buffer);
+        Encode::encode_to(value, &mut buffer_writer);
+        buffer_writer.with_buffer(f)
+    })
+}
+
+pub fn is_empty_tuple<T: 'static>() -> bool {
+    TypeId::of::<T>() == TypeId::of::<()>()
 }
