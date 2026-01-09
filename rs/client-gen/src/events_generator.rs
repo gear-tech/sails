@@ -8,14 +8,14 @@ pub(crate) struct EventsModuleGenerator<'ast> {
     service_name: &'ast str,
     sails_path: &'ast str,
     tokens: rust::Tokens,
-    entry_ids: HashMap<String, u16>,
+    entry_ids: HashMap<&'ast str, u16>,
 }
 
 impl<'ast> EventsModuleGenerator<'ast> {
     pub(crate) fn new(
         service_name: &'ast str,
         sails_path: &'ast str,
-        entry_ids: HashMap<String, u16>,
+        entry_ids: HashMap<&'ast str, u16>,
     ) -> Self {
         Self {
             service_name,
@@ -72,7 +72,11 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator<'ast> {
         generate_doc_comments(&mut self.tokens, &event.docs);
 
         let variant_name = &event.name;
-        let entry_id = self.entry_ids.get(&event.name).copied().unwrap_or(0);
+        let entry_id = self
+            .entry_ids
+            .get(event.name.as_str())
+            .copied()
+            .unwrap_or(0);
 
         if event.def.is_unit() {
             quote_in! { self.tokens =>

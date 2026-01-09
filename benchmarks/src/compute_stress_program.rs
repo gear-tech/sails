@@ -19,7 +19,7 @@ impl<E: sails_rs::client::GearEnv> ComputeStress
     fn compute_stress(
         &self,
     ) -> sails_rs::client::Service<compute_stress::ComputeStressImpl, Self::Env> {
-        self.service_at(ComputeStressProgram::COMPUTE_STRESS_ROUTE_ID)
+        self.service(ComputeStressProgram::COMPUTE_STRESS_ROUTE_ID)
     }
 }
 pub trait ComputeStressCtors {

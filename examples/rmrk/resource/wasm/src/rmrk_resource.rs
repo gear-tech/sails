@@ -19,7 +19,7 @@ impl<E: sails_rs::client::GearEnv> RmrkResource
     fn rmrk_resource(
         &self,
     ) -> sails_rs::client::Service<rmrk_resource::RmrkResourceImpl, Self::Env> {
-        self.service_at(RmrkResourceProgram::RMRK_RESOURCE_ROUTE_ID)
+        self.service(RmrkResourceProgram::RMRK_RESOURCE_ROUTE_ID)
     }
 }
 pub trait RmrkResourceCtors {

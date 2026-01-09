@@ -581,7 +581,10 @@ fn chaos_service_panic_after_wait_works() {
 
 #[test]
 fn chaos_service_timeout_wait() {
-    use demo_client::{chaos::io::{ReplyHookCounter, TimeoutWait}, io::Default};
+    use demo_client::{
+        chaos::io::{ReplyHookCounter, TimeoutWait},
+        io::Default,
+    };
     use sails_rs::gtest::{Log, Program, System};
 
     let system = System::new();

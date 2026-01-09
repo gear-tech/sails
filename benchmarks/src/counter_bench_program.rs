@@ -19,7 +19,7 @@ impl<E: sails_rs::client::GearEnv> CounterBench
     fn counter_bench(
         &self,
     ) -> sails_rs::client::Service<counter_bench::CounterBenchImpl, Self::Env> {
-        self.service_at(CounterBenchProgram::COUNTER_BENCH_ROUTE_ID)
+        self.service(CounterBenchProgram::COUNTER_BENCH_ROUTE_ID)
     }
 }
 pub trait CounterBenchCtors {

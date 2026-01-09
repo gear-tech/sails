@@ -30,18 +30,12 @@ impl<E: sails_rs::client::GearEnv> ComplexTypesProgram
     fn my_complex_service(
         &self,
     ) -> sails_rs::client::Service<my_complex_service::MyComplexServiceImpl, Self::Env> {
-        self.service_at(
-            my_complex_service::INTERFACE_ID,
-            ComplexTypesProgramProgram::MY_COMPLEX_SERVICE_ROUTE_ID,
-        )
+        self.service(ComplexTypesProgramProgram::MY_COMPLEX_SERVICE_ROUTE_ID)
     }
     fn another_service(
         &self,
     ) -> sails_rs::client::Service<another_service::AnotherServiceImpl, Self::Env> {
-        self.service_at(
-            another_service::INTERFACE_ID,
-            ComplexTypesProgramProgram::ANOTHER_SERVICE_ROUTE_ID,
-        )
+        self.service(ComplexTypesProgramProgram::ANOTHER_SERVICE_ROUTE_ID)
     }
 }
 pub trait ComplexTypesProgramCtors {
@@ -72,8 +66,6 @@ pub mod io {
 
 pub mod my_complex_service {
     use super::*;
-    pub const INTERFACE_ID: sails_rs::InterfaceId =
-        sails_rs::InterfaceId::from_bytes_8([125, 102, 14, 174, 143, 201, 77, 154]);
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
@@ -186,6 +178,10 @@ pub mod my_complex_service {
         fn get_info(&self) -> sails_rs::client::PendingCall<io::GetInfo, Self::Env>;
     }
     pub struct MyComplexServiceImpl;
+    impl sails_rs::client::Identifiable for MyComplexServiceImpl {
+        const INTERFACE_ID: sails_rs::InterfaceId =
+            sails_rs::InterfaceId::from_bytes_8([125, 102, 14, 174, 143, 201, 77, 154]);
+    }
     impl<E: sails_rs::client::GearEnv> MyComplexService
         for sails_rs::client::Service<MyComplexServiceImpl, E>
     {
@@ -232,12 +228,12 @@ pub mod my_complex_service {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(GetData (key: String) -> super::Result<super::ProgramScopedData, super::ErrorType, >, 0 , super::INTERFACE_ID);
-        sails_rs::io_struct_impl!(Initialize (start_data: super::ProgramGlobalInfo, max_size: super::NonZeroU32) -> super::Result<(), super::ErrorType, >, 1 , super::INTERFACE_ID);
-        sails_rs::io_struct_impl!(ProcessGenericData (input_data: super::GenericData<u32, String, >, list_of_generics: Vec<super::GenericData<ActorId, U256, >>, optional_generic_result: super::Option<super::GenericResult<bool, >, >) -> super::GenericData<bool, u8, >, 2 , super::INTERFACE_ID);
-        sails_rs::io_struct_impl!(UpdateStatus (id: u64, new_status: super::ServiceStatus, metadata: super::Option<String, >) -> super::GenericResult<u32, >, 3 , super::INTERFACE_ID);
-        sails_rs::io_struct_impl!(GetActorIds (count: u32) -> Vec<ActorId>, 4 , super::INTERFACE_ID);
-        sails_rs::io_struct_impl!(GetInfo () -> super::ProgramGlobalInfo, 5 , super::INTERFACE_ID);
+        sails_rs::io_struct_impl!(GetData (key: String) -> super::Result<super::ProgramScopedData, super::ErrorType, >, 0 , <super::MyComplexServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Initialize (start_data: super::ProgramGlobalInfo, max_size: super::NonZeroU32) -> super::Result<(), super::ErrorType, >, 1 , <super::MyComplexServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(ProcessGenericData (input_data: super::GenericData<u32, String, >, list_of_generics: Vec<super::GenericData<ActorId, U256, >>, optional_generic_result: super::Option<super::GenericResult<bool, >, >) -> super::GenericData<bool, u8, >, 2 , <super::MyComplexServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(UpdateStatus (id: u64, new_status: super::ServiceStatus, metadata: super::Option<String, >) -> super::GenericResult<u32, >, 3 , <super::MyComplexServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(GetActorIds (count: u32) -> Vec<ActorId>, 4 , <super::MyComplexServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(GetInfo () -> super::ProgramGlobalInfo, 5 , <super::MyComplexServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(feature = "with_mocks")]
@@ -251,8 +247,6 @@ pub mod my_complex_service {
 
 pub mod another_service {
     use super::*;
-    pub const INTERFACE_ID: sails_rs::InterfaceId =
-        sails_rs::InterfaceId::from_bytes_8([155, 46, 27, 116, 89, 52, 232, 187]);
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
@@ -271,6 +265,10 @@ pub mod another_service {
         ) -> sails_rs::client::PendingCall<io::ProcessValues, Self::Env>;
     }
     pub struct AnotherServiceImpl;
+    impl sails_rs::client::Identifiable for AnotherServiceImpl {
+        const INTERFACE_ID: sails_rs::InterfaceId =
+            sails_rs::InterfaceId::from_bytes_8([155, 46, 27, 116, 89, 52, 232, 187]);
+    }
     impl<E: sails_rs::client::GearEnv> AnotherService
         for sails_rs::client::Service<AnotherServiceImpl, E>
     {
@@ -288,8 +286,8 @@ pub mod another_service {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(Ping () -> String, 0 , super::INTERFACE_ID);
-        sails_rs::io_struct_impl!(ProcessValues (data: Vec<U256>) -> super::Result<(), super::ErrorType, >, 1 , super::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Ping () -> String, 0 , <super::AnotherServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(ProcessValues (data: Vec<U256>) -> super::Result<(), super::ErrorType, >, 1 , <super::AnotherServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(feature = "with_mocks")]

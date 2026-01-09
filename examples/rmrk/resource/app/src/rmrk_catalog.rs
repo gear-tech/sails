@@ -16,7 +16,7 @@ pub trait RmrkCatalog {
 impl<E: sails_rs::client::GearEnv> RmrkCatalog for sails_rs::client::Actor<RmrkCatalogProgram, E> {
     type Env = E;
     fn rmrk_catalog(&self) -> sails_rs::client::Service<rmrk_catalog::RmrkCatalogImpl, Self::Env> {
-        self.service_at(RmrkCatalogProgram::RMRK_CATALOG_ROUTE_ID)
+        self.service(RmrkCatalogProgram::RMRK_CATALOG_ROUTE_ID)
     }
 }
 pub trait RmrkCatalogCtors {

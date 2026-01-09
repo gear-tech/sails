@@ -19,7 +19,7 @@ impl<E: sails_rs::client::GearEnv> PingPongStack
     fn ping_pong_stack(
         &self,
     ) -> sails_rs::client::Service<ping_pong_stack::PingPongStackImpl, Self::Env> {
-        self.service_at(PingPongStackProgram::PING_PONG_STACK_ROUTE_ID)
+        self.service(PingPongStackProgram::PING_PONG_STACK_ROUTE_ID)
     }
 }
 pub trait PingPongStackCtors {

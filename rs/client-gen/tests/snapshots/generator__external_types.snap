@@ -10,8 +10,6 @@ use my_crate::sails::{client::*, collections::*, prelude::*};
 
 pub mod service {
     use super::*;
-    pub const INTERFACE_ID: my_crate::sails::InterfaceId =
-        my_crate::sails::InterfaceId::from_bytes_8([82, 241, 49, 169, 231, 31, 0, 230]);
     #[derive(Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = my_crate::sails::scale_codec)]
     #[scale_info(crate = my_crate::sails::scale_info)]
@@ -36,6 +34,10 @@ pub mod service {
         ) -> my_crate::sails::client::PendingCall<io::DoThis, Self::Env>;
     }
     pub struct ServiceImpl;
+    impl my_crate::sails::client::Identifiable for ServiceImpl {
+        const INTERFACE_ID: my_crate::sails::InterfaceId =
+            my_crate::sails::InterfaceId::from_bytes_8([82, 241, 49, 169, 231, 31, 0, 230]);
+    }
     impl<E: my_crate::sails::client::GearEnv> Service
         for my_crate::sails::client::Service<ServiceImpl, E>
     {
@@ -57,7 +59,7 @@ pub mod service {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(DoThat (p1: (u8, u32, )) -> u8, 0 , super::INTERFACE_ID);
-        my_crate::sails::io_struct_impl!(DoThis (p1: u32, p2: super::MyParam) -> u16, 1 , super::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(DoThat (p1: (u8, u32, )) -> u8, 0 , <super::ServiceImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(DoThis (p1: u32, p2: super::MyParam) -> u16, 1 , <super::ServiceImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
     }
 }

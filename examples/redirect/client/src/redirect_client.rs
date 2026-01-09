@@ -15,7 +15,7 @@ impl<E: sails_rs::client::GearEnv> RedirectClient
 {
     type Env = E;
     fn redirect(&self) -> sails_rs::client::Service<redirect::RedirectImpl, Self::Env> {
-        self.service_at(RedirectClientProgram::REDIRECT_ROUTE_ID)
+        self.service(RedirectClientProgram::REDIRECT_ROUTE_ID)
     }
 }
 pub trait RedirectClientCtors {

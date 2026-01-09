@@ -32,25 +32,25 @@ pub trait DemoClient {
 impl<E: sails_rs::client::GearEnv> DemoClient for sails_rs::client::Actor<DemoClientProgram, E> {
     type Env = E;
     fn ping_pong(&self) -> sails_rs::client::Service<ping_pong::PingPongImpl, Self::Env> {
-        self.service_at(DemoClientProgram::PING_PONG_ROUTE_ID)
+        self.service(DemoClientProgram::PING_PONG_ROUTE_ID)
     }
     fn counter(&self) -> sails_rs::client::Service<counter::CounterImpl, Self::Env> {
-        self.service_at(DemoClientProgram::COUNTER_ROUTE_ID)
+        self.service(DemoClientProgram::COUNTER_ROUTE_ID)
     }
     fn dog(&self) -> sails_rs::client::Service<dog::DogImpl, Self::Env> {
-        self.service_at(DemoClientProgram::DOG_ROUTE_ID)
+        self.service(DemoClientProgram::DOG_ROUTE_ID)
     }
     fn references(&self) -> sails_rs::client::Service<references::ReferencesImpl, Self::Env> {
-        self.service_at(DemoClientProgram::REFERENCES_ROUTE_ID)
+        self.service(DemoClientProgram::REFERENCES_ROUTE_ID)
     }
     fn this_that(&self) -> sails_rs::client::Service<this_that::ThisThatImpl, Self::Env> {
-        self.service_at(DemoClientProgram::THIS_THAT_ROUTE_ID)
+        self.service(DemoClientProgram::THIS_THAT_ROUTE_ID)
     }
     fn value_fee(&self) -> sails_rs::client::Service<value_fee::ValueFeeImpl, Self::Env> {
-        self.service_at(DemoClientProgram::VALUE_FEE_ROUTE_ID)
+        self.service(DemoClientProgram::VALUE_FEE_ROUTE_ID)
     }
     fn chaos(&self) -> sails_rs::client::Service<chaos::ChaosImpl, Self::Env> {
-        self.service_at(DemoClientProgram::CHAOS_ROUTE_ID)
+        self.service(DemoClientProgram::CHAOS_ROUTE_ID)
     }
 }
 pub trait DemoClientCtors {

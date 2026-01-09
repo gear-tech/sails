@@ -21,7 +21,7 @@ pub(crate) struct ServiceGenerator<'ast> {
     types_tokens: Tokens,
     mocks_tokens: Tokens,
     interface_id: Option<sails_idl_meta::InterfaceId>,
-    entry_ids: HashMap<String, u16>,
+    entry_ids: HashMap<&'ast str, u16>,
     no_derive_traits: bool,
 }
 
@@ -128,11 +128,11 @@ impl<'ast> Visitor<'ast> for ServiceGenerator<'ast> {
         queries.sort_by_key(|f| f.name.to_lowercase());
 
         for (entry_id, func) in commands.into_iter().chain(queries.into_iter()).enumerate() {
-            self.entry_ids.insert(func.name.clone(), entry_id as u16);
+            self.entry_ids.insert(func.name.as_str(), entry_id as u16);
         }
 
         for (idx, event) in service.events.iter().enumerate() {
-            self.entry_ids.insert(event.name.clone(), idx as u16);
+            self.entry_ids.insert(event.name.as_str(), idx as u16);
         }
 
         visitor::accept_service_unit(service, self);
@@ -213,7 +213,7 @@ impl<'ast> Visitor<'ast> for ServiceGenerator<'ast> {
         };
 
         let params_with_types_super = &fn_args_with_types_path(&func.params, "super");
-        let entry_id = self.entry_ids.get(&func.name).copied().unwrap_or(0);
+        let entry_id = self.entry_ids.get(func.name.as_str()).copied().unwrap_or(0);
 
         let iid_tokens = if self.interface_id.is_some() {
             quote! { , <super::$(self.service_name)Impl as $(self.sails_path)::client::Identifiable>::INTERFACE_ID }

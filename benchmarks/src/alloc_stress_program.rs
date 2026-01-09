@@ -13,7 +13,7 @@ pub trait AllocStress {
 impl<E: sails_rs::client::GearEnv> AllocStress for sails_rs::client::Actor<AllocStressProgram, E> {
     type Env = E;
     fn alloc_stress(&self) -> sails_rs::client::Service<alloc_stress::AllocStressImpl, Self::Env> {
-        self.service_at(AllocStressProgram::ALLOC_STRESS_ROUTE_ID)
+        self.service(AllocStressProgram::ALLOC_STRESS_ROUTE_ID)
     }
 }
 pub trait AllocStressCtors {

@@ -17,7 +17,7 @@ impl<E: sails_rs::client::GearEnv> PingPong for sails_rs::client::Actor<PingPong
     fn ping_pong_service(
         &self,
     ) -> sails_rs::client::Service<ping_pong_service::PingPongServiceImpl, Self::Env> {
-        self.service_at(PingPongProgram::PING_PONG_SERVICE_ROUTE_ID)
+        self.service(PingPongProgram::PING_PONG_SERVICE_ROUTE_ID)
     }
 }
 pub trait PingPongCtors {

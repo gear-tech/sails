@@ -15,7 +15,7 @@ impl<E: sails_rs::client::GearEnv> RedirectProxyClient
 {
     type Env = E;
     fn proxy(&self) -> sails_rs::client::Service<proxy::ProxyImpl, Self::Env> {
-        self.service_at(RedirectProxyClientProgram::PROXY_ROUTE_ID)
+        self.service(RedirectProxyClientProgram::PROXY_ROUTE_ID)
     }
 }
 pub trait RedirectProxyClientCtors {

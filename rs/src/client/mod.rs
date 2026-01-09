@@ -128,11 +128,7 @@ impl<A, E: GearEnv> Actor<A, E> {
         self
     }
 
-    pub fn service<S: Identifiable>(&self) -> Service<S, E> {
-        Service::new(self.env.clone(), self.id, 0)
-    }
-
-    pub fn service_at<S: Identifiable>(&self, route_idx: u8) -> Service<S, E> {
+    pub fn service<S: Identifiable>(&self, route_idx: u8) -> Service<S, E> {
         Service::new(self.env.clone(), self.id, route_idx)
     }
 }
@@ -183,13 +179,7 @@ impl<S, E: GearEnv> Service<S, E> {
     where
         S: Identifiable,
     {
-        PendingCall::new(
-            self.env.clone(),
-            self.actor_id,
-            S::INTERFACE_ID,
-            self.route_idx,
-            args,
-        )
+        PendingCall::new(self.env.clone(), self.actor_id, self.route_idx, args)
     }
 
     pub fn base_service<B>(&self) -> Service<B, E> {
@@ -203,7 +193,7 @@ impl<S, E: GearEnv> Service<S, E> {
     where
         S: Identifiable,
     {
-        T::decode_reply_with_header(S::INTERFACE_ID, self.route_idx, payload)
+        T::decode_reply_with_header(self.route_idx, payload)
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -277,7 +267,6 @@ pin_project_lite::pin_project! {
     pub struct PendingCall<T: CallCodec, E: GearEnv> {
         env: E,
         destination: ActorId,
-        interface_id: InterfaceId,
         route_idx: u8,
         params: Option<E::Params>,
         args: Option<T::Params>,
@@ -287,17 +276,10 @@ pin_project_lite::pin_project! {
 }
 
 impl<T: CallCodec, E: GearEnv> PendingCall<T, E> {
-    pub fn new(
-        env: E,
-        destination: ActorId,
-        interface_id: InterfaceId,
-        route_idx: u8,
-        args: T::Params,
-    ) -> Self {
+    pub fn new(env: E, destination: ActorId, route_idx: u8, args: T::Params) -> Self {
         PendingCall {
             env,
             destination,
-            interface_id,
             route_idx,
             params: None,
             args: Some(args),
@@ -326,7 +308,7 @@ impl<T: CallCodec, E: GearEnv> PendingCall<T, E> {
             .args
             .take()
             .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
-        let payload = T::encode_params_with_header(self.interface_id, self.route_idx, &args);
+        let payload = T::encode_params_with_header(self.route_idx, &args);
         let params = self.params.take().unwrap_or_default();
         (payload, params)
     }
@@ -375,6 +357,7 @@ impl<A, T: CallCodec, E: GearEnv> PendingCtor<A, T, E> {
 }
 
 pub trait CallCodec {
+    const INTERFACE_ID: InterfaceId;
     const ENTRY_ID: u16;
     type Params: Encode;
     type Reply: Decode + 'static;
@@ -383,15 +366,11 @@ pub trait CallCodec {
         value.encode()
     }
 
-    fn encode_params_with_header(
-        interface_id: InterfaceId,
-        route_idx: u8,
-        value: &Self::Params,
-    ) -> Vec<u8> {
+    fn encode_params_with_header(route_idx: u8, value: &Self::Params) -> Vec<u8> {
         let header = SailsMessageHeader::new(
             crate::meta::Version::v1(),
             crate::meta::HeaderLength::new(crate::meta::MINIMAL_HLEN).unwrap(),
-            interface_id,
+            Self::INTERFACE_ID,
             route_idx,
             Self::ENTRY_ID,
         );
@@ -413,7 +392,6 @@ pub trait CallCodec {
     }
 
     fn decode_reply_with_header(
-        interface_id: InterfaceId,
         route_idx: u8,
         payload: impl AsRef<[u8]>,
     ) -> Result<Self::Reply, parity_scale_codec::Error> {
@@ -422,7 +400,7 @@ pub trait CallCodec {
             return Decode::decode(&mut value);
         }
         let header = SailsMessageHeader::decode(&mut value)?;
-        if header.interface_id() != interface_id {
+        if header.interface_id() != Self::INTERFACE_ID {
             return Err("Invalid reply interface_id".into());
         }
         if header.route_id() != route_idx {
@@ -435,7 +413,6 @@ pub trait CallCodec {
     }
 
     fn with_optimized_encode<R>(
-        interface_id: InterfaceId,
         route_idx: u8,
         value: &Self::Params,
         f: impl FnOnce(&[u8]) -> R,
@@ -443,7 +420,7 @@ pub trait CallCodec {
         let header = SailsMessageHeader::new(
             crate::meta::Version::v1(),
             crate::meta::HeaderLength::new(crate::meta::MINIMAL_HLEN).unwrap(),
-            interface_id,
+            Self::INTERFACE_ID,
             route_idx,
             Self::ENTRY_ID,
         );
@@ -565,14 +542,15 @@ macro_rules! io_struct_impl {
             }
             /// Encodes the full call with the correct Sails header (Interface ID + Route Index + Entry ID).
             pub fn encode_call(route_idx: u8, $( $param: $ty, )* ) -> Vec<u8> {
-                <$name as CallCodec>::encode_params_with_header($interface_id, route_idx, &( $( $param, )* ))
+                <$name as CallCodec>::encode_params_with_header(route_idx, &( $( $param, )* ))
             }
             /// Decodes the reply checking against the correct Sails header (Interface ID + Route Index + Entry ID).
             pub fn decode_reply(route_idx: u8, payload: impl AsRef<[u8]>) -> Result<$reply, $crate::scale_codec::Error> {
-                <$name as CallCodec>::decode_reply_with_header($interface_id, route_idx, payload)
+                <$name as CallCodec>::decode_reply_with_header(route_idx, payload)
             }
         }
         impl CallCodec for $name {
+            const INTERFACE_ID: InterfaceId = $interface_id;
             const ENTRY_ID: u16 = $entry_id;
             type Params = ( $( $ty, )* );
             type Reply = $reply;
@@ -589,6 +567,7 @@ macro_rules! io_struct_impl {
             }
         }
         impl CallCodec for $name {
+            const INTERFACE_ID: InterfaceId = InterfaceId::zero();
             const ENTRY_ID: u16 = $entry_id;
             type Params = ( $( $ty, )* );
             type Reply = $reply;
