@@ -128,7 +128,7 @@ impl<A, E: GearEnv> Actor<A, E> {
         self
     }
 
-    pub fn service<S: Identifiable>(&self, route_idx: u8) -> Service<S, E> {
+    pub fn service<S>(&self, route_idx: u8) -> Service<S, E> {
         Service::new(self.env.clone(), self.id, route_idx)
     }
 }
@@ -175,10 +175,7 @@ impl<S, E: GearEnv> Service<S, E> {
         self
     }
 
-    pub fn pending_call<T: CallCodec>(&self, args: T::Params) -> PendingCall<T, E>
-    where
-        S: Identifiable,
-    {
+    pub fn pending_call<T: CallCodec>(&self, args: T::Params) -> PendingCall<T, E> {
         PendingCall::new(self.env.clone(), self.actor_id, self.route_idx, args)
     }
 
@@ -189,10 +186,7 @@ impl<S, E: GearEnv> Service<S, E> {
     pub fn decode_reply<T: CallCodec>(
         &self,
         payload: impl AsRef<[u8]>,
-    ) -> Result<T::Reply, parity_scale_codec::Error>
-    where
-        S: Identifiable,
-    {
+    ) -> Result<T::Reply, parity_scale_codec::Error> {
         T::decode_reply_with_header(self.route_idx, payload)
     }
 
@@ -208,7 +202,6 @@ impl<S, E: GearEnv> Service<S, E> {
     pub fn listener(&self) -> ServiceListener<S::Event, E>
     where
         S: ServiceWithEvents,
-        S::Event: Identifiable,
     {
         ServiceListener::new(self.env.clone(), self.actor_id, self.route_idx)
     }
@@ -228,7 +221,7 @@ pub struct ServiceListener<D: Event, E: GearEnv> {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-impl<D: Event + Identifiable, E: GearEnv> ServiceListener<D, E> {
+impl<D: Event, E: GearEnv> ServiceListener<D, E> {
     pub fn new(env: E, actor_id: ActorId, route_idx: u8) -> Self {
         ServiceListener {
             env,
