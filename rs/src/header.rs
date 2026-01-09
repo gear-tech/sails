@@ -45,7 +45,7 @@ impl SailsMessageHeader {
         }
     }
 
-    pub fn v1(interface_id: InterfaceId, route_id: u8, entry_id: u16) -> Self {
+    pub fn v1(interface_id: InterfaceId, entry_id: u16, route_id: u8) -> Self {
         Self {
             version: Version::v1(),
             hlen: HeaderLength(MINIMAL_HLEN),

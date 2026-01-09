@@ -71,9 +71,10 @@ impl SomeServiceExposure<SomeService> {
                         .expect("Failed to decode params");
                     let result = self.this(request.p1);
                     let value = 0u128;
-                    if sails_rs::gstd::is_empty_tuple::<bool>() {
-                        sails_rs::gstd::with_optimized_encode(
+                    if !sails_rs::gstd::is_empty_tuple::<bool>() {
+                        <some_service_meta::__ThisParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
                             &result,
+                            self.route_idx,
                             |encoded_result| result_handler(encoded_result, value),
                         );
                     }
@@ -103,9 +104,10 @@ impl SomeServiceExposure<SomeService> {
                         .expect("Failed to decode params");
                     let result = self.do_this(request.p1, request.p2).await;
                     let value = 0u128;
-                    if sails_rs::gstd::is_empty_tuple::<u32>() {
-                        sails_rs::gstd::with_optimized_encode(
+                    if !sails_rs::gstd::is_empty_tuple::<u32>() {
+                        <some_service_meta::__DoThisParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
                             &result,
+                            self.route_idx,
                             |encoded_result| result_handler(encoded_result, value),
                         );
                     }
@@ -127,51 +129,61 @@ impl sails_rs::gstd::services::Service for SomeService {
         }
     }
 }
-impl sails_rs::meta::ServiceMeta for SomeService {
-    type CommandsMeta = some_service_meta::CommandsMeta;
-    type QueriesMeta = some_service_meta::QueriesMeta;
-    type EventsMeta = some_service_meta::EventsMeta;
-    const BASE_SERVICES: &'static [sails_rs::meta::BaseServiceMeta] = &[];
-    const ASYNC: bool = true;
-    const INTERFACE_ID: sails_rs::meta::InterfaceId = {
-        let mut final_hash = sails_rs::keccak_const::Keccak256::new();
-        final_hash = final_hash
-            .update(&sails_rs::hash_fn!(command DoThis(u32, String) -> u32));
-        final_hash = final_hash.update(&sails_rs::hash_fn!(query This(bool) -> bool));
-        let hash = final_hash.finalize();
-        sails_rs::meta::InterfaceId::from_bytes_32(hash)
-    };
-}
 mod some_service_meta {
     use super::*;
-    use sails_rs::{Decode, TypeInfo};
-    #[derive(Decode, TypeInfo)]
+    impl sails_rs::meta::ServiceMeta for super::SomeService {
+        type CommandsMeta = CommandsMeta;
+        type QueriesMeta = QueriesMeta;
+        type EventsMeta = EventsMeta;
+        const BASE_SERVICES: &'static [sails_rs::meta::BaseServiceMeta] = &[];
+        const ASYNC: bool = true;
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = {
+            let mut final_hash = sails_rs::keccak_const::Keccak256::new();
+            final_hash = final_hash
+                .update(&sails_rs::hash_fn!(command DoThis(u32, String) -> u32));
+            final_hash = final_hash
+                .update(&sails_rs::hash_fn!(query This(bool) -> bool));
+            let hash = final_hash.finalize();
+            sails_rs::meta::InterfaceId::from_bytes_32(hash)
+        };
+    }
+    #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub struct __DoThisParams {
         pub(super) p1: u32,
         pub(super) p2: String,
     }
-    #[derive(Decode, TypeInfo)]
+    impl sails_rs::gstd::InvocationIo for __DoThisParams {
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = <SomeService as sails_rs::meta::ServiceMeta>::INTERFACE_ID;
+        const ENTRY_ID: u16 = 0u16;
+        type Params = Self;
+    }
+    #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub struct __ThisParams {
         pub(super) p1: bool,
     }
-    #[derive(TypeInfo)]
+    impl sails_rs::gstd::InvocationIo for __ThisParams {
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = <SomeService as sails_rs::meta::ServiceMeta>::INTERFACE_ID;
+        const ENTRY_ID: u16 = 1u16;
+        type Params = Self;
+    }
+    #[derive(sails_rs::TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum CommandsMeta {
         /// `DoThis` command
         /// Second line
         DoThis(__DoThisParams, u32),
     }
-    #[derive(TypeInfo)]
+    #[derive(sails_rs::TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum QueriesMeta {
         /// `This` query
         This(__ThisParams, bool),
     }
-    #[derive(TypeInfo)]
+    #[derive(sails_rs::TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum NoEvents {}
     pub type EventsMeta = NoEvents;

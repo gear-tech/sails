@@ -84,9 +84,10 @@ impl<'a> ExtendedLifetimeExposure<ExtendedLifetime<'a>> {
                         .expect("Failed to decode params");
                     let result = self.extended_name();
                     let value = 0u128;
-                    if sails_rs::gstd::is_empty_tuple::<String>() {
-                        sails_rs::gstd::with_optimized_encode(
+                    if !sails_rs::gstd::is_empty_tuple::<String>() {
+                        <extended_lifetime_meta::__ExtendedNameParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
                             &result,
+                            self.route_idx,
                             |encoded_result| result_handler(encoded_result, value),
                         );
                     }
@@ -99,9 +100,10 @@ impl<'a> ExtendedLifetimeExposure<ExtendedLifetime<'a>> {
                         .expect("Failed to decode params");
                     let result = self.name();
                     let value = 0u128;
-                    if sails_rs::gstd::is_empty_tuple::<String>() {
-                        sails_rs::gstd::with_optimized_encode(
+                    if !sails_rs::gstd::is_empty_tuple::<String>() {
+                        <extended_lifetime_meta::__NameParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
                             &result,
+                            self.route_idx,
                             |encoded_result| result_handler(encoded_result, value),
                         );
                     }
@@ -159,48 +161,60 @@ impl<'a> sails_rs::gstd::services::Service for ExtendedLifetime<'a> {
         }
     }
 }
-impl<'a> sails_rs::meta::ServiceMeta for ExtendedLifetime<'a> {
-    type CommandsMeta = extended_lifetime_meta::CommandsMeta;
-    type QueriesMeta = extended_lifetime_meta::QueriesMeta;
-    type EventsMeta = extended_lifetime_meta::EventsMeta;
-    const BASE_SERVICES: &'static [sails_rs::meta::BaseServiceMeta] = &[
-        sails_rs::meta::BaseServiceMeta::new::<base::BaseLifetime>("BaseLifetime"),
-    ];
-    const ASYNC: bool = <base::BaseLifetime as sails_rs::meta::ServiceMeta>::ASYNC;
-    const INTERFACE_ID: sails_rs::meta::InterfaceId = {
-        let mut final_hash = sails_rs::keccak_const::Keccak256::new();
-        final_hash = final_hash
-            .update(&sails_rs::hash_fn!(query ExtendedName() -> String));
-        final_hash = final_hash.update(&sails_rs::hash_fn!(query Name() -> String));
-        final_hash = final_hash
-            .update(
-                &<base::BaseLifetime as sails_rs::meta::ServiceMeta>::INTERFACE_ID.0,
-            );
-        let hash = final_hash.finalize();
-        sails_rs::meta::InterfaceId::from_bytes_32(hash)
-    };
-}
 mod extended_lifetime_meta {
     use super::*;
-    use sails_rs::{Decode, TypeInfo};
-    #[derive(Decode, TypeInfo)]
+    impl<'a> sails_rs::meta::ServiceMeta for super::ExtendedLifetime<'a> {
+        type CommandsMeta = CommandsMeta;
+        type QueriesMeta = QueriesMeta;
+        type EventsMeta = EventsMeta;
+        const BASE_SERVICES: &'static [sails_rs::meta::BaseServiceMeta] = &[
+            sails_rs::meta::BaseServiceMeta::new::<
+                super::base::BaseLifetime,
+            >("BaseLifetime"),
+        ];
+        const ASYNC: bool = <super::base::BaseLifetime as sails_rs::meta::ServiceMeta>::ASYNC;
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = {
+            let mut final_hash = sails_rs::keccak_const::Keccak256::new();
+            final_hash = final_hash
+                .update(&sails_rs::hash_fn!(query ExtendedName() -> String));
+            final_hash = final_hash.update(&sails_rs::hash_fn!(query Name() -> String));
+            final_hash = final_hash
+                .update(
+                    &<super::base::BaseLifetime as sails_rs::meta::ServiceMeta>::INTERFACE_ID
+                        .0,
+                );
+            let hash = final_hash.finalize();
+            sails_rs::meta::InterfaceId::from_bytes_32(hash)
+        };
+    }
+    #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub struct __ExtendedNameParams {}
-    #[derive(Decode, TypeInfo)]
+    impl sails_rs::gstd::InvocationIo for __ExtendedNameParams {
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = <ExtendedLifetime as sails_rs::meta::ServiceMeta>::INTERFACE_ID;
+        const ENTRY_ID: u16 = 0u16;
+        type Params = Self;
+    }
+    #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub struct __NameParams {}
-    #[derive(TypeInfo)]
+    impl sails_rs::gstd::InvocationIo for __NameParams {
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = <ExtendedLifetime as sails_rs::meta::ServiceMeta>::INTERFACE_ID;
+        const ENTRY_ID: u16 = 1u16;
+        type Params = Self;
+    }
+    #[derive(sails_rs::TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum CommandsMeta {}
-    #[derive(TypeInfo)]
+    #[derive(sails_rs::TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum QueriesMeta {
         ExtendedName(__ExtendedNameParams, String),
         Name(__NameParams, String),
     }
-    #[derive(TypeInfo)]
+    #[derive(sails_rs::TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum NoEvents {}
     pub type EventsMeta = NoEvents;

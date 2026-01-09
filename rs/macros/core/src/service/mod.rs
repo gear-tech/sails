@@ -177,7 +177,6 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         );
     }
 
-    let meta_trait_impl = service_builder.meta_trait_impl();
     let meta_module = service_builder.meta_module();
 
     let exposure_struct = service_builder.exposure_struct();
@@ -194,8 +193,6 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
 
         #service_trait_impl
 
-        #meta_trait_impl
-
         #meta_module
 
         #service_signature_impl
@@ -206,14 +203,20 @@ fn discover_service_handlers<'a>(
     service_impl: &'a ItemImpl,
     sails_path: &'a Path,
 ) -> Vec<FnBuilder<'a>> {
-    shared::discover_invocation_targets(
+    let mut vec: Vec<_> = shared::discover_invocation_targets(
         service_impl,
         |fn_item| matches!(fn_item.vis, Visibility::Public(_)) && fn_item.sig.receiver().is_some(),
         sails_path,
     )
     .into_iter()
     .filter(|fn_builder| fn_builder.export)
-    .collect()
+    .collect();
+    // service funcs ordered by (fn_type, name)
+    vec.sort_by_key(|f| (f.is_query(), f.route.to_lowercase()));
+    vec.iter_mut()
+        .enumerate()
+        .for_each(|(idx, f)| f.entry_id = idx as u16);
+    vec
 }
 
 impl FnBuilder<'_> {
@@ -239,16 +242,30 @@ impl FnBuilder<'_> {
         )
     }
 
-    fn params_struct(&self, scale_codec_path: &Path, scale_info_path: &Path) -> TokenStream {
+    fn params_struct(
+        &self,
+        service_path: &TypePath,
+        scale_codec_path: &Path,
+        scale_info_path: &Path,
+    ) -> TokenStream {
+        let sails_path = self.sails_path;
         let params_struct_ident = &self.params_struct_ident;
         let params_struct_members = self.params().map(|(ident, ty)| quote!(#ident: #ty));
+        let entry_id = &self.entry_id;
+        let path_wo_lifetimes = shared::remove_lifetimes(&service_path.path);
 
         quote!(
-            #[derive(Decode, TypeInfo)]
+            #[derive(#sails_path::Decode, #sails_path::TypeInfo)]
             #[codec(crate = #scale_codec_path )]
             #[scale_info(crate = #scale_info_path )]
             pub struct #params_struct_ident {
                 #(pub(super) #params_struct_members,)*
+            }
+
+            impl #sails_path::gstd::InvocationIo for #params_struct_ident {
+                const INTERFACE_ID: #sails_path::meta::InterfaceId = <#path_wo_lifetimes as #sails_path::meta::ServiceMeta>::INTERFACE_ID;
+                const ENTRY_ID: u16 = #entry_id;
+                type Params = Self;
             }
         )
     }
@@ -286,13 +303,13 @@ mod tests {
         .unwrap();
 
         let sails_path = &sails_paths::sails_path_or_default(None);
-        let discovered_ctors = discover_service_handlers(&service_impl, sails_path)
+        let discovered_svcs = discover_service_handlers(&service_impl, sails_path)
             .iter()
             .map(|fn_builder| fn_builder.ident.to_string())
             .collect::<Vec<_>>();
 
         assert_eq!(
-            discovered_ctors,
+            discovered_svcs,
             &[
                 "export_public_method_returning_self",
                 "export_public_method_returning_smth",

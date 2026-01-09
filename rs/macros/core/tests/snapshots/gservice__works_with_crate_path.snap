@@ -69,9 +69,10 @@ impl SomeServiceExposure<SomeService> {
                         .expect("Failed to decode params");
                     let result = self.this(request.p1);
                     let value = 0u128;
-                    if sails_rename::gstd::is_empty_tuple::<bool>() {
-                        sails_rename::gstd::with_optimized_encode(
+                    if !sails_rename::gstd::is_empty_tuple::<bool>() {
+                        <some_service_meta::__ThisParams as sails_rename::gstd::InvocationIo>::with_optimized_encode(
                             &result,
+                            self.route_idx,
                             |encoded_result| result_handler(encoded_result, value),
                         );
                     }
@@ -102,9 +103,10 @@ impl SomeServiceExposure<SomeService> {
                         .expect("Failed to decode params");
                     let result = self.do_this(request.p1, request.p2).await;
                     let value = 0u128;
-                    if sails_rename::gstd::is_empty_tuple::<u32>() {
-                        sails_rename::gstd::with_optimized_encode(
+                    if !sails_rename::gstd::is_empty_tuple::<u32>() {
+                        <some_service_meta::__DoThisParams as sails_rename::gstd::InvocationIo>::with_optimized_encode(
                             &result,
+                            self.route_idx,
                             |encoded_result| result_handler(encoded_result, value),
                         );
                     }
@@ -126,49 +128,58 @@ impl sails_rename::gstd::services::Service for SomeService {
         }
     }
 }
-impl sails_rename::meta::ServiceMeta for SomeService {
-    type CommandsMeta = some_service_meta::CommandsMeta;
-    type QueriesMeta = some_service_meta::QueriesMeta;
-    type EventsMeta = some_service_meta::EventsMeta;
-    const BASE_SERVICES: &'static [sails_rename::meta::BaseServiceMeta] = &[];
-    const ASYNC: bool = true;
-    const INTERFACE_ID: sails_rename::meta::InterfaceId = {
-        let mut final_hash = sails_rename::keccak_const::Keccak256::new();
-        final_hash = final_hash
-            .update(&sails_rename::hash_fn!(command DoThis(u32, String) -> u32));
-        final_hash = final_hash
-            .update(&sails_rename::hash_fn!(query This(bool) -> bool));
-        let hash = final_hash.finalize();
-        sails_rename::meta::InterfaceId::from_bytes_32(hash)
-    };
-}
 mod some_service_meta {
     use super::*;
-    use sails_rename::{Decode, TypeInfo};
-    #[derive(Decode, TypeInfo)]
+    impl sails_rename::meta::ServiceMeta for super::SomeService {
+        type CommandsMeta = CommandsMeta;
+        type QueriesMeta = QueriesMeta;
+        type EventsMeta = EventsMeta;
+        const BASE_SERVICES: &'static [sails_rename::meta::BaseServiceMeta] = &[];
+        const ASYNC: bool = true;
+        const INTERFACE_ID: sails_rename::meta::InterfaceId = {
+            let mut final_hash = sails_rename::keccak_const::Keccak256::new();
+            final_hash = final_hash
+                .update(&sails_rename::hash_fn!(command DoThis(u32, String) -> u32));
+            final_hash = final_hash
+                .update(&sails_rename::hash_fn!(query This(bool) -> bool));
+            let hash = final_hash.finalize();
+            sails_rename::meta::InterfaceId::from_bytes_32(hash)
+        };
+    }
+    #[derive(sails_rename::Decode, sails_rename::TypeInfo)]
     #[codec(crate = sails_rename::scale_codec)]
     #[scale_info(crate = sails_rename::scale_info)]
     pub struct __DoThisParams {
         pub(super) p1: u32,
         pub(super) p2: String,
     }
-    #[derive(Decode, TypeInfo)]
+    impl sails_rename::gstd::InvocationIo for __DoThisParams {
+        const INTERFACE_ID: sails_rename::meta::InterfaceId = <SomeService as sails_rename::meta::ServiceMeta>::INTERFACE_ID;
+        const ENTRY_ID: u16 = 0u16;
+        type Params = Self;
+    }
+    #[derive(sails_rename::Decode, sails_rename::TypeInfo)]
     #[codec(crate = sails_rename::scale_codec)]
     #[scale_info(crate = sails_rename::scale_info)]
     pub struct __ThisParams {
         pub(super) p1: bool,
     }
-    #[derive(TypeInfo)]
+    impl sails_rename::gstd::InvocationIo for __ThisParams {
+        const INTERFACE_ID: sails_rename::meta::InterfaceId = <SomeService as sails_rename::meta::ServiceMeta>::INTERFACE_ID;
+        const ENTRY_ID: u16 = 1u16;
+        type Params = Self;
+    }
+    #[derive(sails_rename::TypeInfo)]
     #[scale_info(crate = sails_rename::scale_info)]
     pub enum CommandsMeta {
         DoThis(__DoThisParams, u32),
     }
-    #[derive(TypeInfo)]
+    #[derive(sails_rename::TypeInfo)]
     #[scale_info(crate = sails_rename::scale_info)]
     pub enum QueriesMeta {
         This(__ThisParams, bool),
     }
-    #[derive(TypeInfo)]
+    #[derive(sails_rename::TypeInfo)]
     #[scale_info(crate = sails_rename::scale_info)]
     pub enum NoEvents {}
     pub type EventsMeta = NoEvents;

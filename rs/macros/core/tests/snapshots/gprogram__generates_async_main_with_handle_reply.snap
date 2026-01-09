@@ -15,16 +15,10 @@ impl sails_rs::meta::ProgramMeta for MyProgram {
 }
 mod meta_in_program {
     use super::*;
-    use sails_rs::gstd::InvocationIo;
     #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub struct __CreateParams {}
-    impl InvocationIo for __CreateParams {
-        const ROUTE: &'static [u8] = &[24u8, 67u8, 114u8, 101u8, 97u8, 116u8, 101u8];
-        type Params = Self;
-        const ASYNC: bool = false;
-    }
     #[derive(sails_rs::TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum ConstructorsMeta {
@@ -38,16 +32,36 @@ pub mod wasm {
     static mut PROGRAM: Option<MyProgram> = None;
     #[unsafe(no_mangle)]
     extern "C" fn init() {
-        use gstd::InvocationIo;
         let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
-        if let Ok(request) = meta_in_program::__CreateParams::decode_params(input) {
-            let program = MyProgram::create();
-            unsafe {
-                PROGRAM = Some(program);
+        if let Ok(header) = <sails_rs::header::SailsMessageHeader as sails_rs::Decode>::decode(
+            &mut input,
+        ) {
+            if header.interface_id() != sails_rs::meta::InterfaceId::zero() {
+                sails_rs::gstd::unknown_input_panic(
+                    "Non zero ctor interface_id",
+                    header.to_bytes().as_slice(),
+                );
             }
-        } else {
-            gstd::unknown_input_panic("Unexpected ctor", input)
-        };
+            match header.entry_id() {
+                0u16 => {
+                    let (): () = sails_rs::Decode(&mut input)
+                        .unwrap_or_else(|| sails_rs::gstd::unknown_input_panic(
+                            "Unknown request",
+                            input,
+                        ));
+                    let program = MyProgram::create();
+                    unsafe {
+                        PROGRAM = Some(program);
+                    }
+                }
+                _ => {
+                    sails_rs::gstd::unknown_input_panic(
+                        "Unexpected ctor entry_id",
+                        input,
+                    )
+                }
+            }
+        }
     }
     const SERVICES_COUNT: usize = 0usize;
     const INTERFACE_IDS: &'static [(sails_rs::meta::InterfaceId, u8)] = &sails_rs::meta::interface_ids::<

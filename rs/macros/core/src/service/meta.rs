@@ -9,7 +9,6 @@ impl ServiceBuilder<'_> {
         let generics = &self.generics;
         let service_type_path = self.type_path;
         let service_type_constraints = self.type_constraints();
-        let meta_module_ident = &self.meta_module_ident;
 
         // TODO [future]: remove the duplicates check for the Sails binary protocol
         let mut base_names = BTreeSet::new();
@@ -24,13 +23,14 @@ impl ServiceBuilder<'_> {
 
             if !base_names.insert(base_type_pathless_name.clone()) {
                 abort!(
-                    base_type, "Base service with the same name was defined - `{}`",
+                    base_type,
+                    "Base service with the same name was defined - `{}`",
                     base_type_pathless_name
                 );
             }
 
             quote! {
-                #sails_path::meta::BaseServiceMeta::new::< #path_wo_lifetimes >( #base_type_pathless_name )
+                #sails_path::meta::BaseServiceMeta::new::< super:: #path_wo_lifetimes >( #base_type_pathless_name )
             }
         });
 
@@ -48,7 +48,7 @@ impl ServiceBuilder<'_> {
                 let path_wo_lifetimes = shared::remove_lifetimes(base_type);
 
                 quote! {
-                    <#path_wo_lifetimes as #sails_path::meta::ServiceMeta>::ASYNC
+                    <super:: #path_wo_lifetimes as #sails_path::meta::ServiceMeta>::ASYNC
                 }
             });
             quote!(#( #base_asyncness )||*)
@@ -57,10 +57,10 @@ impl ServiceBuilder<'_> {
         let interface_id_computation = self.generate_interface_id();
 
         quote! {
-            impl #generics #sails_path::meta::ServiceMeta for #service_type_path #service_type_constraints {
-                type CommandsMeta = #meta_module_ident::CommandsMeta;
-                type QueriesMeta = #meta_module_ident::QueriesMeta;
-                type EventsMeta = #meta_module_ident::EventsMeta;
+            impl #generics #sails_path::meta::ServiceMeta for super:: #service_type_path #service_type_constraints {
+                type CommandsMeta = CommandsMeta;
+                type QueriesMeta = QueriesMeta;
+                type EventsMeta = EventsMeta;
                 const BASE_SERVICES: &'static [#sails_path::meta::BaseServiceMeta] = &[
                     #( #base_services_meta ),*
                 ];
@@ -79,10 +79,9 @@ impl ServiceBuilder<'_> {
         let no_events_type = Path::from(Ident::new("NoEvents", Span::call_site()));
         let events_type = self.events_type.unwrap_or(&no_events_type);
 
-        let invocation_params_structs = self
-            .service_handlers
-            .iter()
-            .map(|fn_builder| fn_builder.params_struct(scale_codec_path, scale_info_path));
+        let invocation_params_structs = self.service_handlers.iter().map(|fn_builder| {
+            fn_builder.params_struct(self.type_path, scale_codec_path, scale_info_path)
+        });
         let commands_meta_variants = self.service_handlers.iter().filter_map(|fn_builder| {
             (!fn_builder.is_query()).then_some(fn_builder.handler_meta_variant())
         });
@@ -90,26 +89,29 @@ impl ServiceBuilder<'_> {
             (fn_builder.is_query()).then_some(fn_builder.handler_meta_variant())
         });
 
+        let meta_trait_impl = self.meta_trait_impl();
+
         quote! {
             mod #meta_module_ident {
                 use super::*;
-                use #sails_path::{Decode, TypeInfo};
+
+                #meta_trait_impl
 
                 #( #invocation_params_structs )*
 
-                #[derive(TypeInfo)]
+                #[derive(#sails_path::TypeInfo)]
                 #[scale_info(crate = #scale_info_path)]
                 pub enum CommandsMeta {
                     #(#commands_meta_variants),*
                 }
 
-                #[derive(TypeInfo)]
+                #[derive(#sails_path::TypeInfo)]
                 #[scale_info(crate = #scale_info_path)]
                 pub enum QueriesMeta {
                     #(#queries_meta_variants),*
                 }
 
-                #[derive(TypeInfo)]
+                #[derive(#sails_path::TypeInfo)]
                 #[scale_info(crate = #scale_info_path )]
                 pub enum #no_events_type {}
 
@@ -180,7 +182,7 @@ impl ServiceBuilder<'_> {
             });
 
             let base_service_ids = base_services.into_iter().map(|base_type_no_lifetime| {
-                quote!(final_hash = final_hash.update(&<#base_type_no_lifetime as #sails_path::meta::ServiceMeta>::INTERFACE_ID.0);)
+                quote!(final_hash = final_hash.update(&<super:: #base_type_no_lifetime as #sails_path::meta::ServiceMeta>::INTERFACE_ID.0);)
             });
 
             quote!(#(#base_service_ids)*)

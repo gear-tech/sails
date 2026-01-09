@@ -156,9 +156,10 @@ impl ServiceBuilder<'_> {
                             let request: #meta_module_ident::#params_struct_ident = #sails_path::scale_codec::Decode::decode(&mut input.as_slice())
                                 .expect("Failed to decode params");
                             #handle_token
-                            if #sails_path::gstd::is_empty_tuple::<#result_type_static>() {
-                                #sails_path::gstd::with_optimized_encode(
+                            if ! #sails_path::gstd::is_empty_tuple::<#result_type_static>() {
+                                <#meta_module_ident::#params_struct_ident as #sails_path::gstd::InvocationIo>::with_optimized_encode(
                                     &result,
+                                    self.route_idx,
                                     |encoded_result| result_handler(encoded_result, value),
                                 );
                             }

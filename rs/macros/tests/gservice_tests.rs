@@ -8,7 +8,7 @@ use sails_rs::{Decode, Encode};
 mod gservice_with_basics;
 // mod gservice_with_events;
 // mod gservice_with_export_unwrap_result;
-// mod gservice_with_extends;
+mod gservice_with_extends;
 // mod gservice_with_extends_and_lifetimes;
 // mod gservice_with_lifecycles_and_generics;
 // mod gservice_with_lifetimes_and_events;
@@ -31,7 +31,7 @@ async fn gservice_with_basics() {
     use gservice_with_basics::DoThisParams;
     use gservice_with_basics::SomeService;
 
-    let header = SailsMessageHeader::v1(gservice_with_basics::SomeService::INTERFACE_ID, 1, 0);
+    let header = SailsMessageHeader::v1(SomeService::INTERFACE_ID, 0, 1);
 
     let input = DoThisParams {
         p1: 42,
@@ -55,15 +55,13 @@ async fn gservice_with_basics() {
             header.entry_id(),
             input,
             |mut output, _| {
-                // let service_route = String::decode(&mut output).unwrap();
-                // assert_eq!(service_route, SERVICE_NAME);
-
-                // let func_name = String::decode(&mut output).unwrap();
-                // assert_eq!(func_name, DO_THIS);
+                let res_header = SailsMessageHeader::decode(&mut output).unwrap();
+                assert_eq!(res_header.interface_id(), SomeService::INTERFACE_ID);
+                assert_eq!(res_header.entry_id(), 0);
+                assert_eq!(res_header.route_id(), 1);
 
                 let result = String::decode(&mut output).unwrap();
                 assert_eq!(result, "42: correct");
-
                 assert_eq!(output.len(), 0);
             },
         )
@@ -71,90 +69,94 @@ async fn gservice_with_basics() {
         .unwrap();
 }
 
-// #[test]
-// fn gservice_with_extends() {
-//     use gservice_with_extends::{
-//         base::{BASE_NAME_RESULT, Base},
-//         extended::{EXTENDED_NAME_RESULT, Extended, NAME_RESULT},
-//     };
+#[test]
+fn gservice_with_extends() {
+    use gservice_with_extends::{
+        base::{BASE_NAME_RESULT, Base},
+        extended::{EXTENDED_NAME_RESULT, Extended, NAME_RESULT},
+    };
 
-//     const NAME_METHOD: &str = "Name";
-//     const BASE_NAME_METHOD: &str = "BaseName";
-//     const EXTENDED_NAME_METHOD: &str = "ExtendedName";
+    let extended_svc = Extended::new(Base).expose(1);
+    // Extended::extended_name
+    let header = SailsMessageHeader::v1(Extended::INTERFACE_ID, 0, 1);
 
-//     let extended_svc = Extended::new(Base).expose(SERVICE_ROUTE);
+    // Check asyncness of the service.
+    assert!(
+        !<Extended as Service>::Exposure::check_asyncness(header.interface_id(), header.entry_id())
+            .unwrap()
+    );
 
-//     // Check asyncness of the service.
-//     assert!(
-//         !extended_svc
-//             .check_asyncness(&EXTENDED_NAME_METHOD.encode())
-//             .unwrap()
-//     );
+    extended_svc
+        .try_handle(
+            header.interface_id(),
+            header.entry_id(),
+            vec![],
+            |mut output, _| {
+                let res_header = SailsMessageHeader::decode(&mut output).unwrap();
+                assert_eq!(res_header.interface_id(), Extended::INTERFACE_ID);
+                assert_eq!(res_header.entry_id(), 0);
+                assert_eq!(res_header.route_id(), 1);
 
-//     extended_svc
-//         .try_handle(&EXTENDED_NAME_METHOD.encode(), |mut output, _| {
-//             let actual = output.to_vec();
-//             let expected = [
-//                 SERVICE_ROUTE.to_vec(),
-//                 EXTENDED_NAME_METHOD.encode(),
-//                 EXTENDED_NAME_RESULT.encode(),
-//             ]
-//             .concat();
+                let result = String::decode(&mut output).unwrap();
+                assert_eq!(result, EXTENDED_NAME_RESULT);
+                assert_eq!(output.len(), 0);
+            },
+        )
+        .unwrap();
 
-//             assert_eq!(actual, expected);
+    let extended_svc = Extended::new(Base).expose(1);
+    // Base::base_name
+    let header = SailsMessageHeader::v1(Base::INTERFACE_ID, 0, 1);
+    // Check asyncness of the base service.
+    assert!(
+        !<Base as Service>::Exposure::check_asyncness(header.interface_id(), header.entry_id())
+            .unwrap()
+    );
 
-//             let service_route = String::decode(&mut output).unwrap();
-//             assert_eq!(service_route, SERVICE_NAME);
+    extended_svc
+        .try_handle(
+            header.interface_id(),
+            header.entry_id(),
+            vec![],
+            |mut output, _| {
+                let res_header = SailsMessageHeader::decode(&mut output).unwrap();
+                assert_eq!(res_header.interface_id(), Base::INTERFACE_ID);
+                assert_eq!(res_header.entry_id(), 0);
+                assert_eq!(res_header.route_id(), 1);
 
-//             let func_name = String::decode(&mut output).unwrap();
-//             assert_eq!(func_name, EXTENDED_NAME_METHOD);
+                let result = String::decode(&mut output).unwrap();
+                assert_eq!(result, BASE_NAME_RESULT);
+            },
+        )
+        .unwrap();
 
-//             let result = String::decode(&mut output).unwrap();
-//             assert_eq!(result, EXTENDED_NAME_RESULT);
-//             assert_eq!(output.len(), 0);
-//         })
-//         .unwrap();
+    let extended_svc = Extended::new(Base).expose(1);
+    // Base::name
+    let header = SailsMessageHeader::v1(Base::INTERFACE_ID, 1, 1);
+    // Check asyncness of the base service.
+    assert!(
+        !<Base as Service>::Exposure::check_asyncness(header.interface_id(), header.entry_id())
+            .unwrap()
+    );
 
-//     let extended_svc = Extended::new(Base).expose(SERVICE_ROUTE);
-//     // Check asyncness of the base service.
-//     assert!(
-//         !extended_svc
-//             .check_asyncness(&BASE_NAME_METHOD.encode())
-//             .unwrap()
-//     );
+    extended_svc
+        .try_handle(
+            header.interface_id(),
+            header.entry_id(),
+            vec![],
+            |mut output, _| {
+                let res_header = SailsMessageHeader::decode(&mut output).unwrap();
+                assert_eq!(res_header.interface_id(), Base::INTERFACE_ID);
+                assert_eq!(res_header.entry_id(), 1);
+                assert_eq!(res_header.route_id(), 1);
 
-//     extended_svc
-//         .try_handle(&BASE_NAME_METHOD.encode(), |mut output, _| {
-//             // Even if base service method is called, the service route
-//             // will be the same as extended service route.
-//             let service_route = String::decode(&mut output).unwrap();
-//             assert_eq!(service_route, SERVICE_NAME);
-
-//             let func_name = String::decode(&mut output).unwrap();
-//             assert_eq!(func_name, BASE_NAME_METHOD);
-
-//             let result = String::decode(&mut output).unwrap();
-//             assert_eq!(result, BASE_NAME_RESULT);
-//         })
-//         .unwrap();
-
-//     let extended_svc = Extended::new(Base).expose(SERVICE_ROUTE);
-//     // Check asyncness of the base service.
-//     assert!(!extended_svc.check_asyncness(&NAME_METHOD.encode()).unwrap());
-
-//     extended_svc
-//         .try_handle(&NAME_METHOD.encode(), |mut output, _| {
-//             let service_route = String::decode(&mut output).unwrap();
-//             assert_eq!(service_route, SERVICE_NAME);
-
-//             let func_name = String::decode(&mut output).unwrap();
-//             assert_eq!(func_name, NAME_METHOD);
-
-//             let result = String::decode(&mut output).unwrap();
-//             assert_eq!(result, NAME_RESULT);
-//         })
-//         .unwrap();
-// }
+                // TODO: method not overrided
+                let result = String::decode(&mut output).unwrap();
+                assert_eq!(result, gservice_with_extends::base::NAME_RESULT);
+            },
+        )
+        .unwrap();
+}
 
 // #[test]
 // fn gservice_with_extends_renamed() {

@@ -106,7 +106,7 @@ pub(crate) fn discover_invocation_targets<'a>(
     sails_path: &'a Path,
 ) -> Vec<FnBuilder<'a>> {
     let mut routes = BTreeMap::<String, String>::new();
-    let mut vec: Vec<FnBuilder<'a>> = item_impl
+    let vec: Vec<FnBuilder<'a>> = item_impl
         .items
         .iter()
         .filter_map(|item| {
@@ -123,15 +123,13 @@ pub(crate) fn discover_invocation_targets<'a>(
                         duplicate
                     );
                 }
-                let idx = (routes.len() + 1) as u8;
                 let fn_builder =
-                    FnBuilder::from(route, idx, export, fn_item, unwrap_result, sails_path);
+                    FnBuilder::from(route, 0, export, fn_item, unwrap_result, sails_path);
                 return Some(fn_builder);
             }
             None
         })
         .collect();
-    vec.sort_by(|a, b| a.route.cmp(&b.route));
     vec
 }
 
@@ -272,7 +270,7 @@ pub(crate) fn extract_result_types(tp: &TypePath) -> Option<(&Type, &Type)> {
 #[derive(Clone)]
 pub(crate) struct FnBuilder<'a> {
     pub route: String,
-    pub route_idx: u8,
+    pub entry_id: u16,
     pub export: bool,
     pub encoded_route: Vec<u8>,
     pub impl_fn: &'a ImplItemFn,
@@ -288,7 +286,7 @@ pub(crate) struct FnBuilder<'a> {
 impl<'a> FnBuilder<'a> {
     pub(crate) fn from(
         route: String,
-        route_idx: u8,
+        entry_id: u16,
         export: bool,
         impl_fn: &'a ImplItemFn,
         unwrap_result: bool,
@@ -303,7 +301,7 @@ impl<'a> FnBuilder<'a> {
 
         Self {
             route,
-            route_idx,
+            entry_id,
             export,
             encoded_route,
             impl_fn,
@@ -350,7 +348,6 @@ impl<'a> FnBuilder<'a> {
         self.params_idents.as_slice()
     }
 
-    #[cfg(feature = "ethexe")]
     pub(crate) fn params_types(&self) -> &[&Type] {
         self.params_types.as_slice()
     }

@@ -176,11 +176,10 @@ impl ProgramBuilder {
                         duplicate
                     );
                 }
-
-                let route_idx = (routes.len() + 1) as u8;
                 let fn_builder = FnBuilder::from(
                     route,
-                    route_idx,
+                    // TODO
+                    idx as u16,
                     true,
                     fn_item,
                     unwrap_result,
@@ -432,33 +431,38 @@ impl ProgramBuilder {
             ctor_meta_variants.push(fn_builder.ctor_meta_variant());
         }
 
-        ctor_dispatches.push(quote! {
-            { gstd::unknown_input_panic("Unexpected ctor", input) }
-        });
-
         let solidity_init = self.sol_init(&input_ident);
+
+        let sails_init = quote! {
+            if let Ok(header) = <#sails_path::header::SailsMessageHeader as #sails_path::Decode>::decode(&mut #input_ident) {
+                if header.interface_id() != #sails_path::meta::InterfaceId::zero() {
+                    #sails_path::gstd::unknown_input_panic("Non zero ctor interface_id", header.to_bytes().as_slice());
+                }
+                match header.entry_id() {
+                    #(#ctor_dispatches)*
+                    _ => #sails_path::gstd::unknown_input_panic("Unexpected ctor entry_id", input),
+                }
+            }
+        };
 
         let init_fn = quote! {
             #[unsafe(no_mangle)]
             extern "C" fn init() {
-                use gstd::InvocationIo;
-
                 let mut #input_ident: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
 
                 #solidity_init
 
-                #(#ctor_dispatches)else*;
+                #sails_init
             }
         };
 
         let meta_in_program = quote! {
             mod meta_in_program {
                 use super::*;
-                use #sails_path::gstd::InvocationIo;
 
                 #( #ctor_params_structs )*
 
-                #[derive(#sails_path ::TypeInfo)]
+                #[derive(#sails_path::TypeInfo)]
                 #[scale_info(crate = #scale_info_path)]
                 pub enum ConstructorsMeta {
                     #( #ctor_meta_variants ),*
@@ -575,11 +579,16 @@ fn discover_program_ctors<'a>(
 ) -> Vec<FnBuilder<'a>> {
     let self_type_path: TypePath = parse_quote!(Self);
     let (program_type_path, _, _) = shared::impl_type_refs(program_impl.self_ty.as_ref());
-    shared::discover_invocation_targets(
+    let mut vec = shared::discover_invocation_targets(
         program_impl,
         |fn_item| program_ctor_predicate(fn_item, &self_type_path, program_type_path),
         sails_path,
-    )
+    );
+    vec.sort_by_key(|f| f.route.to_lowercase());
+    vec.iter_mut()
+        .enumerate()
+        .for_each(|(idx, f)| f.entry_id = idx as u16);
+    vec
 }
 
 fn program_ctor_predicate(
@@ -714,13 +723,12 @@ impl FnBuilder<'_> {
         input_ident: &Ident,
         program_ident: &Ident,
     ) -> TokenStream2 {
+        let sails_path = self.sails_path;
         let handler_ident = self.ident;
+        let entry_id = self.entry_id;
         let unwrap_token = self.unwrap_result.then(|| quote!(.unwrap()));
-        let handler_args = self
-            .params_idents()
-            .iter()
-            .map(|ident| quote!(request.#ident));
-        let params_struct_ident = &self.params_struct_ident;
+        let handler_args = self.params_idents();
+        let handler_types = self.params_types();
         let ctor_call_impl = if self.is_async() {
             quote! {
                 gstd::message_loop(async move {
@@ -741,7 +749,9 @@ impl FnBuilder<'_> {
         };
 
         quote!(
-            if let Ok(request) = meta_in_program::#params_struct_ident::decode_params( #input_ident) {
+            #entry_id => {
+                let (#(#handler_args),*): (#(#handler_types),*)  = #sails_path::Decode(&mut #input_ident)
+                    .unwrap_or_else(|| #sails_path::gstd::unknown_input_panic("Unknown request", #input_ident));
                 #ctor_call_impl
             }
         )
@@ -751,21 +761,13 @@ impl FnBuilder<'_> {
         let sails_path = self.sails_path;
         let params_struct_ident = &self.params_struct_ident;
         let params_struct_members = self.params().map(|(ident, ty)| quote!(#ident: #ty));
-        let ctor_route_bytes = self.encoded_route.as_slice();
-        let is_async = self.is_async();
 
         quote! {
-            #[derive(#sails_path ::Decode, #sails_path ::TypeInfo)]
+            #[derive(#sails_path::Decode, #sails_path::TypeInfo)]
             #[codec(crate = #scale_codec_path )]
             #[scale_info(crate = #scale_info_path )]
             pub struct #params_struct_ident {
                 #(pub(super) #params_struct_members,)*
-            }
-
-            impl InvocationIo for #params_struct_ident {
-                const ROUTE: &'static [u8] = &[ #(#ctor_route_bytes),* ];
-                type Params = Self;
-                const ASYNC: bool = #is_async;
             }
         }
     }
