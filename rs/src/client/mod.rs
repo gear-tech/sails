@@ -128,30 +128,32 @@ impl<A, E: GearEnv> Actor<A, E> {
         self
     }
 
-    pub fn service<S>(&self, interface_id: InterfaceId) -> Service<S, E> {
-        Service::new(self.env.clone(), self.id, interface_id, 0)
+    pub fn service<S: Identifiable>(&self) -> Service<S, E> {
+        Service::new(self.env.clone(), self.id, 0)
     }
 
-    pub fn service_at<S>(&self, interface_id: InterfaceId, route_idx: u8) -> Service<S, E> {
-        Service::new(self.env.clone(), self.id, interface_id, route_idx)
+    pub fn service_at<S: Identifiable>(&self, route_idx: u8) -> Service<S, E> {
+        Service::new(self.env.clone(), self.id, route_idx)
     }
+}
+
+pub trait Identifiable {
+    const INTERFACE_ID: InterfaceId;
 }
 
 #[derive(Debug, Clone)]
 pub struct Service<S, E: GearEnv = GstdEnv> {
     env: E,
     actor_id: ActorId,
-    interface_id: InterfaceId,
     route_idx: u8,
     _phantom: PhantomData<S>,
 }
 
 impl<S, E: GearEnv> Service<S, E> {
-    pub fn new(env: E, actor_id: ActorId, interface_id: InterfaceId, route_idx: u8) -> Self {
+    pub fn new(env: E, actor_id: ActorId, route_idx: u8) -> Self {
         Service {
             env,
             actor_id,
-            interface_id,
             route_idx,
             _phantom: PhantomData,
         }
@@ -161,8 +163,11 @@ impl<S, E: GearEnv> Service<S, E> {
         self.actor_id
     }
 
-    pub fn interface_id(&self) -> InterfaceId {
-        self.interface_id
+    pub fn interface_id(&self) -> InterfaceId
+    where
+        S: Identifiable,
+    {
+        S::INTERFACE_ID
     }
 
     pub fn route_idx(&self) -> u8 {
@@ -174,60 +179,51 @@ impl<S, E: GearEnv> Service<S, E> {
         self
     }
 
-    pub fn pending_call<T: CallCodec>(&self, args: T::Params) -> PendingCall<T, E> {
+    pub fn pending_call<T: CallCodec>(&self, args: T::Params) -> PendingCall<T, E>
+    where
+        S: Identifiable,
+    {
         PendingCall::new(
             self.env.clone(),
             self.actor_id,
-            self.interface_id,
+            S::INTERFACE_ID,
             self.route_idx,
             args,
         )
     }
 
     pub fn base_service<B>(&self) -> Service<B, E> {
-        Service::new(
-            self.env.clone(),
-            self.actor_id,
-            self.interface_id,
-            self.route_idx,
-        )
-    }
-
-    pub fn base_service_at<B>(&self, interface_id: InterfaceId) -> Service<B, E> {
-        Service::new(
-            self.env.clone(),
-            self.actor_id,
-            interface_id,
-            self.route_idx,
-        )
+        Service::new(self.env.clone(), self.actor_id, self.route_idx)
     }
 
     pub fn decode_reply<T: CallCodec>(
         &self,
         payload: impl AsRef<[u8]>,
-    ) -> Result<T::Reply, parity_scale_codec::Error> {
-        T::decode_reply_with_header(self.interface_id, self.route_idx, payload)
+    ) -> Result<T::Reply, parity_scale_codec::Error>
+    where
+        S: Identifiable,
+    {
+        T::decode_reply_with_header(S::INTERFACE_ID, self.route_idx, payload)
     }
 
     #[cfg(not(target_arch = "wasm32"))]
     pub fn decode_event<Ev: Event>(
         &self,
         payload: impl AsRef<[u8]>,
-    ) -> Result<Ev, parity_scale_codec::Error> {
-        Ev::decode_event(self.interface_id, self.route_idx, payload)
+    ) -> Result<Ev, parity_scale_codec::Error>
+    where
+        S: Identifiable,
+    {
+        Ev::decode_event(S::INTERFACE_ID, self.route_idx, payload)
     }
 
     #[cfg(not(target_arch = "wasm32"))]
     pub fn listener(&self) -> ServiceListener<S::Event, E>
     where
         S: ServiceWithEvents,
+        S::Event: Identifiable,
     {
-        ServiceListener::new(
-            self.env.clone(),
-            self.actor_id,
-            self.interface_id,
-            self.route_idx,
-        )
+        ServiceListener::new(self.env.clone(), self.actor_id, self.route_idx)
     }
 }
 
@@ -240,18 +236,16 @@ pub trait ServiceWithEvents {
 pub struct ServiceListener<D: Event, E: GearEnv> {
     env: E,
     actor_id: ActorId,
-    interface_id: InterfaceId,
     route_idx: u8,
     _phantom: PhantomData<D>,
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-impl<D: Event, E: GearEnv> ServiceListener<D, E> {
-    pub fn new(env: E, actor_id: ActorId, interface_id: InterfaceId, route_idx: u8) -> Self {
+impl<D: Event + Identifiable, E: GearEnv> ServiceListener<D, E> {
+    pub fn new(env: E, actor_id: ActorId, route_idx: u8) -> Self {
         ServiceListener {
             env,
             actor_id,
-            interface_id,
             route_idx,
             _phantom: PhantomData,
         }
@@ -264,8 +258,8 @@ impl<D: Event, E: GearEnv> ServiceListener<D, E> {
         E: Listener<Error = <E as GearEnv>::Error>,
     {
         let self_id = self.actor_id;
-        let interface_id = self.interface_id;
         let route_idx = self.route_idx;
+        let interface_id = D::INTERFACE_ID;
         self.env
             .listen(move |(actor_id, payload)| {
                 if actor_id != self_id {

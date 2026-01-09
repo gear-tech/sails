@@ -165,7 +165,7 @@ impl<'ast> Visitor<'ast> for RootGenerator<'ast> {
 
         quote_in!(self.service_impl_tokens =>
             $['\r'] fn $(&method_name)(&self) -> $(self.sails_path)::client::Service<$(&name_snake_case)::$(&name_pascal_case)Impl, Self::Env> {
-                self.service_at($(&name_snake_case)::INTERFACE_ID, $(&program_program_name)::$(&route_id_const_name))
+                self.service_at($(&program_program_name)::$(&route_id_const_name))
             }
         );
     }

@@ -71,18 +71,18 @@ impl<'ast> ServiceGenerator<'ast> {
         let interface_id_tokens = if let Some(iid) = self.interface_id {
             let bytes = iid.as_bytes().iter().copied();
             quote! {
-                pub const INTERFACE_ID: $(self.sails_path)::InterfaceId = $(self.sails_path)::InterfaceId::from_bytes_8([ $(for b in bytes join (, ) => $b) ]);
+                const INTERFACE_ID: $(self.sails_path)::InterfaceId = $(self.sails_path)::InterfaceId::from_bytes_8([ $(for b in bytes join (, ) => $b) ]);
             }
         } else {
-            quote! {}
+            quote! {
+                 const INTERFACE_ID: $(self.sails_path)::InterfaceId = $(self.sails_path)::InterfaceId::from_bytes_8([0; 32]);
+            }
         };
 
         quote! {
             $['\n']
             pub mod $service_name_snake {
                 use super::*;
-
-                $interface_id_tokens
 
                 $(self.types_tokens)
 
@@ -92,6 +92,10 @@ impl<'ast> ServiceGenerator<'ast> {
                 }
 
                 pub struct $(self.service_name)Impl;
+
+                impl $(self.sails_path)::client::Identifiable for $(self.service_name)Impl {
+                    $interface_id_tokens
+                }
 
                 impl<E: $(self.sails_path)::client::GearEnv> $(self.service_name) for $(self.sails_path)::client::Service<$(self.service_name)Impl, E> {
                     type Env = E;
@@ -145,7 +149,7 @@ impl<'ast> Visitor<'ast> for ServiceGenerator<'ast> {
 
             quote_in! { self.impl_tokens =>
                 $['\r'] fn $(&method_name)(&self) -> $(self.sails_path)::client::Service<super::$(mod_name.as_str())::$(impl_name.as_str())Impl, Self::Env> {
-                    self.base_service_at(super::$(&mod_name)::INTERFACE_ID)
+                    self.base_service()
                 }
             };
         }
@@ -212,7 +216,7 @@ impl<'ast> Visitor<'ast> for ServiceGenerator<'ast> {
         let entry_id = self.entry_ids.get(&func.name).copied().unwrap_or(0);
 
         let iid_tokens = if self.interface_id.is_some() {
-            quote! { , super::INTERFACE_ID }
+            quote! { , <super::$(self.service_name)Impl as $(self.sails_path)::client::Identifiable>::INTERFACE_ID }
         } else {
             quote! {}
         };

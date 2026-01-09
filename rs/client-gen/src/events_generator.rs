@@ -54,6 +54,10 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator<'ast> {
         quote_in! { self.tokens =>
             impl $(self.sails_path)::client::Event for $events_name {}
 
+            impl $(self.sails_path)::client::Identifiable for $events_name {
+                const INTERFACE_ID: $(self.sails_path)::InterfaceId = <$(self.service_name)Impl as $(self.sails_path)::client::Identifiable>::INTERFACE_ID;
+            }
+
             impl $(self.sails_path)::client::ServiceWithEvents for $(self.service_name)Impl {
                 type Event = $events_name;
             }

@@ -15,10 +15,7 @@ impl<E: sails_rs::client::GearEnv> RedirectClient
 {
     type Env = E;
     fn redirect(&self) -> sails_rs::client::Service<redirect::RedirectImpl, Self::Env> {
-        self.service_at(
-            redirect::INTERFACE_ID,
-            RedirectClientProgram::REDIRECT_ROUTE_ID,
-        )
+        self.service_at(RedirectClientProgram::REDIRECT_ROUTE_ID)
     }
 }
 pub trait RedirectClientCtors {
@@ -43,8 +40,6 @@ pub mod io {
 
 pub mod redirect {
     use super::*;
-    pub const INTERFACE_ID: sails_rs::InterfaceId =
-        sails_rs::InterfaceId::from_bytes_8([186, 88, 222, 225, 203, 117, 81, 30]);
     pub trait Redirect {
         type Env: sails_rs::client::GearEnv;
         /// Exit from program with inheritor ID
@@ -56,6 +51,10 @@ pub mod redirect {
         fn get_program_id(&self) -> sails_rs::client::PendingCall<io::GetProgramId, Self::Env>;
     }
     pub struct RedirectImpl;
+    impl sails_rs::client::Identifiable for RedirectImpl {
+        const INTERFACE_ID: sails_rs::InterfaceId =
+            sails_rs::InterfaceId::from_bytes_8([186, 88, 222, 225, 203, 117, 81, 30]);
+    }
     impl<E: sails_rs::client::GearEnv> Redirect for sails_rs::client::Service<RedirectImpl, E> {
         type Env = E;
         fn exit(
@@ -71,7 +70,7 @@ pub mod redirect {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(Exit (inheritor_id: ActorId) -> (), 0 , super::INTERFACE_ID);
-        sails_rs::io_struct_impl!(GetProgramId () -> ActorId, 1 , super::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Exit (inheritor_id: ActorId) -> (), 0 , <super::RedirectImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(GetProgramId () -> ActorId, 1 , <super::RedirectImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 }

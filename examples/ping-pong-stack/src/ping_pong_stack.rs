@@ -19,10 +19,7 @@ impl<E: sails_rs::client::GearEnv> PingPongStack
     fn ping_pong_stack(
         &self,
     ) -> sails_rs::client::Service<ping_pong_stack::PingPongStackImpl, Self::Env> {
-        self.service_at(
-            ping_pong_stack::INTERFACE_ID,
-            PingPongStackProgram::PING_PONG_STACK_ROUTE_ID,
-        )
+        self.service_at(PingPongStackProgram::PING_PONG_STACK_ROUTE_ID)
     }
 }
 pub trait PingPongStackCtors {
@@ -60,14 +57,16 @@ pub mod io {
 
 pub mod ping_pong_stack {
     use super::*;
-    pub const INTERFACE_ID: sails_rs::InterfaceId =
-        sails_rs::InterfaceId::from_bytes_8([48, 181, 231, 61, 179, 133, 133, 236]);
     pub trait PingPongStack {
         type Env: sails_rs::client::GearEnv;
         fn ping(&mut self, countdown: u32) -> sails_rs::client::PendingCall<io::Ping, Self::Env>;
         fn start(&mut self, limit: u32) -> sails_rs::client::PendingCall<io::Start, Self::Env>;
     }
     pub struct PingPongStackImpl;
+    impl sails_rs::client::Identifiable for PingPongStackImpl {
+        const INTERFACE_ID: sails_rs::InterfaceId =
+            sails_rs::InterfaceId::from_bytes_8([48, 181, 231, 61, 179, 133, 133, 236]);
+    }
     impl<E: sails_rs::client::GearEnv> PingPongStack
         for sails_rs::client::Service<PingPongStackImpl, E>
     {
@@ -82,7 +81,7 @@ pub mod ping_pong_stack {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(Ping (countdown: u32) -> (), 0 , super::INTERFACE_ID);
-        sails_rs::io_struct_impl!(Start (limit: u32) -> (), 1 , super::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Ping (countdown: u32) -> (), 0 , <super::PingPongStackImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Start (limit: u32) -> (), 1 , <super::PingPongStackImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 }

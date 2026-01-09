@@ -17,10 +17,7 @@ impl<E: sails_rs::client::GearEnv> PingPong for sails_rs::client::Actor<PingPong
     fn ping_pong_service(
         &self,
     ) -> sails_rs::client::Service<ping_pong_service::PingPongServiceImpl, Self::Env> {
-        self.service_at(
-            ping_pong_service::INTERFACE_ID,
-            PingPongProgram::PING_PONG_SERVICE_ROUTE_ID,
-        )
+        self.service_at(PingPongProgram::PING_PONG_SERVICE_ROUTE_ID)
     }
 }
 pub trait PingPongCtors {
@@ -47,8 +44,6 @@ pub mod io {
 
 pub mod ping_pong_service {
     use super::*;
-    pub const INTERFACE_ID: sails_rs::InterfaceId =
-        sails_rs::InterfaceId::from_bytes_8([106, 114, 150, 138, 76, 98, 231, 215]);
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
@@ -67,6 +62,10 @@ pub mod ping_pong_service {
         ) -> sails_rs::client::PendingCall<io::Ping, Self::Env>;
     }
     pub struct PingPongServiceImpl;
+    impl sails_rs::client::Identifiable for PingPongServiceImpl {
+        const INTERFACE_ID: sails_rs::InterfaceId =
+            sails_rs::InterfaceId::from_bytes_8([106, 114, 150, 138, 76, 98, 231, 215]);
+    }
     impl<E: sails_rs::client::GearEnv> PingPongService
         for sails_rs::client::Service<PingPongServiceImpl, E>
     {
@@ -81,6 +80,6 @@ pub mod ping_pong_service {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(Ping (payload: super::PingPongPayload) -> super::PingPongPayload, 0 , super::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Ping (payload: super::PingPongPayload) -> super::PingPongPayload, 0 , <super::PingPongServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 }
