@@ -175,7 +175,7 @@ impl<S, E: GearEnv> Service<S, E> {
         self
     }
 
-    pub fn pending_call<T: CallCodec>(&self, args: T::Params) -> PendingCall<T, E> {
+    pub fn pending_call<T: ServiceCall>(&self, args: T::Params) -> PendingCall<T, E> {
         PendingCall::new(self.env.clone(), self.actor_id, self.route_idx, args)
     }
 
@@ -183,7 +183,7 @@ impl<S, E: GearEnv> Service<S, E> {
         Service::new(self.env.clone(), self.actor_id, self.route_idx)
     }
 
-    pub fn decode_reply<T: CallCodec>(
+    pub fn decode_reply<T: ServiceCall>(
         &self,
         payload: impl AsRef<[u8]>,
     ) -> Result<T::Reply, parity_scale_codec::Error> {
@@ -253,7 +253,7 @@ impl<D: Event, E: GearEnv> ServiceListener<D, E> {
 }
 
 pin_project_lite::pin_project! {
-    pub struct PendingCall<T: CallCodec, E: GearEnv> {
+    pub struct PendingCall<T: ServiceCall, E: GearEnv> {
         env: E,
         destination: ActorId,
         route_idx: u8,
@@ -264,7 +264,7 @@ pin_project_lite::pin_project! {
     }
 }
 
-impl<T: CallCodec, E: GearEnv> PendingCall<T, E> {
+impl<T: ServiceCall, E: GearEnv> PendingCall<T, E> {
     pub fn new(env: E, destination: ActorId, route_idx: u8, args: T::Params) -> Self {
         PendingCall {
             env,
@@ -345,26 +345,13 @@ impl<A, T: CallCodec, E: GearEnv> PendingCtor<A, T, E> {
     }
 }
 
-pub trait CallCodec: Identifiable {
+pub trait CallCodec {
     const ENTRY_ID: u16;
     type Params: Encode;
     type Reply: Decode + 'static;
 
     fn encode_params(value: &Self::Params) -> Vec<u8> {
         value.encode()
-    }
-
-    fn encode_params_with_header(route_idx: u8, value: &Self::Params) -> Vec<u8> {
-        let header = SailsMessageHeader::new(
-            crate::meta::Version::v1(),
-            crate::meta::HeaderLength::new(crate::meta::MINIMAL_HLEN).unwrap(),
-            Self::INTERFACE_ID,
-            route_idx,
-            Self::ENTRY_ID,
-        );
-        let mut result = header.to_bytes();
-        value.encode_to(&mut result);
-        result
     }
 
     fn decode_reply(payload: impl AsRef<[u8]>) -> Result<Self::Reply, parity_scale_codec::Error> {
@@ -377,6 +364,25 @@ pub trait CallCodec: Identifiable {
             return Err("Invalid reply entry_id".into());
         }
         Decode::decode(&mut value)
+    }
+
+    fn is_empty_tuple<T: 'static>() -> bool {
+        TypeId::of::<T>() == TypeId::of::<()>()
+    }
+}
+
+pub trait ServiceCall: CallCodec + Identifiable {
+    fn encode_params_with_header(route_idx: u8, value: &Self::Params) -> Vec<u8> {
+        let header = SailsMessageHeader::new(
+            crate::meta::Version::v1(),
+            crate::meta::HeaderLength::new(crate::meta::MINIMAL_HLEN).unwrap(),
+            Self::INTERFACE_ID,
+            route_idx,
+            Self::ENTRY_ID,
+        );
+        let mut result = header.to_bytes();
+        value.encode_to(&mut result);
+        result
     }
 
     fn decode_reply_with_header(
@@ -420,10 +426,6 @@ pub trait CallCodec: Identifiable {
             buffer_writer.with_buffer(f)
         })
     }
-
-    fn is_empty_tuple<T: 'static>() -> bool {
-        TypeId::of::<T>() == TypeId::of::<()>()
-    }
 }
 
 #[macro_export]
@@ -462,7 +464,7 @@ macro_rules! params_struct_impl {
             )*
         }
 
-        impl<T: CallCodec> PendingCall<T, $env> {
+        impl<T: ServiceCall> PendingCall<T, $env> {
             $(
                 paste::paste! {
                     $(#[$attr])*
@@ -504,7 +506,7 @@ macro_rules! params_for_pending_impl {
             )*
         }
 
-        impl<T: CallCodec> PendingCall<T, $env> {
+        impl<T: ServiceCall> PendingCall<T, $env> {
             $(
                 paste::paste! {
                     $(#[$attr])*
@@ -530,11 +532,11 @@ macro_rules! io_struct_impl {
             }
             /// Encodes the full call with the correct Sails header (Interface ID + Route Index + Entry ID).
             pub fn encode_call(route_idx: u8, $( $param: $ty, )* ) -> Vec<u8> {
-                <$name as CallCodec>::encode_params_with_header(route_idx, &( $( $param, )* ))
+                <$name as ServiceCall>::encode_params_with_header(route_idx, &( $( $param, )* ))
             }
             /// Decodes the reply checking against the correct Sails header (Interface ID + Route Index + Entry ID).
             pub fn decode_reply(route_idx: u8, payload: impl AsRef<[u8]>) -> Result<$reply, $crate::scale_codec::Error> {
-                <$name as CallCodec>::decode_reply_with_header(route_idx, payload)
+                <$name as ServiceCall>::decode_reply_with_header(route_idx, payload)
             }
         }
         impl Identifiable for $name {
@@ -545,6 +547,7 @@ macro_rules! io_struct_impl {
             type Params = ( $( $ty, )* );
             type Reply = $reply;
         }
+        impl ServiceCall for $name {}
     };
     (
         $name:ident ( $( $param:ident : $ty:ty ),* ) -> $reply:ty, $entry_id:expr
@@ -555,9 +558,6 @@ macro_rules! io_struct_impl {
             pub fn encode_params($( $param: $ty, )* ) -> Vec<u8> {
                 <$name as CallCodec>::encode_params(&( $( $param, )* ))
             }
-        }
-        impl Identifiable for $name {
-            const INTERFACE_ID: InterfaceId = InterfaceId::zero();
         }
         impl CallCodec for $name {
             const ENTRY_ID: u16 = $entry_id;

@@ -122,7 +122,10 @@ impl<'ast> Visitor<'ast> for RootGenerator<'ast> {
             self.sails_path,
             &self.external_types,
             self.mocks_feature_name,
-            service.name.interface_id,
+            service
+                .name
+                .interface_id
+                .expect("Service must have an interface ID"),
             self.no_derive_traits,
         );
         client_gen.visit_service_unit(service);

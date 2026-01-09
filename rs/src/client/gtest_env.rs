@@ -274,7 +274,7 @@ impl GearEnv for GtestEnv {
     type MessageState = ReplyReceiver;
 }
 
-impl<T: CallCodec> PendingCall<T, GtestEnv> {
+impl<T: ServiceCall> PendingCall<T, GtestEnv> {
     pub fn send_one_way(&mut self) -> Result<MessageId, GtestError> {
         if self.state.is_some() {
             panic!("{PENDING_CALL_INVALID_STATE}");
@@ -303,7 +303,7 @@ impl<T: CallCodec> PendingCall<T, GtestEnv> {
     }
 }
 
-impl<T: CallCodec> Future for PendingCall<T, GtestEnv> {
+impl<T: ServiceCall> Future for PendingCall<T, GtestEnv> {
     type Output = Result<T::Reply, <GtestEnv as GearEnv>::Error>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {

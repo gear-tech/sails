@@ -70,7 +70,7 @@ pub mod redirect {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(Exit (inheritor_id: ActorId) -> (), 0 , <super::RedirectImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(GetProgramId () -> ActorId, 1 , <super::RedirectImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Exit (inheritor_id: ActorId) -> (), 0, <super::RedirectImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(GetProgramId () -> ActorId, 1, <super::RedirectImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 }

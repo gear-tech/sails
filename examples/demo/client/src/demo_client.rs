@@ -108,7 +108,7 @@ pub mod ping_pong {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(Ping (input: String) -> super::Result<String, String>, 0 , <super::PingPongImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Ping (input: String) -> super::Result<String, String>, 0, <super::PingPongImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(feature = "with_mocks")]
@@ -151,9 +151,9 @@ pub mod counter {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(Add (value: u32) -> u32, 0 , <super::CounterImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(Sub (value: u32) -> u32, 1 , <super::CounterImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(Value () -> u32, 2 , <super::CounterImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Add (value: u32) -> u32, 0, <super::CounterImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Sub (value: u32) -> u32, 1, <super::CounterImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Value () -> u32, 2, <super::CounterImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -215,8 +215,8 @@ pub mod walker_service {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(Walk (dx: i32, dy: i32) -> (), 0 , <super::WalkerServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(Position () -> (i32, i32, ), 1 , <super::WalkerServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Walk (dx: i32, dy: i32) -> (), 0, <super::WalkerServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Position () -> (i32, i32, ), 1, <super::WalkerServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -274,8 +274,8 @@ pub mod mammal_service {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(MakeSound () -> String, 0 , <super::MammalServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(AvgWeight () -> u32, 1 , <super::MammalServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(MakeSound () -> String, 0, <super::MammalServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(AvgWeight () -> u32, 1, <super::MammalServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(feature = "with_mocks")]
@@ -325,7 +325,7 @@ pub mod dog {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(MakeSound () -> String, 0 , <super::DogImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(MakeSound () -> String, 0, <super::DogImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -416,14 +416,14 @@ pub mod references {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(Add (v: u32) -> u32, 0 , <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(AddByte (byte: u8) -> Vec<u8>, 1 , <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(GuessNum (number: u8) -> super::Result<String, String>, 2 , <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(Incr () -> super::ReferenceCount, 3 , <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(SetNum (number: u8) -> super::Result<(), String>, 4 , <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(Baked () -> String, 5 , <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(LastByte () -> super::Option<u8, >, 6 , <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(Message () -> super::Option<String, >, 7 , <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Add (v: u32) -> u32, 0, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(AddByte (byte: u8) -> Vec<u8>, 1, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(GuessNum (number: u8) -> super::Result<String, String>, 2, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Incr () -> super::ReferenceCount, 3, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(SetNum (number: u8) -> super::Result<(), String>, 4, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Baked () -> String, 5, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(LastByte () -> super::Option<u8, >, 6, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Message () -> super::Option<String, >, 7, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(feature = "with_mocks")]
@@ -527,11 +527,11 @@ pub mod this_that {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(DoThat (param: super::DoThatParam) -> super::Result<(ActorId, super::NonZeroU32, super::ManyVariantsReply, ), (String, )>, 0 , <super::ThisThatImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(DoThis (p1: u32, p2: String, p3: (super::Option<H160, >, super::NonZeroU8, ), p4: super::TupleStruct) -> (String, u32, ), 1 , <super::ThisThatImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(Noop () -> (), 2 , <super::ThisThatImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(That () -> super::Result<String, String>, 3 , <super::ThisThatImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(This () -> u32, 4 , <super::ThisThatImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(DoThat (param: super::DoThatParam) -> super::Result<(ActorId, super::NonZeroU32, super::ManyVariantsReply, ), (String, )>, 0, <super::ThisThatImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(DoThis (p1: u32, p2: String, p3: (super::Option<H160, >, super::NonZeroU8, ), p4: super::TupleStruct) -> (String, u32, ), 1, <super::ThisThatImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Noop () -> (), 2, <super::ThisThatImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(That () -> super::Result<String, String>, 3, <super::ThisThatImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(This () -> u32, 4, <super::ThisThatImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(feature = "with_mocks")]
@@ -569,7 +569,7 @@ pub mod value_fee {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(DoSomethingAndTakeFee () -> bool, 0 , <super::ValueFeeImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(DoSomethingAndTakeFee () -> bool, 0, <super::ValueFeeImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -633,9 +633,9 @@ pub mod chaos {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(PanicAfterWait () -> (), 0 , <super::ChaosImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(ReplyHookCounter () -> u32, 1 , <super::ChaosImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(TimeoutWait () -> (), 2 , <super::ChaosImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(PanicAfterWait () -> (), 0, <super::ChaosImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(ReplyHookCounter () -> u32, 1, <super::ChaosImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(TimeoutWait () -> (), 2, <super::ChaosImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(feature = "with_mocks")]

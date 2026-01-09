@@ -20,7 +20,7 @@ pub(crate) struct ServiceGenerator<'ast> {
     events_tokens: Tokens,
     types_tokens: Tokens,
     mocks_tokens: Tokens,
-    interface_id: Option<sails_idl_meta::InterfaceId>,
+    interface_id: sails_idl_meta::InterfaceId,
     entry_ids: HashMap<&'ast str, u16>,
     no_derive_traits: bool,
 }
@@ -31,7 +31,7 @@ impl<'ast> ServiceGenerator<'ast> {
         sails_path: &'ast str,
         external_types: &'ast HashMap<&'ast str, &'ast str>,
         mocks_feature_name: Option<&'ast str>,
-        interface_id: Option<sails_idl_meta::InterfaceId>,
+        interface_id: sails_idl_meta::InterfaceId,
         no_derive_traits: bool,
     ) -> Self {
         Self {
@@ -68,15 +68,9 @@ impl<'ast> ServiceGenerator<'ast> {
             quote!()
         };
 
-        let interface_id_tokens = if let Some(iid) = self.interface_id {
-            let bytes = iid.as_bytes().iter().copied();
-            quote! {
-                const INTERFACE_ID: $(self.sails_path)::InterfaceId = $(self.sails_path)::InterfaceId::from_bytes_8([ $(for b in bytes join (, ) => $b) ]);
-            }
-        } else {
-            quote! {
-                 const INTERFACE_ID: $(self.sails_path)::InterfaceId = $(self.sails_path)::InterfaceId::from_bytes_8([0; 32]);
-            }
+        let bytes = self.interface_id.as_bytes().iter().copied();
+        let interface_id_tokens = quote! {
+            const INTERFACE_ID: $(self.sails_path)::InterfaceId = $(self.sails_path)::InterfaceId::from_bytes_8([ $(for b in bytes join (, ) => $b) ]);
         };
 
         quote! {
@@ -215,14 +209,8 @@ impl<'ast> Visitor<'ast> for ServiceGenerator<'ast> {
         let params_with_types_super = &fn_args_with_types_path(&func.params, "super");
         let entry_id = self.entry_ids.get(func.name.as_str()).copied().unwrap_or(0);
 
-        let iid_tokens = if self.interface_id.is_some() {
-            quote! { , <super::$(self.service_name)Impl as $(self.sails_path)::client::Identifiable>::INTERFACE_ID }
-        } else {
-            quote! {}
-        };
-
         quote_in! { self.io_tokens =>
-            $(self.sails_path)::io_struct_impl!($fn_name ($params_with_types_super) -> $output_type_decl_code, $entry_id $iid_tokens);
+            $(self.sails_path)::io_struct_impl!($fn_name ($params_with_types_super) -> $output_type_decl_code, $entry_id, <super::$(self.service_name)Impl as $(self.sails_path)::client::Identifiable>::INTERFACE_ID);
         };
     }
 }
