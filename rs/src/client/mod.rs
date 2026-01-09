@@ -200,11 +200,8 @@ impl<S, E: GearEnv> Service<S, E> {
     pub fn decode_event<Ev: Event>(
         &self,
         payload: impl AsRef<[u8]>,
-    ) -> Result<Ev, parity_scale_codec::Error>
-    where
-        S: Identifiable,
-    {
-        Ev::decode_event(S::INTERFACE_ID, self.route_idx, payload)
+    ) -> Result<Ev, parity_scale_codec::Error> {
+        Ev::decode_event(self.route_idx, payload)
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -249,13 +246,12 @@ impl<D: Event + Identifiable, E: GearEnv> ServiceListener<D, E> {
     {
         let self_id = self.actor_id;
         let route_idx = self.route_idx;
-        let interface_id = D::INTERFACE_ID;
         self.env
             .listen(move |(actor_id, payload)| {
                 if actor_id != self_id {
                     return None;
                 }
-                D::decode_event(interface_id, route_idx, payload)
+                D::decode_event(route_idx, payload)
                     .ok()
                     .map(|e| (actor_id, e))
             })
@@ -356,8 +352,7 @@ impl<A, T: CallCodec, E: GearEnv> PendingCtor<A, T, E> {
     }
 }
 
-pub trait CallCodec {
-    const INTERFACE_ID: InterfaceId;
+pub trait CallCodec: Identifiable {
     const ENTRY_ID: u16;
     type Params: Encode;
     type Reply: Decode + 'static;
@@ -549,8 +544,10 @@ macro_rules! io_struct_impl {
                 <$name as CallCodec>::decode_reply_with_header(route_idx, payload)
             }
         }
-        impl CallCodec for $name {
+        impl Identifiable for $name {
             const INTERFACE_ID: InterfaceId = $interface_id;
+        }
+        impl CallCodec for $name {
             const ENTRY_ID: u16 = $entry_id;
             type Params = ( $( $ty, )* );
             type Reply = $reply;
@@ -566,8 +563,10 @@ macro_rules! io_struct_impl {
                 <$name as CallCodec>::encode_params(&( $( $param, )* ))
             }
         }
-        impl CallCodec for $name {
+        impl Identifiable for $name {
             const INTERFACE_ID: InterfaceId = InterfaceId::zero();
+        }
+        impl CallCodec for $name {
             const ENTRY_ID: u16 = $entry_id;
             type Params = ( $( $ty, )* );
             type Reply = $reply;
@@ -610,16 +609,15 @@ pub trait Listener {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-pub trait Event: Decode {
+pub trait Event: Decode + Identifiable {
     fn decode_event(
-        interface_id: InterfaceId,
         route_idx: u8,
         payload: impl AsRef<[u8]>,
     ) -> Result<Self, parity_scale_codec::Error> {
         let mut payload = payload.as_ref();
 
         let header = SailsMessageHeader::decode(&mut payload)?;
-        if header.interface_id() != interface_id {
+        if header.interface_id() != Self::INTERFACE_ID {
             return Err("Invalid event interface_id".into());
         }
         if header.route_id() != route_idx {
