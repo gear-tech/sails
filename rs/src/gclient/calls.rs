@@ -6,11 +6,10 @@ use crate::{
     prelude::*,
 };
 use core::future::Future;
-use gclient::metadata::runtime_types::{
-    gear_core::message::user::UserMessage as GenUserMessage,
-    pallet_gear_voucher::internal::VoucherId,
+use gclient::{
+    EventProcessor, GearApi, ext::sp_core::ByteArray,
+    gear::runtime_types::pallet_gear_voucher::internal::VoucherId,
 };
-use gclient::{EventProcessor, GearApi, ext::sp_core::ByteArray};
 use gear_core_errors::ReplyCode;
 
 #[derive(Debug, Default)]
@@ -76,17 +75,24 @@ impl GClientRemoting {
         };
         #[cfg(feature = "ethexe")]
         let gas_limit = 0;
-        let origin = H256::from_slice(api.account_id().as_slice());
+
         let payload = payload.as_ref().to_vec();
+
+        /* TODO
+        Until we update bridge there's some dependency versioning issue so we have to
+        convert between one version of primitive_types to another.
+        */
+        let origin: [u8; 32] = api.account_id().as_slice().try_into().unwrap();
+        let at_block: Option<[u8; 32]> = args.at_block.map(|hash| hash.into());
 
         let reply_info = api
             .calculate_reply_for_handle_at(
-                Some(origin),
+                Some(origin.into()),
                 target,
                 payload,
                 gas_limit,
                 value,
-                args.at_block,
+                at_block.map(Into::into),
             )
             .await?;
 
@@ -217,20 +223,12 @@ async fn get_events_from_block(
         .proc_many(
             |e| {
                 if let gclient::Event::Gear(gclient::GearEvent::UserMessageSent {
-                    message:
-                        GenUserMessage {
-                            id: _,
-                            source,
-                            destination,
-                            payload,
-                            ..
-                        },
-                    ..
+                    message, ..
                 }) = e
                 {
-                    let source = ActorId::from(source);
-                    if ActorId::from(destination) == ActorId::zero() {
-                        Some((source, payload.0))
+                    let source = message.source();
+                    if message.destination() == ActorId::zero() {
+                        Some((source, message.payload_bytes().to_vec()))
                     } else {
                         None
                     }
