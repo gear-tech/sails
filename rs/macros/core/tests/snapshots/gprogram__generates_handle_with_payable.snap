@@ -43,8 +43,8 @@ pub mod wasm {
             }
             match header.entry_id() {
                 0u16 => {
-                    let (): () = sails_rs::Decode(&mut input)
-                        .unwrap_or_else(|| sails_rs::gstd::unknown_input_panic(
+                    let (): () = sails_rs::Decode::decode(&mut input)
+                        .unwrap_or_else(|_| sails_rs::gstd::unknown_input_panic(
                             "Unknown request",
                             input,
                         ));
@@ -71,14 +71,19 @@ pub mod wasm {
         if gstd::msg::value() > 0 && gstd::msg::size() == 0 {
             return;
         }
-        let sails_message = gstd::msg::load::<sails_rs::SailsMessage>()
-            .expect("Failed to read sails message");
+        let mut input = gstd::msg::load_bytes().expect("Failed to read input");
         let program_ref = unsafe { PROGRAM.as_mut() }.expect("Program not initialized");
-        let (interface_id, route_id, entry_id, payload) = sails_message
-            .try_match_interfaces(INTERFACE_IDS)
-            .expect("Failed to find matching service");
-        match route_id {
-            _ => gstd::unknown_input_panic("Unknown route_id", &[route_id]),
+        if let Ok(header) = <sails_rs::header::SailsMessageHeader as sails_rs::Decode>::decode(
+            &mut input.as_slice(),
+        ) {
+            let header_len = header.hlen().inner() as usize;
+            let (interface_id, route_id, entry_id) = header
+                .try_match_interfaces(INTERFACE_IDS)
+                .expect("Failed to find matching service")
+                .into_inner();
+            match route_id {
+                _ => gstd::unknown_input_panic("Unknown route_id", &[route_id]),
+            }
         }
     }
     #[unsafe(no_mangle)]

@@ -14,12 +14,12 @@ pub(super) mod base {
     impl Base {
         #[export]
         pub fn base_name(&self) -> String {
-            "base-name".to_string()
+            BASE_NAME_RESULT.to_string()
         }
 
         #[export]
         pub fn name(&self) -> String {
-            "base".to_string()
+            NAME_RESULT.to_string()
         }
     }
 }
@@ -44,12 +44,12 @@ pub(super) mod extended {
     impl Extended {
         #[export]
         pub fn extended_name(&self) -> String {
-            "extended-name".to_string()
+            EXTENDED_NAME_RESULT.to_string()
         }
 
         #[export]
         pub fn name(&self) -> String {
-            "extended".to_string()
+            NAME_RESULT.to_string()
         }
     }
 

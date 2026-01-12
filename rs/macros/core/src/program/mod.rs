@@ -140,7 +140,6 @@ impl ProgramBuilder {
         &mut self,
         program_ident: &Ident,
     ) -> (TokenStream2, TokenStream2, TokenStream2, TokenStream2) {
-        let mut services_route = Vec::new();
         let mut services_meta = Vec::new();
         let mut meta_asyncness = Vec::new();
         let mut routes = BTreeMap::new();
@@ -168,6 +167,7 @@ impl ProgramBuilder {
                 && service_ctor_predicate(fn_item)
             {
                 let (span, route, unwrap_result, _) = shared::invocation_export_or_default(fn_item);
+                let entry_id = routes.len() as u16;
                 if let Some(duplicate) = routes.insert(route.clone(), fn_item.sig.ident.to_string())
                 {
                     abort!(
@@ -176,10 +176,10 @@ impl ProgramBuilder {
                         duplicate
                     );
                 }
+
                 let fn_builder = FnBuilder::from(
                     route,
-                    // TODO
-                    idx as u16,
+                    entry_id,
                     true,
                     fn_item,
                     unwrap_result,
@@ -190,7 +190,6 @@ impl ProgramBuilder {
                 let wrapping_service_ctor_fn =
                     fn_builder.wrapping_service_ctor_fn(&original_service_ctor_fn.sig.ident);
 
-                services_route.push(fn_builder.service_const_route());
                 services_meta.push(fn_builder.service_meta());
 
                 if !has_async_ctor {
@@ -244,8 +243,6 @@ impl ProgramBuilder {
         let (generics, program_type_constraints) = self.impl_constraints();
 
         let program_meta_impl = quote! {
-            #(#services_route)*
-
             impl #generics #sails_path::meta::ProgramMeta for #program_type_path #program_type_constraints {
                 type ConstructorsMeta = meta_in_program::ConstructorsMeta;
 
@@ -306,7 +303,7 @@ impl ProgramBuilder {
                                     .try_handle_async(
                                         interface_id,
                                         entry_id,
-                                        payload,
+                                        &input[header_len..],
                                         |encoded_result, value| {
                                             gstd::msg::reply_bytes(encoded_result, value)
                                                 .expect("Failed to send output");
@@ -322,7 +319,7 @@ impl ProgramBuilder {
                                 .try_handle(
                                     interface_id,
                                     entry_id,
-                                    payload,
+                                    &input[header_len..],
                                     |encoded_result, value| {
                                         gstd::msg::reply_bytes(encoded_result, value)
                                             .expect("Failed to send output");
@@ -353,20 +350,25 @@ impl ProgramBuilder {
             extern "C" fn handle() {
                 #payable
 
-                let sails_message = gstd::msg::load::<#sails_path::SailsMessage>()
-                    .expect("Failed to read sails message");
+                let mut input = gstd::msg::load_bytes().expect("Failed to read input");
+
+                // let sails_message = gstd::msg::load::<#sails_path::SailsMessage>()
+                //     .expect("Failed to read sails message");
 
                 let program_ref = unsafe { #program_ident.as_mut() }.expect("Program not initialized");
 
                 #solidity_main
 
-                let (interface_id, route_id, entry_id, payload) = sails_message
-                    .try_match_interfaces(INTERFACE_IDS)
-                    .expect("Failed to find matching service");
-
-                match route_id {
-                    #(#route_dispatches)*
-                    _ => gstd::unknown_input_panic("Unknown route_id", &[route_id])
+                if let Ok(header) = <#sails_path::header::SailsMessageHeader as #sails_path::Decode>::decode(&mut input.as_slice()) {
+                    let header_len = header.hlen().inner() as usize;
+                    let (interface_id, route_id, entry_id) = header
+                        .try_match_interfaces(INTERFACE_IDS)
+                        .expect("Failed to find matching service")
+                        .into_inner();
+                    match route_id {
+                        #(#route_dispatches)*
+                        _ => gstd::unknown_input_panic("Unknown route_id", &[route_id])
+                    }
                 }
             }
         );
@@ -649,13 +651,6 @@ fn handle_reply_predicate(fn_item: &ImplItemFn) -> bool {
 }
 
 impl FnBuilder<'_> {
-    fn route_ident(&self) -> Ident {
-        Ident::new(
-            &format!("__ROUTE_{}", self.route.to_ascii_uppercase()),
-            Span::call_site(),
-        )
-    }
-
     fn service_meta(&self) -> TokenStream2 {
         let sails_path = self.sails_path;
         let route = &self.route;
@@ -668,16 +663,7 @@ impl FnBuilder<'_> {
     fn service_meta_asyncness(&self) -> TokenStream2 {
         let sails_path = self.sails_path;
         let service_type = &self.result_type;
-        quote!(< #service_type as  #sails_path::meta::ServiceMeta>::ASYNC )
-    }
-
-    fn service_const_route(&self) -> TokenStream2 {
-        let route_ident = &self.route_ident();
-        let ctor_route_bytes = self.encoded_route.as_slice();
-        let ctor_route_len = ctor_route_bytes.len();
-        quote!(
-            const #route_ident: [u8; #ctor_route_len] = [ #(#ctor_route_bytes),* ];
-        )
+        quote!(<#service_type as #sails_path::meta::ServiceMeta>::ASYNC )
     }
 
     fn original_service_ctor_fn(&self) -> ImplItemFn {
@@ -695,7 +681,7 @@ impl FnBuilder<'_> {
     fn wrapping_service_ctor_fn(&self, original_service_ctor_fn_ident: &Ident) -> ImplItemFn {
         let sails_path = self.sails_path;
         let service_type = &self.result_type;
-        let route_ident = &self.route_ident();
+        let route_idx = (self.entry_id + 1) as u8;
         let unwrap_token = self.unwrap_result.then(|| quote!(.unwrap()));
 
         let mut wrapping_service_ctor_fn = self.impl_fn.clone();
@@ -710,7 +696,7 @@ impl FnBuilder<'_> {
             let service = self. #original_service_ctor_fn_ident () #unwrap_token;
             let exposure = < #service_type as #sails_path::gstd::services::Service>::expose(
                 service,
-                #route_ident .as_ref(),
+                #route_idx,
             );
             exposure
         });
@@ -750,8 +736,8 @@ impl FnBuilder<'_> {
 
         quote!(
             #entry_id => {
-                let (#(#handler_args),*): (#(#handler_types),*)  = #sails_path::Decode(&mut #input_ident)
-                    .unwrap_or_else(|| #sails_path::gstd::unknown_input_panic("Unknown request", #input_ident));
+                let (#(#handler_args),*): (#(#handler_types),*)  = #sails_path::Decode::decode(&mut #input_ident)
+                    .unwrap_or_else(|_| #sails_path::gstd::unknown_input_panic("Unknown request", #input_ident));
                 #ctor_call_impl
             }
         )

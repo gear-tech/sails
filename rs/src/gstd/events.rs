@@ -3,6 +3,7 @@
 use crate::{Encode, Output, utils::MaybeUninitBufferWriter};
 use core::marker::PhantomData;
 use gcore::stack_buffer;
+use sails_idl_meta::InterfaceId;
 
 /// Trait for encoding events that can be emitted by Sails programs.
 ///
@@ -36,6 +37,9 @@ pub trait SailsEvent: Encode {
     /// Returns the encoded event name as a byte slice.
     fn encoded_event_name(&self) -> &'static [u8];
 
+    /// Returns `entry_id` for an event.
+    fn entry_id(&self) -> u16;
+
     /// The number of bytes to skip when encoding the event.
     ///
     /// For enums, this is always 1 byte, which is reserved for the index of the event enum variant.
@@ -50,14 +54,12 @@ fn with_optimized_event_encode<T, E: SailsEvent, F: FnOnce(&[u8]) -> T>(
     event: E,
     f: F,
 ) -> T {
-    let encoded_event_name = E::encoded_event_name(&event);
     let encoded_size = Encode::encoded_size(&event);
     let skip_bytes = E::skip_bytes();
-    let size = prefix.len() + encoded_event_name.len() + encoded_size - skip_bytes;
+    let size = prefix.len() + encoded_size - skip_bytes;
     stack_buffer::with_byte_buffer(size, |buffer| {
         let mut buffer_writer = MaybeUninitBufferWriter::new(buffer);
         buffer_writer.write(prefix);
-        buffer_writer.write(encoded_event_name);
         buffer_writer.skip_next(skip_bytes); // skip the first byte, which is the index of the event enum variant
         Encode::encode_to(&event, &mut buffer_writer);
         buffer_writer.with_buffer(f)
@@ -69,13 +71,15 @@ fn with_optimized_event_encode<T, E: SailsEvent, F: FnOnce(&[u8]) -> T>(
 /// This is lightweight and can be cloned.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EventEmitter<E> {
+    interface_id: InterfaceId,
     route_idx: u8,
     _marker: PhantomData<E>,
 }
 
 impl<E> EventEmitter<E> {
-    pub fn new(route_idx: u8) -> Self {
+    pub fn new(interface_id: InterfaceId, route_idx: u8) -> Self {
         Self {
+            interface_id,
             route_idx,
             _marker: PhantomData,
         }
@@ -86,7 +90,12 @@ impl<E: SailsEvent> EventEmitter<E> {
     /// Emits an event.
     #[cfg(target_arch = "wasm32")]
     pub fn emit_event(&mut self, event: E) -> crate::errors::Result<()> {
-        with_optimized_event_encode(self.route, event, |payload| {
+        let header = crate::header::SailsMessageHeader::v1(
+            self.interface_id,
+            event.entry_id(),
+            self.route_idx,
+        );
+        with_optimized_event_encode(header.to_bytes().as_slice(), event, |payload| {
             gstd::msg::send_bytes(gstd::ActorId::zero(), payload, 0)?;
             Ok(())
         })
@@ -218,6 +227,13 @@ mod tests {
                 TestEvents::Event2 { .. } => &[24, 69, 118, 101, 110, 116, 50],
             }
         }
+
+        fn entry_id(&self) -> u16 {
+            match self {
+                TestEvents::Event1(_) => 0,
+                TestEvents::Event2 { .. } => 1,
+            }
+        }
     }
 
     #[test]
@@ -226,16 +242,13 @@ mod tests {
         assert_eq!(event.encode(), &[0, 42, 0, 0, 0]);
 
         with_optimized_event_encode(&[1, 2, 3], event, |payload| {
-            assert_eq!(
-                payload,
-                [1, 2, 3, 24, 69, 118, 101, 110, 116, 49, 42, 00, 00, 00]
-            );
+            assert_eq!(payload, [1, 2, 3, 42, 00, 00, 00]);
         });
 
         let event = TestEvents::Event2 { p1: 43 };
         assert_eq!(event.encode(), &[1, 43, 0]);
         with_optimized_event_encode(&[], event, |payload| {
-            assert_eq!(payload, [24, 69, 118, 101, 110, 116, 50, 43, 00]);
+            assert_eq!(payload, [43, 00]);
         });
     }
 }

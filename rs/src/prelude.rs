@@ -46,7 +46,6 @@ pub use crate::gstd::{
     CommandReply, EventEmitter, SailsEvent, Syscall, event, export, program, service,
     services::Exposure as _, services::ExposureWithEvents as _,
 };
-pub use crate::header::SailsMessage;
 pub use crate::types::*;
 pub use gear_core_errors::{
     self as gear_core_errors, ErrorReplyReason, ReplyCode, SignalCode, SimpleExecutionError,

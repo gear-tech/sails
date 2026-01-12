@@ -1,6 +1,5 @@
 use crate::export;
 use convert_case::{Case, Casing};
-use parity_scale_codec::Encode;
 use proc_macro_error::abort;
 use proc_macro2::Span;
 use quote::ToTokens;
@@ -272,7 +271,6 @@ pub(crate) struct FnBuilder<'a> {
     pub route: String,
     pub entry_id: u16,
     pub export: bool,
-    pub encoded_route: Vec<u8>,
     pub impl_fn: &'a ImplItemFn,
     pub ident: &'a Ident,
     pub params_struct_ident: Ident,
@@ -292,7 +290,6 @@ impl<'a> FnBuilder<'a> {
         unwrap_result: bool,
         sails_path: &'a Path,
     ) -> Self {
-        let encoded_route = route.encode();
         let signature = &impl_fn.sig;
         let ident = &signature.ident;
         let params_struct_ident = Ident::new(&format!("__{route}Params"), Span::call_site());
@@ -303,7 +300,6 @@ impl<'a> FnBuilder<'a> {
             route,
             entry_id,
             export,
-            encoded_route,
             impl_fn,
             ident,
             params_struct_ident,

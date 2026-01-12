@@ -8,6 +8,9 @@ pub struct SomeServiceExposure<T> {
 }
 impl<T: sails_rs::meta::ServiceMeta> sails_rs::gstd::services::Exposure
 for SomeServiceExposure<T> {
+    fn interface_id() -> sails_rs::meta::InterfaceId {
+        T::INTERFACE_ID
+    }
     fn route_idx(&self) -> u8 {
         self.route_idx
     }
@@ -15,7 +18,6 @@ for SomeServiceExposure<T> {
         interface_id: sails_rs::meta::InterfaceId,
         entry_id: u16,
     ) -> Option<bool> {
-        use sails_rs::gstd::services::{Service, Exposure};
         if !T::ASYNC {
             return Some(false);
         }
@@ -25,13 +27,13 @@ for SomeServiceExposure<T> {
                 _ => None,
             }
         } else {
-            if let Some(is_async) = <<ExtendedService1 as Service>::Exposure as Exposure>::check_asyncness(
+            if let Some(is_async) = <<ExtendedService1 as sails_rs::gstd::services::Service>::Exposure as sails_rs::gstd::services::Exposure>::check_asyncness(
                 interface_id,
                 entry_id,
             ) {
                 return Some(is_async);
             }
-            if let Some(is_async) = <<ExtendedService2 as Service>::Exposure as Exposure>::check_asyncness(
+            if let Some(is_async) = <<ExtendedService2 as sails_rs::gstd::services::Service>::Exposure as sails_rs::gstd::services::Exposure>::check_asyncness(
                 interface_id,
                 entry_id,
             ) {
@@ -75,16 +77,18 @@ impl SomeServiceExposure<SomeService> {
         mut self,
         interface_id: sails_rs::meta::InterfaceId,
         entry_id: u16,
-        input: sails_rs::Vec<u8>,
+        mut input: &[u8],
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
+        use sails_rs::gstd::services::{Exposure, Service};
         use sails_rs::gstd::{InvocationIo, CommandReply};
-        use sails_rs::gstd::services::{Service, Exposure};
-        if interface_id == <SomeService as sails_rs::meta::ServiceMeta>::INTERFACE_ID {
+        if interface_id
+            == <self::SomeService as sails_rs::meta::ServiceMeta>::INTERFACE_ID
+        {
             match entry_id {
                 0u16 => {
                     let request: some_service_meta::__DoThisParams = sails_rs::scale_codec::Decode::decode(
-                            &mut input.as_slice(),
+                            &mut input,
                         )
                         .expect("Failed to decode params");
                     let result = self.do_this();
@@ -102,18 +106,14 @@ impl SomeServiceExposure<SomeService> {
             }
         } else {
             let base_services: (ExtendedService1, ExtendedService2) = self.inner.into();
-            if base_services
-                .0
-                .expose(self.route_idx)
-                .try_handle(interface_id, entry_id, input.clone(), result_handler)
+            if sails_rs::gstd::services::Service::expose(base_services.0, self.route_idx)
+                .try_handle(interface_id, entry_id, input, result_handler)
                 .is_some()
             {
                 return Some(());
             }
-            if base_services
-                .1
-                .expose(self.route_idx)
-                .try_handle(interface_id, entry_id, input.clone(), result_handler)
+            if sails_rs::gstd::services::Service::expose(base_services.1, self.route_idx)
+                .try_handle(interface_id, entry_id, input, result_handler)
                 .is_some()
             {
                 return Some(());
@@ -125,30 +125,28 @@ impl SomeServiceExposure<SomeService> {
         mut self,
         interface_id: sails_rs::meta::InterfaceId,
         entry_id: u16,
-        input: sails_rs::Vec<u8>,
+        mut input: &[u8],
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
+        use sails_rs::gstd::services::{Exposure, Service};
         use sails_rs::gstd::{InvocationIo, CommandReply};
-        use sails_rs::gstd::services::{Service, Exposure};
-        if interface_id == <SomeService as sails_rs::meta::ServiceMeta>::INTERFACE_ID {
+        if interface_id
+            == <self::SomeService as sails_rs::meta::ServiceMeta>::INTERFACE_ID
+        {
             match entry_id {
                 _ => None,
             }
         } else {
             let base_services: (ExtendedService1, ExtendedService2) = self.inner.into();
-            if base_services
-                .0
-                .expose(self.route_idx)
-                .try_handle_async(interface_id, entry_id, input.clone(), result_handler)
+            if sails_rs::gstd::services::Service::expose(base_services.0, self.route_idx)
+                .try_handle_async(interface_id, entry_id, input, result_handler)
                 .await
                 .is_some()
             {
                 return Some(());
             }
-            if base_services
-                .1
-                .expose(self.route_idx)
-                .try_handle_async(interface_id, entry_id, input.clone(), result_handler)
+            if sails_rs::gstd::services::Service::expose(base_services.1, self.route_idx)
+                .try_handle_async(interface_id, entry_id, input, result_handler)
                 .await
                 .is_some()
             {
@@ -205,7 +203,7 @@ mod some_service_meta {
     #[scale_info(crate = sails_rs::scale_info)]
     pub struct __DoThisParams {}
     impl sails_rs::gstd::InvocationIo for __DoThisParams {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = <SomeService as sails_rs::meta::ServiceMeta>::INTERFACE_ID;
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::SomeService as sails_rs::meta::ServiceMeta>::INTERFACE_ID;
         const ENTRY_ID: u16 = 0u16;
         type Params = Self;
     }

@@ -263,7 +263,7 @@ impl FnBuilder<'_> {
             }
 
             impl #sails_path::gstd::InvocationIo for #params_struct_ident {
-                const INTERFACE_ID: #sails_path::meta::InterfaceId = <#path_wo_lifetimes as #sails_path::meta::ServiceMeta>::INTERFACE_ID;
+                const INTERFACE_ID: #sails_path::meta::InterfaceId = <super:: #path_wo_lifetimes as #sails_path::meta::ServiceMeta>::INTERFACE_ID;
                 const ENTRY_ID: u16 = #entry_id;
                 type Params = Self;
             }

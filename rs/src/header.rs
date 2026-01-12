@@ -370,65 +370,6 @@ impl MatchedInterface {
     }
 }
 
-/// Sails message wrapper that owns both header and payload.
-///
-/// This type is designed to be decoded from incoming messages and provides
-/// convenient access to routing information while owning the payload data.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SailsMessage {
-    header: SailsMessageHeader,
-    payload: Vec<u8>,
-}
-
-impl SailsMessage {
-    /// Creates a new Sails message form header and encodable payload type.
-    pub fn new(header: SailsMessageHeader, payload: impl Encode) -> Self {
-        Self {
-            header,
-            payload: payload.encode(),
-        }
-    }
-
-    /// Gets a reference to the header.
-    pub fn header(&self) -> &SailsMessageHeader {
-        &self.header
-    }
-
-    /// Gets a reference to the payload.
-    pub fn payload(&self) -> &[u8] {
-        &self.payload
-    }
-
-    /// Matches the message header against known interfaces and returns routing information.
-    ///
-    /// Returns `(interface_id, route_id, entry_id, payload)` on success.
-    pub fn try_match_interfaces(
-        self,
-        interfaces: &[(InterfaceId, u8)],
-    ) -> Result<(InterfaceId, u8, u16, Vec<u8>), &'static str> {
-        let matched = self.header.try_match_interfaces(interfaces)?;
-        let (interface_id, route_id, entry_id) = matched.into_inner();
-        Ok((interface_id, route_id, entry_id, self.payload))
-    }
-}
-
-impl Decode for SailsMessage {
-    fn decode<I: Input>(input: &mut I) -> Result<Self, Error> {
-        // Decode the header
-        let header = SailsMessageHeader::decode(input)?;
-        let payload = Decode::decode(input)?;
-
-        Ok(Self { header, payload })
-    }
-}
-
-impl Encode for SailsMessage {
-    fn encode_to<O: Output + ?Sized>(&self, dest: &mut O) {
-        self.header.encode_to(dest);
-        dest.write(&self.payload);
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

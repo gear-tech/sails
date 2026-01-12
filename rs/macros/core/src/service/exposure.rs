@@ -28,6 +28,10 @@ impl ServiceBuilder<'_> {
             }
 
             impl<T: #sails_path::meta::ServiceMeta> #sails_path::gstd::services::Exposure for #exposure_ident<T> {
+                fn interface_id() -> #sails_path::meta::InterfaceId {
+                    T::INTERFACE_ID
+                }
+
                 fn route_idx(&self) -> u8 {
                     self. #route_idx_ident
                 }
@@ -153,7 +157,7 @@ impl ServiceBuilder<'_> {
 
                     Some(quote! {
                         #entry_id => {
-                            let request: #meta_module_ident::#params_struct_ident = #sails_path::scale_codec::Decode::decode(&mut input.as_slice())
+                            let request: #meta_module_ident::#params_struct_ident = #sails_path::scale_codec::Decode::decode(&mut input)
                                 .expect("Failed to decode params");
                             #handle_token
                             if ! #sails_path::gstd::is_empty_tuple::<#result_type_static>() {
@@ -201,7 +205,7 @@ impl ServiceBuilder<'_> {
                         Some(quote! { . #idx_literal })
                     };
                     quote! {
-                        if base_services #idx_token .expose(self.route_idx) . #name_ident(interface_id, entry_id, input.clone(), result_handler) #await_token.is_some() {
+                        if #sails_path::gstd::services::Service::expose(base_services #idx_token, self.route_idx) . #name_ident(interface_id, entry_id, input, result_handler) #await_token.is_some() {
                             return Some(());
                         }
                     }
@@ -219,13 +223,13 @@ impl ServiceBuilder<'_> {
                     mut self,
                     interface_id: #sails_path::meta::InterfaceId,
                     entry_id: u16,
-                    input: #sails_path::Vec<u8>,
+                    mut input: &[u8],
                     result_handler: fn(&[u8], u128)
                 ) -> Option<()> {
+                    use #sails_path::gstd::services::{Exposure, Service};
                     use #sails_path::gstd::{InvocationIo, CommandReply};
-                    use #sails_path::gstd::services::{Service, Exposure};
 
-                    if interface_id == <#service_type_path as #sails_path::meta::ServiceMeta>::INTERFACE_ID {
+                    if interface_id == <self:: #service_type_path as #sails_path::meta::ServiceMeta>::INTERFACE_ID {
                         match entry_id {
                             #( #invocation_dispatches )*
                             _ => None,
@@ -313,7 +317,7 @@ impl ServiceBuilder<'_> {
 
         let base_services_asyncness_checks = base_services_sorted.iter().map(|base_type| {
             quote! {
-                if let Some(is_async) = <<#base_type as Service>::Exposure as Exposure>::check_asyncness(interface_id, entry_id) {
+                if let Some(is_async) = <<#base_type as #sails_path::gstd::services::Service>::Exposure as #sails_path::gstd::services::Exposure>::check_asyncness(interface_id, entry_id) {
                     return Some(is_async);
                 }
             }
@@ -321,8 +325,6 @@ impl ServiceBuilder<'_> {
 
         quote! {
             fn check_asyncness(interface_id: #sails_path::meta::InterfaceId, entry_id: u16) -> Option<bool> {
-                use #sails_path::gstd::services::{Service, Exposure};
-
                 #service_asyncness_check
 
                 if interface_id == T::INTERFACE_ID {

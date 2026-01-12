@@ -8,6 +8,9 @@ pub struct MyGenericEventsServiceExposure<T> {
 }
 impl<T: sails_rs::meta::ServiceMeta> sails_rs::gstd::services::Exposure
 for MyGenericEventsServiceExposure<T> {
+    fn interface_id() -> sails_rs::meta::InterfaceId {
+        T::INTERFACE_ID
+    }
     fn route_idx(&self) -> u8 {
         self.route_idx
     }
@@ -15,7 +18,6 @@ for MyGenericEventsServiceExposure<T> {
         interface_id: sails_rs::meta::InterfaceId,
         entry_id: u16,
     ) -> Option<bool> {
-        use sails_rs::gstd::services::{Service, Exposure};
         if !T::ASYNC {
             return Some(false);
         }
@@ -56,13 +58,13 @@ where
         mut self,
         interface_id: sails_rs::meta::InterfaceId,
         entry_id: u16,
-        input: sails_rs::Vec<u8>,
+        mut input: &[u8],
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
+        use sails_rs::gstd::services::{Exposure, Service};
         use sails_rs::gstd::{InvocationIo, CommandReply};
-        use sails_rs::gstd::services::{Service, Exposure};
         if interface_id
-            == <MyGenericEventsService<
+            == <self::MyGenericEventsService<
                 'a,
                 T,
             > as sails_rs::meta::ServiceMeta>::INTERFACE_ID
@@ -70,7 +72,7 @@ where
             match entry_id {
                 0u16 => {
                     let request: my_generic_events_service_meta::__DoThisParams = sails_rs::scale_codec::Decode::decode(
-                            &mut input.as_slice(),
+                            &mut input,
                         )
                         .expect("Failed to decode params");
                     let result = self.do_this();
@@ -94,13 +96,13 @@ where
         mut self,
         interface_id: sails_rs::meta::InterfaceId,
         entry_id: u16,
-        input: sails_rs::Vec<u8>,
+        mut input: &[u8],
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
+        use sails_rs::gstd::services::{Exposure, Service};
         use sails_rs::gstd::{InvocationIo, CommandReply};
-        use sails_rs::gstd::services::{Service, Exposure};
         if interface_id
-            == <MyGenericEventsService<
+            == <self::MyGenericEventsService<
                 'a,
                 T,
             > as sails_rs::meta::ServiceMeta>::INTERFACE_ID
@@ -154,7 +156,7 @@ mod my_generic_events_service_meta {
     #[scale_info(crate = sails_rs::scale_info)]
     pub struct __DoThisParams {}
     impl sails_rs::gstd::InvocationIo for __DoThisParams {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = <MyGenericEventsService as sails_rs::meta::ServiceMeta>::INTERFACE_ID;
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::MyGenericEventsService as sails_rs::meta::ServiceMeta>::INTERFACE_ID;
         const ENTRY_ID: u16 = 0u16;
         type Params = Self;
     }

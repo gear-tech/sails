@@ -8,6 +8,9 @@ pub struct ReferenceServiceExposure<T> {
 }
 impl<T: sails_rs::meta::ServiceMeta> sails_rs::gstd::services::Exposure
 for ReferenceServiceExposure<T> {
+    fn interface_id() -> sails_rs::meta::InterfaceId {
+        T::INTERFACE_ID
+    }
     fn route_idx(&self) -> u8 {
         self.route_idx
     }
@@ -15,7 +18,6 @@ for ReferenceServiceExposure<T> {
         interface_id: sails_rs::meta::InterfaceId,
         entry_id: u16,
     ) -> Option<bool> {
-        use sails_rs::gstd::services::{Service, Exposure};
         if !T::ASYNC {
             return Some(false);
         }
@@ -75,18 +77,18 @@ impl ReferenceServiceExposure<ReferenceService> {
         mut self,
         interface_id: sails_rs::meta::InterfaceId,
         entry_id: u16,
-        input: sails_rs::Vec<u8>,
+        mut input: &[u8],
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
+        use sails_rs::gstd::services::{Exposure, Service};
         use sails_rs::gstd::{InvocationIo, CommandReply};
-        use sails_rs::gstd::services::{Service, Exposure};
         if interface_id
-            == <ReferenceService as sails_rs::meta::ServiceMeta>::INTERFACE_ID
+            == <self::ReferenceService as sails_rs::meta::ServiceMeta>::INTERFACE_ID
         {
             match entry_id {
                 0u16 => {
                     let request: reference_service_meta::__AddByteParams = sails_rs::scale_codec::Decode::decode(
-                            &mut input.as_slice(),
+                            &mut input,
                         )
                         .expect("Failed to decode params");
                     let result = self.add_byte(request.byte);
@@ -102,7 +104,7 @@ impl ReferenceServiceExposure<ReferenceService> {
                 }
                 1u16 => {
                     let request: reference_service_meta::__IncrParams = sails_rs::scale_codec::Decode::decode(
-                            &mut input.as_slice(),
+                            &mut input,
                         )
                         .expect("Failed to decode params");
                     let result = self.incr();
@@ -118,7 +120,7 @@ impl ReferenceServiceExposure<ReferenceService> {
                 }
                 2u16 => {
                     let request: reference_service_meta::__BakedParams = sails_rs::scale_codec::Decode::decode(
-                            &mut input.as_slice(),
+                            &mut input,
                         )
                         .expect("Failed to decode params");
                     let result = self.baked();
@@ -142,18 +144,18 @@ impl ReferenceServiceExposure<ReferenceService> {
         mut self,
         interface_id: sails_rs::meta::InterfaceId,
         entry_id: u16,
-        input: sails_rs::Vec<u8>,
+        mut input: &[u8],
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
+        use sails_rs::gstd::services::{Exposure, Service};
         use sails_rs::gstd::{InvocationIo, CommandReply};
-        use sails_rs::gstd::services::{Service, Exposure};
         if interface_id
-            == <ReferenceService as sails_rs::meta::ServiceMeta>::INTERFACE_ID
+            == <self::ReferenceService as sails_rs::meta::ServiceMeta>::INTERFACE_ID
         {
             match entry_id {
                 3u16 => {
                     let request: reference_service_meta::__FirstByteParams = sails_rs::scale_codec::Decode::decode(
-                            &mut input.as_slice(),
+                            &mut input,
                         )
                         .expect("Failed to decode params");
                     let result = self.first_byte().await;
@@ -169,7 +171,7 @@ impl ReferenceServiceExposure<ReferenceService> {
                 }
                 4u16 => {
                     let request: reference_service_meta::__LastByteParams = sails_rs::scale_codec::Decode::decode(
-                            &mut input.as_slice(),
+                            &mut input,
                         )
                         .expect("Failed to decode params");
                     let result = self.last_byte().await;
@@ -234,7 +236,7 @@ mod reference_service_meta {
         pub(super) byte: u8,
     }
     impl sails_rs::gstd::InvocationIo for __AddByteParams {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = <ReferenceService as sails_rs::meta::ServiceMeta>::INTERFACE_ID;
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::ReferenceService as sails_rs::meta::ServiceMeta>::INTERFACE_ID;
         const ENTRY_ID: u16 = 0u16;
         type Params = Self;
     }
@@ -243,7 +245,7 @@ mod reference_service_meta {
     #[scale_info(crate = sails_rs::scale_info)]
     pub struct __IncrParams {}
     impl sails_rs::gstd::InvocationIo for __IncrParams {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = <ReferenceService as sails_rs::meta::ServiceMeta>::INTERFACE_ID;
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::ReferenceService as sails_rs::meta::ServiceMeta>::INTERFACE_ID;
         const ENTRY_ID: u16 = 1u16;
         type Params = Self;
     }
@@ -252,7 +254,7 @@ mod reference_service_meta {
     #[scale_info(crate = sails_rs::scale_info)]
     pub struct __BakedParams {}
     impl sails_rs::gstd::InvocationIo for __BakedParams {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = <ReferenceService as sails_rs::meta::ServiceMeta>::INTERFACE_ID;
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::ReferenceService as sails_rs::meta::ServiceMeta>::INTERFACE_ID;
         const ENTRY_ID: u16 = 2u16;
         type Params = Self;
     }
@@ -261,7 +263,7 @@ mod reference_service_meta {
     #[scale_info(crate = sails_rs::scale_info)]
     pub struct __FirstByteParams {}
     impl sails_rs::gstd::InvocationIo for __FirstByteParams {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = <ReferenceService as sails_rs::meta::ServiceMeta>::INTERFACE_ID;
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::ReferenceService as sails_rs::meta::ServiceMeta>::INTERFACE_ID;
         const ENTRY_ID: u16 = 3u16;
         type Params = Self;
     }
@@ -270,7 +272,7 @@ mod reference_service_meta {
     #[scale_info(crate = sails_rs::scale_info)]
     pub struct __LastByteParams {}
     impl sails_rs::gstd::InvocationIo for __LastByteParams {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = <ReferenceService as sails_rs::meta::ServiceMeta>::INTERFACE_ID;
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::ReferenceService as sails_rs::meta::ServiceMeta>::INTERFACE_ID;
         const ENTRY_ID: u16 = 4u16;
         type Params = Self;
     }

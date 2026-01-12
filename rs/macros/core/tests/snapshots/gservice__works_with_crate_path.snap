@@ -8,6 +8,9 @@ pub struct SomeServiceExposure<T> {
 }
 impl<T: sails_rename::meta::ServiceMeta> sails_rename::gstd::services::Exposure
 for SomeServiceExposure<T> {
+    fn interface_id() -> sails_rename::meta::InterfaceId {
+        T::INTERFACE_ID
+    }
     fn route_idx(&self) -> u8 {
         self.route_idx
     }
@@ -15,7 +18,6 @@ for SomeServiceExposure<T> {
         interface_id: sails_rename::meta::InterfaceId,
         entry_id: u16,
     ) -> Option<bool> {
-        use sails_rename::gstd::services::{Service, Exposure};
         if !T::ASYNC {
             return Some(false);
         }
@@ -54,17 +56,18 @@ impl SomeServiceExposure<SomeService> {
         mut self,
         interface_id: sails_rename::meta::InterfaceId,
         entry_id: u16,
-        input: sails_rename::Vec<u8>,
+        mut input: &[u8],
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
+        use sails_rename::gstd::services::{Exposure, Service};
         use sails_rename::gstd::{InvocationIo, CommandReply};
-        use sails_rename::gstd::services::{Service, Exposure};
-        if interface_id == <SomeService as sails_rename::meta::ServiceMeta>::INTERFACE_ID
+        if interface_id
+            == <self::SomeService as sails_rename::meta::ServiceMeta>::INTERFACE_ID
         {
             match entry_id {
                 1u16 => {
                     let request: some_service_meta::__ThisParams = sails_rename::scale_codec::Decode::decode(
-                            &mut input.as_slice(),
+                            &mut input,
                         )
                         .expect("Failed to decode params");
                     let result = self.this(request.p1);
@@ -88,17 +91,18 @@ impl SomeServiceExposure<SomeService> {
         mut self,
         interface_id: sails_rename::meta::InterfaceId,
         entry_id: u16,
-        input: sails_rename::Vec<u8>,
+        mut input: &[u8],
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
+        use sails_rename::gstd::services::{Exposure, Service};
         use sails_rename::gstd::{InvocationIo, CommandReply};
-        use sails_rename::gstd::services::{Service, Exposure};
-        if interface_id == <SomeService as sails_rename::meta::ServiceMeta>::INTERFACE_ID
+        if interface_id
+            == <self::SomeService as sails_rename::meta::ServiceMeta>::INTERFACE_ID
         {
             match entry_id {
                 0u16 => {
                     let request: some_service_meta::__DoThisParams = sails_rename::scale_codec::Decode::decode(
-                            &mut input.as_slice(),
+                            &mut input,
                         )
                         .expect("Failed to decode params");
                     let result = self.do_this(request.p1, request.p2).await;
@@ -154,7 +158,7 @@ mod some_service_meta {
         pub(super) p2: String,
     }
     impl sails_rename::gstd::InvocationIo for __DoThisParams {
-        const INTERFACE_ID: sails_rename::meta::InterfaceId = <SomeService as sails_rename::meta::ServiceMeta>::INTERFACE_ID;
+        const INTERFACE_ID: sails_rename::meta::InterfaceId = <super::SomeService as sails_rename::meta::ServiceMeta>::INTERFACE_ID;
         const ENTRY_ID: u16 = 0u16;
         type Params = Self;
     }
@@ -165,7 +169,7 @@ mod some_service_meta {
         pub(super) p1: bool,
     }
     impl sails_rename::gstd::InvocationIo for __ThisParams {
-        const INTERFACE_ID: sails_rename::meta::InterfaceId = <SomeService as sails_rename::meta::ServiceMeta>::INTERFACE_ID;
+        const INTERFACE_ID: sails_rename::meta::InterfaceId = <super::SomeService as sails_rename::meta::ServiceMeta>::INTERFACE_ID;
         const ENTRY_ID: u16 = 1u16;
         type Params = Self;
     }

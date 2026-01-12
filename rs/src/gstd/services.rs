@@ -35,6 +35,7 @@ pub trait Service: Sized {
 }
 
 pub trait Exposure {
+    fn interface_id() -> InterfaceId;
     fn route_idx(&self) -> u8;
     fn check_asyncness(interface_id: InterfaceId, entry_id: u16) -> Option<bool>;
 }
@@ -43,34 +44,6 @@ pub trait ExposureWithEvents: Exposure {
     type Events;
 
     fn emitter(&self) -> EventEmitter<Self::Events> {
-        let route_idx = self.route_idx();
-        EventEmitter::new(route_idx)
-    }
-}
-
-pub struct ServiceExposure<T> {
-    route_idx: u8,
-    inner: T,
-}
-
-impl<T: Service> ServiceExposure<T> {
-    pub fn new(route_idx: u8, inner: T) -> Self {
-        Self { route_idx, inner }
-    }
-
-    fn route_idx(&self) -> u8 {
-        self.route_idx
-    }
-}
-
-impl<T> core::ops::Deref for ServiceExposure<T> {
-    type Target = T;
-    fn deref(&self) -> &Self::Target {
-        &self.inner
-    }
-}
-impl<T> core::ops::DerefMut for ServiceExposure<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.inner
+        EventEmitter::new(Self::interface_id(), self.route_idx())
     }
 }

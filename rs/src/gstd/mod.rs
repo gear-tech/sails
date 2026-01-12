@@ -64,7 +64,7 @@ pub fn unknown_input_panic(message: &str, input: &[u8]) -> ! {
     }
 }
 
-struct HexSlice<T: AsRef<[u8]>>(T);
+pub struct HexSlice<T: AsRef<[u8]>>(pub T);
 
 impl<T: AsRef<[u8]>> core::fmt::Display for HexSlice<T> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {

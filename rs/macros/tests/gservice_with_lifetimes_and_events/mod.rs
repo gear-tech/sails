@@ -2,7 +2,7 @@ use core::marker::PhantomData;
 use sails_rs::prelude::*;
 
 #[derive(Default)]
-pub(super) struct MyGenericEventsService<'l, T> {
+pub(super) struct Service<'l, T = String> {
     _t: Option<u64>,
     _a: PhantomData<&'l T>,
 }
@@ -15,7 +15,7 @@ pub enum MyEvents {
 }
 
 #[service(events = MyEvents)]
-impl<T> MyGenericEventsService<'_, T>
+impl<T> Service<'_, T>
 where
     T: Clone,
 {
