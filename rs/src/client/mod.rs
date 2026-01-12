@@ -601,6 +601,49 @@ pub trait Listener {
     ) -> Result<impl Stream<Item = (ActorId, E)> + Unpin, Self::Error>;
 }
 
+struct EventInput<'a> {
+    idx: u8,
+    payload: &'a [u8],
+    first: bool,
+}
+
+impl<'a> parity_scale_codec::Input for EventInput<'a> {
+    fn remaining_len(&mut self) -> Result<Option<usize>, parity_scale_codec::Error> {
+        Ok(Some(1 + self.payload.len()))
+    }
+
+    fn read(&mut self, into: &mut [u8]) -> Result<(), parity_scale_codec::Error> {
+        if into.is_empty() {
+            return Ok(());
+        }
+        let (head, tail) = into.split_at_mut(if self.first { 1 } else { 0 });
+        if self.first {
+            head[0] = self.idx;
+            self.first = false;
+        }
+        if tail.is_empty() {
+            return Ok(());
+        }
+        if tail.len() > self.payload.len() {
+            return Err("Not enough data to fill buffer".into());
+        }
+        tail.copy_from_slice(&self.payload[..tail.len()]);
+        self.payload = &self.payload[tail.len()..];
+        Ok(())
+    }
+
+    fn read_byte(&mut self) -> Result<u8, parity_scale_codec::Error> {
+        if self.first {
+            self.first = false;
+            Ok(self.idx)
+        } else {
+            let b = *self.payload.first().ok_or("Not enough data to read byte")?;
+            self.payload = &self.payload[1..];
+            Ok(b)
+        }
+    }
+}
+
 #[cfg(not(target_arch = "wasm32"))]
 pub trait Event: Decode + Identifiable {
     fn decode_event(
@@ -626,11 +669,14 @@ pub trait Event: Decode + Identifiable {
         // The network payload only contains the event data (arguments), omitting the variant index
         // because the `entry_id` in the header already serves as the identifier.
         // However, the standard Rust `Decode` implementation for enums expects a leading index byte.
-        // Therefore, we prepend the `entry_id` (as u8) to the payload to satisfy the decoder.
+        // Therefore, we use a custom Input to prepend the `entry_id` (as u8) to the payload without allocation.
         let variant_index = entry_id as u8;
-        let bytes = [&[variant_index], payload].concat();
-        let mut event_bytes = &bytes[..];
-        Decode::decode(&mut event_bytes)
+        let mut input = EventInput {
+            idx: variant_index,
+            payload,
+            first: true,
+        };
+        Decode::decode(&mut input)
     }
 }
 
