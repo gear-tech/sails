@@ -64,9 +64,8 @@ gear-core-errors = "=1.10.0"
 gprimitives = { version = "=1.10.0", default-features = false, features = ["codec"] }
 gstd = "=1.10.0"
 gtest = "=1.10.0"
-gsdk = "=1.10.0"
 gwasm-builder = { version = "=1.10.0", package = "gear-wasm-builder" }
-subxt = "0.37.0"
+
 
 # Other deps in alphabetical order
 alloy-primitives = { version = "0.8.19", default-features = false }
