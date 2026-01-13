@@ -29,7 +29,7 @@ pub struct SailsMessageHeader {
 
 impl SailsMessageHeader {
     /// Creates a new Sails message header.
-    pub fn new(
+    pub const fn new(
         version: Version,
         hlen: HeaderLength,
         interface_id: InterfaceId,
@@ -45,7 +45,7 @@ impl SailsMessageHeader {
         }
     }
 
-    pub fn v1(interface_id: InterfaceId, entry_id: u16, route_id: u8) -> Self {
+    pub const fn v1(interface_id: InterfaceId, entry_id: u16, route_id: u8) -> Self {
         Self {
             version: Version::v1(),
             hlen: HeaderLength(MINIMAL_HLEN),
@@ -56,27 +56,27 @@ impl SailsMessageHeader {
     }
 
     /// Gets the version of the header.
-    pub fn version(&self) -> Version {
+    pub const fn version(&self) -> Version {
         self.version
     }
 
     /// Gets the header length.
-    pub fn hlen(&self) -> HeaderLength {
+    pub const fn hlen(&self) -> HeaderLength {
         self.hlen
     }
 
     /// Gets the interface ID.
-    pub fn interface_id(&self) -> InterfaceId {
+    pub const fn interface_id(&self) -> InterfaceId {
         self.interface_id
     }
 
     /// Gets the route ID.
-    pub fn route_id(&self) -> u8 {
+    pub const fn route_id(&self) -> u8 {
         self.route_id
     }
 
     /// Gets the entry ID.
-    pub fn entry_id(&self) -> u16 {
+    pub const fn entry_id(&self) -> u16 {
         self.entry_id
     }
 }
@@ -251,12 +251,12 @@ pub struct Version(u8);
 
 impl Version {
     /// Instantiates the type with version 1.
-    pub fn v1() -> Self {
+    pub const fn v1() -> Self {
         Self(1)
     }
 
     /// Instantiates the type with the latest supported version.
-    pub fn latest() -> Self {
+    pub const fn latest() -> Self {
         Self(HIGHEST_SUPPORTED_VERSION)
     }
 

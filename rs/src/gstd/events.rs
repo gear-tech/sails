@@ -138,7 +138,7 @@ impl<T: 'static> EventEmitter<T> {
 
     #[cfg(feature = "ethexe")]
     pub fn emit_eth_event(&mut self, event: T) -> crate::errors::Result<()> {
-        event_registry::push_event(self.route, event);
+        event_registry::push_event(self.route_idx, event);
         Ok(())
     }
 
