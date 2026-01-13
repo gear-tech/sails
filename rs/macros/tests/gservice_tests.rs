@@ -502,7 +502,7 @@ async fn gservice_with_reply_with_value_with_impl_from() {
 async fn gservice_with_trait_bounds() {
     use gservice_with_trait_bounds::MyServiceWithTraitBounds;
 
-    // MyServiceWithReplyWithValue::do_that
+    // MyServiceWithTraitBounds::do_this
     let header = SailsMessageHeader::v1(
         <MyServiceWithTraitBounds as ServiceMeta>::INTERFACE_ID,
         0,

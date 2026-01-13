@@ -72,7 +72,7 @@ impl ProgramBuilder {
                 = #sails_path::solidity::ConstProgramMeta::<#program_type_path>::ctor_callback_sigs();
             const __METHOD_SIGS: [[u8; 4]; <#program_type_path as #sails_path::solidity::ProgramSignature>::METHODS_LEN]
                 = #sails_path::solidity::ConstProgramMeta::<#program_type_path>::method_sigs();
-            const __METHOD_ROUTES: [(&'static [u8], &'static [u8]); <#program_type_path as #sails_path::solidity::ProgramSignature>::METHODS_LEN]
+            const __METHOD_ROUTES: [(#sails_path::meta::InterfaceId, u16, u8); <#program_type_path as #sails_path::solidity::ProgramSignature>::METHODS_LEN]
                 = #sails_path::solidity::ConstProgramMeta::<#program_type_path>::method_routes();
             const __CALLBACK_SIGS: [[u8; 4]; <#program_type_path as #sails_path::solidity::ProgramSignature>::METHODS_LEN]
                 = #sails_path::solidity::ConstProgramMeta::<#program_type_path>::callback_sigs();
@@ -87,9 +87,11 @@ impl ProgramBuilder {
             .map(|fn_builder| fn_builder.sol_ctor_branch_impl(program_type_path, program_ident));
 
         quote! {
-            fn match_ctor_solidity(ctor: &[u8], input: &[u8]) -> Option<bool> {
-                #( #ctor_branches )*
-                None
+            fn match_ctor_solidity(entry_id: u16, input: &[u8]) -> Option<bool> {
+                match entry_id {
+                    #( #ctor_branches )*
+                    _ => None,
+                }
             }
         }
     }
@@ -101,8 +103,8 @@ impl ProgramBuilder {
         quote! {
             if let Ok(sig) = TryInto::<[u8; 4]>::try_into(&#input_ident[..4]) {
                 if let Some(idx) = __CTOR_SIGS.iter().position(|s| s == &sig) {
-                    let (ctor_route, ..) = <#program_type_path as #sails_path::solidity::ProgramSignature>::CTORS[idx];
-                    if let Some(encode_reply) = match_ctor_solidity(ctor_route, &#input_ident[4..]) {
+                    let (entry_id, ..) = <#program_type_path as #sails_path::solidity::ProgramSignature>::CTORS[idx];
+                    if let Some(encode_reply) = match_ctor_solidity(entry_id, &#input_ident[4..]) {
                         // add callbak selector if `encode_reply` is set
                         if encode_reply {
                             let output = [__CTOR_CALLBACK_SIGS[idx].as_slice(), gstd::msg::id().into_bytes().as_slice()].concat();
@@ -119,7 +121,7 @@ impl ProgramBuilder {
         quote! {
             if let Ok(sig) = TryInto::<[u8; 4]>::try_into(&input[..4]) {
                 if let Some(idx) = __METHOD_SIGS.iter().position(|s| s == &sig) {
-                    let (route, method) = __METHOD_ROUTES[idx];
+                    let (interface_id, entry_id, route_idx) = __METHOD_ROUTES[idx];
                     #(#solidity_dispatchers)*
                 }
             }
@@ -130,14 +132,15 @@ impl ProgramBuilder {
 impl FnBuilder<'_> {
     fn sol_service_signature(&self) -> TokenStream {
         let sails_path = self.sails_path;
-        let service_route_bytes = self.encoded_route.as_slice();
+        let route_idx = (self.entry_id + 1) as u8;
         let service_name = self.route_camel_case();
         let service_type = &self.result_type;
 
         quote! {
             (
                 #service_name,
-                &[ #(#service_route_bytes),* ] as &[u8],
+                #route_idx,
+                <#service_type as #sails_path::meta::ServiceMeta>::INTERFACE_ID,
                 <#service_type as #sails_path::solidity::ServiceSignature>::METHODS,
             )
         }
@@ -145,7 +148,7 @@ impl FnBuilder<'_> {
 
     pub(crate) fn sol_handler_signature(&self, is_service: bool) -> TokenStream {
         let sails_path = self.sails_path;
-        let handler_route_bytes = self.encoded_route.as_slice();
+        let entry_id = self.entry_id;
         let handler_name = if is_service {
             // method name as PascalCase
             &self.route
@@ -168,7 +171,7 @@ impl FnBuilder<'_> {
 
         quote! {
             (
-                &[ #(#handler_route_bytes),* ] as &[u8],
+                #entry_id,
                 #handler_name,
                 <<(#handler_types) as #sails_path::alloy_sol_types::SolValue>::SolType as #sails_path::alloy_sol_types::SolType>::SOL_NAME,
                 <<(#callback_types) as #sails_path::alloy_sol_types::SolValue>::SolType as #sails_path::alloy_sol_types::SolType>::SOL_NAME,
@@ -182,7 +185,7 @@ impl FnBuilder<'_> {
         program_ident: &Ident,
     ) -> TokenStream {
         let sails_path = self.sails_path;
-        let handler_route_bytes = self.encoded_route.as_slice();
+        let entry_id = self.entry_id;
         let handler_ident = self.ident;
         let handler_params = self.params_idents();
         let handler_types = self.params_types();
@@ -205,28 +208,30 @@ impl FnBuilder<'_> {
 
         // read uint128 as first parameter
         quote! {
-            if ctor == &[ #(#handler_route_bytes),* ] {
+            #entry_id => {
                 let (__encode_reply, #(#handler_params,)*) : (bool, #(#handler_types,)*) = #sails_path::alloy_sol_types::SolValue::abi_decode_params(input, false).expect("Failed to decode request");
                 #ctor_invocation
-                return Some(__encode_reply);
+                Some(__encode_reply)
             }
         }
     }
 
     pub(crate) fn sol_service_invocation(&self) -> TokenStream2 {
-        let route_ident = &self.route_ident();
+        let sails_path = self.sails_path;
+        let route_idx = (self.entry_id + 1) as u8;
         let service_ctor_ident = self.ident;
+        let service_type = &self.result_type;
 
         quote! {
-            if route == & #route_ident {
+            if route_idx == #route_idx {
                 let mut service = program_ref.#service_ctor_ident();
-                let Some(is_async) = service.check_asyncness(method) else {
+                let Some(is_async) = <#service_type as #sails_path::gstd::services::Service>::Exposure::check_asyncness(interface_id, entry_id) else {
                     gstd::unknown_input_panic("Unknown service method", &input);
                 };
                 if is_async {
                     gstd::message_loop(async move {
                         let (output, value, encode_reply) = service
-                            .try_handle_solidity_async(method, &input[4..])
+                            .try_handle_solidity_async(interface_id, entry_id, &input[4..])
                             .await
                             .unwrap_or_else(|| {
                                 gstd::unknown_input_panic("Unknown request", &input)
@@ -242,7 +247,7 @@ impl FnBuilder<'_> {
                     });
                 } else {
                     let (output, value, encode_reply) = service
-                        .try_handle_solidity(method, &input[4..])
+                        .try_handle_solidity(interface_id, entry_id, &input[4..])
                         .unwrap_or_else(|| {
                             gstd::unknown_input_panic("Unknown request", &input)
                         });
