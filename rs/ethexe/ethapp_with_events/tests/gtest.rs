@@ -4,8 +4,7 @@ use sails_rs::{
     client::*,
     futures::StreamExt,
     gtest::{Program, System},
-    header::SailsMessageHeader,
-    meta::ServiceMeta,
+    meta::{ServiceMeta, SailsMessageHeader},
     prelude::*,
 };
 

@@ -85,7 +85,7 @@ impl<A, E: GearEnv> Deployment<A, E> {
         }
     }
 
-    pub fn pending_ctor<T: CallCodec>(self, args: T::Params) -> PendingCtor<A, T, E> {
+    pub fn pending_ctor<T: ServiceCall>(self, args: T::Params) -> PendingCtor<A, T, E> {
         PendingCtor::new(self.env, self.code_id, self.salt, args)
     }
 }
@@ -304,7 +304,7 @@ impl<T: ServiceCall, E: GearEnv> PendingCall<T, E> {
 }
 
 pin_project_lite::pin_project! {
-    pub struct PendingCtor<A, T: CallCodec, E: GearEnv> {
+    pub struct PendingCtor<A, T: ServiceCall, E: GearEnv> {
         env: E,
         code_id: CodeId,
         params: Option<E::Params>,
@@ -317,7 +317,7 @@ pin_project_lite::pin_project! {
     }
 }
 
-impl<A, T: CallCodec, E: GearEnv> PendingCtor<A, T, E> {
+impl<A, T: ServiceCall, E: GearEnv> PendingCtor<A, T, E> {
     pub fn new(env: E, code_id: CodeId, salt: Vec<u8>, args: T::Params) -> Self {
         PendingCtor {
             env,
@@ -453,7 +453,7 @@ macro_rules! params_struct_impl {
             )*
         }
 
-        impl<A, T: CallCodec> PendingCtor<A, T, $env> {
+        impl<A, T: ServiceCall> PendingCtor<A, T, $env> {
             $(
                 paste::paste! {
                     $(#[$attr])*
@@ -495,7 +495,7 @@ macro_rules! params_for_pending_impl {
             )*
         }
 
-        impl<A, T: CallCodec> PendingCtor<A, T, $env> {
+        impl<A, T: ServiceCall> PendingCtor<A, T, $env> {
             $(
                 paste::paste! {
                     $(#[$attr])*

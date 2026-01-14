@@ -1,8 +1,7 @@
 #![cfg(not(feature = "ethexe"))]
 
 use sails_rs::gstd::services::{Exposure, ExposureWithEvents, Service};
-use sails_rs::header::SailsMessageHeader;
-use sails_rs::meta::{InterfaceId, ServiceMeta};
+use sails_rs::meta::{InterfaceId, SailsMessageHeader, ServiceMeta};
 use sails_rs::{Decode, Encode};
 
 mod gservice_with_basics;

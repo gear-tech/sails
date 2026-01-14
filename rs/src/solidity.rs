@@ -292,22 +292,36 @@ mod tests {
     fn service_signature_extended() {
         assert_eq!(4, ExtendedSvc::METHODS.len());
 
-        let do_this = (
+        let do_this_ext = (
             InterfaceId::from_u64(2),
             0,
             "DoThis",
             "(uint32,string,uint128)",
             "(bytes32,uint32)",
         );
-        let this = (
+        let this_ext = (
             InterfaceId::from_u64(2),
             1,
             "This",
             <<(bool, u128) as SolValue>::SolType as SolType>::SOL_NAME,
             <<(B256, u32) as SolValue>::SolType as SolType>::SOL_NAME,
         );
-        assert_eq!(do_this, ExtendedSvc::METHODS[0]);
-        assert_eq!(this, ExtendedSvc::METHODS[1]);
+        let do_this = (
+            InterfaceId::from_u64(1),
+            0,
+            "DoThis",
+            "(uint32,string,uint128)",
+            "(bytes32,uint32)",
+        );
+        let this = (
+            InterfaceId::from_u64(1),
+            1,
+            "This",
+            <<(bool, u128) as SolValue>::SolType as SolType>::SOL_NAME,
+            <<(B256, u32) as SolValue>::SolType as SolType>::SOL_NAME,
+        );
+        assert_eq!(do_this_ext, ExtendedSvc::METHODS[0]);
+        assert_eq!(this_ext, ExtendedSvc::METHODS[1]);
         assert_eq!(do_this, ExtendedSvc::METHODS[2]);
         assert_eq!(this, ExtendedSvc::METHODS[3]);
     }

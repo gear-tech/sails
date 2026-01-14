@@ -85,7 +85,7 @@ pub mod wasm {
                 }
             }
         }
-        if let Ok(header) = <sails_rename::header::SailsMessageHeader as sails_rename::Decode>::decode(
+        if let Ok(header) = <sails_rename::meta::SailsMessageHeader as sails_rename::Decode>::decode(
             &mut input,
         ) {
             if header.interface_id() != sails_rename::meta::InterfaceId::zero() {
@@ -143,7 +143,7 @@ pub mod wasm {
                 let (interface_id, entry_id, route_idx) = __METHOD_ROUTES[idx];
             }
         }
-        if let Ok(header) = <sails_rename::header::SailsMessageHeader as sails_rename::Decode>::decode(
+        if let Ok(header) = <sails_rename::meta::SailsMessageHeader as sails_rename::Decode>::decode(
             &mut input.as_slice(),
         ) {
             let header_len = header.hlen().inner() as usize;

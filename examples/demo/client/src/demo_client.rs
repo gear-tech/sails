@@ -84,8 +84,8 @@ impl<E: sails_rs::client::GearEnv> DemoClientCtors
 
 pub mod io {
     use super::*;
-    sails_rs::io_struct_impl!(Default () -> (), 0);
-    sails_rs::io_struct_impl!(New (counter: super::Option<u32, >, dog_position: super::Option<(i32, i32, ), >) -> (), 1);
+    sails_rs::io_struct_impl!(Default () -> (), 0, sails_rs::meta::InterfaceId::zero());
+    sails_rs::io_struct_impl!(New (counter: super::Option<u32, >, dog_position: super::Option<(i32, i32, ), >) -> (), 1, sails_rs::meta::InterfaceId::zero());
 }
 
 pub mod ping_pong {
@@ -97,7 +97,7 @@ pub mod ping_pong {
     pub struct PingPongImpl;
     impl sails_rs::client::Identifiable for PingPongImpl {
         const INTERFACE_ID: sails_rs::InterfaceId =
-            sails_rs::InterfaceId::from_bytes_8([33, 189, 154, 154, 165, 29, 162, 100]);
+            sails_rs::InterfaceId::from_bytes_8([109, 14, 180, 13, 222, 64, 56, 247]);
     }
     impl<E: sails_rs::client::GearEnv> PingPong for sails_rs::client::Service<PingPongImpl, E> {
         type Env = E;
@@ -108,7 +108,7 @@ pub mod ping_pong {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(Ping (input: String) -> super::Result<String, String>, 0, <super::PingPongImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Ping (input: String) -> super::Result<String, String, >, 0, <super::PingPongImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(feature = "with_mocks")]
@@ -381,7 +381,7 @@ pub mod references {
     pub struct ReferencesImpl;
     impl sails_rs::client::Identifiable for ReferencesImpl {
         const INTERFACE_ID: sails_rs::InterfaceId =
-            sails_rs::InterfaceId::from_bytes_8([61, 171, 145, 177, 150, 71, 129, 98]);
+            sails_rs::InterfaceId::from_bytes_8([138, 15, 138, 190, 23, 109, 117, 185]);
     }
     impl<E: sails_rs::client::GearEnv> References for sails_rs::client::Service<ReferencesImpl, E> {
         type Env = E;
@@ -418,9 +418,9 @@ pub mod references {
         use super::*;
         sails_rs::io_struct_impl!(Add (v: u32) -> u32, 0, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
         sails_rs::io_struct_impl!(AddByte (byte: u8) -> Vec<u8>, 1, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(GuessNum (number: u8) -> super::Result<String, String>, 2, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(GuessNum (number: u8) -> super::Result<String, String, >, 2, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
         sails_rs::io_struct_impl!(Incr () -> super::ReferenceCount, 3, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(SetNum (number: u8) -> super::Result<(), String>, 4, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(SetNum (number: u8) -> super::Result<(), String, >, 4, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
         sails_rs::io_struct_impl!(Baked () -> String, 5, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
         sails_rs::io_struct_impl!(LastByte () -> super::Option<u8, >, 6, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
         sails_rs::io_struct_impl!(Message () -> super::Option<String, >, 7, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
@@ -495,7 +495,7 @@ pub mod this_that {
     pub struct ThisThatImpl;
     impl sails_rs::client::Identifiable for ThisThatImpl {
         const INTERFACE_ID: sails_rs::InterfaceId =
-            sails_rs::InterfaceId::from_bytes_8([68, 91, 237, 110, 251, 232, 230, 221]);
+            sails_rs::InterfaceId::from_bytes_8([56, 30, 19, 253, 208, 45, 103, 95]);
     }
     impl<E: sails_rs::client::GearEnv> ThisThat for sails_rs::client::Service<ThisThatImpl, E> {
         type Env = E;
@@ -527,10 +527,10 @@ pub mod this_that {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(DoThat (param: super::DoThatParam) -> super::Result<(ActorId, super::NonZeroU32, super::ManyVariantsReply, ), (String, )>, 0, <super::ThisThatImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(DoThat (param: super::DoThatParam) -> super::Result<(ActorId, super::NonZeroU32, super::ManyVariantsReply, ), (String, ), >, 0, <super::ThisThatImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
         sails_rs::io_struct_impl!(DoThis (p1: u32, p2: String, p3: (super::Option<H160, >, super::NonZeroU8, ), p4: super::TupleStruct) -> (String, u32, ), 1, <super::ThisThatImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
         sails_rs::io_struct_impl!(Noop () -> (), 2, <super::ThisThatImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(That () -> super::Result<String, String>, 3, <super::ThisThatImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(That () -> super::Result<String, String, >, 3, <super::ThisThatImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
         sails_rs::io_struct_impl!(This () -> u32, 4, <super::ThisThatImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 

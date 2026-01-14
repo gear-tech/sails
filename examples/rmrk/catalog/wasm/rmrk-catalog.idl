@@ -1,16 +1,16 @@
 
 !@sails: 0.9.2
 
-service RmrkCatalog {
+service RmrkCatalog@0x37e91447bb13ed3c {
     functions {
-        AddEquippables(part_id: u32, collection_ids: [ActorId]) -> (u32, [ActorId]) throws Error;
-        AddParts(parts: [(u32, Part)]) -> [(u32, Part)] throws Error;
-        RemoveEquippable(part_id: u32, collection_id: ActorId) -> (u32, ActorId) throws Error;
-        RemoveParts(part_ids: [u32]) -> [u32] throws Error;
-        ResetEquippables(part_id: u32) throws Error;
-        SetEquippablesToAll(part_id: u32) throws Error;
+        AddEquippables(part_id: u32, collection_ids: [ActorId]) -> Result<(u32, [ActorId]), Error>;
+        AddParts(parts: [(u32, Part)]) -> Result<[(u32, Part)], Error>;
+        RemoveEquippable(part_id: u32, collection_id: ActorId) -> Result<(u32, ActorId), Error>;
+        RemoveParts(part_ids: [u32]) -> Result<[u32], Error>;
+        ResetEquippables(part_id: u32) -> Result<(), Error>;
+        SetEquippablesToAll(part_id: u32) -> Result<(), Error>;
         @query
-        Equippable(part_id: u32, collection_id: ActorId) -> bool throws Error;
+        Equippable(part_id: u32, collection_id: ActorId) -> Result<bool, Error>;
         @query
         Part(part_id: u32) -> Option<Part>;
     }
@@ -54,6 +54,6 @@ program RmrkCatalog {
         New();
     }
     services {
-        RmrkCatalog,
+        RmrkCatalog@0x37e91447bb13ed3c,
     }
 }

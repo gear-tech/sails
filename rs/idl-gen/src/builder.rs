@@ -281,16 +281,16 @@ impl<'a> ServiceBuilder<'a> {
                         .resolve(params_type_id)
                         .ok_or(Error::TypeIdIsUnknown(params_type_id))?;
                     let output_type_id = c.fields[1].ty.id;
-                    let mut output = resolver
+                    let output = resolver
                         .get(output_type_id)
                         .cloned()
                         .ok_or(Error::TypeIdIsUnknown(output_type_id))?;
-                    let mut throws = None;
+                    let throws = None;
                     // TODO: unwrap result param
-                    if let Some((ok, err)) = TypeDecl::result_type_decl(&output) {
-                        output = ok;
-                        throws = Some(err);
-                    };
+                    // if let Some((ok, err)) = TypeDecl::result_type_decl(&output) {
+                    //     output = ok;
+                    //     throws = Some(err);
+                    // };
                     if let scale_info::TypeDef::Composite(params_type) = &params_type.type_def {
                         let params = params_type
                             .fields
@@ -347,16 +347,16 @@ impl<'a> ServiceBuilder<'a> {
                         .resolve(params_type_id)
                         .ok_or(Error::TypeIdIsUnknown(params_type_id))?;
                     let output_type_id = c.fields[1].ty.id;
-                    let mut output = resolver
+                    let output = resolver
                         .get(output_type_id)
                         .cloned()
                         .ok_or(Error::TypeIdIsUnknown(output_type_id))?;
-                    let mut throws = None;
+                    let throws = None;
                     // TODO: unwrap result param
-                    if let Some((ok, err)) = TypeDecl::result_type_decl(&output) {
-                        output = ok;
-                        throws = Some(err);
-                    };
+                    // if let Some((ok, err)) = TypeDecl::result_type_decl(&output) {
+                    //     output = ok;
+                    //     throws = Some(err);
+                    // };
                     if let scale_info::TypeDef::Composite(params_type) = &params_type.type_def {
                         let params = params_type
                             .fields

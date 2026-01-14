@@ -145,7 +145,7 @@ impl<T: ServiceCall> Future for PendingCall<T, GclientEnv> {
     }
 }
 
-impl<A, T: CallCodec> Future for PendingCtor<A, T, GclientEnv> {
+impl<A, T: ServiceCall> Future for PendingCtor<A, T, GclientEnv> {
     type Output = Result<Actor<A, GclientEnv>, <GclientEnv as GearEnv>::Error>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -157,7 +157,7 @@ impl<A, T: CallCodec> Future for PendingCtor<A, T, GclientEnv> {
                 .args
                 .take()
                 .unwrap_or_else(|| panic!("{PENDING_CTOR_INVALID_STATE}"));
-            let payload = T::encode_params(&args);
+            let payload = T::encode_params_with_header(0, &args);
 
             let create_program_future =
                 create_program(self.env.api.clone(), self.code_id, salt, payload, params);

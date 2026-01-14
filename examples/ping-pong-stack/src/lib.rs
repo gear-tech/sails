@@ -4,7 +4,7 @@ use client::{
     PingPongStack as _, PingPongStackCtors as _, PingPongStackProgram,
     ping_pong_stack::PingPongStack as _,
 };
-use sails_rs::{client::Program as _, gstd::*, prelude::*};
+use sails_rs::{client::Program as _, gstd::*, meta::ServiceMeta, prelude::*};
 
 struct PingPongStack(ActorId);
 
@@ -81,3 +81,5 @@ pub use code::WASM_BINARY_OPT as WASM_BINARY;
 mod code {
     include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 }
+
+pub const INTERFACE_ID: sails_rs::meta::InterfaceId = PingPongStack::INTERFACE_ID;

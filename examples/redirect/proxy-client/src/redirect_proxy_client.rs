@@ -42,7 +42,7 @@ impl<E: sails_rs::client::GearEnv> RedirectProxyClientCtors
 
 pub mod io {
     use super::*;
-    sails_rs::io_struct_impl!(New (target: ActorId) -> (), 0);
+    sails_rs::io_struct_impl!(New (target: ActorId) -> (), 0, sails_rs::meta::InterfaceId::zero());
 }
 
 pub mod proxy {

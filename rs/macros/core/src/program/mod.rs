@@ -359,7 +359,7 @@ impl ProgramBuilder {
 
                 #solidity_main
 
-                if let Ok(header) = <#sails_path::header::SailsMessageHeader as #sails_path::Decode>::decode(&mut input.as_slice()) {
+                if let Ok(header) = <#sails_path::meta::SailsMessageHeader as #sails_path::Decode>::decode(&mut input.as_slice()) {
                     let header_len = header.hlen().inner() as usize;
                     let (interface_id, route_id, entry_id) = header
                         .try_match_interfaces(INTERFACE_IDS)
@@ -436,7 +436,7 @@ impl ProgramBuilder {
         let solidity_init = self.sol_init(&input_ident);
 
         let sails_init = quote! {
-            if let Ok(header) = <#sails_path::header::SailsMessageHeader as #sails_path::Decode>::decode(&mut #input_ident) {
+            if let Ok(header) = <#sails_path::meta::SailsMessageHeader as #sails_path::Decode>::decode(&mut #input_ident) {
                 if header.interface_id() != #sails_path::meta::InterfaceId::zero() {
                     #sails_path::gstd::unknown_input_panic("Non zero ctor interface_id", header.to_bytes().as_slice());
                 }

@@ -264,7 +264,7 @@ const _: () = {
         }
     }
 
-    impl<A, T: CallCodec> Future for PendingCtor<A, T, GstdEnv> {
+    impl<A, T: ServiceCall> Future for PendingCtor<A, T, GstdEnv> {
         type Output = Result<Actor<A, GstdEnv>, <GstdEnv as GearEnv>::Error>;
 
         fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -277,7 +277,7 @@ const _: () = {
                     .args
                     .as_ref()
                     .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
-                let payload = T::encode_params(args);
+                let payload = T::encode_params_with_header(0, args);
                 // Send message
                 #[cfg(not(feature = "ethexe"))]
                 let future = if let Some(gas_limit) = params.gas_limit {
@@ -396,7 +396,7 @@ const _: () = {
         }
     }
 
-    impl<A, T: CallCodec> Future for PendingCtor<A, T, GstdEnv> {
+    impl<A, T: ServiceCall> Future for PendingCtor<A, T, GstdEnv> {
         type Output = Result<Actor<A, GstdEnv>, <GstdEnv as GearEnv>::Error>;
 
         fn poll(mut self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {

@@ -341,7 +341,7 @@ impl<T: ServiceCall> Future for PendingCall<T, GtestEnv> {
     }
 }
 
-impl<A, T: CallCodec> PendingCtor<A, T, GtestEnv> {
+impl<A, T: ServiceCall> PendingCtor<A, T, GtestEnv> {
     pub fn create_program(mut self) -> Result<Self, GtestError> {
         if self.state.is_some() {
             panic!("{PENDING_CTOR_INVALID_STATE}");
@@ -351,7 +351,7 @@ impl<A, T: CallCodec> PendingCtor<A, T, GtestEnv> {
             .args
             .take()
             .unwrap_or_else(|| panic!("{PENDING_CTOR_INVALID_STATE}"));
-        let payload = T::encode_params(&args);
+        let payload = T::encode_params_with_header(0, &args);
         let params = self.params.take().unwrap_or_default();
         let salt = self.salt.take().unwrap_or_default();
         let send_res = self
@@ -372,7 +372,7 @@ impl<A, T: CallCodec> PendingCtor<A, T, GtestEnv> {
     }
 }
 
-impl<A, T: CallCodec> Future for PendingCtor<A, T, GtestEnv> {
+impl<A, T: ServiceCall> Future for PendingCtor<A, T, GtestEnv> {
     type Output = Result<Actor<A, GtestEnv>, <GtestEnv as GearEnv>::Error>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -382,7 +382,7 @@ impl<A, T: CallCodec> Future for PendingCtor<A, T, GtestEnv> {
                 .args
                 .take()
                 .unwrap_or_else(|| panic!("{PENDING_CTOR_INVALID_STATE}"));
-            let payload = T::encode_params(&args);
+            let payload = T::encode_params_with_header(0, &args);
             let params = self.params.take().unwrap_or_default();
             let salt = self.salt.take().unwrap_or_default();
             let send_res = self

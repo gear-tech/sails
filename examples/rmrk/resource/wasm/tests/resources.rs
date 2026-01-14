@@ -1,8 +1,9 @@
 use rmrk_catalog::services::parts::{FixedPart, Part};
 use rmrk_resource::client::{
     self, RmrkResource, RmrkResourceProgram,
-    rmrk_resource::{RmrkResource as _, RmrkResourceImpl},
+    rmrk_resource::{RmrkResource as _, RmrkResourceImpl, io},
 };
+use rmrk_resource_app::catalogs;
 use rmrk_resource_app::services::{
     ResourceStorageEvent,
     errors::{Error as ResourceStorageError, Result as ResourceStorageResult},
@@ -14,6 +15,7 @@ use sails_rs::{
     collections::BTreeMap,
     errors::Result,
     gtest::{BlockRunResult, Program, System},
+    meta::SailsMessageHeader,
 };
 
 const CATALOG_PROGRAM_WASM_PATH: &str = "../../../../target/wasm32-gear/debug/rmrk_catalog.wasm";
@@ -27,7 +29,6 @@ mod resources {
     pub const RESOURCE_SERVICE_NAME: &str = "RmrkResource";
     pub const ADD_RESOURCE_ENTRY_FUNC_NAME: &str = "AddResourceEntry";
     pub const ADD_PART_TO_RESOURCE_FUNC_NAME: &str = "AddPartToResource";
-    pub const RESOURCE_FUNC_NAME: &str = "Resource";
 }
 
 mod catalog {
@@ -55,9 +56,14 @@ fn adding_resource_to_storage_by_admin_succeeds() {
     let run_result = fixture.add_resource(ADMIN_ID, RESOURCE_ID, &resource);
 
     // Assert
+    println!("{run_result:#?}");
+    let header = SailsMessageHeader::v1(
+        io::AddResourceEntry::INTERFACE_ID,
+        io::AddResourceEntry::ENTRY_ID,
+        1,
+    );
     let expected_response = [
-        resources::RESOURCE_SERVICE_NAME.encode(),
-        resources::ADD_RESOURCE_ENTRY_FUNC_NAME.encode(),
+        header.encode(),
         (Ok((RESOURCE_ID, &resource)) as ResourceStorageResult<(u8, &Resource)>).encode(),
     ]
     .concat();
@@ -169,9 +175,14 @@ fn adding_existing_part_to_resource_by_admin_succeeds() {
     let run_result = fixture.add_part_to_resource(ADMIN_ID, RESOURCE_ID, PART_ID);
 
     // Assert
+    println!("{run_result:#?}");
+    let header = SailsMessageHeader::v1(
+        io::AddPartToResource::INTERFACE_ID,
+        io::AddPartToResource::ENTRY_ID,
+        1,
+    );
     let expected_response = [
-        resources::RESOURCE_SERVICE_NAME.encode(),
-        resources::ADD_PART_TO_RESOURCE_FUNC_NAME.encode(),
+        header.encode(),
         (Ok(PART_ID) as ResourceStorageResult<PartId>).encode(),
     ]
     .concat();
@@ -287,13 +298,15 @@ impl SystemFixture {
 
     fn create_catalog_program(system: &System) -> ActorId {
         let catalog_program = Program::from_file(system, CATALOG_PROGRAM_WASM_PATH);
-        catalog_program.send_bytes(ADMIN_ID, catalog::CTOR_FUNC_NAME.encode());
+        let header = SailsMessageHeader::v1(InterfaceId::zero(), 0, 0);
+        catalog_program.send_bytes(ADMIN_ID, header.encode());
         catalog_program.id()
     }
 
     fn create_resource_program(system: &System) -> ActorId {
         let resource_program = Program::from_file(system, RESOURCE_PROGRAM_WASM_PATH);
-        resource_program.send_bytes(ADMIN_ID, resources::CTOR_FUNC_NAME.encode());
+        let header = SailsMessageHeader::v1(InterfaceId::zero(), 0, 0);
+        resource_program.send_bytes(ADMIN_ID, header.encode());
         resource_program.id()
     }
 
@@ -312,13 +325,12 @@ impl SystemFixture {
         resource: &Resource,
     ) -> BlockRunResult {
         let program = self.resource_program();
-        let encoded_request = [
-            resources::RESOURCE_SERVICE_NAME.encode(),
-            resources::ADD_RESOURCE_ENTRY_FUNC_NAME.encode(),
-            resource_id.encode(),
-            resource.encode(),
-        ]
-        .concat();
+        let header = SailsMessageHeader::v1(
+            io::AddResourceEntry::INTERFACE_ID,
+            io::AddResourceEntry::ENTRY_ID,
+            1,
+        );
+        let encoded_request = [header.encode(), resource_id.encode(), resource.encode()].concat();
         let _message_id = program.send_bytes(actor_id, encoded_request);
         self.system.run_next_block()
     }
@@ -330,13 +342,12 @@ impl SystemFixture {
         part_id: PartId,
     ) -> BlockRunResult {
         let program = self.resource_program();
-        let encoded_request = [
-            resources::RESOURCE_SERVICE_NAME.encode(),
-            resources::ADD_PART_TO_RESOURCE_FUNC_NAME.encode(),
-            resource_id.encode(),
-            part_id.encode(),
-        ]
-        .concat();
+        let header = SailsMessageHeader::v1(
+            io::AddPartToResource::INTERFACE_ID,
+            io::AddPartToResource::ENTRY_ID,
+            1,
+        );
+        let encoded_request = [header.encode(), resource_id.encode(), part_id.encode()].concat();
         let _message_id = program.send_bytes(actor_id, encoded_request);
         self.system.run_next_block()
     }
@@ -347,14 +358,8 @@ impl SystemFixture {
         resource_id: ResourceId,
     ) -> Option<ResourceStorageResult<Resource>> {
         let program = self.resource_program();
-        let encoded_service_name = resources::RESOURCE_SERVICE_NAME.encode();
-        let encoded_func_name = resources::RESOURCE_FUNC_NAME.encode();
-        let encoded_request = [
-            encoded_service_name.clone(),
-            encoded_func_name.clone(),
-            resource_id.encode(),
-        ]
-        .concat();
+        let header = SailsMessageHeader::v1(io::Resource::INTERFACE_ID, io::Resource::ENTRY_ID, 1);
+        let encoded_request = [header.encode(), resource_id.encode()].concat();
         let _message_id = program.send_bytes(actor_id, encoded_request);
         let run_result = self.system.run_next_block();
         run_result
@@ -363,23 +368,22 @@ impl SystemFixture {
             .find(|l| {
                 l.destination() == actor_id.into()
                     && l.source() == program.id()
-                    && l.payload().starts_with(&encoded_service_name)
-                    && l.payload()[encoded_service_name.len()..].starts_with(&encoded_func_name)
+                    && l.payload().starts_with(&header.encode())
             })
             .map(|l| {
-                let mut p = &l.payload()[encoded_service_name.len() + encoded_func_name.len()..];
+                let mut p = &l.payload()[(header.hlen().inner() as usize)..];
                 ResourceStorageResult::<Resource>::decode(&mut p).unwrap()
             })
     }
 
     fn add_parts(&self, actor_id: u64, parts: &BTreeMap<PartId, Part>) -> BlockRunResult {
         let program = self.catalog_program();
-        let encoded_request = [
-            catalog::CATALOG_SERVICE_NAME.encode(),
-            catalog::ADD_PARTS_FUNC_NAME.encode(),
-            parts.encode(),
-        ]
-        .concat();
+        let header = SailsMessageHeader::v1(
+            catalogs::rmrk_catalog::io::AddParts::INTERFACE_ID,
+            catalogs::rmrk_catalog::io::AddParts::ENTRY_ID,
+            1,
+        );
+        let encoded_request = [header.encode(), parts.encode()].concat();
         let _message_id = program.send_bytes(actor_id, encoded_request);
         self.system.run_next_block()
     }

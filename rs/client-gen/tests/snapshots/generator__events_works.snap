@@ -48,7 +48,7 @@ pub mod service_with_events {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(DoThis (p1: U256, p2: super::MyParam) -> u64, 0 , <super::ServiceWithEventsImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(DoThis (p1: U256, p2: super::MyParam) -> u64, 0, <super::ServiceWithEventsImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(not(target_arch = "wasm32"))]

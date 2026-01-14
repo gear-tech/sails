@@ -35,7 +35,7 @@ impl<E: sails_rs::client::GearEnv> RedirectClientCtors
 
 pub mod io {
     use super::*;
-    sails_rs::io_struct_impl!(New () -> (), 0);
+    sails_rs::io_struct_impl!(New () -> (), 0, sails_rs::meta::InterfaceId::zero());
 }
 
 pub mod redirect {

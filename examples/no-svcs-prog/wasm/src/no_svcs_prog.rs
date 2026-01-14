@@ -25,5 +25,5 @@ impl<E: sails_rs::client::GearEnv> NoSvcsProgCtors
 
 pub mod io {
     use super::*;
-    sails_rs::io_struct_impl!(Create () -> (), 0);
+    sails_rs::io_struct_impl!(Create () -> (), 0, sails_rs::meta::InterfaceId::zero());
 }

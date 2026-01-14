@@ -7,6 +7,10 @@ const ACTOR_ID: u64 = 42;
 
 #[tokio::test]
 async fn ping_pong_stack_works() {
+    assert_eq!(
+        ping_pong_stack::INTERFACE_ID,
+        ping_pong_stack::client::ping_pong_stack::PingPongStackImpl::INTERFACE_ID
+    );
     let (env, code_id, _gas_limit) = create_env();
 
     let program = env
@@ -19,7 +23,7 @@ async fn ping_pong_stack_works() {
     let limit = 10;
     let initial_balance = env.system().balance_of(ACTOR_ID);
 
-    program.ping_pong_stack().start(limit).await.unwrap();
+    let res = program.ping_pong_stack().start(limit).await.unwrap();
 
     let balance = env.system().balance_of(ACTOR_ID);
 

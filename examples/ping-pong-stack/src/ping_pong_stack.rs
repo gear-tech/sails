@@ -51,8 +51,8 @@ impl<E: sails_rs::client::GearEnv> PingPongStackCtors
 
 pub mod io {
     use super::*;
-    sails_rs::io_struct_impl!(CreatePing (code_id: CodeId) -> (), 0);
-    sails_rs::io_struct_impl!(CreatePong () -> (), 1);
+    sails_rs::io_struct_impl!(CreatePing (code_id: CodeId) -> (), 0, sails_rs::meta::InterfaceId::zero());
+    sails_rs::io_struct_impl!(CreatePong () -> (), 1, sails_rs::meta::InterfaceId::zero());
 }
 
 pub mod ping_pong_stack {

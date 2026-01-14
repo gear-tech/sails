@@ -90,7 +90,7 @@ impl<E: SailsEvent> EventEmitter<E> {
     /// Emits an event.
     #[cfg(target_arch = "wasm32")]
     pub fn emit_event(&mut self, event: E) -> crate::errors::Result<()> {
-        let header = crate::header::SailsMessageHeader::v1(
+        let header = crate::meta::SailsMessageHeader::v1(
             self.interface_id,
             event.entry_id(),
             self.route_idx,

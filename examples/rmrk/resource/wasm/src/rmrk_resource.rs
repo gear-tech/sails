@@ -39,7 +39,7 @@ impl<E: sails_rs::client::GearEnv> RmrkResourceCtors
 
 pub mod io {
     use super::*;
-    sails_rs::io_struct_impl!(New () -> (), 0);
+    sails_rs::io_struct_impl!(New () -> (), 0, sails_rs::meta::InterfaceId::zero());
 }
 
 pub mod rmrk_resource {

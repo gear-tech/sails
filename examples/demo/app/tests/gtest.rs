@@ -166,7 +166,7 @@ async fn ping_pong_low_level_works() {
     let demo_program = Program::from_file(&system, DEMO_WASM_PATH);
 
     // Use generated `io` module to create a program
-    let message_id = demo_program.send_bytes(ACTOR_ID, Default::encode_params());
+    let message_id = demo_program.send_bytes(ACTOR_ID, Default::encode_params_with_header(0, &()));
     let run_result = system.run_next_block();
     let gas_burned = *run_result
         .gas_burned
@@ -452,7 +452,7 @@ fn counter_add_low_level_works() {
     let wasm_size = std::fs::metadata(DEMO_WASM_PATH).unwrap().len();
 
     // Use generated `io` module to create a program
-    demo_program.send_bytes(ACTOR_ID, Default::encode_params());
+    let _message_id = demo_program.send_bytes(ACTOR_ID, Default::encode_params_with_header(0, &()));
 
     // Use generated `io` module for encoding/decoding calls and replies
     // and send/receive bytes using `gtest` native means
@@ -556,7 +556,7 @@ fn chaos_service_panic_after_wait_works() {
     system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails_rs=debug");
     system.mint_to(ACTOR_ID, 1_000_000_000_000_000);
     let program = Program::from_file(&system, DEMO_WASM_PATH);
-    program.send_bytes(ACTOR_ID, Default::encode_params());
+    program.send_bytes(ACTOR_ID, Default::encode_params_with_header(0, &()));
 
     let msg_id = program.send_bytes(
         ACTOR_ID,
@@ -591,7 +591,7 @@ fn chaos_service_timeout_wait() {
     system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails_rs=debug,redirect=debug");
     system.mint_to(ACTOR_ID, 1_000_000_000_000_000);
     let program = Program::from_file(&system, DEMO_WASM_PATH);
-    program.send_bytes(ACTOR_ID, Default::encode_params());
+    program.send_bytes(ACTOR_ID, Default::encode_params_with_header(0, &()));
 
     program.send_bytes(
         ACTOR_ID,

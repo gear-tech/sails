@@ -39,7 +39,7 @@ impl<E: sails_rs::client::GearEnv> PingPongCtors
 
 pub mod io {
     use super::*;
-    sails_rs::io_struct_impl!(NewForBench () -> (), 0);
+    sails_rs::io_struct_impl!(NewForBench () -> (), 0, sails_rs::meta::InterfaceId::zero());
 }
 
 pub mod ping_pong_service {

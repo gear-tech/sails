@@ -1,5 +1,8 @@
 use gtest::{Log, Program, System};
-use sails_rs::{Encode, header::SailsMessageHeader, meta::InterfaceId};
+use sails_rs::{
+    Encode,
+    meta::{InterfaceId, SailsMessageHeader},
+};
 
 const ACTOR_ID: u64 = 42;
 

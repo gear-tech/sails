@@ -59,7 +59,7 @@ pub mod service {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(DoThat (p1: (u8, u32, )) -> u8, 0 , <super::ServiceImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
-        my_crate::sails::io_struct_impl!(DoThis (p1: u32, p2: super::MyParam) -> u16, 1 , <super::ServiceImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(DoThat (p1: (u8, u32, )) -> u8, 0, <super::ServiceImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(DoThis (p1: u32, p2: super::MyParam) -> u16, 1, <super::ServiceImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
     }
 }

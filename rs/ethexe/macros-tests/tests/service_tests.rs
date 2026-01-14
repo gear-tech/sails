@@ -3,8 +3,7 @@ use sails_rs::{
     alloy_primitives::B256,
     alloy_sol_types::SolValue,
     gstd::services::{Exposure, ExposureWithEvents as _, Service},
-    header::SailsMessageHeader,
-    meta::ServiceMeta,
+    meta::{ServiceMeta, SailsMessageHeader},
 };
 
 mod service_with_basics;

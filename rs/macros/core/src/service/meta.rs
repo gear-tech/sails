@@ -141,7 +141,9 @@ impl ServiceBuilder<'_> {
 
                 // Generate RES_HASH - check if result type is Result<T, E>
                 let result_type = handler.result_type_with_static_lifetime();
-                let result_tokens = if let Type::Path(ref tp) = result_type && let Some((ok_ty, err_ty)) = shared::extract_result_types(tp) {
+                let result_tokens = if handler.unwrap_result
+                    && let Type::Path(ref tp) = result_type
+                    && let Some((ok_ty, err_ty)) = shared::extract_result_types(tp) {
                     // Result type: RES_HASH = b"res" || T::HASH || b"throws" || E::HASH
                     quote!( -> #ok_ty | #err_ty )
                 } else {

@@ -32,7 +32,7 @@ pub mod wasm {
     #[unsafe(no_mangle)]
     extern "C" fn init() {
         let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
-        if let Ok(header) = <sails_rs::header::SailsMessageHeader as sails_rs::Decode>::decode(
+        if let Ok(header) = <sails_rs::meta::SailsMessageHeader as sails_rs::Decode>::decode(
             &mut input,
         ) {
             if header.interface_id() != sails_rs::meta::InterfaceId::zero() {
@@ -70,7 +70,7 @@ pub mod wasm {
     extern "C" fn handle() {
         let mut input = gstd::msg::load_bytes().expect("Failed to read input");
         let program_ref = unsafe { PROGRAM.as_mut() }.expect("Program not initialized");
-        if let Ok(header) = <sails_rs::header::SailsMessageHeader as sails_rs::Decode>::decode(
+        if let Ok(header) = <sails_rs::meta::SailsMessageHeader as sails_rs::Decode>::decode(
             &mut input.as_slice(),
         ) {
             let header_len = header.hlen().inner() as usize;
