@@ -310,9 +310,9 @@ mod some_service_meta {
 }
 impl sails_rs::solidity::ServiceSignature for SomeService {
     const METHODS: &'static [sails_rs::solidity::MethodExpo] = sails_rs::const_concat_slices!(
-        < sails_rs::solidity::MethodExpo >, & [(0u16, "DoThis", << (bool,) as
-        sails_rs::alloy_sol_types::SolValue > ::SolType as
-        sails_rs::alloy_sol_types::SolType > ::SOL_NAME, <<
+        < sails_rs::solidity::MethodExpo >, & [(< Self as sails_rs::meta::ServiceMeta >
+        ::INTERFACE_ID, 0u16, "DoThis", << (bool,) as sails_rs::alloy_sol_types::SolValue
+        > ::SolType as sails_rs::alloy_sol_types::SolType > ::SOL_NAME, <<
         (sails_rs::alloy_primitives::B256, u32) as sails_rs::alloy_sol_types::SolValue >
         ::SolType as sails_rs::alloy_sol_types::SolType > ::SOL_NAME,),], <
         ExtendedService1 as sails_rs::solidity::ServiceSignature > ::METHODS, <

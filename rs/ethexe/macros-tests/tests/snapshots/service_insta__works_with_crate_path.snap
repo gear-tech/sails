@@ -269,6 +269,7 @@ mod some_service_meta {
 impl sails_rename::solidity::ServiceSignature for SomeService {
     const METHODS: &'static [sails_rename::solidity::MethodExpo] = &[
         (
+            <Self as sails_rename::meta::ServiceMeta>::INTERFACE_ID,
             0u16,
             "DoThis",
             <<(
@@ -282,6 +283,7 @@ impl sails_rename::solidity::ServiceSignature for SomeService {
             ) as sails_rename::alloy_sol_types::SolValue>::SolType as sails_rename::alloy_sol_types::SolType>::SOL_NAME,
         ),
         (
+            <Self as sails_rename::meta::ServiceMeta>::INTERFACE_ID,
             1u16,
             "This",
             <<(

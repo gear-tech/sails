@@ -30,6 +30,7 @@ mod meta_in_program {
 impl sails_rs::solidity::ProgramSignature for MyProgram {
     const CTORS: &'static [sails_rs::solidity::MethodExpo] = &[
         (
+            sails_rs::meta::InterfaceId::zero(),
             0u16,
             "new",
             <<(
@@ -72,7 +73,7 @@ pub mod wasm {
         let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
         if let Ok(sig) = TryInto::<[u8; 4]>::try_into(&input[..4]) {
             if let Some(idx) = __CTOR_SIGS.iter().position(|s| s == &sig) {
-                let (entry_id, ..) = <MyProgram as sails_rs::solidity::ProgramSignature>::CTORS[idx];
+                let (_, entry_id, ..) = <MyProgram as sails_rs::solidity::ProgramSignature>::CTORS[idx];
                 if let Some(encode_reply) = match_ctor_solidity(entry_id, &input[4..]) {
                     if encode_reply {
                         let output = [

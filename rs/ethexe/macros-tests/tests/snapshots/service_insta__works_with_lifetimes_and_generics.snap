@@ -243,6 +243,7 @@ where
 {
     const METHODS: &'static [sails_rs::solidity::MethodExpo] = &[
         (
+            <Self as sails_rs::meta::ServiceMeta>::INTERFACE_ID,
             0u16,
             "DoThis",
             <<(

@@ -103,7 +103,7 @@ impl ProgramBuilder {
         quote! {
             if let Ok(sig) = TryInto::<[u8; 4]>::try_into(&#input_ident[..4]) {
                 if let Some(idx) = __CTOR_SIGS.iter().position(|s| s == &sig) {
-                    let (entry_id, ..) = <#program_type_path as #sails_path::solidity::ProgramSignature>::CTORS[idx];
+                    let (_, entry_id, ..) = <#program_type_path as #sails_path::solidity::ProgramSignature>::CTORS[idx];
                     if let Some(encode_reply) = match_ctor_solidity(entry_id, &#input_ident[4..]) {
                         // add callbak selector if `encode_reply` is set
                         if encode_reply {
@@ -140,7 +140,6 @@ impl FnBuilder<'_> {
             (
                 #service_name,
                 #route_idx,
-                <#service_type as #sails_path::meta::ServiceMeta>::INTERFACE_ID,
                 <#service_type as #sails_path::solidity::ServiceSignature>::METHODS,
             )
         }
@@ -158,6 +157,15 @@ impl FnBuilder<'_> {
         };
         let handler_types = self.params_types();
         let (result_type, _) = self.result_type_with_value();
+        let intrface_id = if is_service {
+            quote! {
+                <Self as #sails_path::meta::ServiceMeta>::INTERFACE_ID
+            }
+        } else {
+            quote! {
+                #sails_path::meta::InterfaceId::zero()
+            }
+        };
 
         // add `bool` to method signature as first parameter as encode reply
         let handler_types = quote! { bool, #(#handler_types,)* };
@@ -171,6 +179,7 @@ impl FnBuilder<'_> {
 
         quote! {
             (
+                #intrface_id,
                 #entry_id,
                 #handler_name,
                 <<(#handler_types) as #sails_path::alloy_sol_types::SolValue>::SolType as #sails_path::alloy_sol_types::SolType>::SOL_NAME,

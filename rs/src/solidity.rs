@@ -1,6 +1,6 @@
 use crate::prelude::*;
 use alloy_primitives::Selector;
-use sails_idl_meta::InterfaceId;
+use sails_idl_meta::{InterfaceId, ServiceMeta};
 
 #[cfg(any(feature = "gtest", all(feature = "gstd", target_arch = "wasm32")))]
 pub(crate) const ETH_EVENT_ADDR: gstd::ActorId = gstd::ActorId::new([
@@ -9,6 +9,7 @@ pub(crate) const ETH_EVENT_ADDR: gstd::ActorId = gstd::ActorId::new([
 ]);
 
 pub type MethodExpo = (
+    InterfaceId,  // Service interface id
     u16,          // Method entry id
     &'static str, // Method name
     &'static str, // Method parameters types
@@ -18,11 +19,10 @@ pub type MethodExpo = (
 pub type ServiceExpo = (
     &'static str,          // Service expo name
     u8,                    // Service route idx
-    InterfaceId,           // Service interface id
     &'static [MethodExpo], // Method routes
 );
 
-pub trait ServiceSignature {
+pub trait ServiceSignature: ServiceMeta {
     const METHODS: &'static [MethodExpo];
 }
 
@@ -105,7 +105,7 @@ where
         let mut sigs = [[0u8; 4]; N];
         let mut ctor_idx = 0;
         while ctor_idx < <T as ProgramSignature>::CTORS.len() {
-            let (_, name, params, _) = <T as ProgramSignature>::CTORS[ctor_idx];
+            let (_, _, name, params, _) = <T as ProgramSignature>::CTORS[ctor_idx];
             let selector = const_selector!(name, params);
             sigs[ctor_idx] = selector;
             ctor_idx += 1;
@@ -117,7 +117,7 @@ where
         let mut sigs = [[0u8; 4]; N];
         let mut ctor_idx = 0;
         while ctor_idx < <T as ProgramSignature>::CTORS.len() {
-            let (_, name, _, callback) = <T as ProgramSignature>::CTORS[ctor_idx];
+            let (_, _, name, _, callback) = <T as ProgramSignature>::CTORS[ctor_idx];
             sigs[ctor_idx] = const_selector!("replyOn_", name, callback);
             ctor_idx += 1;
         }
@@ -129,10 +129,10 @@ where
         let mut sigs_idx = 0;
         let mut svc_idx = 0;
         while svc_idx < <T as ProgramSignature>::SERVICES.len() {
-            let (svc_name, _, _, methods) = <T as ProgramSignature>::SERVICES[svc_idx];
+            let (svc_name, _, methods) = <T as ProgramSignature>::SERVICES[svc_idx];
             let mut method_idx = 0;
             while method_idx < methods.len() {
-                let (_, name, params, _) = methods[method_idx];
+                let (_, _, name, params, _) = methods[method_idx];
                 let selector = const_selector!(svc_name, name, params);
                 sigs[sigs_idx] = selector;
                 method_idx += 1;
@@ -148,10 +148,10 @@ where
         let mut map_idx = 0;
         let mut svc_idx = 0;
         while svc_idx < <T as ProgramSignature>::SERVICES.len() {
-            let (_, route_idx, interface_id, methods) = <T as ProgramSignature>::SERVICES[svc_idx];
+            let (_, route_idx, methods) = <T as ProgramSignature>::SERVICES[svc_idx];
             let mut method_idx = 0;
             while method_idx < methods.len() {
-                let (entry_id, ..) = methods[method_idx];
+                let (interface_id, entry_id, ..) = methods[method_idx];
                 routes[map_idx] = (interface_id, entry_id, route_idx);
                 method_idx += 1;
                 map_idx += 1;
@@ -166,10 +166,10 @@ where
         let mut sigs_idx = 0;
         let mut svc_idx = 0;
         while svc_idx < <T as ProgramSignature>::SERVICES.len() {
-            let (svc_name, _, _, methods) = <T as ProgramSignature>::SERVICES[svc_idx];
+            let (svc_name, _, methods) = <T as ProgramSignature>::SERVICES[svc_idx];
             let mut method_idx = 0;
             while method_idx < methods.len() {
-                let (_, name, _, callback) = methods[method_idx];
+                let (_, _, name, _, callback) = methods[method_idx];
                 sigs[sigs_idx] = const_selector!("replyOn_", svc_name, name, callback);
                 method_idx += 1;
                 sigs_idx += 1;
@@ -207,16 +207,29 @@ mod tests {
     struct Prg;
     struct Svc;
     struct ExtendedSvc;
+    #[derive(crate::TypeInfo)]
+    enum Empty {}
+
+    impl ServiceMeta for Svc {
+        type CommandsMeta = Empty;
+        type QueriesMeta = Empty;
+        type EventsMeta = Empty;
+        const BASE_SERVICES: &'static [sails_idl_meta::BaseServiceMeta] = &[];
+        const ASYNC: bool = false;
+        const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(1);
+    }
 
     impl ServiceSignature for Svc {
         const METHODS: &[MethodExpo] = &[
             (
+                InterfaceId::from_u64(1),
                 0,
                 "DoThis",
                 <<(u32, String, u128) as SolValue>::SolType as SolType>::SOL_NAME,
                 <<(B256, u32) as SolValue>::SolType as SolType>::SOL_NAME,
             ),
             (
+                InterfaceId::from_u64(1),
                 1,
                 "This",
                 <<(bool, u128) as SolValue>::SolType as SolType>::SOL_NAME,
@@ -225,17 +238,28 @@ mod tests {
         ];
     }
 
+    impl ServiceMeta for ExtendedSvc {
+        type CommandsMeta = Empty;
+        type QueriesMeta = Empty;
+        type EventsMeta = Empty;
+        const BASE_SERVICES: &'static [sails_idl_meta::BaseServiceMeta] = &[];
+        const ASYNC: bool = false;
+        const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(2);
+    }
+
     impl ServiceSignature for ExtendedSvc {
         const METHODS: &[MethodExpo] = const_concat_slices!(
             <MethodExpo>,
             &[
                 (
+                    InterfaceId::from_u64(2),
                     0,
                     "DoThis",
                     <<(u32, String, u128,) as SolValue>::SolType as SolType>::SOL_NAME,
                     <<(B256, u32) as SolValue>::SolType as SolType>::SOL_NAME,
                 ),
                 (
+                    InterfaceId::from_u64(2),
                     1,
                     "This",
                     <<(bool, u128,) as SolValue>::SolType as SolType>::SOL_NAME,
@@ -251,6 +275,7 @@ mod tests {
             + <ExtendedSvc as ServiceSignature>::METHODS.len();
 
         const CTORS: &[MethodExpo] = &[(
+            InterfaceId::zero(),
             0,
             "create",
             <<(u128,) as SolValue>::SolType as SolType>::SOL_NAME,
@@ -258,18 +283,8 @@ mod tests {
         )];
 
         const SERVICES: &[ServiceExpo] = &[
-            (
-                "svc1",
-                1,
-                InterfaceId::from_u64(1),
-                <Svc as ServiceSignature>::METHODS,
-            ),
-            (
-                "svc2",
-                2,
-                InterfaceId::from_u64(2),
-                <ExtendedSvc as ServiceSignature>::METHODS,
-            ),
+            ("svc1", 1, <Svc as ServiceSignature>::METHODS),
+            ("svc2", 2, <ExtendedSvc as ServiceSignature>::METHODS),
         ];
     }
 
@@ -277,8 +292,15 @@ mod tests {
     fn service_signature_extended() {
         assert_eq!(4, ExtendedSvc::METHODS.len());
 
-        let do_this = (0, "DoThis", "(uint32,string,uint128)", "(bytes32,uint32)");
+        let do_this = (
+            InterfaceId::from_u64(2),
+            0,
+            "DoThis",
+            "(uint32,string,uint128)",
+            "(bytes32,uint32)",
+        );
         let this = (
+            InterfaceId::from_u64(2),
             1,
             "This",
             <<(bool, u128) as SolValue>::SolType as SolType>::SOL_NAME,
