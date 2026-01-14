@@ -80,7 +80,7 @@ impl InterfaceId {
 
 impl core::fmt::Debug for InterfaceId {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "{}", &self)
+        core::fmt::Display::fmt(self, f)
     }
 }
 
@@ -134,11 +134,33 @@ impl Decode for InterfaceId {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct BaseServiceMeta {
+    pub name: &'static str,
+    pub interface_id: InterfaceId,
+    pub meta: AnyServiceMetaFn,
+    pub base: &'static [BaseServiceMeta],
+}
+
+impl BaseServiceMeta {
+    pub const fn new<S: ServiceMeta>(name: &'static str) -> Self {
+        Self {
+            name,
+            interface_id: S::INTERFACE_ID,
+            meta: AnyServiceMeta::new::<S>,
+            base: S::BASE_SERVICES,
+        }
+    }
+}
+
 pub trait ServiceMeta {
     type CommandsMeta: StaticTypeInfo;
     type QueriesMeta: StaticTypeInfo;
     type EventsMeta: StaticTypeInfo;
-    const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)];
+    /// The order of base services here is lexicographical by their names
+    const BASE_SERVICES: &'static [BaseServiceMeta];
+    /// The order of base services here is lexicographical by their names
+    // const BASE_SERVICES_IDS: &'static [AnyServiceIds];
     const ASYNC: bool;
     const INTERFACE_ID: InterfaceId;
 
@@ -154,8 +176,8 @@ pub trait ServiceMeta {
         MetaType::new::<Self::EventsMeta>()
     }
 
-    fn base_services() -> impl Iterator<Item = (&'static str, AnyServiceMeta)> {
-        Self::BASE_SERVICES.iter().map(|&(name, f)| (name, f()))
+    fn base_services() -> &'static [BaseServiceMeta] {
+        Self::BASE_SERVICES
     }
 }
 
@@ -163,7 +185,7 @@ pub struct AnyServiceMeta {
     commands: MetaType,
     queries: MetaType,
     events: MetaType,
-    base_services: Vec<(&'static str, AnyServiceMetaFn)>,
+    base_services: Vec<BaseServiceMeta>,
     interface_id: InterfaceId,
 }
 
@@ -191,7 +213,9 @@ impl AnyServiceMeta {
     }
 
     pub fn base_services(&self) -> impl Iterator<Item = (&'static str, AnyServiceMeta)> {
-        self.base_services.iter().map(|&(name, f)| (name, f()))
+        self.base_services
+            .iter()
+            .map(|base| (base.name, (base.meta)()))
     }
 
     pub fn interface_id(&self) -> InterfaceId {
@@ -210,6 +234,86 @@ pub trait ProgramMeta {
 
     fn services() -> impl Iterator<Item = (&'static str, AnyServiceMeta)> {
         Self::SERVICES.iter().map(|&(s, f)| (s, f()))
+    }
+}
+
+pub const fn count_base_services<S: ServiceMeta>() -> usize {
+    let mut counter = 0;
+
+    let direct_base_services = S::BASE_SERVICES;
+    let mut idx = 0;
+    while idx != direct_base_services.len() {
+        let base = &direct_base_services[idx];
+        count_base_services_recursive(&mut counter, base);
+        idx += 1;
+    }
+
+    counter
+}
+
+const fn count_base_services_recursive(counter: &mut usize, base: &BaseServiceMeta) {
+    *counter += 1;
+
+    let base_services = base.base;
+    let mut idx = 0;
+    while idx != base_services.len() {
+        count_base_services_recursive(counter, &base_services[idx]);
+        idx += 1;
+    }
+}
+
+/// Generate interface IDs array from exposed services
+pub const fn interface_ids<const N: usize>(
+    exposed_services: &'static [BaseServiceMeta],
+) -> [(InterfaceId, u8); N] {
+    let mut output = [(InterfaceId([0u8; 8]), 0u8); N];
+
+    let mut exposed_svc_idx = 0;
+    let mut output_offset = 0;
+    let mut route_id = 1;
+    while exposed_svc_idx != exposed_services.len() {
+        let service = &exposed_services[exposed_svc_idx];
+        fill_interface_ids_recursive(&mut output, &mut output_offset, service, route_id);
+        exposed_svc_idx += 1;
+        route_id += 1;
+    }
+
+    assert!(output_offset == N, "Mismatched interface IDs count");
+
+    output
+}
+
+const fn fill_interface_ids_recursive(
+    arr: &mut [(InterfaceId, u8)],
+    offset: &mut usize,
+    service: &BaseServiceMeta,
+    route_id: u8,
+) {
+    arr[*offset] = (service.interface_id, route_id);
+    *offset += 1;
+    let base_services = service.base;
+    let mut idx = 0;
+    while idx != base_services.len() {
+        fill_interface_ids_recursive(arr, offset, &base_services[idx], route_id);
+        idx += 1;
+    }
+}
+
+pub const fn service_has_interface_id(
+    service: &BaseServiceMeta,
+    interface_id: InterfaceId,
+) -> bool {
+    if service.interface_id.as_u64() == interface_id.as_u64() {
+        true
+    } else {
+        let mut idx = 0;
+        while idx != service.base.len() {
+            if service_has_interface_id(&service.base[idx], interface_id) {
+                return true;
+            }
+            idx += 1;
+        }
+        false
     }
 }
 

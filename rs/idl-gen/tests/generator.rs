@@ -1,7 +1,9 @@
 use gprimitives::*;
 use meta_params::*;
 use sails_idl_gen::{program, service};
-use sails_idl_meta::{AnyServiceMeta, AnyServiceMetaFn, InterfaceId, ProgramMeta, ServiceMeta};
+use sails_idl_meta::{
+    AnyServiceMeta, AnyServiceMetaFn, BaseServiceMeta, InterfaceId, ProgramMeta, ServiceMeta,
+};
 use scale_info::{StaticTypeInfo, TypeInfo};
 use std::{collections::BTreeMap, result::Result as StdResult};
 
@@ -188,7 +190,7 @@ impl<C: StaticTypeInfo, Q: StaticTypeInfo, E: StaticTypeInfo, const ID: u64> Ser
     type CommandsMeta = C;
     type QueriesMeta = Q;
     type EventsMeta = E;
-    const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
+    const BASE_SERVICES: &'static [BaseServiceMeta] = &[];
     const ASYNC: bool = false;
     const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(ID);
 }
@@ -206,8 +208,7 @@ impl<C: StaticTypeInfo, Q: StaticTypeInfo, E: StaticTypeInfo, B: ServiceMeta, co
     type CommandsMeta = C;
     type QueriesMeta = Q;
     type EventsMeta = E;
-    const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] =
-        &[("B", AnyServiceMeta::new::<B>)];
+    const BASE_SERVICES: &'static [BaseServiceMeta] = &[BaseServiceMeta::new::<B>("B")];
     const ASYNC: bool = false;
     const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(ID);
 }

@@ -1,6 +1,5 @@
 use crate::export;
 use convert_case::{Case, Casing};
-use parity_scale_codec::Encode;
 use proc_macro_error::abort;
 use proc_macro2::Span;
 use quote::ToTokens;
@@ -106,7 +105,7 @@ pub(crate) fn discover_invocation_targets<'a>(
     sails_path: &'a Path,
 ) -> Vec<FnBuilder<'a>> {
     let mut routes = BTreeMap::<String, String>::new();
-    let mut vec: Vec<FnBuilder<'a>> = item_impl
+    let vec: Vec<FnBuilder<'a>> = item_impl
         .items
         .iter()
         .filter_map(|item| {
@@ -114,7 +113,8 @@ pub(crate) fn discover_invocation_targets<'a>(
                 && filter(fn_item)
             {
                 let (span, route, unwrap_result, export) = invocation_export_or_default(fn_item);
-
+                // `entry_id` in order of appearance
+                let entry_id = routes.len() as u16;
                 if let Some(duplicate) = routes.insert(route.clone(), fn_item.sig.ident.to_string())
                 {
                     abort!(
@@ -123,13 +123,13 @@ pub(crate) fn discover_invocation_targets<'a>(
                         duplicate
                     );
                 }
-                let fn_builder = FnBuilder::from(route, export, fn_item, unwrap_result, sails_path);
+                let fn_builder =
+                    FnBuilder::from(route, entry_id, export, fn_item, unwrap_result, sails_path);
                 return Some(fn_builder);
             }
             None
         })
         .collect();
-    vec.sort_by(|a, b| a.route.cmp(&b.route));
     vec
 }
 
@@ -270,8 +270,8 @@ pub(crate) fn extract_result_types(tp: &TypePath) -> Option<(&Type, &Type)> {
 #[derive(Clone)]
 pub(crate) struct FnBuilder<'a> {
     pub route: String,
+    pub entry_id: u16,
     pub export: bool,
-    pub encoded_route: Vec<u8>,
     pub impl_fn: &'a ImplItemFn,
     pub ident: &'a Ident,
     pub params_struct_ident: Ident,
@@ -285,12 +285,12 @@ pub(crate) struct FnBuilder<'a> {
 impl<'a> FnBuilder<'a> {
     pub(crate) fn from(
         route: String,
+        entry_id: u16,
         export: bool,
         impl_fn: &'a ImplItemFn,
         unwrap_result: bool,
         sails_path: &'a Path,
     ) -> Self {
-        let encoded_route = route.encode();
         let signature = &impl_fn.sig;
         let ident = &signature.ident;
         let params_struct_ident = Ident::new(&format!("__{route}Params"), Span::call_site());
@@ -299,8 +299,8 @@ impl<'a> FnBuilder<'a> {
 
         Self {
             route,
+            entry_id,
             export,
-            encoded_route,
             impl_fn,
             ident,
             params_struct_ident,
@@ -345,7 +345,6 @@ impl<'a> FnBuilder<'a> {
         self.params_idents.as_slice()
     }
 
-    #[cfg(feature = "ethexe")]
     pub(crate) fn params_types(&self) -> &[&Type] {
         self.params_types.as_slice()
     }

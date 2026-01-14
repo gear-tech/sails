@@ -4,6 +4,8 @@ use sails_rs::{
     client::*,
     futures::StreamExt,
     gtest::{Program, System},
+    header::SailsMessageHeader,
+    meta::ServiceMeta,
     prelude::*,
 };
 
@@ -202,10 +204,14 @@ async fn ethapp_with_events_exposure_emit_works() {
     let (from, event_payload) = listener.next().await.unwrap();
     assert_eq!(from, program_id);
 
-    let (route, event_name, p1, p2): (String, String, u32, String) =
+    let (header, p1, p2): (SailsMessageHeader, u32, String) =
         Decode::decode(&mut event_payload.as_slice()).unwrap();
-    assert_eq!(route, "Svc1");
-    assert_eq!(event_name, "DoThisEvent");
+    assert_eq!(
+        header.interface_id(),
+        ethapp_with_events::SomeService::INTERFACE_ID
+    );
+    assert_eq!(header.route_id(), 1);
+    assert_eq!(header.entry_id(), 0);
     assert_eq!(p1, 42);
     assert_eq!(p2, "hello");
 }

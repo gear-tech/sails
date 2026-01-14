@@ -29,7 +29,7 @@ pub struct SailsMessageHeader {
 
 impl SailsMessageHeader {
     /// Creates a new Sails message header.
-    pub fn new(
+    pub const fn new(
         version: Version,
         hlen: HeaderLength,
         interface_id: InterfaceId,
@@ -45,28 +45,38 @@ impl SailsMessageHeader {
         }
     }
 
+    pub const fn v1(interface_id: InterfaceId, entry_id: u16, route_id: u8) -> Self {
+        Self {
+            version: Version::v1(),
+            hlen: HeaderLength(MINIMAL_HLEN),
+            interface_id,
+            route_id,
+            entry_id,
+        }
+    }
+
     /// Gets the version of the header.
-    pub fn version(&self) -> Version {
+    pub const fn version(&self) -> Version {
         self.version
     }
 
     /// Gets the header length.
-    pub fn hlen(&self) -> HeaderLength {
+    pub const fn hlen(&self) -> HeaderLength {
         self.hlen
     }
 
     /// Gets the interface ID.
-    pub fn interface_id(&self) -> InterfaceId {
+    pub const fn interface_id(&self) -> InterfaceId {
         self.interface_id
     }
 
     /// Gets the route ID.
-    pub fn route_id(&self) -> u8 {
+    pub const fn route_id(&self) -> u8 {
         self.route_id
     }
 
     /// Gets the entry ID.
-    pub fn entry_id(&self) -> u16 {
+    pub const fn entry_id(&self) -> u16 {
         self.entry_id
     }
 }
@@ -143,7 +153,15 @@ impl SailsMessageHeader {
             .iter()
             .filter_map(|(id, r_id)| (*id == interface_id).then_some(*r_id))
             .fold((0, false), |(count, found), program_route_id| {
-                (count + 1, found || message_route_id == program_route_id)
+                let new_count = count + 1;
+
+                let new_found = if !found {
+                    message_route_id == program_route_id
+                } else {
+                    found
+                };
+
+                (new_count, new_found)
             });
 
         if same_interface_ids == 0 {
@@ -165,15 +183,8 @@ impl SailsMessageHeader {
 
 impl Encode for SailsMessageHeader {
     fn encode_to<O: Output + ?Sized>(&self, dest: &mut O) {
-        // Copy-paste for the optimization purpose, as `to_bytes` allocates a new Vec.
-        dest.write(Magic::new().as_bytes());
-        dest.push_byte(self.version.inner());
-        dest.push_byte(self.hlen.inner());
-        dest.write(self.interface_id.as_bytes());
-        dest.write(&self.entry_id.to_le_bytes());
-        dest.push_byte(self.route_id);
-        // Reserved byte
-        dest.push_byte(0);
+        let bytes = self.to_bytes();
+        dest.write(&bytes);
     }
 }
 
@@ -240,12 +251,12 @@ pub struct Version(u8);
 
 impl Version {
     /// Instantiates the type with version 1.
-    pub fn v1() -> Self {
+    pub const fn v1() -> Self {
         Self(1)
     }
 
     /// Instantiates the type with the latest supported version.
-    pub fn latest() -> Self {
+    pub const fn latest() -> Self {
         Self(HIGHEST_SUPPORTED_VERSION)
     }
 
@@ -544,7 +555,7 @@ mod tests {
     }
 
     #[test]
-    fn message_header_try_read_fails_insufficient_bytes() {
+    fn message_header_try_read_fails_invalid_magic() {
         // Insufficient bytes (no route id)
         let bytes = [0x47, 0x4D, 1, 15, 1, 2, 3, 4, 5, 6, 7, 8, 210, 4];
 

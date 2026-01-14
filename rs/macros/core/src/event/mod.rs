@@ -55,11 +55,14 @@ fn generate_sails_event_impl(input: &ItemEnum, sails_path: &Path) -> TokenStream
             variants.len()
         )
     }
+    let mut variants: Vec<_> = variants.iter().collect();
+    variants.sort_by_key(|v| v.ident.to_string().to_lowercase());
 
     // Build match arms for each variant
     let mut match_arms = Vec::new();
+    let mut entry_id_arms = Vec::new();
 
-    for variant in variants {
+    for (idx, variant) in variants.iter().enumerate() {
         let variant_ident = &variant.ident;
         // Determine the pattern to match this variant, ignoring its fields:
         let pattern = match &variant.fields {
@@ -84,6 +87,11 @@ fn generate_sails_event_impl(input: &ItemEnum, sails_path: &Path) -> TokenStream
             #pattern => &[ #( #encoded_name ),* ]
         };
         match_arms.push(arm);
+
+        let idx = idx as u16;
+        entry_id_arms.push(quote! {
+            #pattern => #idx
+        });
     }
 
     // Generate the impl block for `Event`
@@ -92,6 +100,12 @@ fn generate_sails_event_impl(input: &ItemEnum, sails_path: &Path) -> TokenStream
             fn encoded_event_name(&self) -> &'static [u8] {
                 match self {
                     #( #match_arms ),*
+                }
+            }
+
+            fn entry_id(&self) -> u16 {
+                match self {
+                    #( #entry_id_arms ),*
                 }
             }
 

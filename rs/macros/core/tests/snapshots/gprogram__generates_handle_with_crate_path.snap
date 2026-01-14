@@ -14,16 +14,10 @@ impl sails_rename::meta::ProgramMeta for MyProgram {
 }
 mod meta_in_program {
     use super::*;
-    use sails_rename::gstd::InvocationIo;
     #[derive(sails_rename::Decode, sails_rename::TypeInfo)]
     #[codec(crate = sails_rename::scale_codec)]
     #[scale_info(crate = sails_rename::scale_info)]
     pub struct __CreateParams {}
-    impl InvocationIo for __CreateParams {
-        const ROUTE: &'static [u8] = &[24u8, 67u8, 114u8, 101u8, 97u8, 116u8, 101u8];
-        type Params = Self;
-        const ASYNC: bool = false;
-    }
     #[derive(sails_rename::TypeInfo)]
     #[scale_info(crate = sails_rename::scale_info)]
     pub enum ConstructorsMeta {
@@ -37,22 +31,57 @@ pub mod wasm {
     static mut PROGRAM: Option<MyProgram> = None;
     #[unsafe(no_mangle)]
     extern "C" fn init() {
-        use gstd::InvocationIo;
         let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
-        if let Ok(request) = meta_in_program::__CreateParams::decode_params(input) {
-            let program = MyProgram::create();
-            unsafe {
-                PROGRAM = Some(program);
+        if let Ok(header) = <sails_rename::header::SailsMessageHeader as sails_rename::Decode>::decode(
+            &mut input,
+        ) {
+            if header.interface_id() != sails_rename::meta::InterfaceId::zero() {
+                sails_rename::gstd::unknown_input_panic(
+                    "Non zero ctor interface_id",
+                    header.to_bytes().as_slice(),
+                );
             }
-        } else {
-            gstd::unknown_input_panic("Unexpected ctor", input)
-        };
+            match header.entry_id() {
+                0u16 => {
+                    let (): () = sails_rename::Decode::decode(&mut input)
+                        .unwrap_or_else(|_| sails_rename::gstd::unknown_input_panic(
+                            "Unknown request",
+                            input,
+                        ));
+                    let program = MyProgram::create();
+                    unsafe {
+                        PROGRAM = Some(program);
+                    }
+                }
+                _ => {
+                    sails_rename::gstd::unknown_input_panic(
+                        "Unexpected ctor entry_id",
+                        input,
+                    )
+                }
+            }
+        }
     }
+    const SERVICES_COUNT: usize = 0usize;
+    const INTERFACE_IDS: &'static [(sails_rename::meta::InterfaceId, u8)] = &sails_rename::meta::interface_ids::<
+        SERVICES_COUNT,
+    >(&[]);
     #[unsafe(no_mangle)]
     extern "C" fn handle() {
         let mut input = gstd::msg::load_bytes().expect("Failed to read input");
         let program_ref = unsafe { PROGRAM.as_mut() }.expect("Program not initialized");
-        { gstd::unknown_input_panic("Unexpected service", &input) };
+        if let Ok(header) = <sails_rename::header::SailsMessageHeader as sails_rename::Decode>::decode(
+            &mut input.as_slice(),
+        ) {
+            let header_len = header.hlen().inner() as usize;
+            let (interface_id, route_id, entry_id) = header
+                .try_match_interfaces(INTERFACE_IDS)
+                .expect("Failed to find matching service")
+                .into_inner();
+            match route_id {
+                _ => gstd::unknown_input_panic("Unknown route_id", &[route_id]),
+            }
+        }
     }
     #[unsafe(no_mangle)]
     extern "C" fn handle_reply() {
