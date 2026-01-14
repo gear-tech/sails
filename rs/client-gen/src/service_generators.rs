@@ -5,7 +5,6 @@ use crate::type_generators::{TopLevelTypeGenerator, generate_type_decl_with_path
 use convert_case::{Case, Casing};
 use genco::prelude::*;
 use rust::Tokens;
-use sails_idl_meta::ServiceIdent;
 use sails_idl_parser_v2::{ast, visitor, visitor::Visitor};
 use std::collections::HashMap;
 
@@ -21,6 +20,8 @@ pub(crate) struct ServiceGenerator<'ast> {
     events_tokens: Tokens,
     types_tokens: Tokens,
     mocks_tokens: Tokens,
+    interface_id: sails_idl_meta::InterfaceId,
+    entry_ids: HashMap<&'ast str, u16>,
     no_derive_traits: bool,
 }
 
@@ -30,6 +31,7 @@ impl<'ast> ServiceGenerator<'ast> {
         sails_path: &'ast str,
         external_types: &'ast HashMap<&'ast str, &'ast str>,
         mocks_feature_name: Option<&'ast str>,
+        interface_id: sails_idl_meta::InterfaceId,
         no_derive_traits: bool,
     ) -> Self {
         Self {
@@ -43,6 +45,8 @@ impl<'ast> ServiceGenerator<'ast> {
             events_tokens: Tokens::new(),
             types_tokens: Tokens::new(),
             mocks_tokens: Tokens::new(),
+            interface_id,
+            entry_ids: HashMap::new(),
             no_derive_traits,
         }
     }
@@ -63,6 +67,12 @@ impl<'ast> ServiceGenerator<'ast> {
         } else {
             quote!()
         };
+
+        let bytes = self.interface_id.as_bytes().iter().copied();
+        let interface_id_tokens = quote! {
+            const INTERFACE_ID: $(self.sails_path)::InterfaceId = $(self.sails_path)::InterfaceId::from_bytes_8([ $(for b in bytes join (, ) => $b) ]);
+        };
+
         quote! {
             $['\n']
             pub mod $service_name_snake {
@@ -76,6 +86,10 @@ impl<'ast> ServiceGenerator<'ast> {
                 }
 
                 pub struct $(self.service_name)Impl;
+
+                impl $(self.sails_path)::client::Identifiable for $(self.service_name)Impl {
+                    $interface_id_tokens
+                }
 
                 impl<E: $(self.sails_path)::client::GearEnv> $(self.service_name) for $(self.sails_path)::client::Service<$(self.service_name)Impl, E> {
                     type Env = E;
@@ -99,13 +113,26 @@ impl<'ast> ServiceGenerator<'ast> {
 // using quote_in instead of tokens.append
 impl<'ast> Visitor<'ast> for ServiceGenerator<'ast> {
     fn visit_service_unit(&mut self, service: &'ast ast::ServiceUnit) {
+        let (mut commands, mut queries): (Vec<_>, Vec<_>) = service
+            .funcs
+            .iter()
+            .partition(|f| f.kind != ast::FunctionKind::Query);
+
+        commands.sort_by_key(|f| f.name.to_lowercase());
+        queries.sort_by_key(|f| f.name.to_lowercase());
+
+        for (entry_id, func) in commands.into_iter().chain(queries.into_iter()).enumerate() {
+            self.entry_ids.insert(func.name.as_str(), entry_id as u16);
+        }
+
+        for (idx, event) in service.events.iter().enumerate() {
+            self.entry_ids.insert(event.name.as_str(), idx as u16);
+        }
+
         visitor::accept_service_unit(service, self);
 
-        for ServiceIdent {
-            name,
-            interface_id: _,
-        } in &service.extends
-        {
+        for service_ident in &service.extends {
+            let name = &service_ident.name;
             let method_name = name.to_case(Case::Snake);
             let impl_name = name.to_case(Case::Pascal);
             let mod_name = name.to_case(Case::Snake);
@@ -126,7 +153,11 @@ impl<'ast> Visitor<'ast> for ServiceGenerator<'ast> {
         self.mocks_tokens.extend(mock_gen.finalize());
 
         if !service.events.is_empty() {
-            let mut events_mod_gen = EventsModuleGenerator::new(self.service_name, self.sails_path);
+            let mut events_mod_gen = EventsModuleGenerator::new(
+                self.service_name,
+                self.sails_path,
+                self.entry_ids.clone(),
+            );
             events_mod_gen.visit_service_unit(service);
             self.events_tokens = events_mod_gen.finalize();
         }
@@ -176,8 +207,10 @@ impl<'ast> Visitor<'ast> for ServiceGenerator<'ast> {
         };
 
         let params_with_types_super = &fn_args_with_types_path(&func.params, "super");
+        let entry_id = self.entry_ids.get(func.name.as_str()).copied().unwrap_or(0);
+
         quote_in! { self.io_tokens =>
-            $(self.sails_path)::io_struct_impl!($fn_name ($params_with_types_super) -> $output_type_decl_code);
+            $(self.sails_path)::io_struct_impl!($fn_name ($params_with_types_super) -> $output_type_decl_code, $entry_id, <super::$(self.service_name)Impl as $(self.sails_path)::client::Identifiable>::INTERFACE_ID);
         };
     }
 }

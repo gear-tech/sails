@@ -2,6 +2,9 @@
 #[allow(unused_imports)]
 use sails_rs::{client::*, collections::*, prelude::*};
 pub struct RmrkResourceProgram;
+impl RmrkResourceProgram {
+    pub const RMRK_RESOURCE_ROUTE_ID: u8 = 1;
+}
 impl sails_rs::client::Program for RmrkResourceProgram {}
 pub trait RmrkResource {
     type Env: sails_rs::client::GearEnv;
@@ -16,7 +19,7 @@ impl<E: sails_rs::client::GearEnv> RmrkResource
     fn rmrk_resource(
         &self,
     ) -> sails_rs::client::Service<rmrk_resource::RmrkResourceImpl, Self::Env> {
-        self.service(stringify!(RmrkResource))
+        self.service(RmrkResourceProgram::RMRK_RESOURCE_ROUTE_ID)
     }
 }
 pub trait RmrkResourceCtors {
@@ -36,7 +39,7 @@ impl<E: sails_rs::client::GearEnv> RmrkResourceCtors
 
 pub mod io {
     use super::*;
-    sails_rs::io_struct_impl!(New () -> ());
+    sails_rs::io_struct_impl!(New () -> (), 0);
 }
 
 pub mod rmrk_resource {
@@ -124,6 +127,10 @@ pub mod rmrk_resource {
         ) -> sails_rs::client::PendingCall<io::Resource, Self::Env>;
     }
     pub struct RmrkResourceImpl;
+    impl sails_rs::client::Identifiable for RmrkResourceImpl {
+        const INTERFACE_ID: sails_rs::InterfaceId =
+            sails_rs::InterfaceId::from_bytes_8([215, 56, 96, 51, 70, 205, 63, 27]);
+    }
     impl<E: sails_rs::client::GearEnv> RmrkResource for sails_rs::client::Service<RmrkResourceImpl, E> {
         type Env = E;
         fn add_part_to_resource(
@@ -150,9 +157,9 @@ pub mod rmrk_resource {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(AddPartToResource (resource_id: u8, part_id: u32) -> super::Result<u32, super::Error, >);
-        sails_rs::io_struct_impl!(AddResourceEntry (resource_id: u8, resource: super::Resource) -> super::Result<(u8, super::Resource, ), super::Error, >);
-        sails_rs::io_struct_impl!(Resource (resource_id: u8) -> super::Result<super::Resource, super::Error, >);
+        sails_rs::io_struct_impl!(AddPartToResource (resource_id: u8, part_id: u32) -> super::Result<u32, super::Error, >, 0, <super::RmrkResourceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(AddResourceEntry (resource_id: u8, resource: super::Resource) -> super::Result<(u8, super::Resource, ), super::Error, >, 1, <super::RmrkResourceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Resource (resource_id: u8) -> super::Result<super::Resource, super::Error, >, 2, <super::RmrkResourceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -162,11 +169,15 @@ pub mod rmrk_resource {
         #[codec(crate = sails_rs::scale_codec)]
         #[reflect_hash(crate = sails_rs)]
         pub enum RmrkResourceEvents {
+            #[codec(index = 0)]
             PartAdded { resource_id: u8, part_id: u32 },
+            #[codec(index = 1)]
             ResourceAdded { resource_id: u8 },
         }
-        impl sails_rs::client::Event for RmrkResourceEvents {
-            const EVENT_NAMES: &'static [Route] = &["PartAdded", "ResourceAdded"];
+        impl sails_rs::client::Event for RmrkResourceEvents {}
+        impl sails_rs::client::Identifiable for RmrkResourceEvents {
+            const INTERFACE_ID: sails_rs::InterfaceId =
+                <RmrkResourceImpl as sails_rs::client::Identifiable>::INTERFACE_ID;
         }
         impl sails_rs::client::ServiceWithEvents for RmrkResourceImpl {
             type Event = RmrkResourceEvents;

@@ -274,7 +274,7 @@ impl GearEnv for GtestEnv {
     type MessageState = ReplyReceiver;
 }
 
-impl<T: CallCodec> PendingCall<T, GtestEnv> {
+impl<T: ServiceCall> PendingCall<T, GtestEnv> {
     pub fn send_one_way(&mut self) -> Result<MessageId, GtestError> {
         if self.state.is_some() {
             panic!("{PENDING_CALL_INVALID_STATE}");
@@ -298,12 +298,12 @@ impl<T: CallCodec> PendingCall<T, GtestEnv> {
         let reply_bytes = self.env.query(self.destination, payload, params)?;
 
         // Decode reply
-        T::decode_reply_with_prefix(self.route, reply_bytes)
+        T::decode_reply_with_header(self.route_idx, reply_bytes)
             .map_err(|err| TestError::ScaleCodecError(err).into())
     }
 }
 
-impl<T: CallCodec> Future for PendingCall<T, GtestEnv> {
+impl<T: ServiceCall> Future for PendingCall<T, GtestEnv> {
     type Output = Result<T::Reply, <GtestEnv as GearEnv>::Error>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -330,7 +330,7 @@ impl<T: CallCodec> Future for PendingCall<T, GtestEnv> {
         // Poll reply receiver
         match ready!(reply_receiver.poll(cx)) {
             Ok(res) => match res {
-                Ok(payload) => match T::decode_reply_with_prefix(self.route, payload) {
+                Ok(payload) => match T::decode_reply_with_header(self.route_idx, payload) {
                     Ok(reply) => Poll::Ready(Ok(reply)),
                     Err(err) => Poll::Ready(Err(TestError::ScaleCodecError(err).into())),
                 },

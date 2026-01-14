@@ -5,6 +5,9 @@ extern crate std;
 #[allow(unused_imports)]
 use sails_rs::{client::*, collections::*, prelude::*};
 pub struct RmrkCatalogProgram;
+impl RmrkCatalogProgram {
+    pub const RMRK_CATALOG_ROUTE_ID: u8 = 1;
+}
 impl sails_rs::client::Program for RmrkCatalogProgram {}
 pub trait RmrkCatalog {
     type Env: sails_rs::client::GearEnv;
@@ -13,7 +16,7 @@ pub trait RmrkCatalog {
 impl<E: sails_rs::client::GearEnv> RmrkCatalog for sails_rs::client::Actor<RmrkCatalogProgram, E> {
     type Env = E;
     fn rmrk_catalog(&self) -> sails_rs::client::Service<rmrk_catalog::RmrkCatalogImpl, Self::Env> {
-        self.service(stringify!(RmrkCatalog))
+        self.service(RmrkCatalogProgram::RMRK_CATALOG_ROUTE_ID)
     }
 }
 pub trait RmrkCatalogCtors {
@@ -33,7 +36,7 @@ impl<E: sails_rs::client::GearEnv> RmrkCatalogCtors
 
 pub mod io {
     use super::*;
-    sails_rs::io_struct_impl!(New () -> ());
+    sails_rs::io_struct_impl!(New () -> (), 0);
 }
 
 pub mod rmrk_catalog {
@@ -121,6 +124,10 @@ pub mod rmrk_catalog {
         fn part(&self, part_id: u32) -> sails_rs::client::PendingCall<io::Part, Self::Env>;
     }
     pub struct RmrkCatalogImpl;
+    impl sails_rs::client::Identifiable for RmrkCatalogImpl {
+        const INTERFACE_ID: sails_rs::InterfaceId =
+            sails_rs::InterfaceId::from_bytes_8([219, 242, 106, 161, 165, 87, 3, 164]);
+    }
     impl<E: sails_rs::client::GearEnv> RmrkCatalog for sails_rs::client::Service<RmrkCatalogImpl, E> {
         type Env = E;
         fn add_equippables(
@@ -175,14 +182,14 @@ pub mod rmrk_catalog {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(AddEquippables (part_id: u32, collection_ids: Vec<ActorId>) -> super::Result<(u32, Vec<ActorId>, ), super::Error>);
-        sails_rs::io_struct_impl!(AddParts (parts: Vec<(u32, super::Part, )>) -> super::Result<Vec<(u32, super::Part, )>, super::Error>);
-        sails_rs::io_struct_impl!(RemoveEquippable (part_id: u32, collection_id: ActorId) -> super::Result<(u32, ActorId, ), super::Error>);
-        sails_rs::io_struct_impl!(RemoveParts (part_ids: Vec<u32>) -> super::Result<Vec<u32>, super::Error>);
-        sails_rs::io_struct_impl!(ResetEquippables (part_id: u32) -> super::Result<(), super::Error>);
-        sails_rs::io_struct_impl!(SetEquippablesToAll (part_id: u32) -> super::Result<(), super::Error>);
-        sails_rs::io_struct_impl!(Equippable (part_id: u32, collection_id: ActorId) -> super::Result<bool, super::Error>);
-        sails_rs::io_struct_impl!(Part (part_id: u32) -> super::Option<super::Part, >);
+        sails_rs::io_struct_impl!(AddEquippables (part_id: u32, collection_ids: Vec<ActorId>) -> super::Result<(u32, Vec<ActorId>, ), super::Error>, 0, <super::RmrkCatalogImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(AddParts (parts: Vec<(u32, super::Part, )>) -> super::Result<Vec<(u32, super::Part, )>, super::Error>, 1, <super::RmrkCatalogImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(RemoveEquippable (part_id: u32, collection_id: ActorId) -> super::Result<(u32, ActorId, ), super::Error>, 2, <super::RmrkCatalogImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(RemoveParts (part_ids: Vec<u32>) -> super::Result<Vec<u32>, super::Error>, 3, <super::RmrkCatalogImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(ResetEquippables (part_id: u32) -> super::Result<(), super::Error>, 4, <super::RmrkCatalogImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(SetEquippablesToAll (part_id: u32) -> super::Result<(), super::Error>, 5, <super::RmrkCatalogImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Equippable (part_id: u32, collection_id: ActorId) -> super::Result<bool, super::Error>, 6, <super::RmrkCatalogImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Part (part_id: u32) -> super::Option<super::Part, >, 7, <super::RmrkCatalogImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(feature = "mockall")]

@@ -2,6 +2,9 @@
 #[allow(unused_imports)]
 use sails_rs::{client::*, collections::*, prelude::*};
 pub struct AllocStressProgram;
+impl AllocStressProgram {
+    pub const ALLOC_STRESS_ROUTE_ID: u8 = 1;
+}
 impl sails_rs::client::Program for AllocStressProgram {}
 pub trait AllocStress {
     type Env: sails_rs::client::GearEnv;
@@ -10,7 +13,7 @@ pub trait AllocStress {
 impl<E: sails_rs::client::GearEnv> AllocStress for sails_rs::client::Actor<AllocStressProgram, E> {
     type Env = E;
     fn alloc_stress(&self) -> sails_rs::client::Service<alloc_stress::AllocStressImpl, Self::Env> {
-        self.service(stringify!(AllocStress))
+        self.service(AllocStressProgram::ALLOC_STRESS_ROUTE_ID)
     }
 }
 pub trait AllocStressCtors {
@@ -32,7 +35,7 @@ impl<E: sails_rs::client::GearEnv> AllocStressCtors
 
 pub mod io {
     use super::*;
-    sails_rs::io_struct_impl!(NewForBench () -> ());
+    sails_rs::io_struct_impl!(NewForBench () -> (), 0);
 }
 
 pub mod alloc_stress {
@@ -52,6 +55,10 @@ pub mod alloc_stress {
         ) -> sails_rs::client::PendingCall<io::AllocStress, Self::Env>;
     }
     pub struct AllocStressImpl;
+    impl sails_rs::client::Identifiable for AllocStressImpl {
+        const INTERFACE_ID: sails_rs::InterfaceId =
+            sails_rs::InterfaceId::from_bytes_8([9, 48, 193, 195, 84, 117, 173, 52]);
+    }
     impl<E: sails_rs::client::GearEnv> AllocStress for sails_rs::client::Service<AllocStressImpl, E> {
         type Env = E;
         fn alloc_stress(
@@ -64,6 +71,6 @@ pub mod alloc_stress {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(AllocStress (n: u32) -> super::AllocStressResult);
+        sails_rs::io_struct_impl!(AllocStress (n: u32) -> super::AllocStressResult, 0, <super::AllocStressImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 }

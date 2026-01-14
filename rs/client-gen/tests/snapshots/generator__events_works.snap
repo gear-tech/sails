@@ -29,6 +29,10 @@ pub mod service_with_events {
         ) -> sails_rs::client::PendingCall<io::DoThis, Self::Env>;
     }
     pub struct ServiceWithEventsImpl;
+    impl sails_rs::client::Identifiable for ServiceWithEventsImpl {
+        const INTERFACE_ID: sails_rs::InterfaceId =
+            sails_rs::InterfaceId::from_bytes_8([186, 231, 26, 185, 242, 135, 49, 106]);
+    }
     impl<E: sails_rs::client::GearEnv> ServiceWithEvents
         for sails_rs::client::Service<ServiceWithEventsImpl, E>
     {
@@ -44,7 +48,7 @@ pub mod service_with_events {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(DoThis (p1: U256, p2: super::MyParam) -> u64);
+        sails_rs::io_struct_impl!(DoThis (p1: U256, p2: super::MyParam) -> u64, 0 , <super::ServiceWithEventsImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -54,13 +58,19 @@ pub mod service_with_events {
         #[codec(crate = sails_rs::scale_codec)]
         #[reflect_hash(crate = sails_rs)]
         pub enum ServiceWithEventsEvents {
+            #[codec(index = 0)]
             One(u64),
+            #[codec(index = 1)]
             Reset,
+            #[codec(index = 2)]
             Three(MyParam),
+            #[codec(index = 3)]
             Two { id: u8, reference: u64 },
         }
-        impl sails_rs::client::Event for ServiceWithEventsEvents {
-            const EVENT_NAMES: &'static [Route] = &["One", "Reset", "Three", "Two"];
+        impl sails_rs::client::Event for ServiceWithEventsEvents {}
+        impl sails_rs::client::Identifiable for ServiceWithEventsEvents {
+            const INTERFACE_ID: sails_rs::InterfaceId =
+                <ServiceWithEventsImpl as sails_rs::client::Identifiable>::INTERFACE_ID;
         }
         impl sails_rs::client::ServiceWithEvents for ServiceWithEventsImpl {
             type Event = ServiceWithEventsEvents;

@@ -2,6 +2,9 @@
 #[allow(unused_imports)]
 use sails_rs::{client::*, collections::*, prelude::*};
 pub struct RedirectProxyClientProgram;
+impl RedirectProxyClientProgram {
+    pub const PROXY_ROUTE_ID: u8 = 1;
+}
 impl sails_rs::client::Program for RedirectProxyClientProgram {}
 pub trait RedirectProxyClient {
     type Env: sails_rs::client::GearEnv;
@@ -12,7 +15,7 @@ impl<E: sails_rs::client::GearEnv> RedirectProxyClient
 {
     type Env = E;
     fn proxy(&self) -> sails_rs::client::Service<proxy::ProxyImpl, Self::Env> {
-        self.service(stringify!(Proxy))
+        self.service(RedirectProxyClientProgram::PROXY_ROUTE_ID)
     }
 }
 pub trait RedirectProxyClientCtors {
@@ -39,7 +42,7 @@ impl<E: sails_rs::client::GearEnv> RedirectProxyClientCtors
 
 pub mod io {
     use super::*;
-    sails_rs::io_struct_impl!(New (target: ActorId) -> ());
+    sails_rs::io_struct_impl!(New (target: ActorId) -> (), 0);
 }
 
 pub mod proxy {
@@ -50,6 +53,10 @@ pub mod proxy {
         fn get_program_id(&self) -> sails_rs::client::PendingCall<io::GetProgramId, Self::Env>;
     }
     pub struct ProxyImpl;
+    impl sails_rs::client::Identifiable for ProxyImpl {
+        const INTERFACE_ID: sails_rs::InterfaceId =
+            sails_rs::InterfaceId::from_bytes_8([115, 132, 52, 118, 255, 19, 124, 126]);
+    }
     impl<E: sails_rs::client::GearEnv> Proxy for sails_rs::client::Service<ProxyImpl, E> {
         type Env = E;
         fn get_program_id(&self) -> sails_rs::client::PendingCall<io::GetProgramId, Self::Env> {
@@ -59,6 +66,6 @@ pub mod proxy {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(GetProgramId () -> ActorId);
+        sails_rs::io_struct_impl!(GetProgramId () -> ActorId, 0, <super::ProxyImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 }
