@@ -11,12 +11,14 @@ pub struct NoSvcsProgFactory<R> {
     #[allow(dead_code)]
     remoting: R,
 }
+
 impl<R> NoSvcsProgFactory<R> {
     #[allow(unused)]
     pub fn new(remoting: R) -> Self {
         Self { remoting }
     }
 }
+
 impl<R: Remoting + Clone> traits::NoSvcsProgFactory for NoSvcsProgFactory<R> {
     type Args = R::Args;
     fn create(&self) -> impl Activation<Args = R::Args> {
@@ -30,12 +32,14 @@ pub mod no_svcs_prog_factory {
         use super::*;
         use sails_rs::calls::ActionIo;
         pub struct Create(());
+
         impl Create {
             #[allow(dead_code)]
             pub fn encode_call() -> Vec<u8> {
                 <Create as ActionIo>::encode_call(&())
             }
         }
+
         impl ActionIo for Create {
             const ROUTE: &'static [u8] = &[24, 67, 114, 101, 97, 116, 101];
             type Params = ();

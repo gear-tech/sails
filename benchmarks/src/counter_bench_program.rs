@@ -11,12 +11,14 @@ pub struct CounterBenchProgramFactory<R> {
     #[allow(dead_code)]
     remoting: R,
 }
+
 impl<R> CounterBenchProgramFactory<R> {
     #[allow(unused)]
     pub fn new(remoting: R) -> Self {
         Self { remoting }
     }
 }
+
 impl<R: Remoting + Clone> traits::CounterBenchProgramFactory for CounterBenchProgramFactory<R> {
     type Args = R::Args;
     fn new_for_bench(&self) -> impl Activation<Args = R::Args> {
@@ -33,12 +35,14 @@ pub mod counter_bench_program_factory {
         use super::*;
         use sails_rs::calls::ActionIo;
         pub struct NewForBench(());
+
         impl NewForBench {
             #[allow(dead_code)]
             pub fn encode_call() -> Vec<u8> {
                 <NewForBench as ActionIo>::encode_call(&())
             }
         }
+
         impl ActionIo for NewForBench {
             const ROUTE: &'static [u8] = &[44, 78, 101, 119, 70, 111, 114, 66, 101, 110, 99, 104];
             type Params = ();
@@ -49,11 +53,13 @@ pub mod counter_bench_program_factory {
 pub struct CounterBench<R> {
     remoting: R,
 }
+
 impl<R> CounterBench<R> {
     pub fn new(remoting: R) -> Self {
         Self { remoting }
     }
 }
+
 impl<R: Remoting + Clone> traits::CounterBench for CounterBench<R> {
     type Args = R::Args;
     fn inc(&mut self) -> impl Call<Output = u64, Args = R::Args> {
@@ -71,12 +77,14 @@ pub mod counter_bench {
         use super::*;
         use sails_rs::calls::ActionIo;
         pub struct Inc(());
+
         impl Inc {
             #[allow(dead_code)]
             pub fn encode_call() -> Vec<u8> {
                 <Inc as ActionIo>::encode_call(&())
             }
         }
+
         impl ActionIo for Inc {
             const ROUTE: &'static [u8] = &[
                 48, 67, 111, 117, 110, 116, 101, 114, 66, 101, 110, 99, 104, 12, 73, 110, 99,
@@ -85,12 +93,14 @@ pub mod counter_bench {
             type Reply = u64;
         }
         pub struct IncAsync(());
+
         impl IncAsync {
             #[allow(dead_code)]
             pub fn encode_call() -> Vec<u8> {
                 <IncAsync as ActionIo>::encode_call(&())
             }
         }
+
         impl ActionIo for IncAsync {
             const ROUTE: &'static [u8] = &[
                 48, 67, 111, 117, 110, 116, 101, 114, 66, 101, 110, 99, 104, 32, 73, 110, 99, 65,

@@ -11,12 +11,14 @@ pub struct AllocStressProgramFactory<R> {
     #[allow(dead_code)]
     remoting: R,
 }
+
 impl<R> AllocStressProgramFactory<R> {
     #[allow(unused)]
     pub fn new(remoting: R) -> Self {
         Self { remoting }
     }
 }
+
 impl<R: Remoting + Clone> traits::AllocStressProgramFactory for AllocStressProgramFactory<R> {
     type Args = R::Args;
     fn new_for_bench(&self) -> impl Activation<Args = R::Args> {
@@ -33,12 +35,14 @@ pub mod alloc_stress_program_factory {
         use super::*;
         use sails_rs::calls::ActionIo;
         pub struct NewForBench(());
+
         impl NewForBench {
             #[allow(dead_code)]
             pub fn encode_call() -> Vec<u8> {
                 <NewForBench as ActionIo>::encode_call(&())
             }
         }
+
         impl ActionIo for NewForBench {
             const ROUTE: &'static [u8] = &[44, 78, 101, 119, 70, 111, 114, 66, 101, 110, 99, 104];
             type Params = ();
@@ -49,11 +53,13 @@ pub mod alloc_stress_program_factory {
 pub struct AllocStress<R> {
     remoting: R,
 }
+
 impl<R> AllocStress<R> {
     pub fn new(remoting: R) -> Self {
         Self { remoting }
     }
 }
+
 impl<R: Remoting + Clone> traits::AllocStress for AllocStress<R> {
     type Args = R::Args;
     fn alloc_stress(&mut self, n: u32) -> impl Call<Output = AllocStressResult, Args = R::Args> {
@@ -68,12 +74,14 @@ pub mod alloc_stress {
         use super::*;
         use sails_rs::calls::ActionIo;
         pub struct AllocStress(());
+
         impl AllocStress {
             #[allow(dead_code)]
             pub fn encode_call(n: u32) -> Vec<u8> {
                 <AllocStress as ActionIo>::encode_call(&n)
             }
         }
+
         impl ActionIo for AllocStress {
             const ROUTE: &'static [u8] = &[
                 44, 65, 108, 108, 111, 99, 83, 116, 114, 101, 115, 115, 44, 65, 108, 108, 111, 99,

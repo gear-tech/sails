@@ -11,12 +11,14 @@ pub struct PingPongFactory<R> {
     #[allow(dead_code)]
     remoting: R,
 }
+
 impl<R> PingPongFactory<R> {
     #[allow(unused)]
     pub fn new(remoting: R) -> Self {
         Self { remoting }
     }
 }
+
 impl<R: Remoting + Clone> traits::PingPongFactory for PingPongFactory<R> {
     type Args = R::Args;
     fn new_for_bench(&self) -> impl Activation<Args = R::Args> {
@@ -30,12 +32,14 @@ pub mod ping_pong_factory {
         use super::*;
         use sails_rs::calls::ActionIo;
         pub struct NewForBench(());
+
         impl NewForBench {
             #[allow(dead_code)]
             pub fn encode_call() -> Vec<u8> {
                 <NewForBench as ActionIo>::encode_call(&())
             }
         }
+
         impl ActionIo for NewForBench {
             const ROUTE: &'static [u8] = &[44, 78, 101, 119, 70, 111, 114, 66, 101, 110, 99, 104];
             type Params = ();
@@ -46,11 +50,13 @@ pub mod ping_pong_factory {
 pub struct PingPongService<R> {
     remoting: R,
 }
+
 impl<R> PingPongService<R> {
     pub fn new(remoting: R) -> Self {
         Self { remoting }
     }
 }
+
 impl<R: Remoting + Clone> traits::PingPongService for PingPongService<R> {
     type Args = R::Args;
     fn ping(
@@ -68,12 +74,14 @@ pub mod ping_pong_service {
         use super::*;
         use sails_rs::calls::ActionIo;
         pub struct Ping(());
+
         impl Ping {
             #[allow(dead_code)]
             pub fn encode_call(payload: super::PingPongPayload) -> Vec<u8> {
                 <Ping as ActionIo>::encode_call(&payload)
             }
         }
+
         impl ActionIo for Ping {
             const ROUTE: &'static [u8] = &[
                 60, 80, 105, 110, 103, 80, 111, 110, 103, 83, 101, 114, 118, 105, 99, 101, 16, 80,

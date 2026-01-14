@@ -11,12 +11,14 @@ pub struct RedirectProxyClientFactory<R> {
     #[allow(dead_code)]
     remoting: R,
 }
+
 impl<R> RedirectProxyClientFactory<R> {
     #[allow(unused)]
     pub fn new(remoting: R) -> Self {
         Self { remoting }
     }
 }
+
 impl<R: Remoting + Clone> traits::RedirectProxyClientFactory for RedirectProxyClientFactory<R> {
     type Args = R::Args;
     /// Proxy Program's constructor
@@ -34,12 +36,14 @@ pub mod redirect_proxy_client_factory {
         use super::*;
         use sails_rs::calls::ActionIo;
         pub struct New(());
+
         impl New {
             #[allow(dead_code)]
             pub fn encode_call(target: ActorId) -> Vec<u8> {
                 <New as ActionIo>::encode_call(&target)
             }
         }
+
         impl ActionIo for New {
             const ROUTE: &'static [u8] = &[12, 78, 101, 119];
             type Params = ActorId;
@@ -50,11 +54,13 @@ pub mod redirect_proxy_client_factory {
 pub struct Proxy<R> {
     remoting: R,
 }
+
 impl<R> Proxy<R> {
     pub fn new(remoting: R) -> Self {
         Self { remoting }
     }
 }
+
 impl<R: Remoting + Clone> traits::Proxy for Proxy<R> {
     type Args = R::Args;
     /// Get program ID of the target program via client
@@ -70,12 +76,14 @@ pub mod proxy {
         use super::*;
         use sails_rs::calls::ActionIo;
         pub struct GetProgramId(());
+
         impl GetProgramId {
             #[allow(dead_code)]
             pub fn encode_call() -> Vec<u8> {
                 <GetProgramId as ActionIo>::encode_call(&())
             }
         }
+
         impl ActionIo for GetProgramId {
             const ROUTE: &'static [u8] = &[
                 20, 80, 114, 111, 120, 121, 48, 71, 101, 116, 80, 114, 111, 103, 114, 97, 109, 73,

@@ -11,12 +11,14 @@ pub struct RmrkResourceFactory<R> {
     #[allow(dead_code)]
     remoting: R,
 }
+
 impl<R> RmrkResourceFactory<R> {
     #[allow(unused)]
     pub fn new(remoting: R) -> Self {
         Self { remoting }
     }
 }
+
 impl<R: Remoting + Clone> traits::RmrkResourceFactory for RmrkResourceFactory<R> {
     type Args = R::Args;
     fn new(&self) -> impl Activation<Args = R::Args> {
@@ -30,12 +32,14 @@ pub mod rmrk_resource_factory {
         use super::*;
         use sails_rs::calls::ActionIo;
         pub struct New(());
+
         impl New {
             #[allow(dead_code)]
             pub fn encode_call() -> Vec<u8> {
                 <New as ActionIo>::encode_call(&())
             }
         }
+
         impl ActionIo for New {
             const ROUTE: &'static [u8] = &[12, 78, 101, 119];
             type Params = ();
@@ -46,11 +50,13 @@ pub mod rmrk_resource_factory {
 pub struct RmrkResource<R> {
     remoting: R,
 }
+
 impl<R> RmrkResource<R> {
     pub fn new(remoting: R) -> Self {
         Self { remoting }
     }
 }
+
 impl<R: Remoting + Clone> traits::RmrkResource for RmrkResource<R> {
     type Args = R::Args;
     fn add_part_to_resource(
@@ -88,12 +94,14 @@ pub mod rmrk_resource {
         use super::*;
         use sails_rs::calls::ActionIo;
         pub struct AddPartToResource(());
+
         impl AddPartToResource {
             #[allow(dead_code)]
             pub fn encode_call(resource_id: u8, part_id: u32) -> Vec<u8> {
                 <AddPartToResource as ActionIo>::encode_call(&(resource_id, part_id))
             }
         }
+
         impl ActionIo for AddPartToResource {
             const ROUTE: &'static [u8] = &[
                 48, 82, 109, 114, 107, 82, 101, 115, 111, 117, 114, 99, 101, 68, 65, 100, 100, 80,
@@ -103,12 +111,14 @@ pub mod rmrk_resource {
             type Reply = Result<u32, super::Error>;
         }
         pub struct AddResourceEntry(());
+
         impl AddResourceEntry {
             #[allow(dead_code)]
             pub fn encode_call(resource_id: u8, resource: super::Resource) -> Vec<u8> {
                 <AddResourceEntry as ActionIo>::encode_call(&(resource_id, resource))
             }
         }
+
         impl ActionIo for AddResourceEntry {
             const ROUTE: &'static [u8] = &[
                 48, 82, 109, 114, 107, 82, 101, 115, 111, 117, 114, 99, 101, 64, 65, 100, 100, 82,
@@ -118,12 +128,14 @@ pub mod rmrk_resource {
             type Reply = Result<(u8, super::Resource), super::Error>;
         }
         pub struct Resource(());
+
         impl Resource {
             #[allow(dead_code)]
             pub fn encode_call(resource_id: u8) -> Vec<u8> {
                 <Resource as ActionIo>::encode_call(&resource_id)
             }
         }
+
         impl ActionIo for Resource {
             const ROUTE: &'static [u8] = &[
                 48, 82, 109, 114, 107, 82, 101, 115, 111, 117, 114, 99, 101, 32, 82, 101, 115, 111,
@@ -156,6 +168,7 @@ pub mod rmrk_resource {
             ];
             type Event = Self;
         }
+
         pub fn listener<R: Listener<Vec<u8>>>(remoting: R) -> impl Listener<RmrkResourceEvents> {
             RemotingListener::<_, RmrkResourceEvents>::new(remoting)
         }

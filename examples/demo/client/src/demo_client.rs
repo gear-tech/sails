@@ -11,12 +11,14 @@ pub struct DemoClientFactory<R> {
     #[allow(dead_code)]
     remoting: R,
 }
+
 impl<R> DemoClientFactory<R> {
     #[allow(unused)]
     pub fn new(remoting: R) -> Self {
         Self { remoting }
     }
 }
+
 impl<R: Remoting + Clone> traits::DemoClientFactory for DemoClientFactory<R> {
     type Args = R::Args;
     /// Program constructor (called once at the very beginning of the program lifetime)
@@ -42,24 +44,28 @@ pub mod demo_client_factory {
         use super::*;
         use sails_rs::calls::ActionIo;
         pub struct Default(());
+
         impl Default {
             #[allow(dead_code)]
             pub fn encode_call() -> Vec<u8> {
                 <Default as ActionIo>::encode_call(&())
             }
         }
+
         impl ActionIo for Default {
             const ROUTE: &'static [u8] = &[28, 68, 101, 102, 97, 117, 108, 116];
             type Params = ();
             type Reply = ();
         }
         pub struct New(());
+
         impl New {
             #[allow(dead_code)]
             pub fn encode_call(counter: Option<u32>, dog_position: Option<(i32, i32)>) -> Vec<u8> {
                 <New as ActionIo>::encode_call(&(counter, dog_position))
             }
         }
+
         impl ActionIo for New {
             const ROUTE: &'static [u8] = &[12, 78, 101, 119];
             type Params = (Option<u32>, Option<(i32, i32)>);
@@ -70,11 +76,13 @@ pub mod demo_client_factory {
 pub struct PingPong<R> {
     remoting: R,
 }
+
 impl<R> PingPong<R> {
     pub fn new(remoting: R) -> Self {
         Self { remoting }
     }
 }
+
 impl<R: Remoting + Clone> traits::PingPong for PingPong<R> {
     type Args = R::Args;
     fn ping(
@@ -92,12 +100,14 @@ pub mod ping_pong {
         use super::*;
         use sails_rs::calls::ActionIo;
         pub struct Ping(());
+
         impl Ping {
             #[allow(dead_code)]
             pub fn encode_call(input: String) -> Vec<u8> {
                 <Ping as ActionIo>::encode_call(&input)
             }
         }
+
         impl ActionIo for Ping {
             const ROUTE: &'static [u8] = &[
                 32, 80, 105, 110, 103, 80, 111, 110, 103, 16, 80, 105, 110, 103,
@@ -110,11 +120,13 @@ pub mod ping_pong {
 pub struct Counter<R> {
     remoting: R,
 }
+
 impl<R> Counter<R> {
     pub fn new(remoting: R) -> Self {
         Self { remoting }
     }
 }
+
 impl<R: Remoting + Clone> traits::Counter for Counter<R> {
     type Args = R::Args;
     /// Add a value to the counter
@@ -138,36 +150,42 @@ pub mod counter {
         use super::*;
         use sails_rs::calls::ActionIo;
         pub struct Add(());
+
         impl Add {
             #[allow(dead_code)]
             pub fn encode_call(value: u32) -> Vec<u8> {
                 <Add as ActionIo>::encode_call(&value)
             }
         }
+
         impl ActionIo for Add {
             const ROUTE: &'static [u8] = &[28, 67, 111, 117, 110, 116, 101, 114, 12, 65, 100, 100];
             type Params = u32;
             type Reply = u32;
         }
         pub struct Sub(());
+
         impl Sub {
             #[allow(dead_code)]
             pub fn encode_call(value: u32) -> Vec<u8> {
                 <Sub as ActionIo>::encode_call(&value)
             }
         }
+
         impl ActionIo for Sub {
             const ROUTE: &'static [u8] = &[28, 67, 111, 117, 110, 116, 101, 114, 12, 83, 117, 98];
             type Params = u32;
             type Reply = u32;
         }
         pub struct Value(());
+
         impl Value {
             #[allow(dead_code)]
             pub fn encode_call() -> Vec<u8> {
                 <Value as ActionIo>::encode_call(&())
             }
         }
+
         impl ActionIo for Value {
             const ROUTE: &'static [u8] = &[
                 28, 67, 111, 117, 110, 116, 101, 114, 20, 86, 97, 108, 117, 101,
@@ -198,6 +216,7 @@ pub mod counter {
             ];
             type Event = Self;
         }
+
         pub fn listener<R: Listener<Vec<u8>>>(remoting: R) -> impl Listener<CounterEvents> {
             RemotingListener::<_, CounterEvents>::new(remoting)
         }
@@ -206,11 +225,13 @@ pub mod counter {
 pub struct Dog<R> {
     remoting: R,
 }
+
 impl<R> Dog<R> {
     pub fn new(remoting: R) -> Self {
         Self { remoting }
     }
 }
+
 impl<R: Remoting + Clone> traits::Dog for Dog<R> {
     type Args = R::Args;
     fn make_sound(&mut self) -> impl Call<Output = String, Args = R::Args> {
@@ -234,12 +255,14 @@ pub mod dog {
         use super::*;
         use sails_rs::calls::ActionIo;
         pub struct MakeSound(());
+
         impl MakeSound {
             #[allow(dead_code)]
             pub fn encode_call() -> Vec<u8> {
                 <MakeSound as ActionIo>::encode_call(&())
             }
         }
+
         impl ActionIo for MakeSound {
             const ROUTE: &'static [u8] = &[
                 12, 68, 111, 103, 36, 77, 97, 107, 101, 83, 111, 117, 110, 100,
@@ -248,24 +271,28 @@ pub mod dog {
             type Reply = String;
         }
         pub struct Walk(());
+
         impl Walk {
             #[allow(dead_code)]
             pub fn encode_call(dx: i32, dy: i32) -> Vec<u8> {
                 <Walk as ActionIo>::encode_call(&(dx, dy))
             }
         }
+
         impl ActionIo for Walk {
             const ROUTE: &'static [u8] = &[12, 68, 111, 103, 16, 87, 97, 108, 107];
             type Params = (i32, i32);
             type Reply = ();
         }
         pub struct AvgWeight(());
+
         impl AvgWeight {
             #[allow(dead_code)]
             pub fn encode_call() -> Vec<u8> {
                 <AvgWeight as ActionIo>::encode_call(&())
             }
         }
+
         impl ActionIo for AvgWeight {
             const ROUTE: &'static [u8] = &[
                 12, 68, 111, 103, 36, 65, 118, 103, 87, 101, 105, 103, 104, 116,
@@ -274,12 +301,14 @@ pub mod dog {
             type Reply = u32;
         }
         pub struct Position(());
+
         impl Position {
             #[allow(dead_code)]
             pub fn encode_call() -> Vec<u8> {
                 <Position as ActionIo>::encode_call(&())
             }
         }
+
         impl ActionIo for Position {
             const ROUTE: &'static [u8] =
                 &[12, 68, 111, 103, 32, 80, 111, 115, 105, 116, 105, 111, 110];
@@ -307,6 +336,7 @@ pub mod dog {
             ];
             type Event = Self;
         }
+
         pub fn listener<R: Listener<Vec<u8>>>(remoting: R) -> impl Listener<DogEvents> {
             RemotingListener::<_, DogEvents>::new(remoting)
         }
@@ -315,11 +345,13 @@ pub mod dog {
 pub struct References<R> {
     remoting: R,
 }
+
 impl<R> References<R> {
     pub fn new(remoting: R) -> Self {
         Self { remoting }
     }
 }
+
 impl<R: Remoting + Clone> traits::References for References<R> {
     type Args = R::Args;
     fn add(&mut self, v: u32) -> impl Call<Output = u32, Args = R::Args> {
@@ -358,12 +390,14 @@ pub mod references {
         use super::*;
         use sails_rs::calls::ActionIo;
         pub struct Add(());
+
         impl Add {
             #[allow(dead_code)]
             pub fn encode_call(v: u32) -> Vec<u8> {
                 <Add as ActionIo>::encode_call(&v)
             }
         }
+
         impl ActionIo for Add {
             const ROUTE: &'static [u8] = &[
                 40, 82, 101, 102, 101, 114, 101, 110, 99, 101, 115, 12, 65, 100, 100,
@@ -372,12 +406,14 @@ pub mod references {
             type Reply = u32;
         }
         pub struct AddByte(());
+
         impl AddByte {
             #[allow(dead_code)]
             pub fn encode_call(byte: u8) -> Vec<u8> {
                 <AddByte as ActionIo>::encode_call(&byte)
             }
         }
+
         impl ActionIo for AddByte {
             const ROUTE: &'static [u8] = &[
                 40, 82, 101, 102, 101, 114, 101, 110, 99, 101, 115, 28, 65, 100, 100, 66, 121, 116,
@@ -387,12 +423,14 @@ pub mod references {
             type Reply = Vec<u8>;
         }
         pub struct GuessNum(());
+
         impl GuessNum {
             #[allow(dead_code)]
             pub fn encode_call(number: u8) -> Vec<u8> {
                 <GuessNum as ActionIo>::encode_call(&number)
             }
         }
+
         impl ActionIo for GuessNum {
             const ROUTE: &'static [u8] = &[
                 40, 82, 101, 102, 101, 114, 101, 110, 99, 101, 115, 32, 71, 117, 101, 115, 115, 78,
@@ -402,12 +440,14 @@ pub mod references {
             type Reply = Result<String, String>;
         }
         pub struct Incr(());
+
         impl Incr {
             #[allow(dead_code)]
             pub fn encode_call() -> Vec<u8> {
                 <Incr as ActionIo>::encode_call(&())
             }
         }
+
         impl ActionIo for Incr {
             const ROUTE: &'static [u8] = &[
                 40, 82, 101, 102, 101, 114, 101, 110, 99, 101, 115, 16, 73, 110, 99, 114,
@@ -416,12 +456,14 @@ pub mod references {
             type Reply = super::ReferenceCount;
         }
         pub struct SetNum(());
+
         impl SetNum {
             #[allow(dead_code)]
             pub fn encode_call(number: u8) -> Vec<u8> {
                 <SetNum as ActionIo>::encode_call(&number)
             }
         }
+
         impl ActionIo for SetNum {
             const ROUTE: &'static [u8] = &[
                 40, 82, 101, 102, 101, 114, 101, 110, 99, 101, 115, 24, 83, 101, 116, 78, 117, 109,
@@ -430,12 +472,14 @@ pub mod references {
             type Reply = Result<(), String>;
         }
         pub struct Baked(());
+
         impl Baked {
             #[allow(dead_code)]
             pub fn encode_call() -> Vec<u8> {
                 <Baked as ActionIo>::encode_call(&())
             }
         }
+
         impl ActionIo for Baked {
             const ROUTE: &'static [u8] = &[
                 40, 82, 101, 102, 101, 114, 101, 110, 99, 101, 115, 20, 66, 97, 107, 101, 100,
@@ -444,12 +488,14 @@ pub mod references {
             type Reply = String;
         }
         pub struct LastByte(());
+
         impl LastByte {
             #[allow(dead_code)]
             pub fn encode_call() -> Vec<u8> {
                 <LastByte as ActionIo>::encode_call(&())
             }
         }
+
         impl ActionIo for LastByte {
             const ROUTE: &'static [u8] = &[
                 40, 82, 101, 102, 101, 114, 101, 110, 99, 101, 115, 32, 76, 97, 115, 116, 66, 121,
@@ -459,12 +505,14 @@ pub mod references {
             type Reply = Option<u8>;
         }
         pub struct Message(());
+
         impl Message {
             #[allow(dead_code)]
             pub fn encode_call() -> Vec<u8> {
                 <Message as ActionIo>::encode_call(&())
             }
         }
+
         impl ActionIo for Message {
             const ROUTE: &'static [u8] = &[
                 40, 82, 101, 102, 101, 114, 101, 110, 99, 101, 115, 28, 77, 101, 115, 115, 97, 103,
@@ -478,11 +526,13 @@ pub mod references {
 pub struct ThisThat<R> {
     remoting: R,
 }
+
 impl<R> ThisThat<R> {
     pub fn new(remoting: R) -> Self {
         Self { remoting }
     }
 }
+
 impl<R: Remoting + Clone> traits::ThisThat for ThisThat<R> {
     type Args = R::Args;
     fn do_that(
@@ -519,12 +569,14 @@ pub mod this_that {
         use super::*;
         use sails_rs::calls::ActionIo;
         pub struct DoThat(());
+
         impl DoThat {
             #[allow(dead_code)]
             pub fn encode_call(param: super::DoThatParam) -> Vec<u8> {
                 <DoThat as ActionIo>::encode_call(&param)
             }
         }
+
         impl ActionIo for DoThat {
             const ROUTE: &'static [u8] = &[
                 32, 84, 104, 105, 115, 84, 104, 97, 116, 24, 68, 111, 84, 104, 97, 116,
@@ -533,6 +585,7 @@ pub mod this_that {
             type Reply = Result<(ActorId, NonZeroU32, super::ManyVariantsReply), (String,)>;
         }
         pub struct DoThis(());
+
         impl DoThis {
             #[allow(dead_code)]
             pub fn encode_call(
@@ -544,6 +597,7 @@ pub mod this_that {
                 <DoThis as ActionIo>::encode_call(&(p1, p2, p3, p4))
             }
         }
+
         impl ActionIo for DoThis {
             const ROUTE: &'static [u8] = &[
                 32, 84, 104, 105, 115, 84, 104, 97, 116, 24, 68, 111, 84, 104, 105, 115,
@@ -552,12 +606,14 @@ pub mod this_that {
             type Reply = (String, u32);
         }
         pub struct Noop(());
+
         impl Noop {
             #[allow(dead_code)]
             pub fn encode_call() -> Vec<u8> {
                 <Noop as ActionIo>::encode_call(&())
             }
         }
+
         impl ActionIo for Noop {
             const ROUTE: &'static [u8] = &[
                 32, 84, 104, 105, 115, 84, 104, 97, 116, 16, 78, 111, 111, 112,
@@ -566,12 +622,14 @@ pub mod this_that {
             type Reply = ();
         }
         pub struct That(());
+
         impl That {
             #[allow(dead_code)]
             pub fn encode_call() -> Vec<u8> {
                 <That as ActionIo>::encode_call(&())
             }
         }
+
         impl ActionIo for That {
             const ROUTE: &'static [u8] = &[
                 32, 84, 104, 105, 115, 84, 104, 97, 116, 16, 84, 104, 97, 116,
@@ -580,12 +638,14 @@ pub mod this_that {
             type Reply = Result<String, String>;
         }
         pub struct This(());
+
         impl This {
             #[allow(dead_code)]
             pub fn encode_call() -> Vec<u8> {
                 <This as ActionIo>::encode_call(&())
             }
         }
+
         impl ActionIo for This {
             const ROUTE: &'static [u8] = &[
                 32, 84, 104, 105, 115, 84, 104, 97, 116, 16, 84, 104, 105, 115,
@@ -598,11 +658,13 @@ pub mod this_that {
 pub struct ValueFee<R> {
     remoting: R,
 }
+
 impl<R> ValueFee<R> {
     pub fn new(remoting: R) -> Self {
         Self { remoting }
     }
 }
+
 impl<R: Remoting + Clone> traits::ValueFee for ValueFee<R> {
     type Args = R::Args;
     /// Return flag if fee taken and remain value,
@@ -619,12 +681,14 @@ pub mod value_fee {
         use super::*;
         use sails_rs::calls::ActionIo;
         pub struct DoSomethingAndTakeFee(());
+
         impl DoSomethingAndTakeFee {
             #[allow(dead_code)]
             pub fn encode_call() -> Vec<u8> {
                 <DoSomethingAndTakeFee as ActionIo>::encode_call(&())
             }
         }
+
         impl ActionIo for DoSomethingAndTakeFee {
             const ROUTE: &'static [u8] = &[
                 32, 86, 97, 108, 117, 101, 70, 101, 101, 84, 68, 111, 83, 111, 109, 101, 116, 104,
@@ -651,6 +715,7 @@ pub mod value_fee {
                 &[&[32, 87, 105, 116, 104, 104, 101, 108, 100]];
             type Event = Self;
         }
+
         pub fn listener<R: Listener<Vec<u8>>>(remoting: R) -> impl Listener<ValueFeeEvents> {
             RemotingListener::<_, ValueFeeEvents>::new(remoting)
         }
@@ -793,10 +858,64 @@ extern crate std;
 pub mod mockall {
     use super::*;
     use sails_rs::mockall::*;
-    mock! { pub PingPong<A> {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl<A> traits::PingPong for PingPong<A> { type Args = A; fn ping (&mut self, input: String,) -> MockCall<A, Result<String, String>>; } }
-    mock! { pub Counter<A> {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl<A> traits::Counter for Counter<A> { type Args = A; fn add (&mut self, value: u32,) -> MockCall<A, u32>;fn sub (&mut self, value: u32,) -> MockCall<A, u32>;fn value (& self, ) -> MockQuery<A, u32>; } }
-    mock! { pub Dog<A> {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl<A> traits::Dog for Dog<A> { type Args = A; fn make_sound (&mut self, ) -> MockCall<A, String>;fn walk (&mut self, dx: i32,dy: i32,) -> MockCall<A, ()>;fn avg_weight (& self, ) -> MockQuery<A, u32>;fn position (& self, ) -> MockQuery<A, (i32,i32,)>; } }
-    mock! { pub References<A> {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl<A> traits::References for References<A> { type Args = A; fn add (&mut self, v: u32,) -> MockCall<A, u32>;fn add_byte (&mut self, byte: u8,) -> MockCall<A, Vec<u8>>;fn guess_num (&mut self, number: u8,) -> MockCall<A, Result<String, String>>;fn incr (&mut self, ) -> MockCall<A, ReferenceCount>;fn set_num (&mut self, number: u8,) -> MockCall<A, Result<(), String>>;fn baked (& self, ) -> MockQuery<A, String>;fn last_byte (& self, ) -> MockQuery<A, Option<u8>>;fn message (& self, ) -> MockQuery<A, Option<String>>; } }
-    mock! { pub ThisThat<A> {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl<A> traits::ThisThat for ThisThat<A> { type Args = A; fn do_that (&mut self, param: DoThatParam,) -> MockCall<A, Result<(ActorId,NonZeroU32,ManyVariantsReply,), (String,)>>;fn do_this (&mut self, p1: u32,p2: String,p3: (Option<H160>,NonZeroU8,),p4: TupleStruct,) -> MockCall<A, (String,u32,)>;fn noop (&mut self, ) -> MockCall<A, ()>;fn that (& self, ) -> MockQuery<A, Result<String, String>>;fn this (& self, ) -> MockQuery<A, u32>; } }
-    mock! { pub ValueFee<A> {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl<A> traits::ValueFee for ValueFee<A> { type Args = A; fn do_something_and_take_fee (&mut self, ) -> MockCall<A, bool>; } }
+    mock! {
+        pub PingPong<A> {}
+
+        #[allow(refining_impl_trait)]
+        #[allow(clippy::type_complexity)]
+        impl<A> traits::PingPong for PingPong<A> {
+            type Args = A;
+            fn ping (&mut self, input: String,) -> MockCall<A, Result<String, String>>;
+        }
+    }
+    mock! {
+        pub Counter<A> {}
+
+        #[allow(refining_impl_trait)]
+        #[allow(clippy::type_complexity)]
+        impl<A> traits::Counter for Counter<A> {
+            type Args = A;
+            fn add (&mut self, value: u32,) -> MockCall<A, u32>;fn sub (&mut self, value: u32,) -> MockCall<A, u32>;fn value (& self, ) -> MockQuery<A, u32>;
+        }
+    }
+    mock! {
+        pub Dog<A> {}
+
+        #[allow(refining_impl_trait)]
+        #[allow(clippy::type_complexity)]
+        impl<A> traits::Dog for Dog<A> {
+            type Args = A;
+            fn make_sound (&mut self, ) -> MockCall<A, String>;fn walk (&mut self, dx: i32,dy: i32,) -> MockCall<A, ()>;fn avg_weight (& self, ) -> MockQuery<A, u32>;fn position (& self, ) -> MockQuery<A, (i32,i32,)>;
+        }
+    }
+    mock! {
+        pub References<A> {}
+
+        #[allow(refining_impl_trait)]
+        #[allow(clippy::type_complexity)]
+        impl<A> traits::References for References<A> {
+            type Args = A;
+            fn add (&mut self, v: u32,) -> MockCall<A, u32>;fn add_byte (&mut self, byte: u8,) -> MockCall<A, Vec<u8>>;fn guess_num (&mut self, number: u8,) -> MockCall<A, Result<String, String>>;fn incr (&mut self, ) -> MockCall<A, ReferenceCount>;fn set_num (&mut self, number: u8,) -> MockCall<A, Result<(), String>>;fn baked (& self, ) -> MockQuery<A, String>;fn last_byte (& self, ) -> MockQuery<A, Option<u8>>;fn message (& self, ) -> MockQuery<A, Option<String>>;
+        }
+    }
+    mock! {
+        pub ThisThat<A> {}
+
+        #[allow(refining_impl_trait)]
+        #[allow(clippy::type_complexity)]
+        impl<A> traits::ThisThat for ThisThat<A> {
+            type Args = A;
+            fn do_that (&mut self, param: DoThatParam,) -> MockCall<A, Result<(ActorId,NonZeroU32,ManyVariantsReply,), (String,)>>;fn do_this (&mut self, p1: u32,p2: String,p3: (Option<H160>,NonZeroU8,),p4: TupleStruct,) -> MockCall<A, (String,u32,)>;fn noop (&mut self, ) -> MockCall<A, ()>;fn that (& self, ) -> MockQuery<A, Result<String, String>>;fn this (& self, ) -> MockQuery<A, u32>;
+        }
+    }
+    mock! {
+        pub ValueFee<A> {}
+
+        #[allow(refining_impl_trait)]
+        #[allow(clippy::type_complexity)]
+        impl<A> traits::ValueFee for ValueFee<A> {
+            type Args = A;
+            fn do_something_and_take_fee (&mut self, ) -> MockCall<A, bool>;
+        }
+    }
 }

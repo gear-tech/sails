@@ -11,12 +11,14 @@ pub struct RedirectClientFactory<R> {
     #[allow(dead_code)]
     remoting: R,
 }
+
 impl<R> RedirectClientFactory<R> {
     #[allow(unused)]
     pub fn new(remoting: R) -> Self {
         Self { remoting }
     }
 }
+
 impl<R: Remoting + Clone> traits::RedirectClientFactory for RedirectClientFactory<R> {
     type Args = R::Args;
     fn new(&self) -> impl Activation<Args = R::Args> {
@@ -30,12 +32,14 @@ pub mod redirect_client_factory {
         use super::*;
         use sails_rs::calls::ActionIo;
         pub struct New(());
+
         impl New {
             #[allow(dead_code)]
             pub fn encode_call() -> Vec<u8> {
                 <New as ActionIo>::encode_call(&())
             }
         }
+
         impl ActionIo for New {
             const ROUTE: &'static [u8] = &[12, 78, 101, 119];
             type Params = ();
@@ -46,11 +50,13 @@ pub mod redirect_client_factory {
 pub struct Redirect<R> {
     remoting: R,
 }
+
 impl<R> Redirect<R> {
     pub fn new(remoting: R) -> Self {
         Self { remoting }
     }
 }
+
 impl<R: Remoting + Clone> traits::Redirect for Redirect<R> {
     type Args = R::Args;
     /// Exit from program with inheritor ID
@@ -70,12 +76,14 @@ pub mod redirect {
         use super::*;
         use sails_rs::calls::ActionIo;
         pub struct Exit(());
+
         impl Exit {
             #[allow(dead_code)]
             pub fn encode_call(inheritor_id: ActorId) -> Vec<u8> {
                 <Exit as ActionIo>::encode_call(&inheritor_id)
             }
         }
+
         impl ActionIo for Exit {
             const ROUTE: &'static [u8] = &[
                 32, 82, 101, 100, 105, 114, 101, 99, 116, 16, 69, 120, 105, 116,
@@ -84,12 +92,14 @@ pub mod redirect {
             type Reply = ();
         }
         pub struct GetProgramId(());
+
         impl GetProgramId {
             #[allow(dead_code)]
             pub fn encode_call() -> Vec<u8> {
                 <GetProgramId as ActionIo>::encode_call(&())
             }
         }
+
         impl ActionIo for GetProgramId {
             const ROUTE: &'static [u8] = &[
                 32, 82, 101, 100, 105, 114, 101, 99, 116, 48, 71, 101, 116, 80, 114, 111, 103, 114,

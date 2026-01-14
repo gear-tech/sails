@@ -11,12 +11,14 @@ pub struct ComputeStressProgramFactory<R> {
     #[allow(dead_code)]
     remoting: R,
 }
+
 impl<R> ComputeStressProgramFactory<R> {
     #[allow(unused)]
     pub fn new(remoting: R) -> Self {
         Self { remoting }
     }
 }
+
 impl<R: Remoting + Clone> traits::ComputeStressProgramFactory for ComputeStressProgramFactory<R> {
     type Args = R::Args;
     fn new_for_bench(&self) -> impl Activation<Args = R::Args> {
@@ -33,12 +35,14 @@ pub mod compute_stress_program_factory {
         use super::*;
         use sails_rs::calls::ActionIo;
         pub struct NewForBench(());
+
         impl NewForBench {
             #[allow(dead_code)]
             pub fn encode_call() -> Vec<u8> {
                 <NewForBench as ActionIo>::encode_call(&())
             }
         }
+
         impl ActionIo for NewForBench {
             const ROUTE: &'static [u8] = &[44, 78, 101, 119, 70, 111, 114, 66, 101, 110, 99, 104];
             type Params = ();
@@ -49,11 +53,13 @@ pub mod compute_stress_program_factory {
 pub struct ComputeStress<R> {
     remoting: R,
 }
+
 impl<R> ComputeStress<R> {
     pub fn new(remoting: R) -> Self {
         Self { remoting }
     }
 }
+
 impl<R: Remoting + Clone> traits::ComputeStress for ComputeStress<R> {
     type Args = R::Args;
     fn compute_stress(
@@ -71,12 +77,14 @@ pub mod compute_stress {
         use super::*;
         use sails_rs::calls::ActionIo;
         pub struct ComputeStress(());
+
         impl ComputeStress {
             #[allow(dead_code)]
             pub fn encode_call(n: u32) -> Vec<u8> {
                 <ComputeStress as ActionIo>::encode_call(&n)
             }
         }
+
         impl ActionIo for ComputeStress {
             const ROUTE: &'static [u8] = &[
                 52, 67, 111, 109, 112, 117, 116, 101, 83, 116, 114, 101, 115, 115, 52, 67, 111,
