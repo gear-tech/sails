@@ -31,7 +31,7 @@ impl ProgramBuilder {
         let program_ctors = self.program_ctors();
         let program_ctor_sigs = program_ctors
             .iter()
-            .map(|fn_builder| fn_builder.sol_handler_signature(false));
+            .map(|fn_builder| fn_builder.sol_handler_signature(None));
 
         let service_ctors = self.service_ctors();
         let service_ctor_sigs = service_ctors
@@ -145,10 +145,10 @@ impl FnBuilder<'_> {
         }
     }
 
-    pub(crate) fn sol_handler_signature(&self, is_service: bool) -> TokenStream {
+    pub(crate) fn sol_handler_signature(&self, service_path: Option<&TypePath>) -> TokenStream {
         let sails_path = self.sails_path;
         let entry_id = self.entry_id;
-        let handler_name = if is_service {
+        let handler_name = if service_path.is_some() {
             // method name as PascalCase
             &self.route
         } else {
@@ -157,9 +157,10 @@ impl FnBuilder<'_> {
         };
         let handler_types = self.params_types();
         let (result_type, _) = self.result_type_with_value();
-        let intrface_id = if is_service {
+        let intrface_id = if let Some(service_path) = service_path {
+            let path_wo_lifetimes = shared::remove_lifetimes(&service_path.path);
             quote! {
-                <Self as #sails_path::meta::ServiceMeta>::INTERFACE_ID
+                <#path_wo_lifetimes as #sails_path::meta::ServiceMeta>::INTERFACE_ID
             }
         } else {
             quote! {
@@ -171,7 +172,7 @@ impl FnBuilder<'_> {
         let handler_types = quote! { bool, #(#handler_types,)* };
 
         // add MessageId (alloy_primitives::B256) to callback signature as first parameter
-        let callback_types = if is_service {
+        let callback_types = if service_path.is_some() {
             quote! { #sails_path::alloy_primitives::B256, #result_type }
         } else {
             quote! { #sails_path::alloy_primitives::B256, }

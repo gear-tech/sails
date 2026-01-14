@@ -11,7 +11,7 @@ impl ServiceBuilder<'_> {
         let service_method_expo = self
             .service_handlers
             .iter()
-            .map(|fn_builder| fn_builder.sol_handler_signature(true));
+            .map(|fn_builder| fn_builder.sol_handler_signature(Some(service_type_path)));
 
         let combined_methods = if self.base_types.is_empty() {
             quote! {

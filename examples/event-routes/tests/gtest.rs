@@ -21,21 +21,21 @@ async fn event_routes_work() {
     _ = system.run_next_block();
 
     // Send messages to services `Foo` and `Bar` to start `Foo`
-    let header_foo = SailsMessageHeader::v1(event_routes_app::INTRAFACE_ID, 0, 1);
+    let header_foo = SailsMessageHeader::v1(event_routes_app::INTERFACE_ID, 0, 1);
     program.send_bytes(ACTOR_ID, header_foo.encode());
-    let header_bar = SailsMessageHeader::v1(event_routes_app::INTRAFACE_ID, 0, 2);
+    let header_bar = SailsMessageHeader::v1(event_routes_app::INTERFACE_ID, 0, 2);
     program.send_bytes(ACTOR_ID, header_bar.encode());
 
     let run_result = system.run_next_block();
 
     // Ensure that both `Foo` and `Bar` have been started
-    let header_foo_start = SailsMessageHeader::v1(event_routes_app::INTRAFACE_ID, 1, 1);
+    let header_foo_start = SailsMessageHeader::v1(event_routes_app::INTERFACE_ID, 1, 1);
     let log_foo_start = Log::builder()
         .source(program_id)
         .dest(0)
         .payload_bytes(header_foo_start.encode());
 
-    let header_bar_start = SailsMessageHeader::v1(event_routes_app::INTRAFACE_ID, 1, 2);
+    let header_bar_start = SailsMessageHeader::v1(event_routes_app::INTERFACE_ID, 1, 2);
     let log_bar_start = Log::builder()
         .source(program_id)
         .dest(0)
@@ -53,7 +53,7 @@ async fn event_routes_work() {
     let run_result = system.run_next_block();
 
     // Ensure that `Foo` has been ended
-    let header_foo_end = SailsMessageHeader::v1(event_routes_app::INTRAFACE_ID, 0, 1);
+    let header_foo_end = SailsMessageHeader::v1(event_routes_app::INTERFACE_ID, 0, 1);
     let log_foo_end = Log::builder()
         .source(program_id)
         .dest(0)
@@ -70,7 +70,7 @@ async fn event_routes_work() {
     let run_result = system.run_next_block();
 
     // Ensure that `Bar` has been ended
-    let header_bar_end = SailsMessageHeader::v1(event_routes_app::INTRAFACE_ID, 0, 2);
+    let header_bar_end = SailsMessageHeader::v1(event_routes_app::INTERFACE_ID, 0, 2);
     let log_bar_end = Log::builder()
         .source(program_id)
         .dest(0)

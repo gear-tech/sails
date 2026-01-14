@@ -67,4 +67,4 @@ mod code {
     include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 }
 
-pub const INTRAFACE_ID: InterfaceId = <Service as ServiceMeta>::INTERFACE_ID;
+pub const INTERFACE_ID: InterfaceId = <Service as ServiceMeta>::INTERFACE_ID;

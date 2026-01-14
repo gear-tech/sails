@@ -441,7 +441,7 @@ mod reference_service_meta {
 impl sails_rs::solidity::ServiceSignature for ReferenceService {
     const METHODS: &'static [sails_rs::solidity::MethodExpo] = &[
         (
-            <Self as sails_rs::meta::ServiceMeta>::INTERFACE_ID,
+            <ReferenceService as sails_rs::meta::ServiceMeta>::INTERFACE_ID,
             0u16,
             "AddByte",
             <<(
@@ -454,7 +454,7 @@ impl sails_rs::solidity::ServiceSignature for ReferenceService {
             ) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
         ),
         (
-            <Self as sails_rs::meta::ServiceMeta>::INTERFACE_ID,
+            <ReferenceService as sails_rs::meta::ServiceMeta>::INTERFACE_ID,
             1u16,
             "Incr",
             <<(
@@ -466,7 +466,7 @@ impl sails_rs::solidity::ServiceSignature for ReferenceService {
             ) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
         ),
         (
-            <Self as sails_rs::meta::ServiceMeta>::INTERFACE_ID,
+            <ReferenceService as sails_rs::meta::ServiceMeta>::INTERFACE_ID,
             2u16,
             "Baked",
             <<(
@@ -478,7 +478,7 @@ impl sails_rs::solidity::ServiceSignature for ReferenceService {
             ) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
         ),
         (
-            <Self as sails_rs::meta::ServiceMeta>::INTERFACE_ID,
+            <ReferenceService as sails_rs::meta::ServiceMeta>::INTERFACE_ID,
             3u16,
             "FirstByte",
             <<(
@@ -490,7 +490,7 @@ impl sails_rs::solidity::ServiceSignature for ReferenceService {
             ) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
         ),
         (
-            <Self as sails_rs::meta::ServiceMeta>::INTERFACE_ID,
+            <ReferenceService as sails_rs::meta::ServiceMeta>::INTERFACE_ID,
             4u16,
             "LastByte",
             <<(

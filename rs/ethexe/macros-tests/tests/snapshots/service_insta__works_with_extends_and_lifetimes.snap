@@ -322,14 +322,14 @@ mod extended_with_lifetime_meta {
 }
 impl<'a> sails_rs::solidity::ServiceSignature for ExtendedWithLifetime<'a> {
     const METHODS: &'static [sails_rs::solidity::MethodExpo] = sails_rs::const_concat_slices!(
-        < sails_rs::solidity::MethodExpo >, & [(< Self as sails_rs::meta::ServiceMeta >
-        ::INTERFACE_ID, 0u16, "ExtendedName", << (bool,) as
+        < sails_rs::solidity::MethodExpo >, & [(< ExtendedWithLifetime as
+        sails_rs::meta::ServiceMeta > ::INTERFACE_ID, 0u16, "ExtendedName", << (bool,) as
         sails_rs::alloy_sol_types::SolValue > ::SolType as
         sails_rs::alloy_sol_types::SolType > ::SOL_NAME, <<
         (sails_rs::alloy_primitives::B256, String) as sails_rs::alloy_sol_types::SolValue
-        > ::SolType as sails_rs::alloy_sol_types::SolType > ::SOL_NAME,), (< Self as
-        sails_rs::meta::ServiceMeta > ::INTERFACE_ID, 1u16, "Name", << (bool,) as
-        sails_rs::alloy_sol_types::SolValue > ::SolType as
+        > ::SolType as sails_rs::alloy_sol_types::SolType > ::SOL_NAME,), (<
+        ExtendedWithLifetime as sails_rs::meta::ServiceMeta > ::INTERFACE_ID, 1u16,
+        "Name", << (bool,) as sails_rs::alloy_sol_types::SolValue > ::SolType as
         sails_rs::alloy_sol_types::SolType > ::SOL_NAME, <<
         (sails_rs::alloy_primitives::B256, String) as sails_rs::alloy_sol_types::SolValue
         > ::SolType as sails_rs::alloy_sol_types::SolType > ::SOL_NAME,),], <
