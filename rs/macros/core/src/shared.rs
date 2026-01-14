@@ -113,7 +113,8 @@ pub(crate) fn discover_invocation_targets<'a>(
                 && filter(fn_item)
             {
                 let (span, route, unwrap_result, export) = invocation_export_or_default(fn_item);
-
+                // `entry_id` in order of appearance
+                let entry_id = routes.len() as u16;
                 if let Some(duplicate) = routes.insert(route.clone(), fn_item.sig.ident.to_string())
                 {
                     abort!(
@@ -123,7 +124,7 @@ pub(crate) fn discover_invocation_targets<'a>(
                     );
                 }
                 let fn_builder =
-                    FnBuilder::from(route, 0, export, fn_item, unwrap_result, sails_path);
+                    FnBuilder::from(route, entry_id, export, fn_item, unwrap_result, sails_path);
                 return Some(fn_builder);
             }
             None
