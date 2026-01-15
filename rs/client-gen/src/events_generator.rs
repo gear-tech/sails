@@ -49,9 +49,18 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator<'ast> {
 
         quote_in! { self.tokens =>
             $['\r'] $("}")
-        };
 
-        quote_in! { self.tokens =>
+            $['\r']
+            impl $events_name {
+                pub fn entry_id(&self) -> u16 {
+                    match self {
+                        $(for event in &service.events join ($['\r']) =>
+                            Self::$(&event.name) { .. } => $(self.entry_ids.get(event.name.as_str()).copied().unwrap_or(0)),
+                        )
+                    }
+                }
+            }
+
             impl $(self.sails_path)::client::Event for $events_name {}
 
             impl $(self.sails_path)::client::Identifiable for $events_name {

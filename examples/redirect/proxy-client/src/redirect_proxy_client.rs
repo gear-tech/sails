@@ -3,7 +3,7 @@
 use sails_rs::{client::*, collections::*, prelude::*};
 pub struct RedirectProxyClientProgram;
 impl RedirectProxyClientProgram {
-    pub const PROXY_ROUTE_ID: u8 = 1;
+    pub const ROUTE_ID_PROXY: u8 = 1;
 }
 impl sails_rs::client::Program for RedirectProxyClientProgram {}
 pub trait RedirectProxyClient {
@@ -15,7 +15,7 @@ impl<E: sails_rs::client::GearEnv> RedirectProxyClient
 {
     type Env = E;
     fn proxy(&self) -> sails_rs::client::Service<proxy::ProxyImpl, Self::Env> {
-        self.service(RedirectProxyClientProgram::PROXY_ROUTE_ID)
+        self.service(RedirectProxyClientProgram::ROUTE_ID_PROXY)
     }
 }
 pub trait RedirectProxyClientCtors {
@@ -42,7 +42,7 @@ impl<E: sails_rs::client::GearEnv> RedirectProxyClientCtors
 
 pub mod io {
     use super::*;
-    sails_rs::io_struct_impl!(New (target: ActorId) -> (), 0, sails_rs::meta::InterfaceId::zero());
+    sails_rs::io_struct_impl!(New (target: ActorId) -> (), 0);
 }
 
 pub mod proxy {

@@ -3,7 +3,7 @@
 use sails_rs::{client::*, collections::*, prelude::*};
 pub struct CounterBenchProgram;
 impl CounterBenchProgram {
-    pub const COUNTER_BENCH_ROUTE_ID: u8 = 1;
+    pub const ROUTE_ID_COUNTER_BENCH: u8 = 1;
 }
 impl sails_rs::client::Program for CounterBenchProgram {}
 pub trait CounterBench {
@@ -19,7 +19,7 @@ impl<E: sails_rs::client::GearEnv> CounterBench
     fn counter_bench(
         &self,
     ) -> sails_rs::client::Service<counter_bench::CounterBenchImpl, Self::Env> {
-        self.service(CounterBenchProgram::COUNTER_BENCH_ROUTE_ID)
+        self.service(CounterBenchProgram::ROUTE_ID_COUNTER_BENCH)
     }
 }
 pub trait CounterBenchCtors {
@@ -41,7 +41,7 @@ impl<E: sails_rs::client::GearEnv> CounterBenchCtors
 
 pub mod io {
     use super::*;
-    sails_rs::io_struct_impl!(NewForBench () -> (), 0, sails_rs::meta::InterfaceId::zero());
+    sails_rs::io_struct_impl!(NewForBench () -> (), 0);
 }
 
 pub mod counter_bench {

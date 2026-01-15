@@ -7,18 +7,18 @@ expression: code
 use my_crate::sails::{client::*, collections::*, prelude::*};
 pub struct FullCoverageProgramProgram;
 impl FullCoverageProgramProgram {
-    pub const CANVAS_ROUTE_ID: u8 = 1;
-    pub const PING_PONG_ROUTE_ID: u8 = 2;
-    pub const COUNTER_ROUTE_ID: u8 = 3;
-    pub const REFERENCES_ROUTE_ID: u8 = 4;
-    pub const THIS_THAT_ROUTE_ID: u8 = 5;
-    pub const VALUE_FEE_ROUTE_ID: u8 = 6;
-    pub const RMRK_CATALOG_ROUTE_ID: u8 = 7;
-    pub const NON_ZERO_PARAMS_ROUTE_ID: u8 = 8;
-    pub const SERVICE_WITH_EVENTS_ROUTE_ID: u8 = 9;
-    pub const BASIC_ROUTE_ID: u8 = 10;
-    pub const ANOTHER_SERVICE_ROUTE_ID: u8 = 11;
-    pub const MY_COMPLEX_SERVICE_ROUTE_ID: u8 = 12;
+    pub const ROUTE_ID_CANVAS: u8 = 1;
+    pub const ROUTE_ID_PING_PONG: u8 = 2;
+    pub const ROUTE_ID_COUNTER: u8 = 3;
+    pub const ROUTE_ID_REFERENCES: u8 = 4;
+    pub const ROUTE_ID_THIS_THAT: u8 = 5;
+    pub const ROUTE_ID_VALUE_FEE: u8 = 6;
+    pub const ROUTE_ID_RMRK_CATALOG: u8 = 7;
+    pub const ROUTE_ID_NON_ZERO_PARAMS: u8 = 8;
+    pub const ROUTE_ID_SERVICE_WITH_EVENTS: u8 = 9;
+    pub const ROUTE_ID_BASIC: u8 = 10;
+    pub const ROUTE_ID_ANOTHER_SERVICE: u8 = 11;
+    pub const ROUTE_ID_MY_COMPLEX_SERVICE: u8 = 12;
 }
 impl my_crate::sails::client::Program for FullCoverageProgramProgram {}
 pub trait FullCoverageProgram {
@@ -64,53 +64,53 @@ impl<E: my_crate::sails::client::GearEnv> FullCoverageProgram
 {
     type Env = E;
     fn canvas(&self) -> my_crate::sails::client::Service<canvas::CanvasImpl, Self::Env> {
-        self.service(FullCoverageProgramProgram::CANVAS_ROUTE_ID)
+        self.service(FullCoverageProgramProgram::ROUTE_ID_CANVAS)
     }
     fn ping_pong(&self) -> my_crate::sails::client::Service<ping_pong::PingPongImpl, Self::Env> {
-        self.service(FullCoverageProgramProgram::PING_PONG_ROUTE_ID)
+        self.service(FullCoverageProgramProgram::ROUTE_ID_PING_PONG)
     }
     fn counter(&self) -> my_crate::sails::client::Service<counter::CounterImpl, Self::Env> {
-        self.service(FullCoverageProgramProgram::COUNTER_ROUTE_ID)
+        self.service(FullCoverageProgramProgram::ROUTE_ID_COUNTER)
     }
     fn references(
         &self,
     ) -> my_crate::sails::client::Service<references::ReferencesImpl, Self::Env> {
-        self.service(FullCoverageProgramProgram::REFERENCES_ROUTE_ID)
+        self.service(FullCoverageProgramProgram::ROUTE_ID_REFERENCES)
     }
     fn this_that(&self) -> my_crate::sails::client::Service<this_that::ThisThatImpl, Self::Env> {
-        self.service(FullCoverageProgramProgram::THIS_THAT_ROUTE_ID)
+        self.service(FullCoverageProgramProgram::ROUTE_ID_THIS_THAT)
     }
     fn value_fee(&self) -> my_crate::sails::client::Service<value_fee::ValueFeeImpl, Self::Env> {
-        self.service(FullCoverageProgramProgram::VALUE_FEE_ROUTE_ID)
+        self.service(FullCoverageProgramProgram::ROUTE_ID_VALUE_FEE)
     }
     fn rmrk_catalog(
         &self,
     ) -> my_crate::sails::client::Service<rmrk_catalog::RmrkCatalogImpl, Self::Env> {
-        self.service(FullCoverageProgramProgram::RMRK_CATALOG_ROUTE_ID)
+        self.service(FullCoverageProgramProgram::ROUTE_ID_RMRK_CATALOG)
     }
     fn non_zero_params(
         &self,
     ) -> my_crate::sails::client::Service<non_zero_params::NonZeroParamsImpl, Self::Env> {
-        self.service(FullCoverageProgramProgram::NON_ZERO_PARAMS_ROUTE_ID)
+        self.service(FullCoverageProgramProgram::ROUTE_ID_NON_ZERO_PARAMS)
     }
     fn service_with_events(
         &self,
     ) -> my_crate::sails::client::Service<service_with_events::ServiceWithEventsImpl, Self::Env>
     {
-        self.service(FullCoverageProgramProgram::SERVICE_WITH_EVENTS_ROUTE_ID)
+        self.service(FullCoverageProgramProgram::ROUTE_ID_SERVICE_WITH_EVENTS)
     }
     fn basic(&self) -> my_crate::sails::client::Service<basic::BasicImpl, Self::Env> {
-        self.service(FullCoverageProgramProgram::BASIC_ROUTE_ID)
+        self.service(FullCoverageProgramProgram::ROUTE_ID_BASIC)
     }
     fn another_service(
         &self,
     ) -> my_crate::sails::client::Service<another_service::AnotherServiceImpl, Self::Env> {
-        self.service(FullCoverageProgramProgram::ANOTHER_SERVICE_ROUTE_ID)
+        self.service(FullCoverageProgramProgram::ROUTE_ID_ANOTHER_SERVICE)
     }
     fn my_complex_service(
         &self,
     ) -> my_crate::sails::client::Service<my_complex_service::MyComplexServiceImpl, Self::Env> {
-        self.service(FullCoverageProgramProgram::MY_COMPLEX_SERVICE_ROUTE_ID)
+        self.service(FullCoverageProgramProgram::ROUTE_ID_MY_COMPLEX_SERVICE)
     }
 }
 pub trait FullCoverageProgramCtors {
@@ -148,8 +148,8 @@ impl<E: my_crate::sails::client::GearEnv> FullCoverageProgramCtors
 
 pub mod io {
     use super::*;
-    my_crate::sails::io_struct_impl!(Default () -> (), 0, my_crate::sails::meta::InterfaceId::zero());
-    my_crate::sails::io_struct_impl!(WithOwner (owner: ActorId, initial_config: super::ProgramConfig) -> (), 1, my_crate::sails::meta::InterfaceId::zero());
+    my_crate::sails::io_struct_impl!(Default () -> (), 0);
+    my_crate::sails::io_struct_impl!(WithOwner (owner: ActorId, initial_config: super::ProgramConfig) -> (), 1);
 }
 #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
 #[codec(crate = my_crate::sails::scale_codec)]
@@ -324,6 +324,15 @@ pub mod canvas {
             #[codec(index = 2)]
             StatusChanged(Point<u32>),
         }
+        impl CanvasEvents {
+            pub fn entry_id(&self) -> u16 {
+                match self {
+                    Self::E1 { .. } => 0,
+                    Self::Jubilee { .. } => 1,
+                    Self::StatusChanged { .. } => 2,
+                }
+            }
+        }
         impl my_crate::sails::client::Event for CanvasEvents {}
         impl my_crate::sails::client::Identifiable for CanvasEvents {
             const INTERFACE_ID: my_crate::sails::InterfaceId =
@@ -419,6 +428,14 @@ pub mod counter {
             #[codec(index = 1)]
             Subtracted(u32),
         }
+        impl CounterEvents {
+            pub fn entry_id(&self) -> u16 {
+                match self {
+                    Self::Added { .. } => 0,
+                    Self::Subtracted { .. } => 1,
+                }
+            }
+        }
         impl my_crate::sails::client::Event for CounterEvents {}
         impl my_crate::sails::client::Identifiable for CounterEvents {
             const INTERFACE_ID: my_crate::sails::InterfaceId =
@@ -487,6 +504,14 @@ pub mod dog {
             Barked,
             #[codec(index = 1)]
             Walked { from: (i32, i32), to: (i32, i32) },
+        }
+        impl DogEvents {
+            pub fn entry_id(&self) -> u16 {
+                match self {
+                    Self::Barked { .. } => 0,
+                    Self::Walked { .. } => 1,
+                }
+            }
         }
         impl my_crate::sails::client::Event for DogEvents {}
         impl my_crate::sails::client::Identifiable for DogEvents {
@@ -726,6 +751,13 @@ pub mod value_fee {
             #[codec(index = 0)]
             Withheld(u128),
         }
+        impl ValueFeeEvents {
+            pub fn entry_id(&self) -> u16 {
+                match self {
+                    Self::Withheld { .. } => 0,
+                }
+            }
+        }
         impl my_crate::sails::client::Event for ValueFeeEvents {}
         impl my_crate::sails::client::Identifiable for ValueFeeEvents {
             const INTERFACE_ID: my_crate::sails::InterfaceId =
@@ -783,6 +815,14 @@ pub mod pausable {
             Paused,
             #[codec(index = 1)]
             Unpaused,
+        }
+        impl PausableEvents {
+            pub fn entry_id(&self) -> u16 {
+                match self {
+                    Self::Paused { .. } => 0,
+                    Self::Unpaused { .. } => 1,
+                }
+            }
         }
         impl my_crate::sails::client::Event for PausableEvents {}
         impl my_crate::sails::client::Identifiable for PausableEvents {
@@ -947,6 +987,14 @@ pub mod service_with_events {
             Event1(u32),
             #[codec(index = 1)]
             Event2 { field1: String, field2: u64 },
+        }
+        impl ServiceWithEventsEvents {
+            pub fn entry_id(&self) -> u16 {
+                match self {
+                    Self::Event1 { .. } => 0,
+                    Self::Event2 { .. } => 1,
+                }
+            }
         }
         impl my_crate::sails::client::Event for ServiceWithEventsEvents {}
         impl my_crate::sails::client::Identifiable for ServiceWithEventsEvents {

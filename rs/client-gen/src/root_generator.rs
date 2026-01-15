@@ -156,7 +156,7 @@ impl<'ast> Visitor<'ast> for RootGenerator<'ast> {
 
         generate_doc_comments(&mut self.service_trait_tokens, &service_item.docs);
 
-        let route_id_const_name = format!("{}_ROUTE_ID", service_route.to_case(Case::UpperSnake));
+        let route_id_const_name = format!("ROUTE_ID_{}", service_route.to_case(Case::UpperSnake));
 
         quote_in!(self.program_meta_tokens =>
              pub const $(&route_id_const_name): u8 = $(service_item.route_idx);

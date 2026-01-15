@@ -6,7 +6,7 @@ extern crate std;
 use sails_rs::{client::*, collections::*, prelude::*};
 pub struct RmrkCatalogProgram;
 impl RmrkCatalogProgram {
-    pub const RMRK_CATALOG_ROUTE_ID: u8 = 1;
+    pub const ROUTE_ID_RMRK_CATALOG: u8 = 1;
 }
 impl sails_rs::client::Program for RmrkCatalogProgram {}
 pub trait RmrkCatalog {
@@ -16,7 +16,7 @@ pub trait RmrkCatalog {
 impl<E: sails_rs::client::GearEnv> RmrkCatalog for sails_rs::client::Actor<RmrkCatalogProgram, E> {
     type Env = E;
     fn rmrk_catalog(&self) -> sails_rs::client::Service<rmrk_catalog::RmrkCatalogImpl, Self::Env> {
-        self.service(RmrkCatalogProgram::RMRK_CATALOG_ROUTE_ID)
+        self.service(RmrkCatalogProgram::ROUTE_ID_RMRK_CATALOG)
     }
 }
 pub trait RmrkCatalogCtors {
@@ -36,7 +36,7 @@ impl<E: sails_rs::client::GearEnv> RmrkCatalogCtors
 
 pub mod io {
     use super::*;
-    sails_rs::io_struct_impl!(New () -> (), 0, sails_rs::meta::InterfaceId::zero());
+    sails_rs::io_struct_impl!(New () -> (), 0);
 }
 
 pub mod rmrk_catalog {

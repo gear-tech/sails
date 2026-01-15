@@ -3,7 +3,7 @@
 use sails_rs::{client::*, collections::*, prelude::*};
 pub struct ComputeStressProgram;
 impl ComputeStressProgram {
-    pub const COMPUTE_STRESS_ROUTE_ID: u8 = 1;
+    pub const ROUTE_ID_COMPUTE_STRESS: u8 = 1;
 }
 impl sails_rs::client::Program for ComputeStressProgram {}
 pub trait ComputeStress {
@@ -19,7 +19,7 @@ impl<E: sails_rs::client::GearEnv> ComputeStress
     fn compute_stress(
         &self,
     ) -> sails_rs::client::Service<compute_stress::ComputeStressImpl, Self::Env> {
-        self.service(ComputeStressProgram::COMPUTE_STRESS_ROUTE_ID)
+        self.service(ComputeStressProgram::ROUTE_ID_COMPUTE_STRESS)
     }
 }
 pub trait ComputeStressCtors {
@@ -41,7 +41,7 @@ impl<E: sails_rs::client::GearEnv> ComputeStressCtors
 
 pub mod io {
     use super::*;
-    sails_rs::io_struct_impl!(NewForBench () -> (), 0, sails_rs::meta::InterfaceId::zero());
+    sails_rs::io_struct_impl!(NewForBench () -> (), 0);
 }
 
 pub mod compute_stress {
