@@ -24,7 +24,7 @@ mod tests {
 
         let mut expected = vec![
             0x47, 0x4D, 0x01, 0x10, // Magic, Version, Header Length
-            68, 91, 237, 110, 251, 232, 230, 221, // Interface ID
+            56, 30, 19, 253, 208, 45, 103, 95, // Interface ID
             0, 0, // Entry ID
             0, // Route Index
             0, // Reserved
@@ -46,7 +46,7 @@ mod tests {
         // We don't need manual InterfaceId anymore, it's inside decode_reply
         let mut bytes = vec![
             0x47, 0x4D, 0x01, 0x10, // Magic, Version, Header Length
-            68, 91, 237, 110, 251, 232, 230, 221, // Interface ID
+            56, 30, 19, 253, 208, 45, 103, 95, // Interface ID
             0, 0, // Entry ID
             0, // Route Index
             0, // Reserved

@@ -21,6 +21,11 @@ pub fn event(attrs: TokenStream, input: TokenStream) -> TokenStream {
         )
     });
 
+    // Sort variants alphabetically to ensure deterministic order for hashing and routing
+    let mut variants: Vec<_> = input.variants.into_iter().collect();
+    variants.sort_by_key(|v| v.ident.to_string().to_lowercase());
+    input.variants = variants.into_iter().collect();
+
     // Parse the attributes into a syntax tree.
     let sails_path_attr = syn::parse2::<CratePathAttr>(attrs).ok();
     let sails_path = &sails_path_or_default(sails_path_attr.map(|attr| attr.path()));
@@ -55,8 +60,6 @@ fn generate_sails_event_impl(input: &ItemEnum, sails_path: &Path) -> TokenStream
             variants.len()
         )
     }
-    let mut variants: Vec<_> = variants.iter().collect();
-    variants.sort_by_key(|v| v.ident.to_string().to_lowercase());
 
     // Build match arms for each variant
     let mut match_arms = Vec::new();

@@ -21,7 +21,7 @@ service B@0x256fb43427bef08e {
     }
 }
 
-service ServiceMetaWithBase@0xc4aaf5c4932ab704 {
+service ServiceMetaWithBase@0x10a0a7803b912783 {
     extends {
         B@0x256fb43427bef08e,
     }
@@ -47,7 +47,7 @@ service ServiceMetaWithBase@0xc4aaf5c4932ab704 {
         /// Some multiline description
         /// Second line
         /// Third line
-        DoThat(par1: DoThatParam) -> (String, u32) throws (String);
+        DoThat(par1: DoThatParam) -> Result<(String, u32), (String)>;
         /// Some description
         DoThis(p1: u32, p2: String, p3: (Option<String>, u8), p4: TupleStruct, p5: GenericStruct<H256>, p6: GenericStruct<String>, p7: GenericConstStructN8, p8: GenericConstStructN32) -> String;
         /// This is a second query
@@ -56,7 +56,7 @@ service ServiceMetaWithBase@0xc4aaf5c4932ab704 {
         That(pr1: ThatParam) -> String;
         /// This is a query
         @query
-        This(p1: u32, p2: String, p3: (Option<String>, u8), p4: TupleStruct, p5: GenericEnum<bool, u32>) -> (String, u32) throws String;
+        This(p1: u32, p2: String, p3: (Option<String>, u8), p4: TupleStruct, p5: GenericEnum<bool, u32>) -> Result<(String, u32), String>;
     }
     types {
         struct DoThatParam {
