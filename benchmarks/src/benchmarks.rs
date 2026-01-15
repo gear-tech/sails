@@ -327,7 +327,7 @@ fn create_env() -> GtestEnv {
 
 async fn deploy_for_bench<
     P: Program,
-    IO: CallCodec,
+    IO: ServiceCall,
     F: FnOnce(Deployment<P, GtestEnv>) -> PendingCtor<P, IO, GtestEnv>,
 >(
     env: &GtestEnv,
@@ -340,7 +340,7 @@ async fn deploy_for_bench<
 
 async fn deploy_code_for_bench<
     P: Program,
-    IO: CallCodec,
+    IO: ServiceCall,
     F: FnOnce(Deployment<P, GtestEnv>) -> PendingCtor<P, IO, GtestEnv>,
 >(
     env: &GtestEnv,
