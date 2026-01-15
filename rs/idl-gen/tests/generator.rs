@@ -213,7 +213,7 @@ impl<C: StaticTypeInfo, Q: StaticTypeInfo, E: StaticTypeInfo, B: ServiceMeta, co
     const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(ID);
 }
 
-type TestServiceMeta = GenericService<CommandsMeta, QueriesMeta, EventsMeta, 0xd6ed5296008aed60>;
+type TestServiceMeta = GenericService<CommandsMeta, QueriesMeta, EventsMeta, 0xd42ae9a4dc1efdf0>;
 
 #[allow(dead_code)]
 #[derive(TypeInfo)]
@@ -348,7 +348,7 @@ fn service_idl_works_with_base_services() {
             QueriesMeta,
             EventsMeta,
             GenericService<BaseCommandsMeta, BaseQueriesMeta, BaseEventsMeta, 0x256fb43427bef08e>,
-            0xc4aaf5c4932ab704,
+            0x10a0a7803b912783,
         >,
     >("ServiceMetaWithBase", &mut idl)
     .unwrap();

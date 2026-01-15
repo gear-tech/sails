@@ -23,7 +23,7 @@ async fn ping_pong_stack_works() {
     let limit = 10;
     let initial_balance = env.system().balance_of(ACTOR_ID);
 
-    let res = program.ping_pong_stack().start(limit).await.unwrap();
+    program.ping_pong_stack().start(limit).await.unwrap();
 
     let balance = env.system().balance_of(ACTOR_ID);
 
