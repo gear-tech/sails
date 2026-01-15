@@ -342,21 +342,6 @@ pub trait ServiceCall: Identifiable {
     type Params: Encode;
     type Reply: Decode + 'static;
 
-    fn decode_reply(payload: impl AsRef<[u8]>) -> Result<Self::Reply, parity_scale_codec::Error> {
-        let mut value = payload.as_ref();
-        if Self::is_empty_tuple::<Self::Reply>() {
-            return Decode::decode(&mut value);
-        }
-        let header = SailsMessageHeader::decode(&mut value)?;
-        if header.interface_id() != Self::INTERFACE_ID {
-            return Err("Invalid reply interface_id".into());
-        }
-        if header.entry_id() != Self::ENTRY_ID {
-            return Err("Invalid reply entry_id".into());
-        }
-        Decode::decode(&mut value)
-    }
-
     fn encode_params_with_header(route_idx: u8, value: &Self::Params) -> Vec<u8> {
         let header = SailsMessageHeader::new(
             crate::meta::Version::v1(),
