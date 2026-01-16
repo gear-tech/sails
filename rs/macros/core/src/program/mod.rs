@@ -166,25 +166,41 @@ impl ProgramBuilder {
             if let ImplItem::Fn(fn_item) = impl_item
                 && service_ctor_predicate(fn_item)
             {
-                let (span, route, unwrap_result, _) = shared::invocation_export_or_default(fn_item);
+                let invocation_export = shared::invocation_export_or_default(fn_item);
                 let entry_id = routes.len() as u16;
-                if let Some(duplicate) = routes.insert(route.clone(), fn_item.sig.ident.to_string())
+
+                #[cfg(feature = "ethexe")]
                 {
+                    use convert_case::{Case, Casing};
+                    let camel_case_route = invocation_export.route.to_case(Case::Camel);
+                    shared::validation::validate_identifier(
+                        &camel_case_route,
+                        fn_item.sig.ident.span(),
+                        "Exposed Service",
+                    );
+                }
+                if let Some(duplicate) = routes.insert(
+                    invocation_export.route.clone(),
+                    fn_item.sig.ident.to_string(),
+                ) {
                     abort!(
-                        span,
+                        invocation_export.span,
                         "`export` attribute conflicts with one already assigned to '{}'",
                         duplicate
                     );
                 }
 
-                let fn_builder = FnBuilder::from(
-                    route,
+                let fn_builder = FnBuilder::new(
+                    invocation_export.route,
                     entry_id,
                     true,
                     fn_item,
-                    unwrap_result,
+                    invocation_export.unwrap_result,
                     self.sails_path(),
                 );
+
+                #[cfg(feature = "ethexe")]
+                let fn_builder = fn_builder.payable(invocation_export.payable);
 
                 let original_service_ctor_fn = fn_builder.original_service_ctor_fn();
                 let wrapping_service_ctor_fn =
@@ -193,6 +209,8 @@ impl ProgramBuilder {
                 services_meta.push(fn_builder.service_meta());
 
                 if !has_async_ctor {
+                    // If there are no async constructors, we can't push the asyncness as false,
+                    // as there could be async handlers in services.
                     meta_asyncness.push(fn_builder.service_meta_asyncness());
                 }
 
@@ -351,9 +369,6 @@ impl ProgramBuilder {
                 #payable
 
                 let mut input = gstd::msg::load_bytes().expect("Failed to read input");
-
-                // let sails_message = gstd::msg::load::<#sails_path::SailsMessage>()
-                //     .expect("Failed to read sails message");
 
                 let program_ref = unsafe { #program_ident.as_mut() }.expect("Program not initialized");
 
@@ -590,6 +605,17 @@ fn discover_program_ctors<'a>(
     vec.iter_mut()
         .enumerate()
         .for_each(|(idx, f)| f.entry_id = idx as u16);
+
+    #[cfg(feature = "ethexe")]
+    {
+        for ctor in &vec {
+            shared::validation::validate_identifier(
+                &ctor.route_camel_case(),
+                ctor.ident.span(),
+                "Program constructor",
+            );
+        }
+    }
     vec
 }
 
@@ -715,6 +741,16 @@ impl FnBuilder<'_> {
         let unwrap_token = self.unwrap_result.then(|| quote!(.unwrap()));
         let handler_args = self.params_idents();
         let handler_types = self.params_types();
+        let payable_check = {
+            #[cfg(feature = "ethexe")]
+            {
+                self.payable_check()
+            }
+            #[cfg(not(feature = "ethexe"))]
+            {
+                quote!()
+            }
+        };
         let ctor_call_impl = if self.is_async() {
             quote! {
                 gstd::message_loop(async move {
@@ -738,6 +774,7 @@ impl FnBuilder<'_> {
             #entry_id => {
                 let (#(#handler_args),*): (#(#handler_types),*)  = #sails_path::Decode::decode(&mut #input_ident)
                     .unwrap_or_else(|_| #sails_path::gstd::unknown_input_panic("Unknown request", #input_ident));
+                #payable_check
                 #ctor_call_impl
             }
         )

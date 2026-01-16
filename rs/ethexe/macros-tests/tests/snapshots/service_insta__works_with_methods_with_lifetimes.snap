@@ -203,12 +203,19 @@ impl ReferenceServiceExposure<ReferenceService> {
         {
             match entry_id {
                 0u16 => {
-                    let (__encode_reply, byte): (bool, u8) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
-                            input,
-                            false,
-                        )
+                    let (
+                        __encode_reply,
+                        byte,
+                    ): (
+                        bool,
+                        <<u8 as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::RustType,
+                    ) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(input)
                         .ok()?;
-                    let result = self.add_byte(byte);
+                    #[cfg(target_arch = "wasm32")]
+                    if sails_rs::gstd::msg::value() > 0 {
+                        core::panic!("'add_byte' accepts no value");
+                    }
+                    let result = self.add_byte(byte.into());
                     let value = 0u128;
                     let output = if __encode_reply {
                         let message_id = sails_rs::alloy_primitives::B256::new(
@@ -227,9 +234,12 @@ impl ReferenceServiceExposure<ReferenceService> {
                 1u16 => {
                     let (__encode_reply,): (bool,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                             input,
-                            false,
                         )
                         .ok()?;
+                    #[cfg(target_arch = "wasm32")]
+                    if sails_rs::gstd::msg::value() > 0 {
+                        core::panic!("'incr' accepts no value");
+                    }
                     let result = self.incr();
                     let value = 0u128;
                     let output = if __encode_reply {
@@ -249,9 +259,12 @@ impl ReferenceServiceExposure<ReferenceService> {
                 2u16 => {
                     let (__encode_reply,): (bool,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                             input,
-                            false,
                         )
                         .ok()?;
+                    #[cfg(target_arch = "wasm32")]
+                    if sails_rs::gstd::msg::value() > 0 {
+                        core::panic!("'baked' accepts no value");
+                    }
                     let result = self.baked();
                     let value = 0u128;
                     let output = if __encode_reply {
@@ -288,9 +301,12 @@ impl ReferenceServiceExposure<ReferenceService> {
                 3u16 => {
                     let (__encode_reply,): (bool,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                             input,
-                            false,
                         )
                         .ok()?;
+                    #[cfg(target_arch = "wasm32")]
+                    if sails_rs::gstd::msg::value() > 0 {
+                        core::panic!("'first_byte' accepts no value");
+                    }
                     let result = self.first_byte().await;
                     let value = 0u128;
                     let output = if __encode_reply {
@@ -310,9 +326,12 @@ impl ReferenceServiceExposure<ReferenceService> {
                 4u16 => {
                     let (__encode_reply,): (bool,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                             input,
-                            false,
                         )
                         .ok()?;
+                    #[cfg(target_arch = "wasm32")]
+                    if sails_rs::gstd::msg::value() > 0 {
+                        core::panic!("'last_byte' accepts no value");
+                    }
                     let result = self.last_byte().await;
                     let value = 0u128;
                     let output = if __encode_reply {

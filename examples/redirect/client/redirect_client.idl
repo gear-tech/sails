@@ -1,5 +1,5 @@
 
-!@sails: 0.9.2
+!@sails: 0.10.2
 
 service Redirect@0xba58dee1cb75511e {
     functions {

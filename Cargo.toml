@@ -1,10 +1,10 @@
 [workspace.package]
-version = "0.9.2"
+version = "0.10.2"
 authors = ["Gear Technologies"]
 edition = "2024"
 license = "GPL-3.0"
 repository = "https://github.com/gear-tech/sails"
-rust-version = "1.88"
+rust-version = "1.91"
 
 [workspace]
 resolver = "3"
@@ -62,22 +62,22 @@ sails-sol-gen = { path = "rs/sol-gen" }
 sails-rename = { package = "sails-rs", path = "rs" }
 
 # Gear deps
-gclient = "=1.9.2"
-gcore = "=1.9.2"
-gear-core = { version = "=1.9.2", default-features = false }
-gear-core-errors = "=1.9.2"
-gprimitives = { version = "=1.9.2", default-features = false, features = ["codec"] }
-gstd = "=1.9.2"
-gtest = "=1.9.2"
-gwasm-builder = { version = "=1.9.2", package = "gear-wasm-builder" }
+gclient = "=1.10.0"
+gcore = "=1.10.0"
+gear-core = { version = "=1.10.0", default-features = false }
+gear-core-errors = "=1.10.0"
+gprimitives = { version = "=1.10.0", default-features = false, features = ["codec"] }
+gstd = "=1.10.0"
+gtest = "=1.10.0"
+gwasm-builder = { version = "=1.10.0", package = "gear-wasm-builder" }
 
 # Other deps in alphabetical order
-alloy-primitives = { version = "0.8.19", default-features = false }
-alloy-sol-types = { version = "0.8.19", default-features = false }
+alloy-primitives = { version = "1.4", default-features = false }
+alloy-sol-types = { version = "1.4", default-features = false }
 anyhow = "1"
-askama = { version = "0.14", default-features = false }
+askama = { version = "0.15", default-features = false }
 cargo-generate = "0.23"
-cargo_metadata = "0.19"
+cargo_metadata = "0.23"
 clap = "4.5"
 fs2 = "0.4.3"
 convert_case = "0.7"
@@ -87,7 +87,7 @@ git-download = "0.1"
 handlebars = "4.4"
 hashbrown = "0.15"
 hex = { version = "0.4", default-features = false }
-insta = "1.43"
+insta = "1.44"
 itertools = "0.14"
 keccak-const = "0.2"
 lalrpop = { version = "0.20", default-features = false }
@@ -103,7 +103,7 @@ pest_derive = { version = "2", default-features = false }
 prettyplease = "0.2"
 proc-macro-error = "1.0"
 proc-macro2 = { version = "1", default-features = false }
-rustdoc-types = "=0.36.0"
+rustdoc-types = "=0.56.0"
 quote = "1.0"
 scale-info = { version = "2.11", default-features = false }
 serde = "1.0"
@@ -113,6 +113,6 @@ syn = "2.0"
 thiserror = { version = "2.0", default-features = false }
 toml_edit = "0.22"
 tempfile = "3.19"
-tokio = "1.45"
+tokio = "1.48"
 tokio-stream = "0.1"
 trybuild = "1"

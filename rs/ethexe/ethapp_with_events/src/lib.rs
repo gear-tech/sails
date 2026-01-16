@@ -1,6 +1,7 @@
 #![no_std]
+#![allow(unused_assignments)]
 
-use sails_rs::{Encode, ReflectHash, TypeInfo};
+use sails_rs::prelude::*;
 
 /// Service Events
 #[sails_rs::event]
@@ -38,13 +39,18 @@ pub struct SomeService;
 impl SomeService {
     #[sails_rs::export]
     pub async fn do_this(&mut self, p1: u32, p2: sails_rs::String) -> u32 {
-        self.emit_eth_event(Events::DoThisEvent { p1, p2 }).unwrap();
-        p1
+        let r1 = p1.checked_mul(2).expect("failed to multiply");
+        self.emit_eth_event(Events::DoThisEvent {
+            p1: r1,
+            p2: format!("{p2}: greetings from sails #1"),
+        })
+        .unwrap();
+        r1
     }
 
     #[sails_rs::export]
     pub fn this(&self, p1: bool) -> bool {
-        p1
+        !p1
     }
 }
 
@@ -56,14 +62,19 @@ pub struct SomeService2 {
 impl SomeService2 {
     #[sails_rs::export]
     pub async fn do_this(&mut self, p1: u32, p2: sails_rs::String) -> u32 {
+        let r1 = p1.checked_mul(2).expect("failed to multiply");
+        let r2 = format!("{p2}: greetings from sails #2");
         // Emit EthEvent via Svc1 Exposure
         self.svc1
-            .emit_eth_event(Events::DoThisEvent { p1, p2: p2.clone() })
+            .emit_eth_event(Events::DoThisEvent {
+                p1: r1,
+                p2: r2.clone(),
+            })
             .unwrap();
         // Emit gear event via Svc1 Exposure
         self.svc1
-            .emit_event(Events::DoThisEvent { p1, p2 })
+            .emit_event(Events::DoThisEvent { p1: r1, p2: r2 })
             .unwrap();
-        p1
+        r1
     }
 }

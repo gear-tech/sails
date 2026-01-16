@@ -3,7 +3,7 @@ source: macros-tests/tests/program_insta.rs
 expression: result
 ---
 impl MyProgram {
-    pub async fn new(p1: u32, p2: String) -> Self {
+    pub async fn create(p1: u32, p2: String) -> Self {
         Self { p1, p2 }
     }
     pub fn new2(p2: String, p1: u32) -> Self {
@@ -20,7 +20,7 @@ mod meta_in_program {
     #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
-    pub struct __NewParams {
+    pub struct __CreateParams {
         pub(super) p1: u32,
         pub(super) p2: String,
     }
@@ -34,7 +34,7 @@ mod meta_in_program {
     #[derive(sails_rs::TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum ConstructorsMeta {
-        New(__NewParams),
+        Create(__CreateParams),
         New2(__New2Params),
     }
 }
@@ -43,7 +43,7 @@ impl sails_rs::solidity::ProgramSignature for MyProgram {
         (
             sails_rs::meta::InterfaceId::zero(),
             0u16,
-            "new",
+            "create",
             <<(
                 bool,
                 u32,
@@ -128,8 +128,12 @@ pub mod wasm {
                             "Unknown request",
                             input,
                         ));
+                    #[cfg(target_arch = "wasm32")]
+                    if sails_rs::gstd::msg::value() > 0 {
+                        core::panic!("'create' accepts no value");
+                    }
                     gstd::message_loop(async move {
-                        let program = MyProgram::new(p1, p2).await;
+                        let program = MyProgram::create(p1, p2).await;
                         unsafe {
                             PROGRAM = Some(program);
                         }
@@ -141,6 +145,10 @@ pub mod wasm {
                             "Unknown request",
                             input,
                         ));
+                    #[cfg(target_arch = "wasm32")]
+                    if sails_rs::gstd::msg::value() > 0 {
+                        core::panic!("'new2' accepts no value");
+                    }
                     let program = MyProgram::new2(p2, p1);
                     unsafe {
                         PROGRAM = Some(program);
@@ -158,24 +166,42 @@ pub mod wasm {
     fn match_ctor_solidity(entry_id: u16, input: &[u8]) -> Option<bool> {
         match entry_id {
             0u16 => {
-                let (__encode_reply, p1, p2): (bool, u32, String) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
-                        input,
-                        false,
-                    )
+                let (
+                    __encode_reply,
+                    p1,
+                    p2,
+                ): (
+                    bool,
+                    <<u32 as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::RustType,
+                    <<String as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::RustType,
+                ) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(input)
                     .expect("Failed to decode request");
+                #[cfg(target_arch = "wasm32")]
+                if sails_rs::gstd::msg::value() > 0 {
+                    core::panic!("'create' accepts no value");
+                }
                 gstd::message_loop(async move {
-                    let program = MyProgram::new(p1, p2).await;
+                    let program = MyProgram::create(p1.into(), p2.into()).await;
                     unsafe { PROGRAM = Some(program) };
                 });
                 Some(__encode_reply)
             }
             1u16 => {
-                let (__encode_reply, p2, p1): (bool, String, u32) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
-                        input,
-                        false,
-                    )
+                let (
+                    __encode_reply,
+                    p2,
+                    p1,
+                ): (
+                    bool,
+                    <<String as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::RustType,
+                    <<u32 as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::RustType,
+                ) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(input)
                     .expect("Failed to decode request");
-                let program = MyProgram::new2(p2, p1);
+                #[cfg(target_arch = "wasm32")]
+                if sails_rs::gstd::msg::value() > 0 {
+                    core::panic!("'new2' accepts no value");
+                }
+                let program = MyProgram::new2(p2.into(), p1.into());
                 unsafe { PROGRAM = Some(program) };
                 Some(__encode_reply)
             }

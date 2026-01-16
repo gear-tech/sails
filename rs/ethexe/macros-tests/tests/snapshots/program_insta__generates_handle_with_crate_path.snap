@@ -101,6 +101,10 @@ pub mod wasm {
                             "Unknown request",
                             input,
                         ));
+                    #[cfg(target_arch = "wasm32")]
+                    if sails_rename::gstd::msg::value() > 0 {
+                        core::panic!("'create' accepts no value");
+                    }
                     let program = MyProgram::create();
                     unsafe {
                         PROGRAM = Some(program);
@@ -120,9 +124,12 @@ pub mod wasm {
             0u16 => {
                 let (__encode_reply,): (bool,) = sails_rename::alloy_sol_types::SolValue::abi_decode_params(
                         input,
-                        false,
                     )
                     .expect("Failed to decode request");
+                #[cfg(target_arch = "wasm32")]
+                if sails_rename::gstd::msg::value() > 0 {
+                    core::panic!("'create' accepts no value");
+                }
                 let program = MyProgram::create();
                 unsafe { PROGRAM = Some(program) };
                 Some(__encode_reply)

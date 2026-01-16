@@ -129,8 +129,9 @@ impl ServiceBuilder<'_> {
             };
 
             // Generate match arms for each handler's entry_id
-            let invocation_dispatches = self.service_handlers_with_ids.iter().filter_map(|(fn_builder, entry_id)| {
+            let invocation_dispatches = self.service_handlers.iter().filter_map(|fn_builder| {
                 if is_async == fn_builder.is_async() {
+                    let entry_id = fn_builder.entry_id;
                     let handler_func_ident = fn_builder.ident;
                     let params_struct_ident = &fn_builder.params_struct_ident;
                     let handler_func_params = fn_builder
@@ -289,15 +290,13 @@ impl ServiceBuilder<'_> {
         };
 
         // Generate match arms for each handler's entry_id
-        let asyncness_checks =
-            self.service_handlers_with_ids
-                .iter()
-                .map(|(fn_builder, entry_id)| {
-                    let is_async = fn_builder.is_async();
-                    quote! {
-                        #entry_id => Some(#is_async),
-                    }
-                });
+        let asyncness_checks = self.service_handlers.iter().map(|fn_builder| {
+            let entry_id = fn_builder.entry_id;
+            let is_async = fn_builder.is_async();
+            quote! {
+                #entry_id => Some(#is_async),
+            }
+        });
 
         // Sort base services lexicographically
         let mut base_services_sorted = self

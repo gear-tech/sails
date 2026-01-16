@@ -1,5 +1,5 @@
 use super::*;
-use ::gclient::metadata::runtime_types::pallet_gear_voucher::internal::VoucherId;
+use ::gclient::gear::runtime_types::pallet_gear_voucher::internal::VoucherId;
 use ::gclient::{EventListener, EventProcessor as _, GearApi};
 use core::task::ready;
 use futures::{Stream, StreamExt, stream};
@@ -239,8 +239,11 @@ async fn send_for_reply(
     params: GclientParams,
 ) -> Result<(ActorId, Vec<u8>), GclientError> {
     let value = params.value.unwrap_or(0);
+    #[cfg(not(feature = "ethexe"))]
     let gas_limit =
         calculate_gas_limit(&api, program_id, &payload, params.gas_limit, value).await?;
+    #[cfg(feature = "ethexe")]
+    let gas_limit = 0;
 
     let mut listener = api.subscribe().await?;
     let message_id = send_message_with_voucher_if_some(
@@ -267,7 +270,10 @@ async fn send_one_way(
     params: GclientParams,
 ) -> Result<MessageId, GclientError> {
     let value = params.value.unwrap_or(0);
+    #[cfg(not(feature = "ethexe"))]
     let gas_limit = calculate_gas_limit(api, program_id, &payload, params.gas_limit, value).await?;
+    #[cfg(feature = "ethexe")]
+    let gas_limit = 0;
 
     send_message_with_voucher_if_some(api, program_id, payload, gas_limit, value, params.voucher)
         .await
@@ -293,6 +299,7 @@ async fn send_message_with_voucher_if_some(
     Ok(message_id)
 }
 
+#[cfg(not(feature = "ethexe"))]
 async fn calculate_gas_limit(
     api: &GearApi,
     program_id: ActorId,
@@ -300,7 +307,6 @@ async fn calculate_gas_limit(
     gas_limit: Option<GasUnit>,
     value: ValueUnit,
 ) -> Result<u64, GclientError> {
-    #[cfg(not(feature = "ethexe"))]
     let gas_limit = if let Some(gas_limit) = gas_limit {
         gas_limit
     } else {
@@ -310,8 +316,6 @@ async fn calculate_gas_limit(
             .await?;
         gas_info.min_limit
     };
-    #[cfg(feature = "ethexe")]
-    let gas_limit = 0;
     Ok(gas_limit)
 }
 
@@ -336,12 +340,12 @@ async fn query_calculate_reply(
 
     let reply_info = api
         .calculate_reply_for_handle_at(
-            Some(origin),
+            Some(origin.0.into()),
             destination,
             payload,
             gas_limit,
             value,
-            params.at_block,
+            params.at_block.map(|at| at.0.into()),
         )
         .await?;
 
@@ -356,26 +360,25 @@ async fn wait_for_reply(
     listener: &mut EventListener,
     message_id: MessageId,
 ) -> Result<(MessageId, ReplyCode, Vec<u8>, ValueUnit), GclientError> {
-    let message_id: ::gclient::metadata::runtime_types::gprimitives::MessageId = message_id.into();
-    listener.proc(|e| {
-        if let ::gclient::Event::Gear(::gclient::GearEvent::UserMessageSent {
-            message:
-                ::gclient::metadata::runtime_types::gear_core::message::user::UserMessage {
-                    id,
-                    payload,
-                    value,
-                    details: Some(::gclient::metadata::runtime_types::gear_core::message::common::ReplyDetails { to, code }),
-                    ..
-                },
-            ..
-        }) = e
-        {
-            to.eq(&message_id).then(|| (id.into(), code.into(), payload.0.clone(), value))
-        } else {
-            None
-        }
-    })
-    .await.map_err(Into::into)
+    listener
+        .proc(|e| {
+            if let ::gclient::Event::Gear(::gclient::GearEvent::UserMessageSent { message, .. }) = e
+                && let Some(details) = message.details()
+            {
+                details.to_message_id().eq(&message_id).then(|| {
+                    (
+                        message.id(),
+                        details.to_reply_code(),
+                        message.payload_bytes().to_vec(),
+                        message.value(),
+                    )
+                })
+            } else {
+                None
+            }
+        })
+        .await
+        .map_err(Into::into)
 }
 
 async fn get_events_from_block(
@@ -385,20 +388,12 @@ async fn get_events_from_block(
         .proc_many(
             |e| {
                 if let ::gclient::Event::Gear(::gclient::GearEvent::UserMessageSent {
-                    message:
-                        ::gclient::metadata::runtime_types::gear_core::message::user::UserMessage {
-                            id: _,
-                            source,
-                            destination,
-                            payload,
-                            ..
-                        },
+                    message,
                     ..
                 }) = e
                 {
-                    let source = ActorId::from(source);
-                    if ActorId::from(destination) == ActorId::zero() {
-                        Some((source, payload.0))
+                    if message.destination() == ActorId::zero() {
+                        Some((message.source(), message.payload_bytes().to_vec()))
                     } else {
                         None
                     }

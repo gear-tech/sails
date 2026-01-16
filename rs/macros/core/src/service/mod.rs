@@ -65,8 +65,6 @@ struct ServiceBuilder<'a> {
     type_path: &'a TypePath,
     events_type: Option<&'a Path>,
     service_handlers: Vec<FnBuilder<'a>>,
-    /// Handlers with assigned entry IDs (sorted: commands then queries)
-    service_handlers_with_ids: Vec<(FnBuilder<'a>, u16)>,
     exposure_ident: Ident,
     route_idx_ident: Ident,
     inner_ident: Ident,
@@ -83,10 +81,6 @@ impl<'a> ServiceBuilder<'a> {
         let (type_path, _type_args, service_ident) =
             shared::impl_type_refs(service_impl.self_ty.as_ref());
         let service_handlers = discover_service_handlers(service_impl, sails_path);
-
-        // Assign entry IDs: commands (sorted) get 0..N-1, queries (sorted) get N..M-1
-        let service_handlers_with_ids = Self::assign_entry_ids(&service_handlers);
-
         let exposure_name = format!(
             "{}Exposure",
             service_ident.to_string().to_case(Case::Pascal)
@@ -106,36 +100,11 @@ impl<'a> ServiceBuilder<'a> {
             type_path,
             events_type: service_args.events_type(),
             service_handlers,
-            service_handlers_with_ids,
             exposure_ident,
             route_idx_ident,
             inner_ident,
             meta_module_ident,
         }
-    }
-
-    fn assign_entry_ids(handlers: &[FnBuilder<'a>]) -> Vec<(FnBuilder<'a>, u16)> {
-        let (mut commands, mut queries): (Vec<_>, Vec<_>) =
-            handlers.iter().partition(|h| !h.is_query());
-
-        // Sort by name (lowercase for case-insensitive)
-        commands.sort_by_key(|h| h.route.to_lowercase());
-        queries.sort_by_key(|h| h.route.to_lowercase());
-
-        let mut result = Vec::new();
-        let mut entry_id = 0u16;
-
-        for cmd in commands {
-            result.push((cmd.clone(), entry_id));
-            entry_id += 1;
-        }
-
-        for query in queries {
-            result.push((query.clone(), entry_id));
-            entry_id += 1;
-        }
-
-        result
     }
 
     fn type_constraints(&self) -> Option<&WhereClause> {
@@ -236,8 +205,23 @@ impl FnBuilder<'_> {
         let params_struct_ident = &self.params_struct_ident;
         let result_type = self.result_type_with_static_lifetime();
 
+        let payable_doc = if cfg!(feature = "ethexe") {
+            self.payable.then(|| quote!(#[doc = " #[payable]"]))
+        } else {
+            None
+        };
+
+        let returns_value_doc = if cfg!(feature = "ethexe") {
+            self.result_type_with_value()
+                .1
+                .then(|| quote!(#[doc = " #[returns_value]"]))
+        } else {
+            None
+        };
         quote!(
             #( #handler_docs_attrs )*
+            #payable_doc
+            #returns_value_doc
             #handler_route_ident(#params_struct_ident, #result_type)
         )
     }

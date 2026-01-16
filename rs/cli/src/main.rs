@@ -41,15 +41,21 @@ enum SailsCommands {
         /// Set the resulting package name, defaults to the directory name
         #[arg(long)]
         name: Option<String>,
+        /// Set the package author, defaults to "Gear Technologies"
+        #[arg(long)]
+        author: Option<String>,
+        /// Set the GitHub username for the package repository URL, defaults to "gear-tech"
+        #[arg(long)]
+        username: Option<String>,
         /// Local path to `sails-rs` crate
         #[arg(long, value_hint = clap::ValueHint::DirPath)]
         sails_path: Option<PathBuf>,
-        /// Generate application package only
-        #[arg(long)]
-        app: bool,
         /// Run without accessing the network
         #[arg(long)]
         offline: bool,
+        /// Generate contracts compatible with Ethereum (for Vara.ETH).
+        #[arg(long)]
+        eth: bool,
     },
 
     /// Generate client code from IDL
@@ -89,6 +95,7 @@ enum SailsCommands {
         deps_level: Option<usize>,
     },
 
+    /// Generate Solidity ABI-contracts from IDL
     #[command(name = "sol")]
     SolGen {
         /// Path to the IDL file
@@ -138,10 +145,15 @@ fn main() -> Result<(), i32> {
         SailsCommands::New {
             path,
             name,
+            author,
+            username,
             sails_path,
-            app,
             offline,
-        } => program_new::ProgramGenerator::new(path, name, sails_path, app, offline).generate(),
+            eth,
+        } => program_new::ProgramGenerator::new(
+            path, name, author, username, sails_path, offline, eth,
+        )
+        .generate(),
         SailsCommands::ClientRs {
             idl_path,
             out_path,

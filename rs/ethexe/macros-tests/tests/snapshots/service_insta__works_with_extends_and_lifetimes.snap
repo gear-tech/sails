@@ -171,9 +171,12 @@ impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
                 0u16 => {
                     let (__encode_reply,): (bool,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                             input,
-                            false,
                         )
                         .ok()?;
+                    #[cfg(target_arch = "wasm32")]
+                    if sails_rs::gstd::msg::value() > 0 {
+                        core::panic!("'extended_name' accepts no value");
+                    }
                     let result = self.extended_name();
                     let value = 0u128;
                     let output = if __encode_reply {
@@ -193,9 +196,12 @@ impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
                 1u16 => {
                     let (__encode_reply,): (bool,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                             input,
-                            false,
                         )
                         .ok()?;
+                    #[cfg(target_arch = "wasm32")]
+                    if sails_rs::gstd::msg::value() > 0 {
+                        core::panic!("'name' accepts no value");
+                    }
                     let result = self.name();
                     let value = 0u128;
                     let output = if __encode_reply {

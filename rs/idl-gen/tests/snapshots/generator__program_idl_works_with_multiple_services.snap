@@ -2,7 +2,7 @@
 source: rs/idl-gen/tests/generator.rs
 expression: idl
 ---
-!@sails: 0.9.2
+!@sails: 0.10.2
 
 service Service@0xd42ae9a4dc1efdf0 {
     events {

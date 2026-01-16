@@ -140,9 +140,12 @@ impl MyServiceWithEventsExposure<MyServiceWithEvents> {
                 0u16 => {
                     let (__encode_reply,): (bool,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                             input,
-                            false,
                         )
                         .ok()?;
+                    #[cfg(target_arch = "wasm32")]
+                    if sails_rs::gstd::msg::value() > 0 {
+                        core::panic!("'do_this' accepts no value");
+                    }
                     let result = self.do_this();
                     let value = 0u128;
                     let output = if __encode_reply {
@@ -162,9 +165,12 @@ impl MyServiceWithEventsExposure<MyServiceWithEvents> {
                 1u16 => {
                     let (__encode_reply,): (bool,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                             input,
-                            false,
                         )
                         .ok()?;
+                    #[cfg(target_arch = "wasm32")]
+                    if sails_rs::gstd::msg::value() > 0 {
+                        core::panic!("'this' accepts no value");
+                    }
                     let result = self.this();
                     let value = 0u128;
                     let output = if __encode_reply {

@@ -53,6 +53,7 @@ default = ["gstd"]
 build = ["client-builder", "wasm-builder"]
 debug = ["gstd?/debug"]
 ethexe = [
+    "gprimitives/ethexe",
     "gstd?/ethexe",
     "dep:alloy-primitives",
     "dep:alloy-sol-types",

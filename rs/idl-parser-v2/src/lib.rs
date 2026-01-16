@@ -542,10 +542,10 @@ fn expect_rule<'a>(
     it: &mut impl Iterator<Item = Pair<'a, Rule>>,
     r: Rule,
 ) -> Result<Pair<'a, Rule>> {
-    if let Some(p) = it.next() {
-        if p.as_rule() == r {
-            return Ok(p);
-        }
+    if let Some(p) = it.next()
+        && p.as_rule() == r
+    {
+        return Ok(p);
     }
     Err(Error::Rule(format!("expected {r:?}")))
 }

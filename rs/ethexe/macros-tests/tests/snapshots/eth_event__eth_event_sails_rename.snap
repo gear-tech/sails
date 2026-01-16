@@ -90,7 +90,7 @@ impl sails_rename::EthEvent for Events {
                 .finalize(),
         ),
     ];
-    #[allow(unused_variables)]
+    #[allow(unused)]
     fn topics(&self) -> sails_rename::Vec<sails_rename::alloy_primitives::B256> {
         match self {
             Events::MyEvent1 { sender, amount, note } => {
@@ -115,7 +115,7 @@ impl sails_rename::EthEvent for Events {
             }
         }
     }
-    #[allow(unused_variables)]
+    #[allow(unused)]
     fn data(&self) -> sails_rename::Vec<u8> {
         match self {
             Events::MyEvent1 { sender, amount, note } => Self::encode_sequence(&(note,)),

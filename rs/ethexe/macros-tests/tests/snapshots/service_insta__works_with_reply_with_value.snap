@@ -137,12 +137,19 @@ impl SomeServiceExposure<SomeService> {
         {
             match entry_id {
                 1u16 => {
-                    let (__encode_reply, p1): (bool, bool) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
-                            input,
-                            false,
-                        )
+                    let (
+                        __encode_reply,
+                        p1,
+                    ): (
+                        bool,
+                        <<bool as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::RustType,
+                    ) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(input)
                         .ok()?;
-                    let result = self.this(p1);
+                    #[cfg(target_arch = "wasm32")]
+                    if sails_rs::gstd::msg::value() > 0 {
+                        core::panic!("'this' accepts no value");
+                    }
+                    let result = self.this(p1.into());
                     let value = 0u128;
                     let output = if __encode_reply {
                         let message_id = sails_rs::alloy_primitives::B256::new(
@@ -176,13 +183,22 @@ impl SomeServiceExposure<SomeService> {
         {
             match entry_id {
                 0u16 => {
-                    let (__encode_reply, p1, p2): (bool, u32, String) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
-                            input,
-                            false,
-                        )
+                    let (
+                        __encode_reply,
+                        p1,
+                        p2,
+                    ): (
+                        bool,
+                        <<u32 as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::RustType,
+                        <<String as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::RustType,
+                    ) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(input)
                         .ok()?;
+                    #[cfg(target_arch = "wasm32")]
+                    if sails_rs::gstd::msg::value() > 0 {
+                        core::panic!("'do_this' accepts no value");
+                    }
                     let command_reply: CommandReply<u32> = self
-                        .do_this(p1, p2)
+                        .do_this(p1.into(), p2.into())
                         .await
                         .into();
                     let (result, value) = command_reply.to_tuple();
@@ -260,6 +276,7 @@ mod some_service_meta {
     #[derive(sails_rs::TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum CommandsMeta {
+        /// #[returns_value]
         DoThis(__DoThisParams, u32),
     }
     #[derive(sails_rs::TypeInfo)]
