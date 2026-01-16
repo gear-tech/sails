@@ -44,9 +44,9 @@ fn adding_resource_to_storage_by_admin_succeeds() {
     // Assert
     println!("{run_result:#?}");
     let header = SailsMessageHeader::v1(
-        io::AddResourceEntry::INTERFACE_ID,
+        RmrkResourceImpl::INTERFACE_ID,
         io::AddResourceEntry::ENTRY_ID,
-        RmrkResourceProgram::RMRK_RESOURCE_ROUTE_ID,
+        RmrkResourceProgram::ROUTE_ID_RMRK_RESOURCE,
     );
     let expected_response = [
         header.encode(),
@@ -55,10 +55,13 @@ fn adding_resource_to_storage_by_admin_succeeds() {
     .concat();
     assert!(run_result.contains(&(ADMIN_ID, expected_response)));
 
+    let event = client::rmrk_resource::events::RmrkResourceEvents::ResourceAdded {
+        resource_id: RESOURCE_ID,
+    };
     let event_header = SailsMessageHeader::v1(
-        io::AddResourceEntry::INTERFACE_ID,
-        1, // EntryID for ResourceAdded (alphabetically 2nd)
-        RmrkResourceProgram::RMRK_RESOURCE_ROUTE_ID,
+        RmrkResourceImpl::INTERFACE_ID,
+        event.entry_id(),
+        RmrkResourceProgram::ROUTE_ID_RMRK_RESOURCE,
     );
     let expected_event = [event_header.encode(), RESOURCE_ID.encode()].concat();
     assert!(run_result.contains(&(0, expected_event)));
@@ -95,9 +98,9 @@ async fn adding_resource_to_storage_by_admin_succeeds_async() {
     let reply = reply.unwrap();
 
     let header = SailsMessageHeader::v1(
-        io::AddResourceEntry::INTERFACE_ID,
+        RmrkResourceImpl::INTERFACE_ID,
         io::AddResourceEntry::ENTRY_ID,
-        RmrkResourceProgram::RMRK_RESOURCE_ROUTE_ID,
+        RmrkResourceProgram::ROUTE_ID_RMRK_RESOURCE,
     );
     let expected_reply = [
         header.encode(),
@@ -163,9 +166,9 @@ fn adding_existing_part_to_resource_by_admin_succeeds() {
     // Assert
     println!("{run_result:#?}");
     let header = SailsMessageHeader::v1(
-        io::AddPartToResource::INTERFACE_ID,
+        RmrkResourceImpl::INTERFACE_ID,
         io::AddPartToResource::ENTRY_ID,
-        RmrkResourceProgram::RMRK_RESOURCE_ROUTE_ID,
+        RmrkResourceProgram::ROUTE_ID_RMRK_RESOURCE,
     );
     let expected_response = [
         header.encode(),
@@ -262,9 +265,9 @@ fn adding_non_existing_part_to_resource_fails() {
 
     // Assert
     let header = SailsMessageHeader::v1(
-        io::AddPartToResource::INTERFACE_ID,
+        RmrkResourceImpl::INTERFACE_ID,
         io::AddPartToResource::ENTRY_ID,
-        RmrkResourceProgram::RMRK_RESOURCE_ROUTE_ID,
+        RmrkResourceProgram::ROUTE_ID_RMRK_RESOURCE,
     );
     let expected_response = [
         header.encode(),
@@ -327,9 +330,9 @@ impl SystemFixture {
     ) -> BlockRunResult {
         let program = self.resource_program();
         let header = SailsMessageHeader::v1(
-            io::AddResourceEntry::INTERFACE_ID,
+            RmrkResourceImpl::INTERFACE_ID,
             io::AddResourceEntry::ENTRY_ID,
-            RmrkResourceProgram::RMRK_RESOURCE_ROUTE_ID,
+            RmrkResourceProgram::ROUTE_ID_RMRK_RESOURCE,
         );
         let encoded_request = [header.encode(), resource_id.encode(), resource.encode()].concat();
         let _message_id = program.send_bytes(actor_id, encoded_request);
@@ -344,9 +347,9 @@ impl SystemFixture {
     ) -> BlockRunResult {
         let program = self.resource_program();
         let header = SailsMessageHeader::v1(
-            io::AddPartToResource::INTERFACE_ID,
+            RmrkResourceImpl::INTERFACE_ID,
             io::AddPartToResource::ENTRY_ID,
-            RmrkResourceProgram::RMRK_RESOURCE_ROUTE_ID,
+            RmrkResourceProgram::ROUTE_ID_RMRK_RESOURCE,
         );
         let encoded_request = [header.encode(), resource_id.encode(), part_id.encode()].concat();
         let _message_id = program.send_bytes(actor_id, encoded_request);
@@ -360,9 +363,9 @@ impl SystemFixture {
     ) -> Option<ResourceStorageResult<Resource>> {
         let program = self.resource_program();
         let header = SailsMessageHeader::v1(
-            io::Resource::INTERFACE_ID,
+            RmrkResourceImpl::INTERFACE_ID,
             io::Resource::ENTRY_ID,
-            RmrkResourceProgram::RMRK_RESOURCE_ROUTE_ID,
+            RmrkResourceProgram::ROUTE_ID_RMRK_RESOURCE,
         );
         let encoded_request = [header.encode(), resource_id.encode()].concat();
         let _message_id = program.send_bytes(actor_id, encoded_request);
@@ -384,9 +387,9 @@ impl SystemFixture {
     fn add_parts(&self, actor_id: u64, parts: &BTreeMap<PartId, Part>) -> BlockRunResult {
         let program = self.catalog_program();
         let header = SailsMessageHeader::v1(
-            catalogs::rmrk_catalog::io::AddParts::INTERFACE_ID,
+            catalogs::rmrk_catalog::RmrkCatalogImpl::INTERFACE_ID,
             catalogs::rmrk_catalog::io::AddParts::ENTRY_ID,
-            catalogs::RmrkCatalogProgram::RMRK_CATALOG_ROUTE_ID,
+            catalogs::RmrkCatalogProgram::ROUTE_ID_RMRK_CATALOG,
         );
         let encoded_request = [header.encode(), parts.encode()].concat();
         let _message_id = program.send_bytes(actor_id, encoded_request);
@@ -446,9 +449,9 @@ impl Fixture {
         resource: &Resource,
     ) -> Result<Vec<u8>, GtestError> {
         let header = SailsMessageHeader::v1(
-            io::AddResourceEntry::INTERFACE_ID,
+            RmrkResourceImpl::INTERFACE_ID,
             io::AddResourceEntry::ENTRY_ID,
-            RmrkResourceProgram::RMRK_RESOURCE_ROUTE_ID,
+            RmrkResourceProgram::ROUTE_ID_RMRK_RESOURCE,
         );
         let encoded_request = [header.encode(), resource_id.encode(), resource.encode()].concat();
         self.env
@@ -509,9 +512,9 @@ impl Fixture {
             .get_program(self.catalog_program_id)
             .unwrap();
         let header = SailsMessageHeader::v1(
-            catalogs::rmrk_catalog::io::AddParts::INTERFACE_ID,
+            catalogs::rmrk_catalog::RmrkCatalogImpl::INTERFACE_ID,
             catalogs::rmrk_catalog::io::AddParts::ENTRY_ID,
-            catalogs::RmrkCatalogProgram::RMRK_CATALOG_ROUTE_ID,
+            catalogs::RmrkCatalogProgram::ROUTE_ID_RMRK_CATALOG,
         );
         let encoded_request = [header.encode(), parts.encode()].concat();
         let _message_id = program.send_bytes(actor_id, encoded_request);

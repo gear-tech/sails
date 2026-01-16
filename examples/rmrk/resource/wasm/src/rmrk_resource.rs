@@ -3,7 +3,7 @@
 use sails_rs::{client::*, collections::*, prelude::*};
 pub struct RmrkResourceProgram;
 impl RmrkResourceProgram {
-    pub const RMRK_RESOURCE_ROUTE_ID: u8 = 1;
+    pub const ROUTE_ID_RMRK_RESOURCE: u8 = 1;
 }
 impl sails_rs::client::Program for RmrkResourceProgram {}
 pub trait RmrkResource {
@@ -19,7 +19,7 @@ impl<E: sails_rs::client::GearEnv> RmrkResource
     fn rmrk_resource(
         &self,
     ) -> sails_rs::client::Service<rmrk_resource::RmrkResourceImpl, Self::Env> {
-        self.service(RmrkResourceProgram::RMRK_RESOURCE_ROUTE_ID)
+        self.service(RmrkResourceProgram::ROUTE_ID_RMRK_RESOURCE)
     }
 }
 pub trait RmrkResourceCtors {
@@ -39,7 +39,7 @@ impl<E: sails_rs::client::GearEnv> RmrkResourceCtors
 
 pub mod io {
     use super::*;
-    sails_rs::io_struct_impl!(New () -> (), 0, sails_rs::meta::InterfaceId::zero());
+    sails_rs::io_struct_impl!(New () -> (), 0);
 }
 
 pub mod rmrk_resource {
@@ -173,6 +173,14 @@ pub mod rmrk_resource {
             PartAdded { resource_id: u8, part_id: u32 },
             #[codec(index = 1)]
             ResourceAdded { resource_id: u8 },
+        }
+        impl RmrkResourceEvents {
+            pub fn entry_id(&self) -> u16 {
+                match self {
+                    Self::PartAdded { .. } => 0,
+                    Self::ResourceAdded { .. } => 1,
+                }
+            }
         }
         impl sails_rs::client::Event for RmrkResourceEvents {}
         impl sails_rs::client::Identifiable for RmrkResourceEvents {

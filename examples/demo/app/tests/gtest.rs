@@ -177,7 +177,7 @@ async fn ping_pong_low_level_works() {
 
     // Use generated `io` module for encoding/decoding calls and replies
     // and send/receive bytes using `gtest` native means
-    let ping_call_payload = Ping::encode_call(DemoClientProgram::PING_PONG_ROUTE_ID, "ping".into());
+    let ping_call_payload = Ping::encode_call(DemoClientProgram::ROUTE_ID_PING_PONG, "ping".into());
 
     let message_id = demo_program.send_bytes(ACTOR_ID, ping_call_payload);
     let run_result = system.run_next_block();
@@ -191,7 +191,7 @@ async fn ping_pong_low_level_works() {
     let ping_reply_payload = reply_log_record.payload();
 
     let ping_reply =
-        Ping::decode_reply(DemoClientProgram::PING_PONG_ROUTE_ID, ping_reply_payload).unwrap();
+        Ping::decode_reply(DemoClientProgram::ROUTE_ID_PING_PONG, ping_reply_payload).unwrap();
 
     assert_eq!(ping_reply, Ok("pong".to_string()));
 
@@ -456,7 +456,7 @@ fn counter_add_low_level_works() {
 
     // Use generated `io` module for encoding/decoding calls and replies
     // and send/receive bytes using `gtest` native means
-    let call_payload = Add::encode_call(DemoClientProgram::COUNTER_ROUTE_ID, 10);
+    let call_payload = Add::encode_call(DemoClientProgram::ROUTE_ID_COUNTER, 10);
 
     let message_id = demo_program.send_bytes(ACTOR_ID, call_payload);
     let run_result = system.run_next_block();
@@ -469,7 +469,7 @@ fn counter_add_low_level_works() {
 
     let reply_payload = reply_log_record.payload();
 
-    let reply = Add::decode_reply(DemoClientProgram::COUNTER_ROUTE_ID, reply_payload).unwrap();
+    let reply = Add::decode_reply(DemoClientProgram::ROUTE_ID_COUNTER, reply_payload).unwrap();
 
     assert_eq!(reply, 10);
 
@@ -560,7 +560,7 @@ fn chaos_service_panic_after_wait_works() {
 
     let msg_id = program.send_bytes(
         ACTOR_ID,
-        PanicAfterWait::encode_call(DemoClientProgram::CHAOS_ROUTE_ID),
+        PanicAfterWait::encode_call(DemoClientProgram::ROUTE_ID_CHAOS),
     );
     system.run_next_block();
 
@@ -595,7 +595,7 @@ fn chaos_service_timeout_wait() {
 
     program.send_bytes(
         ACTOR_ID,
-        TimeoutWait::encode_call(DemoClientProgram::CHAOS_ROUTE_ID),
+        TimeoutWait::encode_call(DemoClientProgram::ROUTE_ID_CHAOS),
     );
     //#1
     system.run_next_block();
@@ -614,13 +614,13 @@ fn chaos_service_timeout_wait() {
 
     let msg_id = program.send_bytes(
         ACTOR_ID,
-        ReplyHookCounter::encode_call(DemoClientProgram::CHAOS_ROUTE_ID),
+        ReplyHookCounter::encode_call(DemoClientProgram::ROUTE_ID_CHAOS),
     );
 
     let run = system.run_next_block();
 
     let val = extract_reply(&run, msg_id, |p| {
-        ReplyHookCounter::decode_reply(DemoClientProgram::CHAOS_ROUTE_ID, p).unwrap()
+        ReplyHookCounter::decode_reply(DemoClientProgram::ROUTE_ID_CHAOS, p).unwrap()
     });
     assert_eq!(val, 0, "handle_reply should not trigger before reply");
 
@@ -633,11 +633,11 @@ fn chaos_service_timeout_wait() {
 
     let msg_id = program.send_bytes(
         ACTOR_ID,
-        ReplyHookCounter::encode_call(DemoClientProgram::CHAOS_ROUTE_ID),
+        ReplyHookCounter::encode_call(DemoClientProgram::ROUTE_ID_CHAOS),
     );
     let run = system.run_next_block();
     let val = extract_reply(&run, msg_id, |p| {
-        ReplyHookCounter::decode_reply(DemoClientProgram::CHAOS_ROUTE_ID, p).unwrap()
+        ReplyHookCounter::decode_reply(DemoClientProgram::ROUTE_ID_CHAOS, p).unwrap()
     });
     assert_eq!(
         val, 1,

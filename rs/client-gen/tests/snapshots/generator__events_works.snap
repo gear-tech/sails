@@ -67,6 +67,16 @@ pub mod service_with_events {
             #[codec(index = 3)]
             Two { id: u8, reference: u64 },
         }
+        impl ServiceWithEventsEvents {
+            pub fn entry_id(&self) -> u16 {
+                match self {
+                    Self::One { .. } => 0,
+                    Self::Reset { .. } => 1,
+                    Self::Three { .. } => 2,
+                    Self::Two { .. } => 3,
+                }
+            }
+        }
         impl sails_rs::client::Event for ServiceWithEventsEvents {}
         impl sails_rs::client::Identifiable for ServiceWithEventsEvents {
             const INTERFACE_ID: sails_rs::InterfaceId =

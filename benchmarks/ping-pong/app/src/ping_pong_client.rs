@@ -3,7 +3,7 @@
 use sails_rs::{client::*, collections::*, prelude::*};
 pub struct PingPongProgram;
 impl PingPongProgram {
-    pub const PING_PONG_SERVICE_ROUTE_ID: u8 = 1;
+    pub const ROUTE_ID_PING_PONG_SERVICE: u8 = 1;
 }
 impl sails_rs::client::Program for PingPongProgram {}
 pub trait PingPong {
@@ -17,7 +17,7 @@ impl<E: sails_rs::client::GearEnv> PingPong for sails_rs::client::Actor<PingPong
     fn ping_pong_service(
         &self,
     ) -> sails_rs::client::Service<ping_pong_service::PingPongServiceImpl, Self::Env> {
-        self.service(PingPongProgram::PING_PONG_SERVICE_ROUTE_ID)
+        self.service(PingPongProgram::ROUTE_ID_PING_PONG_SERVICE)
     }
 }
 pub trait PingPongCtors {
@@ -39,7 +39,7 @@ impl<E: sails_rs::client::GearEnv> PingPongCtors
 
 pub mod io {
     use super::*;
-    sails_rs::io_struct_impl!(NewForBench () -> (), 0, sails_rs::meta::InterfaceId::zero());
+    sails_rs::io_struct_impl!(NewForBench () -> (), 0);
 }
 
 pub mod ping_pong_service {

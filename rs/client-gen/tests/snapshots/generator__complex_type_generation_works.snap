@@ -10,8 +10,8 @@ extern crate std;
 use sails_rs::{client::*, collections::*, prelude::*};
 pub struct ComplexTypesProgramProgram;
 impl ComplexTypesProgramProgram {
-    pub const MY_COMPLEX_SERVICE_ROUTE_ID: u8 = 1;
-    pub const ANOTHER_SERVICE_ROUTE_ID: u8 = 2;
+    pub const ROUTE_ID_MY_COMPLEX_SERVICE: u8 = 1;
+    pub const ROUTE_ID_ANOTHER_SERVICE: u8 = 2;
 }
 impl sails_rs::client::Program for ComplexTypesProgramProgram {}
 pub trait ComplexTypesProgram {
@@ -30,12 +30,12 @@ impl<E: sails_rs::client::GearEnv> ComplexTypesProgram
     fn my_complex_service(
         &self,
     ) -> sails_rs::client::Service<my_complex_service::MyComplexServiceImpl, Self::Env> {
-        self.service(ComplexTypesProgramProgram::MY_COMPLEX_SERVICE_ROUTE_ID)
+        self.service(ComplexTypesProgramProgram::ROUTE_ID_MY_COMPLEX_SERVICE)
     }
     fn another_service(
         &self,
     ) -> sails_rs::client::Service<another_service::AnotherServiceImpl, Self::Env> {
-        self.service(ComplexTypesProgramProgram::ANOTHER_SERVICE_ROUTE_ID)
+        self.service(ComplexTypesProgramProgram::ROUTE_ID_ANOTHER_SERVICE)
     }
 }
 pub trait ComplexTypesProgramCtors {
@@ -61,7 +61,7 @@ impl<E: sails_rs::client::GearEnv> ComplexTypesProgramCtors
 
 pub mod io {
     use super::*;
-    sails_rs::io_struct_impl!(NewProgram (initial_count: u32, id_prefix: String) -> (), 0, sails_rs::meta::InterfaceId::zero());
+    sails_rs::io_struct_impl!(NewProgram (initial_count: u32, id_prefix: String) -> (), 0);
 }
 
 pub mod my_complex_service {

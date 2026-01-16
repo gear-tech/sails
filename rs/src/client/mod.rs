@@ -335,43 +335,13 @@ impl<A, T: ServiceCall, E: GearEnv> PendingCtor<A, T, E> {
         self.params = Some(f(self.params.unwrap_or_default()));
         self
     }
-
-    pub fn encode_params(mut self) -> Vec<u8> {
-        let args = self
-            .args
-            .take()
-            .unwrap_or_else(|| panic!("{PENDING_CTOR_INVALID_STATE}"));
-        T::encode_params(&args)
-    }
 }
 
-pub trait CallCodec {
+pub trait ServiceCall: Identifiable {
     const ENTRY_ID: u16;
     type Params: Encode;
     type Reply: Decode + 'static;
 
-    fn encode_params(value: &Self::Params) -> Vec<u8> {
-        value.encode()
-    }
-
-    fn decode_reply(payload: impl AsRef<[u8]>) -> Result<Self::Reply, parity_scale_codec::Error> {
-        let mut value = payload.as_ref();
-        if Self::is_empty_tuple::<Self::Reply>() {
-            return Decode::decode(&mut value);
-        }
-        let header = SailsMessageHeader::decode(&mut value)?;
-        if header.entry_id() != Self::ENTRY_ID {
-            return Err("Invalid reply entry_id".into());
-        }
-        Decode::decode(&mut value)
-    }
-
-    fn is_empty_tuple<T: 'static>() -> bool {
-        TypeId::of::<T>() == TypeId::of::<()>()
-    }
-}
-
-pub trait ServiceCall: CallCodec + Identifiable {
     fn encode_params_with_header(route_idx: u8, value: &Self::Params) -> Vec<u8> {
         let header = SailsMessageHeader::new(
             crate::meta::Version::v1(),
@@ -425,6 +395,10 @@ pub trait ServiceCall: CallCodec + Identifiable {
             Encode::encode_to(value, &mut buffer_writer);
             buffer_writer.with_buffer(f)
         })
+    }
+
+    fn is_empty_tuple<T: 'static>() -> bool {
+        TypeId::of::<T>() == TypeId::of::<()>()
     }
 }
 
@@ -526,10 +500,6 @@ macro_rules! io_struct_impl {
     ) => {
         pub struct $name(());
         impl $name {
-            /// Encodes the parameters only (without Sails header).
-            pub fn encode_params($( $param: $ty, )* ) -> Vec<u8> {
-                <$name as CallCodec>::encode_params(&( $( $param, )* ))
-            }
             /// Encodes the full call with the correct Sails header (Interface ID + Route Index + Entry ID).
             pub fn encode_call(route_idx: u8, $( $param: $ty, )* ) -> Vec<u8> {
                 <$name as ServiceCall>::encode_params_with_header(route_idx, &( $( $param, )* ))
@@ -542,28 +512,16 @@ macro_rules! io_struct_impl {
         impl Identifiable for $name {
             const INTERFACE_ID: InterfaceId = $interface_id;
         }
-        impl CallCodec for $name {
+        impl ServiceCall for $name {
             const ENTRY_ID: u16 = $entry_id;
             type Params = ( $( $ty, )* );
             type Reply = $reply;
         }
-        impl ServiceCall for $name {}
     };
     (
         $name:ident ( $( $param:ident : $ty:ty ),* ) -> $reply:ty, $entry_id:expr
     ) => {
-        pub struct $name(());
-        impl $name {
-            /// Encodes the parameters only (without Sails header).
-            pub fn encode_params($( $param: $ty, )* ) -> Vec<u8> {
-                <$name as CallCodec>::encode_params(&( $( $param, )* ))
-            }
-        }
-        impl CallCodec for $name {
-            const ENTRY_ID: u16 = $entry_id;
-            type Params = ( $( $ty, )* );
-            type Reply = $reply;
-        }
+        $crate::io_struct_impl!($name ( $( $param : $ty ),* ) -> $reply, $entry_id, $crate::meta::InterfaceId::zero());
     };
 }
 
@@ -720,12 +678,20 @@ mod tests {
         let decoded = Add::decode_reply(route_idx, &reply_with_header).unwrap();
         assert_eq!(decoded, 42);
 
-        // Add::encode_params should return raw bytes without header even for service methods
-        let add_params_only = Add::encode_params(42);
-        assert_eq!(add_params_only, expected_add_payload);
+        // Value is "Ctor" mode, it uses InterfaceId::zero()
+        let value_encoded = Value::encode_call(0);
+        let expected_header_value = [
+            0x47, 0x4D, 1, 16, // magic, version, hlen
+            0, 0, 0, 0, 0, 0, 0, 0, // interface_id (zero)
+            1, 0, // entry_id (1 for Value)
+            0, 0, // route_id 0 and reserved 0
+        ];
+        assert_eq!(value_encoded, expected_header_value);
 
-        // Value is "Ctor" mode, encode takes no route_idx and returns raw bytes
-        let value_encoded = Value::encode_params();
-        assert_eq!(value_encoded, Vec::<u8>::new());
+        // Decode reply for Value
+        let mut value_reply = expected_header_value.to_vec();
+        value_reply.extend_from_slice(&[123, 0, 0, 0]); // payload 123u32
+        let decoded_value = Value::decode_reply(0, &value_reply).unwrap();
+        assert_eq!(decoded_value, 123);
     }
 }

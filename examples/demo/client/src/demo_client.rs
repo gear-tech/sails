@@ -10,13 +10,13 @@ use core::num::NonZeroU32;
 use sails_rs::{client::*, collections::*, prelude::*};
 pub struct DemoClientProgram;
 impl DemoClientProgram {
-    pub const PING_PONG_ROUTE_ID: u8 = 1;
-    pub const COUNTER_ROUTE_ID: u8 = 2;
-    pub const DOG_ROUTE_ID: u8 = 3;
-    pub const REFERENCES_ROUTE_ID: u8 = 4;
-    pub const THIS_THAT_ROUTE_ID: u8 = 5;
-    pub const VALUE_FEE_ROUTE_ID: u8 = 6;
-    pub const CHAOS_ROUTE_ID: u8 = 7;
+    pub const ROUTE_ID_PING_PONG: u8 = 1;
+    pub const ROUTE_ID_COUNTER: u8 = 2;
+    pub const ROUTE_ID_DOG: u8 = 3;
+    pub const ROUTE_ID_REFERENCES: u8 = 4;
+    pub const ROUTE_ID_THIS_THAT: u8 = 5;
+    pub const ROUTE_ID_VALUE_FEE: u8 = 6;
+    pub const ROUTE_ID_CHAOS: u8 = 7;
 }
 impl sails_rs::client::Program for DemoClientProgram {}
 pub trait DemoClient {
@@ -32,25 +32,25 @@ pub trait DemoClient {
 impl<E: sails_rs::client::GearEnv> DemoClient for sails_rs::client::Actor<DemoClientProgram, E> {
     type Env = E;
     fn ping_pong(&self) -> sails_rs::client::Service<ping_pong::PingPongImpl, Self::Env> {
-        self.service(DemoClientProgram::PING_PONG_ROUTE_ID)
+        self.service(DemoClientProgram::ROUTE_ID_PING_PONG)
     }
     fn counter(&self) -> sails_rs::client::Service<counter::CounterImpl, Self::Env> {
-        self.service(DemoClientProgram::COUNTER_ROUTE_ID)
+        self.service(DemoClientProgram::ROUTE_ID_COUNTER)
     }
     fn dog(&self) -> sails_rs::client::Service<dog::DogImpl, Self::Env> {
-        self.service(DemoClientProgram::DOG_ROUTE_ID)
+        self.service(DemoClientProgram::ROUTE_ID_DOG)
     }
     fn references(&self) -> sails_rs::client::Service<references::ReferencesImpl, Self::Env> {
-        self.service(DemoClientProgram::REFERENCES_ROUTE_ID)
+        self.service(DemoClientProgram::ROUTE_ID_REFERENCES)
     }
     fn this_that(&self) -> sails_rs::client::Service<this_that::ThisThatImpl, Self::Env> {
-        self.service(DemoClientProgram::THIS_THAT_ROUTE_ID)
+        self.service(DemoClientProgram::ROUTE_ID_THIS_THAT)
     }
     fn value_fee(&self) -> sails_rs::client::Service<value_fee::ValueFeeImpl, Self::Env> {
-        self.service(DemoClientProgram::VALUE_FEE_ROUTE_ID)
+        self.service(DemoClientProgram::ROUTE_ID_VALUE_FEE)
     }
     fn chaos(&self) -> sails_rs::client::Service<chaos::ChaosImpl, Self::Env> {
-        self.service(DemoClientProgram::CHAOS_ROUTE_ID)
+        self.service(DemoClientProgram::ROUTE_ID_CHAOS)
     }
 }
 pub trait DemoClientCtors {
@@ -84,8 +84,8 @@ impl<E: sails_rs::client::GearEnv> DemoClientCtors
 
 pub mod io {
     use super::*;
-    sails_rs::io_struct_impl!(Default () -> (), 0, sails_rs::meta::InterfaceId::zero());
-    sails_rs::io_struct_impl!(New (counter: super::Option<u32, >, dog_position: super::Option<(i32, i32, ), >) -> (), 1, sails_rs::meta::InterfaceId::zero());
+    sails_rs::io_struct_impl!(Default () -> (), 0);
+    sails_rs::io_struct_impl!(New (counter: super::Option<u32, >, dog_position: super::Option<(i32, i32, ), >) -> (), 1);
 }
 
 pub mod ping_pong {
@@ -170,6 +170,14 @@ pub mod counter {
             #[codec(index = 1)]
             Subtracted(u32),
         }
+        impl CounterEvents {
+            pub fn entry_id(&self) -> u16 {
+                match self {
+                    Self::Added { .. } => 0,
+                    Self::Subtracted { .. } => 1,
+                }
+            }
+        }
         impl sails_rs::client::Event for CounterEvents {}
         impl sails_rs::client::Identifiable for CounterEvents {
             const INTERFACE_ID: sails_rs::InterfaceId =
@@ -228,6 +236,13 @@ pub mod walker_service {
         pub enum WalkerServiceEvents {
             #[codec(index = 0)]
             Walked { from: (i32, i32), to: (i32, i32) },
+        }
+        impl WalkerServiceEvents {
+            pub fn entry_id(&self) -> u16 {
+                match self {
+                    Self::Walked { .. } => 0,
+                }
+            }
         }
         impl sails_rs::client::Event for WalkerServiceEvents {}
         impl sails_rs::client::Identifiable for WalkerServiceEvents {
@@ -337,6 +352,13 @@ pub mod dog {
         pub enum DogEvents {
             #[codec(index = 0)]
             Barked,
+        }
+        impl DogEvents {
+            pub fn entry_id(&self) -> u16 {
+                match self {
+                    Self::Barked { .. } => 0,
+                }
+            }
         }
         impl sails_rs::client::Event for DogEvents {}
         impl sails_rs::client::Identifiable for DogEvents {
@@ -581,6 +603,13 @@ pub mod value_fee {
         pub enum ValueFeeEvents {
             #[codec(index = 0)]
             Withheld(u128),
+        }
+        impl ValueFeeEvents {
+            pub fn entry_id(&self) -> u16 {
+                match self {
+                    Self::Withheld { .. } => 0,
+                }
+            }
         }
         impl sails_rs::client::Event for ValueFeeEvents {}
         impl sails_rs::client::Identifiable for ValueFeeEvents {

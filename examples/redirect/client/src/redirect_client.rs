@@ -3,7 +3,7 @@
 use sails_rs::{client::*, collections::*, prelude::*};
 pub struct RedirectClientProgram;
 impl RedirectClientProgram {
-    pub const REDIRECT_ROUTE_ID: u8 = 1;
+    pub const ROUTE_ID_REDIRECT: u8 = 1;
 }
 impl sails_rs::client::Program for RedirectClientProgram {}
 pub trait RedirectClient {
@@ -15,7 +15,7 @@ impl<E: sails_rs::client::GearEnv> RedirectClient
 {
     type Env = E;
     fn redirect(&self) -> sails_rs::client::Service<redirect::RedirectImpl, Self::Env> {
-        self.service(RedirectClientProgram::REDIRECT_ROUTE_ID)
+        self.service(RedirectClientProgram::ROUTE_ID_REDIRECT)
     }
 }
 pub trait RedirectClientCtors {
@@ -35,7 +35,7 @@ impl<E: sails_rs::client::GearEnv> RedirectClientCtors
 
 pub mod io {
     use super::*;
-    sails_rs::io_struct_impl!(New () -> (), 0, sails_rs::meta::InterfaceId::zero());
+    sails_rs::io_struct_impl!(New () -> (), 0);
 }
 
 pub mod redirect {

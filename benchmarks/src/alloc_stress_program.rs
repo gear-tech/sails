@@ -3,7 +3,7 @@
 use sails_rs::{client::*, collections::*, prelude::*};
 pub struct AllocStressProgram;
 impl AllocStressProgram {
-    pub const ALLOC_STRESS_ROUTE_ID: u8 = 1;
+    pub const ROUTE_ID_ALLOC_STRESS: u8 = 1;
 }
 impl sails_rs::client::Program for AllocStressProgram {}
 pub trait AllocStress {
@@ -13,7 +13,7 @@ pub trait AllocStress {
 impl<E: sails_rs::client::GearEnv> AllocStress for sails_rs::client::Actor<AllocStressProgram, E> {
     type Env = E;
     fn alloc_stress(&self) -> sails_rs::client::Service<alloc_stress::AllocStressImpl, Self::Env> {
-        self.service(AllocStressProgram::ALLOC_STRESS_ROUTE_ID)
+        self.service(AllocStressProgram::ROUTE_ID_ALLOC_STRESS)
     }
 }
 pub trait AllocStressCtors {
@@ -35,7 +35,7 @@ impl<E: sails_rs::client::GearEnv> AllocStressCtors
 
 pub mod io {
     use super::*;
-    sails_rs::io_struct_impl!(NewForBench () -> (), 0, sails_rs::meta::InterfaceId::zero());
+    sails_rs::io_struct_impl!(NewForBench () -> (), 0);
 }
 
 pub mod alloc_stress {
