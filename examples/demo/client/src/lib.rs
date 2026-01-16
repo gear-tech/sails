@@ -14,7 +14,7 @@ mod tests {
         // Use the new simplified encode_call method
         // It automatically uses the InterfaceId from the service module
         let bytes = io::DoThat::encode_call(
-            0,
+            DemoClientProgram::ROUTE_ID_THIS_THAT,
             DoThatParam {
                 p1: NonZeroU32::MAX,
                 p2: 123.into(),
@@ -26,7 +26,7 @@ mod tests {
             0x47, 0x4D, 0x01, 0x10, // Magic, Version, Header Length
             56, 30, 19, 253, 208, 45, 103, 95, // Interface ID
             0, 0, // Entry ID
-            0, // Route Index
+            5, // Route Index
             0, // Reserved
         ];
         expected.extend_from_slice(&[

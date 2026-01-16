@@ -42,7 +42,6 @@ fn adding_resource_to_storage_by_admin_succeeds() {
     let run_result = fixture.add_resource(ADMIN_ID, RESOURCE_ID, &resource);
 
     // Assert
-    println!("{run_result:#?}");
     let header = SailsMessageHeader::v1(
         RmrkResourceImpl::INTERFACE_ID,
         io::AddResourceEntry::ENTRY_ID,
@@ -164,7 +163,6 @@ fn adding_existing_part_to_resource_by_admin_succeeds() {
     let run_result = fixture.add_part_to_resource(ADMIN_ID, RESOURCE_ID, PART_ID);
 
     // Assert
-    println!("{run_result:#?}");
     let header = SailsMessageHeader::v1(
         RmrkResourceImpl::INTERFACE_ID,
         io::AddPartToResource::ENTRY_ID,

@@ -180,8 +180,15 @@ impl SailsMessageHeader {
 
 impl Encode for SailsMessageHeader {
     fn encode_to<O: Output + ?Sized>(&self, dest: &mut O) {
-        let bytes = self.to_bytes();
-        dest.write(&bytes);
+        // Copy-paste for the optimization purpose, as `to_bytes` allocates a new Vec.
+        dest.write(Magic::new().as_bytes());
+        dest.push_byte(self.version.inner());
+        dest.push_byte(self.hlen.inner());
+        dest.write(self.interface_id.as_bytes());
+        dest.write(&self.entry_id.to_le_bytes());
+        dest.push_byte(self.route_id);
+        // Reserved byte
+        dest.push_byte(0);
     }
 }
 
