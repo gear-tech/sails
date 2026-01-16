@@ -9,6 +9,15 @@ use core::num::NonZeroU32;
 #[allow(unused_imports)]
 use sails_rs::{client::*, collections::*, prelude::*};
 pub struct DemoClientProgram;
+impl DemoClientProgram {
+    pub const ROUTE_ID_PING_PONG: u8 = 1;
+    pub const ROUTE_ID_COUNTER: u8 = 2;
+    pub const ROUTE_ID_DOG: u8 = 3;
+    pub const ROUTE_ID_REFERENCES: u8 = 4;
+    pub const ROUTE_ID_THIS_THAT: u8 = 5;
+    pub const ROUTE_ID_VALUE_FEE: u8 = 6;
+    pub const ROUTE_ID_CHAOS: u8 = 7;
+}
 impl sails_rs::client::Program for DemoClientProgram {}
 pub trait DemoClient {
     type Env: sails_rs::client::GearEnv;
@@ -23,25 +32,25 @@ pub trait DemoClient {
 impl<E: sails_rs::client::GearEnv> DemoClient for sails_rs::client::Actor<DemoClientProgram, E> {
     type Env = E;
     fn ping_pong(&self) -> sails_rs::client::Service<ping_pong::PingPongImpl, Self::Env> {
-        self.service(stringify!(PingPong))
+        self.service(DemoClientProgram::ROUTE_ID_PING_PONG)
     }
     fn counter(&self) -> sails_rs::client::Service<counter::CounterImpl, Self::Env> {
-        self.service(stringify!(Counter))
+        self.service(DemoClientProgram::ROUTE_ID_COUNTER)
     }
     fn dog(&self) -> sails_rs::client::Service<dog::DogImpl, Self::Env> {
-        self.service(stringify!(Dog))
+        self.service(DemoClientProgram::ROUTE_ID_DOG)
     }
     fn references(&self) -> sails_rs::client::Service<references::ReferencesImpl, Self::Env> {
-        self.service(stringify!(References))
+        self.service(DemoClientProgram::ROUTE_ID_REFERENCES)
     }
     fn this_that(&self) -> sails_rs::client::Service<this_that::ThisThatImpl, Self::Env> {
-        self.service(stringify!(ThisThat))
+        self.service(DemoClientProgram::ROUTE_ID_THIS_THAT)
     }
     fn value_fee(&self) -> sails_rs::client::Service<value_fee::ValueFeeImpl, Self::Env> {
-        self.service(stringify!(ValueFee))
+        self.service(DemoClientProgram::ROUTE_ID_VALUE_FEE)
     }
     fn chaos(&self) -> sails_rs::client::Service<chaos::ChaosImpl, Self::Env> {
-        self.service(stringify!(Chaos))
+        self.service(DemoClientProgram::ROUTE_ID_CHAOS)
     }
 }
 pub trait DemoClientCtors {
@@ -75,8 +84,8 @@ impl<E: sails_rs::client::GearEnv> DemoClientCtors
 
 pub mod io {
     use super::*;
-    sails_rs::io_struct_impl!(Default () -> ());
-    sails_rs::io_struct_impl!(New (counter: super::Option<u32, >, dog_position: super::Option<(i32, i32, ), >) -> ());
+    sails_rs::io_struct_impl!(Default () -> (), 0);
+    sails_rs::io_struct_impl!(New (counter: super::Option<u32, >, dog_position: super::Option<(i32, i32, ), >) -> (), 1);
 }
 
 pub mod ping_pong {
@@ -86,6 +95,10 @@ pub mod ping_pong {
         fn ping(&mut self, input: String) -> sails_rs::client::PendingCall<io::Ping, Self::Env>;
     }
     pub struct PingPongImpl;
+    impl sails_rs::client::Identifiable for PingPongImpl {
+        const INTERFACE_ID: sails_rs::InterfaceId =
+            sails_rs::InterfaceId::from_bytes_8([109, 14, 180, 13, 222, 64, 56, 247]);
+    }
     impl<E: sails_rs::client::GearEnv> PingPong for sails_rs::client::Service<PingPongImpl, E> {
         type Env = E;
         fn ping(&mut self, input: String) -> sails_rs::client::PendingCall<io::Ping, Self::Env> {
@@ -95,7 +108,7 @@ pub mod ping_pong {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(Ping (input: String) -> super::Result<String, String>);
+        sails_rs::io_struct_impl!(Ping (input: String) -> super::Result<String, String, >, 0, <super::PingPongImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(feature = "with_mocks")]
@@ -119,6 +132,10 @@ pub mod counter {
         fn value(&self) -> sails_rs::client::PendingCall<io::Value, Self::Env>;
     }
     pub struct CounterImpl;
+    impl sails_rs::client::Identifiable for CounterImpl {
+        const INTERFACE_ID: sails_rs::InterfaceId =
+            sails_rs::InterfaceId::from_bytes_8([87, 157, 109, 171, 164, 27, 125, 130]);
+    }
     impl<E: sails_rs::client::GearEnv> Counter for sails_rs::client::Service<CounterImpl, E> {
         type Env = E;
         fn add(&mut self, value: u32) -> sails_rs::client::PendingCall<io::Add, Self::Env> {
@@ -134,9 +151,9 @@ pub mod counter {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(Add (value: u32) -> u32);
-        sails_rs::io_struct_impl!(Sub (value: u32) -> u32);
-        sails_rs::io_struct_impl!(Value () -> u32);
+        sails_rs::io_struct_impl!(Add (value: u32) -> u32, 0, <super::CounterImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Sub (value: u32) -> u32, 1, <super::CounterImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Value () -> u32, 2, <super::CounterImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -147,12 +164,24 @@ pub mod counter {
         #[reflect_hash(crate = sails_rs)]
         pub enum CounterEvents {
             /// Emitted when a new value is added to the counter
+            #[codec(index = 0)]
             Added(u32),
             /// Emitted when a value is subtracted from the counter
+            #[codec(index = 1)]
             Subtracted(u32),
         }
-        impl sails_rs::client::Event for CounterEvents {
-            const EVENT_NAMES: &'static [Route] = &["Added", "Subtracted"];
+        impl CounterEvents {
+            pub fn entry_id(&self) -> u16 {
+                match self {
+                    Self::Added { .. } => 0,
+                    Self::Subtracted { .. } => 1,
+                }
+            }
+        }
+        impl sails_rs::client::Event for CounterEvents {}
+        impl sails_rs::client::Identifiable for CounterEvents {
+            const INTERFACE_ID: sails_rs::InterfaceId =
+                <CounterImpl as sails_rs::client::Identifiable>::INTERFACE_ID;
         }
         impl sails_rs::client::ServiceWithEvents for CounterImpl {
             type Event = CounterEvents;
@@ -176,6 +205,10 @@ pub mod walker_service {
         fn position(&self) -> sails_rs::client::PendingCall<io::Position, Self::Env>;
     }
     pub struct WalkerServiceImpl;
+    impl sails_rs::client::Identifiable for WalkerServiceImpl {
+        const INTERFACE_ID: sails_rs::InterfaceId =
+            sails_rs::InterfaceId::from_bytes_8([238, 21, 54, 181, 81, 112, 191, 10]);
+    }
     impl<E: sails_rs::client::GearEnv> WalkerService
         for sails_rs::client::Service<WalkerServiceImpl, E>
     {
@@ -190,8 +223,8 @@ pub mod walker_service {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(Walk (dx: i32, dy: i32) -> ());
-        sails_rs::io_struct_impl!(Position () -> (i32, i32, ));
+        sails_rs::io_struct_impl!(Walk (dx: i32, dy: i32) -> (), 0, <super::WalkerServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Position () -> (i32, i32, ), 1, <super::WalkerServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -201,10 +234,20 @@ pub mod walker_service {
         #[codec(crate = sails_rs::scale_codec)]
         #[reflect_hash(crate = sails_rs)]
         pub enum WalkerServiceEvents {
+            #[codec(index = 0)]
             Walked { from: (i32, i32), to: (i32, i32) },
         }
-        impl sails_rs::client::Event for WalkerServiceEvents {
-            const EVENT_NAMES: &'static [Route] = &["Walked"];
+        impl WalkerServiceEvents {
+            pub fn entry_id(&self) -> u16 {
+                match self {
+                    Self::Walked { .. } => 0,
+                }
+            }
+        }
+        impl sails_rs::client::Event for WalkerServiceEvents {}
+        impl sails_rs::client::Identifiable for WalkerServiceEvents {
+            const INTERFACE_ID: sails_rs::InterfaceId =
+                <WalkerServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID;
         }
         impl sails_rs::client::ServiceWithEvents for WalkerServiceImpl {
             type Event = WalkerServiceEvents;
@@ -228,6 +271,10 @@ pub mod mammal_service {
         fn avg_weight(&self) -> sails_rs::client::PendingCall<io::AvgWeight, Self::Env>;
     }
     pub struct MammalServiceImpl;
+    impl sails_rs::client::Identifiable for MammalServiceImpl {
+        const INTERFACE_ID: sails_rs::InterfaceId =
+            sails_rs::InterfaceId::from_bytes_8([255, 107, 147, 225, 150, 16, 38, 254]);
+    }
     impl<E: sails_rs::client::GearEnv> MammalService
         for sails_rs::client::Service<MammalServiceImpl, E>
     {
@@ -242,8 +289,8 @@ pub mod mammal_service {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(MakeSound () -> String);
-        sails_rs::io_struct_impl!(AvgWeight () -> u32);
+        sails_rs::io_struct_impl!(MakeSound () -> String, 0, <super::MammalServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(AvgWeight () -> u32, 1, <super::MammalServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(feature = "with_mocks")]
@@ -268,6 +315,10 @@ pub mod dog {
         ) -> sails_rs::client::Service<super::walker_service::WalkerServiceImpl, Self::Env>;
     }
     pub struct DogImpl;
+    impl sails_rs::client::Identifiable for DogImpl {
+        const INTERFACE_ID: sails_rs::InterfaceId =
+            sails_rs::InterfaceId::from_bytes_8([24, 102, 110, 103, 162, 25, 23, 161]);
+    }
     impl<E: sails_rs::client::GearEnv> Dog for sails_rs::client::Service<DogImpl, E> {
         type Env = E;
         fn make_sound(&mut self) -> sails_rs::client::PendingCall<io::MakeSound, Self::Env> {
@@ -289,7 +340,7 @@ pub mod dog {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(MakeSound () -> String);
+        sails_rs::io_struct_impl!(MakeSound () -> String, 0, <super::DogImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -299,10 +350,20 @@ pub mod dog {
         #[codec(crate = sails_rs::scale_codec)]
         #[reflect_hash(crate = sails_rs)]
         pub enum DogEvents {
+            #[codec(index = 0)]
             Barked,
         }
-        impl sails_rs::client::Event for DogEvents {
-            const EVENT_NAMES: &'static [Route] = &["Barked"];
+        impl DogEvents {
+            pub fn entry_id(&self) -> u16 {
+                match self {
+                    Self::Barked { .. } => 0,
+                }
+            }
+        }
+        impl sails_rs::client::Event for DogEvents {}
+        impl sails_rs::client::Identifiable for DogEvents {
+            const INTERFACE_ID: sails_rs::InterfaceId =
+                <DogImpl as sails_rs::client::Identifiable>::INTERFACE_ID;
         }
         impl sails_rs::client::ServiceWithEvents for DogImpl {
             type Event = DogEvents;
@@ -340,6 +401,10 @@ pub mod references {
         fn message(&self) -> sails_rs::client::PendingCall<io::Message, Self::Env>;
     }
     pub struct ReferencesImpl;
+    impl sails_rs::client::Identifiable for ReferencesImpl {
+        const INTERFACE_ID: sails_rs::InterfaceId =
+            sails_rs::InterfaceId::from_bytes_8([138, 15, 138, 190, 23, 109, 117, 185]);
+    }
     impl<E: sails_rs::client::GearEnv> References for sails_rs::client::Service<ReferencesImpl, E> {
         type Env = E;
         fn add(&mut self, v: u32) -> sails_rs::client::PendingCall<io::Add, Self::Env> {
@@ -373,14 +438,14 @@ pub mod references {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(Add (v: u32) -> u32);
-        sails_rs::io_struct_impl!(AddByte (byte: u8) -> Vec<u8>);
-        sails_rs::io_struct_impl!(GuessNum (number: u8) -> super::Result<String, String>);
-        sails_rs::io_struct_impl!(Incr () -> super::ReferenceCount);
-        sails_rs::io_struct_impl!(SetNum (number: u8) -> super::Result<(), String>);
-        sails_rs::io_struct_impl!(Baked () -> String);
-        sails_rs::io_struct_impl!(LastByte () -> super::Option<u8, >);
-        sails_rs::io_struct_impl!(Message () -> super::Option<String, >);
+        sails_rs::io_struct_impl!(Add (v: u32) -> u32, 0, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(AddByte (byte: u8) -> Vec<u8>, 1, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(GuessNum (number: u8) -> super::Result<String, String, >, 2, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Incr () -> super::ReferenceCount, 3, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(SetNum (number: u8) -> super::Result<(), String, >, 4, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Baked () -> String, 5, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(LastByte () -> super::Option<u8, >, 6, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Message () -> super::Option<String, >, 7, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(feature = "with_mocks")]
@@ -450,6 +515,10 @@ pub mod this_that {
         fn this(&self) -> sails_rs::client::PendingCall<io::This, Self::Env>;
     }
     pub struct ThisThatImpl;
+    impl sails_rs::client::Identifiable for ThisThatImpl {
+        const INTERFACE_ID: sails_rs::InterfaceId =
+            sails_rs::InterfaceId::from_bytes_8([56, 30, 19, 253, 208, 45, 103, 95]);
+    }
     impl<E: sails_rs::client::GearEnv> ThisThat for sails_rs::client::Service<ThisThatImpl, E> {
         type Env = E;
         fn do_that(
@@ -480,11 +549,11 @@ pub mod this_that {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(DoThat (param: super::DoThatParam) -> super::Result<(ActorId, super::NonZeroU32, super::ManyVariantsReply, ), (String, )>);
-        sails_rs::io_struct_impl!(DoThis (p1: u32, p2: String, p3: (super::Option<H160, >, super::NonZeroU8, ), p4: super::TupleStruct) -> (String, u32, ));
-        sails_rs::io_struct_impl!(Noop () -> ());
-        sails_rs::io_struct_impl!(That () -> super::Result<String, String>);
-        sails_rs::io_struct_impl!(This () -> u32);
+        sails_rs::io_struct_impl!(DoThat (param: super::DoThatParam) -> super::Result<(ActorId, super::NonZeroU32, super::ManyVariantsReply, ), (String, ), >, 0, <super::ThisThatImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(DoThis (p1: u32, p2: String, p3: (super::Option<H160, >, super::NonZeroU8, ), p4: super::TupleStruct) -> (String, u32, ), 1, <super::ThisThatImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Noop () -> (), 2, <super::ThisThatImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(That () -> super::Result<String, String, >, 3, <super::ThisThatImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(This () -> u32, 4, <super::ThisThatImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(feature = "with_mocks")]
@@ -507,6 +576,10 @@ pub mod value_fee {
         ) -> sails_rs::client::PendingCall<io::DoSomethingAndTakeFee, Self::Env>;
     }
     pub struct ValueFeeImpl;
+    impl sails_rs::client::Identifiable for ValueFeeImpl {
+        const INTERFACE_ID: sails_rs::InterfaceId =
+            sails_rs::InterfaceId::from_bytes_8([65, 193, 8, 11, 78, 30, 141, 197]);
+    }
     impl<E: sails_rs::client::GearEnv> ValueFee for sails_rs::client::Service<ValueFeeImpl, E> {
         type Env = E;
         fn do_something_and_take_fee(
@@ -518,7 +591,7 @@ pub mod value_fee {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(DoSomethingAndTakeFee () -> bool);
+        sails_rs::io_struct_impl!(DoSomethingAndTakeFee () -> bool, 0, <super::ValueFeeImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -528,10 +601,20 @@ pub mod value_fee {
         #[codec(crate = sails_rs::scale_codec)]
         #[reflect_hash(crate = sails_rs)]
         pub enum ValueFeeEvents {
+            #[codec(index = 0)]
             Withheld(u128),
         }
-        impl sails_rs::client::Event for ValueFeeEvents {
-            const EVENT_NAMES: &'static [Route] = &["Withheld"];
+        impl ValueFeeEvents {
+            pub fn entry_id(&self) -> u16 {
+                match self {
+                    Self::Withheld { .. } => 0,
+                }
+            }
+        }
+        impl sails_rs::client::Event for ValueFeeEvents {}
+        impl sails_rs::client::Identifiable for ValueFeeEvents {
+            const INTERFACE_ID: sails_rs::InterfaceId =
+                <ValueFeeImpl as sails_rs::client::Identifiable>::INTERFACE_ID;
         }
         impl sails_rs::client::ServiceWithEvents for ValueFeeImpl {
             type Event = ValueFeeEvents;
@@ -558,6 +641,10 @@ pub mod chaos {
         fn timeout_wait(&self) -> sails_rs::client::PendingCall<io::TimeoutWait, Self::Env>;
     }
     pub struct ChaosImpl;
+    impl sails_rs::client::Identifiable for ChaosImpl {
+        const INTERFACE_ID: sails_rs::InterfaceId =
+            sails_rs::InterfaceId::from_bytes_8([240, 200, 200, 13, 250, 191, 114, 213]);
+    }
     impl<E: sails_rs::client::GearEnv> Chaos for sails_rs::client::Service<ChaosImpl, E> {
         type Env = E;
         fn panic_after_wait(&self) -> sails_rs::client::PendingCall<io::PanicAfterWait, Self::Env> {
@@ -575,9 +662,9 @@ pub mod chaos {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(PanicAfterWait () -> ());
-        sails_rs::io_struct_impl!(ReplyHookCounter () -> u32);
-        sails_rs::io_struct_impl!(TimeoutWait () -> ());
+        sails_rs::io_struct_impl!(PanicAfterWait () -> (), 0, <super::ChaosImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(ReplyHookCounter () -> u32, 1, <super::ChaosImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(TimeoutWait () -> (), 2, <super::ChaosImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(feature = "with_mocks")]

@@ -13,6 +13,11 @@ impl sails_rs::SailsEvent for MyEvent {
             }
         }
     }
+    fn entry_id(&self) -> u16 {
+        match self {
+            MyEvent::MyEvent1 => 0u16,
+        }
+    }
     fn skip_bytes() -> usize {
         1
     }

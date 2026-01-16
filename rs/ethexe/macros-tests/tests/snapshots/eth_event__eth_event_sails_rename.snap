@@ -27,6 +27,13 @@ impl sails_rename::SailsEvent for Events {
             }
         }
     }
+    fn entry_id(&self) -> u16 {
+        match self {
+            Events::MyEvent1 { .. } => 0u16,
+            Events::MyEvent2(..) => 1u16,
+            Events::MyEvent3 => 2u16,
+        }
+    }
     fn skip_bytes() -> usize {
         1
     }

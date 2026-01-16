@@ -7,7 +7,7 @@ pub enum Events {
     MyEvent2(u128, u128, String),
     MyEvent3,
 }
-impl sails_rename::SailsEvent for Events {
+impl sails_rs::SailsEvent for Events {
     fn encoded_event_name(&self) -> &'static [u8] {
         match self {
             Events::MyEvent1 { .. } => {

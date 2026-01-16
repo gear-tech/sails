@@ -11,7 +11,7 @@ impl ServiceBuilder<'_> {
         let service_method_expo = self
             .service_handlers
             .iter()
-            .map(|fn_builder| fn_builder.sol_handler_signature(true));
+            .map(|fn_builder| fn_builder.sol_handler_signature(Some(service_type_path)));
 
         let combined_methods = if self.base_types.is_empty() {
             quote! {
@@ -42,6 +42,7 @@ impl ServiceBuilder<'_> {
 
     pub(super) fn try_handle_solidity_impl(&self) -> TokenStream {
         let sails_path = self.sails_path;
+        let service_type_path = self.type_path;
         let inner_ident = &self.inner_ident;
 
         let impl_inner = |is_async: bool| {
@@ -73,7 +74,7 @@ impl ServiceBuilder<'_> {
                         Some(quote! { . #idx_literal })
                     };
                     quote! {
-                        if let Some(result) = base_services #idx_token .expose(self.route) . #name_ident(method, input) #await_token {
+                        if let Some(result) = base_services #idx_token .expose(self.route_idx) . #name_ident(interface_id, entry_id, input) #await_token {
                             return Some(result);
                         }
                     }
@@ -88,14 +89,21 @@ impl ServiceBuilder<'_> {
             quote! {
                 pub #asyncness fn #name_ident(
                     mut self,
-                    method: &[u8],
+                    interface_id: #sails_path::meta::InterfaceId,
+                    entry_id: u16,
                     input: &[u8],
                 ) -> Option<(#sails_path::Vec<u8>, u128, bool)> {
                     use #sails_path::gstd::services::{Service, Exposure};
 
-                    #( #service_method_branches )*
-                    #base_invocation
-                    None
+                    if interface_id == <self:: #service_type_path as #sails_path::meta::ServiceMeta>::INTERFACE_ID {
+                        match entry_id {
+                            #( #service_method_branches )*
+                            _ => None,
+                        }
+                    } else {
+                        #base_invocation
+                        None
+                    }
                 }
             }
         };
@@ -127,16 +135,16 @@ impl ServiceBuilder<'_> {
 impl FnBuilder<'_> {
     /// Generates code
     /// ```rust
-    /// if method == &[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8] {
+    /// 0u16 => {
     ///     // invocation
     /// }
     /// ```
     fn sol_try_handle_branch_impl(&self) -> TokenStream {
-        let handler_route_bytes = self.encoded_route.as_slice();
+        let entry_id = self.entry_id;
         let invocation = self.sol_invocation_func();
 
         quote! {
-            if method == &[ #(#handler_route_bytes),* ] {
+            #entry_id => {
                 #invocation
             }
         }

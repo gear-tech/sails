@@ -2,6 +2,9 @@
 #[allow(unused_imports)]
 use sails_rs::{client::*, collections::*, prelude::*};
 pub struct PingPongStackProgram;
+impl PingPongStackProgram {
+    pub const ROUTE_ID_PING_PONG_STACK: u8 = 1;
+}
 impl sails_rs::client::Program for PingPongStackProgram {}
 pub trait PingPongStack {
     type Env: sails_rs::client::GearEnv;
@@ -16,7 +19,7 @@ impl<E: sails_rs::client::GearEnv> PingPongStack
     fn ping_pong_stack(
         &self,
     ) -> sails_rs::client::Service<ping_pong_stack::PingPongStackImpl, Self::Env> {
-        self.service(stringify!(PingPongStack))
+        self.service(PingPongStackProgram::ROUTE_ID_PING_PONG_STACK)
     }
 }
 pub trait PingPongStackCtors {
@@ -48,8 +51,8 @@ impl<E: sails_rs::client::GearEnv> PingPongStackCtors
 
 pub mod io {
     use super::*;
-    sails_rs::io_struct_impl!(CreatePing (code_id: CodeId) -> ());
-    sails_rs::io_struct_impl!(CreatePong () -> ());
+    sails_rs::io_struct_impl!(CreatePing (code_id: CodeId) -> (), 0);
+    sails_rs::io_struct_impl!(CreatePong () -> (), 1);
 }
 
 pub mod ping_pong_stack {
@@ -60,6 +63,10 @@ pub mod ping_pong_stack {
         fn start(&mut self, limit: u32) -> sails_rs::client::PendingCall<io::Start, Self::Env>;
     }
     pub struct PingPongStackImpl;
+    impl sails_rs::client::Identifiable for PingPongStackImpl {
+        const INTERFACE_ID: sails_rs::InterfaceId =
+            sails_rs::InterfaceId::from_bytes_8([48, 181, 231, 61, 179, 133, 133, 236]);
+    }
     impl<E: sails_rs::client::GearEnv> PingPongStack
         for sails_rs::client::Service<PingPongStackImpl, E>
     {
@@ -74,7 +81,7 @@ pub mod ping_pong_stack {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(Ping (countdown: u32) -> ());
-        sails_rs::io_struct_impl!(Start (limit: u32) -> ());
+        sails_rs::io_struct_impl!(Ping (countdown: u32) -> (), 0, <super::PingPongStackImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Start (limit: u32) -> (), 1, <super::PingPongStackImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 }

@@ -1,6 +1,10 @@
 #![no_std]
 
-use sails_rs::{gstd, prelude::*};
+use sails_rs::{
+    gstd,
+    meta::{InterfaceId, ServiceMeta},
+    prelude::*,
+};
 
 #[event]
 #[derive(Clone, Debug, PartialEq, Encode, TypeInfo, ReflectHash)]
@@ -62,3 +66,5 @@ pub use code::WASM_BINARY_OPT as WASM_BINARY;
 mod code {
     include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 }
+
+pub const INTERFACE_ID: InterfaceId = <Service as ServiceMeta>::INTERFACE_ID;

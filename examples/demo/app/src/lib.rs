@@ -120,7 +120,7 @@ mod tests {
         let (data, value) = service_exposure.do_something_and_take_fee().to_tuple();
 
         // Assert
-        assert_eq!("ValueFee".encode().as_slice(), service_exposure.route());
+        assert_eq!(6, service_exposure.route_idx());
         assert!(data);
         assert_eq!(value, message_value - 10_000_000_000_000);
 
@@ -133,7 +133,7 @@ mod tests {
         let data = service_exposure.add(10);
 
         // Assert
-        assert_eq!("Counter".encode().as_slice(), service_exposure.route());
+        assert_eq!(2, service_exposure.route_idx());
         assert_eq!(52, data);
         let events = emitter.take_events();
         assert_eq!(events.len(), 1);

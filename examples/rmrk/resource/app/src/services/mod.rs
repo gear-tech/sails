@@ -1,4 +1,4 @@
-use crate::catalogs::rmrk_catalog::RmrkCatalog;
+use crate::catalogs::rmrk_catalog::{RmrkCatalog, RmrkCatalogImpl};
 use errors::{Error, Result};
 use resources::{ComposedResource, PartId, Resource, ResourceId};
 use sails_rs::{
@@ -36,7 +36,7 @@ pub enum ResourceStorageEvent {
     },
 }
 
-pub struct ResourceStorage<TCatalogClient> {
+pub struct ResourceStorage<TCatalogClient = Service<RmrkCatalogImpl, GstdEnv>> {
     catalog_client: TCatalogClient,
 }
 
@@ -189,7 +189,7 @@ mod tests {
         Syscall::with_message_source(ActorId::from(1));
 
         ResourceStorage::<MockRmrkCatalog>::seed();
-        let mut resource_storage = ResourceStorage::new(MockRmrkCatalog::new()).expose(&[]);
+        let mut resource_storage = ResourceStorage::new(MockRmrkCatalog::new()).expose(1);
 
         let resource = Resource::Composed(ComposedResource {
             src: "src".to_string(),

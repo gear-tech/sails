@@ -31,6 +31,10 @@ pub mod multiple {
         ) -> sails_rs::client::PendingCall<io::DoThis, Self::Env>;
     }
     pub struct MultipleImpl;
+    impl sails_rs::client::Identifiable for MultipleImpl {
+        const INTERFACE_ID: sails_rs::InterfaceId =
+            sails_rs::InterfaceId::from_bytes_8([2, 24, 22, 148, 109, 93, 75, 194]);
+    }
     impl<E: sails_rs::client::GearEnv> Multiple for sails_rs::client::Service<MultipleImpl, E> {
         type Env = E;
         fn do_that(
@@ -50,8 +54,8 @@ pub mod multiple {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(DoThat (p1: (u8, u32, )) -> u8);
-        sails_rs::io_struct_impl!(DoThis (p1: u32, p2: super::MyParam) -> u16);
+        sails_rs::io_struct_impl!(DoThat (p1: (u8, u32, )) -> u8, 0, <super::MultipleImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(DoThis (p1: u32, p2: super::MyParam) -> u16, 1, <super::MultipleImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(feature = "with_mocks")]
@@ -70,6 +74,10 @@ pub mod named {
         fn that(&self, p1: u32) -> sails_rs::client::PendingCall<io::That, Self::Env>;
     }
     pub struct NamedImpl;
+    impl sails_rs::client::Identifiable for NamedImpl {
+        const INTERFACE_ID: sails_rs::InterfaceId =
+            sails_rs::InterfaceId::from_bytes_8([81, 188, 228, 30, 50, 153, 227, 193]);
+    }
     impl<E: sails_rs::client::GearEnv> Named for sails_rs::client::Service<NamedImpl, E> {
         type Env = E;
         fn that(&self, p1: u32) -> sails_rs::client::PendingCall<io::That, Self::Env> {
@@ -79,7 +87,7 @@ pub mod named {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(That (p1: u32) -> String);
+        sails_rs::io_struct_impl!(That (p1: u32) -> String, 0, <super::NamedImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(feature = "with_mocks")]

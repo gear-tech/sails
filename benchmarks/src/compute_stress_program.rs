@@ -2,6 +2,9 @@
 #[allow(unused_imports)]
 use sails_rs::{client::*, collections::*, prelude::*};
 pub struct ComputeStressProgram;
+impl ComputeStressProgram {
+    pub const ROUTE_ID_COMPUTE_STRESS: u8 = 1;
+}
 impl sails_rs::client::Program for ComputeStressProgram {}
 pub trait ComputeStress {
     type Env: sails_rs::client::GearEnv;
@@ -16,7 +19,7 @@ impl<E: sails_rs::client::GearEnv> ComputeStress
     fn compute_stress(
         &self,
     ) -> sails_rs::client::Service<compute_stress::ComputeStressImpl, Self::Env> {
-        self.service(stringify!(ComputeStress))
+        self.service(ComputeStressProgram::ROUTE_ID_COMPUTE_STRESS)
     }
 }
 pub trait ComputeStressCtors {
@@ -38,7 +41,7 @@ impl<E: sails_rs::client::GearEnv> ComputeStressCtors
 
 pub mod io {
     use super::*;
-    sails_rs::io_struct_impl!(NewForBench () -> ());
+    sails_rs::io_struct_impl!(NewForBench () -> (), 0);
 }
 
 pub mod compute_stress {
@@ -58,6 +61,10 @@ pub mod compute_stress {
         ) -> sails_rs::client::PendingCall<io::ComputeStress, Self::Env>;
     }
     pub struct ComputeStressImpl;
+    impl sails_rs::client::Identifiable for ComputeStressImpl {
+        const INTERFACE_ID: sails_rs::InterfaceId =
+            sails_rs::InterfaceId::from_bytes_8([254, 138, 70, 56, 122, 195, 121, 54]);
+    }
     impl<E: sails_rs::client::GearEnv> ComputeStress
         for sails_rs::client::Service<ComputeStressImpl, E>
     {
@@ -72,6 +79,6 @@ pub mod compute_stress {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(ComputeStress (n: u32) -> super::ComputeStressResult);
+        sails_rs::io_struct_impl!(ComputeStress (n: u32) -> super::ComputeStressResult, 0, <super::ComputeStressImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 }
