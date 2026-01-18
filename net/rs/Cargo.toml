@@ -11,13 +11,13 @@ members = ["client-gen"]
 
 [workspace.dependencies]
 # sails
-sails-idl-parser = "=0.6.3"
+sails-idl-parser = "=0.10.2"
 # others
 anyhow = "1"
-convert_case = "0.7"
-genco = "0.17"
-insta = "1.43"
-itertools = "0.13"
-parity-scale-codec = "=3.6.12"
+convert_case = "0.10"
+genco = "0.19"
+insta = "1.46"
+itertools = "0.14"
+parity-scale-codec = "=3.7.5"
 serde = { version = "1.0", features = ["derive"] }
 serde-json = { package = "serde_json", version = "1.0" }
