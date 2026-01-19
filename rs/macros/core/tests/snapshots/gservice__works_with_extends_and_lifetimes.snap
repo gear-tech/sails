@@ -9,7 +9,7 @@ pub struct ExtendedLifetimeExposure<T> {
 impl<T: sails_rs::meta::ServiceMeta> sails_rs::gstd::services::Exposure
 for ExtendedLifetimeExposure<T> {
     fn interface_id() -> sails_rs::meta::InterfaceId {
-        T::INTERFACE_ID
+        <T as sails_rs::meta::Identifiable>::INTERFACE_ID
     }
     fn route_idx(&self) -> u8 {
         self.route_idx
@@ -73,7 +73,7 @@ impl<'a> ExtendedLifetimeExposure<ExtendedLifetime<'a>> {
         mut input: &[u8],
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
-        use sails_rs::gstd::services::{Exposure, Service};
+        use sails_rs::gstd::services::{Service, Exposure};
         use sails_rs::gstd::{InvocationIo, CommandReply};
         if interface_id
             == <self::ExtendedLifetime<'a> as sails_rs::meta::Identifiable>::INTERFACE_ID
@@ -131,7 +131,7 @@ impl<'a> ExtendedLifetimeExposure<ExtendedLifetime<'a>> {
         mut input: &[u8],
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
-        use sails_rs::gstd::services::{Exposure, Service};
+        use sails_rs::gstd::services::{Service, Exposure};
         use sails_rs::gstd::{InvocationIo, CommandReply};
         if interface_id
             == <self::ExtendedLifetime<'a> as sails_rs::meta::Identifiable>::INTERFACE_ID

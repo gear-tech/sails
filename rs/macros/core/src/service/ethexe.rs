@@ -41,8 +41,36 @@ impl ServiceBuilder<'_> {
     }
 
     pub(super) fn try_handle_solidity_impl(&self) -> TokenStream {
-        let sync_impl = self.generate_sol_handle_method(false);
-        let async_impl = self.generate_sol_handle_method(true);
+        let impl_method = |is_async: bool| {
+            let method_ident = Ident::new(if is_async { "try_handle_solidity_async" } else { "try_handle_solidity" }, Span::call_site());
+            let sails_path = self.sails_path;
+            
+            let method_sig = quote! {
+                (
+                    mut self,
+                    interface_id: #sails_path::meta::InterfaceId,
+                    entry_id: u16,
+                    input: &[u8],
+                ) -> Option<(#sails_path::Vec<u8>, u128, bool)>
+            };
+
+            self.generate_dispatch_impl(
+                is_async,
+                &method_ident,
+                method_sig,
+                |fn_builder, _| self.generate_sol_decode_and_handle(fn_builder),
+                |idx_token, await_token, method_name| {
+                    quote! {
+                        if let Some(result) = base_services #idx_token .expose(self.route_idx) . #method_name (interface_id, entry_id, input) #await_token {
+                            return Some(result);
+                        }
+                    }
+                }
+            )
+        };
+
+        let sync_impl = impl_method(false);
+        let async_impl = impl_method(true);
 
         quote! {
             #sync_impl
@@ -110,87 +138,6 @@ impl ServiceBuilder<'_> {
                 #sails_path::alloy_sol_types::SolValue::abi_encode_sequence(&(result,))
             };
             return Some((output, value, __encode_reply));
-        }
-    }
-
-    fn generate_sol_handle_method(&self, is_async: bool) -> TokenStream {
-        let sails_path = self.sails_path;
-        let service_type_path = self.type_path;
-        let inner_ident = &self.inner_ident;
-
-        let (name_ident, asyncness, await_token) = if is_async {
-            (
-                quote!(try_handle_solidity_async),
-                Some(quote!(async)),
-                Some(quote!(.await)),
-            )
-        } else {
-            (quote!(try_handle_solidity), None, None)
-        };
-
-        let mut regular_dispatches = Vec::new();
-
-        for fn_builder in &self.service_handlers {
-            if is_async != fn_builder.is_async() {
-                continue;
-            }
-
-            let entry_id = fn_builder.entry_id;
-            let decode_and_handle = self.generate_sol_decode_and_handle(fn_builder);
-
-            regular_dispatches.push(quote! {
-                #entry_id => {
-                    #decode_and_handle
-                }
-            });
-        }
-
-        let base_invocation = if self.base_types.is_empty() {
-            None
-        } else {
-            let base_exposure_invocations = self.sorted_base_indices.iter().map(|&idx| {
-                let idx_token = if self.base_types.len() == 1 {
-                    None
-                } else {
-                    let idx_literal = Literal::usize_unsuffixed(idx);
-                    Some(quote! { . #idx_literal })
-                };
-                quote! {
-                    if let Some(result) = base_services #idx_token .expose(self.route_idx) . #name_ident(interface_id, entry_id, input) #await_token {
-                        return Some(result);
-                    }
-                }
-            });
-
-            let base_types = self.base_types;
-            // Base Services, as `Into` tuple from Service
-            Some(quote! {
-                let base_services: ( #( #base_types ),* ) = self. #inner_ident .into();
-                #( #base_exposure_invocations )*
-            })
-        };
-
-        quote! {
-            pub #asyncness fn #name_ident(
-                mut self,
-                interface_id: #sails_path::meta::InterfaceId,
-                entry_id: u16,
-                input: &[u8],
-            ) -> Option<(#sails_path::Vec<u8>, u128, bool)> {
-                use #sails_path::gstd::services::{Service, Exposure};
-                use #sails_path::gstd::CommandReply;
-
-                // Then check own methods
-                if interface_id == <self:: #service_type_path as #sails_path::meta::Identifiable>::INTERFACE_ID {
-                    match entry_id {
-                        #( #regular_dispatches )*
-                        _ => None,
-                    }
-                } else {
-                    #base_invocation
-                    None
-                }
-            }
         }
     }
 }

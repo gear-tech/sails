@@ -9,7 +9,7 @@ pub struct ReferenceServiceExposure<T> {
 impl<T: sails_rs::meta::ServiceMeta> sails_rs::gstd::services::Exposure
 for ReferenceServiceExposure<T> {
     fn interface_id() -> sails_rs::meta::InterfaceId {
-        T::INTERFACE_ID
+        <T as sails_rs::meta::Identifiable>::INTERFACE_ID
     }
     fn route_idx(&self) -> u8 {
         self.route_idx
@@ -80,7 +80,7 @@ impl ReferenceServiceExposure<ReferenceService> {
         mut input: &[u8],
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
-        use sails_rs::gstd::services::{Exposure, Service};
+        use sails_rs::gstd::services::{Service, Exposure};
         use sails_rs::gstd::{InvocationIo, CommandReply};
         if interface_id
             == <self::ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID
@@ -147,7 +147,7 @@ impl ReferenceServiceExposure<ReferenceService> {
         mut input: &[u8],
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
-        use sails_rs::gstd::services::{Exposure, Service};
+        use sails_rs::gstd::services::{Service, Exposure};
         use sails_rs::gstd::{InvocationIo, CommandReply};
         if interface_id
             == <self::ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID

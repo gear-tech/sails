@@ -61,7 +61,7 @@ where
         mut input: &[u8],
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
-        use sails_rs::gstd::services::{Exposure, Service};
+        use sails_rs::gstd::services::{Service, Exposure};
         use sails_rs::gstd::{InvocationIo, CommandReply};
         if interface_id
             == <self::MyGenericEventsService<
@@ -99,7 +99,7 @@ where
         mut input: &[u8],
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
-        use sails_rs::gstd::services::{Exposure, Service};
+        use sails_rs::gstd::services::{Service, Exposure};
         use sails_rs::gstd::{InvocationIo, CommandReply};
         if interface_id
             == <self::MyGenericEventsService<
@@ -121,7 +121,7 @@ where
         input: &[u8],
     ) -> Option<(sails_rs::Vec<u8>, u128, bool)> {
         use sails_rs::gstd::services::{Service, Exposure};
-        use sails_rs::gstd::CommandReply;
+        use sails_rs::gstd::{InvocationIo, CommandReply};
         if interface_id
             == <self::MyGenericEventsService<
                 'a,
@@ -167,7 +167,7 @@ where
         input: &[u8],
     ) -> Option<(sails_rs::Vec<u8>, u128, bool)> {
         use sails_rs::gstd::services::{Service, Exposure};
-        use sails_rs::gstd::CommandReply;
+        use sails_rs::gstd::{InvocationIo, CommandReply};
         if interface_id
             == <self::MyGenericEventsService<
                 'a,

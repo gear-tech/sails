@@ -119,19 +119,22 @@ impl ServiceBuilder<'_> {
         }
     }
 
-    fn generate_handle_method(&self, is_async: bool) -> TokenStream {
+    pub(super) fn generate_dispatch_impl(
+        &self,
+        is_async: bool,
+        method_name_ident: &Ident,
+        method_sig: TokenStream,
+        handler_gen: impl Fn(&FnBuilder, &Option<TokenStream>) -> TokenStream,
+        base_call_gen: impl Fn(&Option<TokenStream>, &Option<TokenStream>, &Ident) -> TokenStream,
+    ) -> TokenStream {
         let sails_path = self.sails_path;
         let service_type_path = self.type_path;
         let inner_ident = &self.inner_ident;
 
-        let (name_ident, asyncness, await_token) = if is_async {
-            (
-                quote!(try_handle_async),
-                Some(quote!(async)),
-                Some(quote!(.await)),
-            )
+        let (async_kw, await_token) = if is_async {
+            (Some(quote!(async)), Some(quote!(.await)))
         } else {
-            (quote!(try_handle), None, None)
+            (None, None)
         };
 
         let mut regular_dispatches = Vec::new();
@@ -142,7 +145,7 @@ impl ServiceBuilder<'_> {
             }
 
             let entry_id = fn_builder.entry_id;
-            let decode_and_handle = self.generate_decode_and_handle(fn_builder, &await_token);
+            let decode_and_handle = handler_gen(fn_builder, &await_token);
 
             regular_dispatches.push(quote! {
                 #entry_id => {
@@ -161,11 +164,7 @@ impl ServiceBuilder<'_> {
                     let idx_literal = Literal::usize_unsuffixed(idx);
                     Some(quote! { . #idx_literal })
                 };
-                quote! {
-                    if #sails_path::gstd::services::Service::expose(base_services #idx_token, self.route_idx) . #name_ident(interface_id, entry_id, input, result_handler) #await_token.is_some() {
-                        return Some(());
-                    }
-                }
+                base_call_gen(&idx_token, &await_token, method_name_ident)
             });
 
             let base_types = self.base_types;
@@ -177,14 +176,8 @@ impl ServiceBuilder<'_> {
         };
 
         quote! {
-            pub #asyncness fn #name_ident(
-                mut self,
-                interface_id: #sails_path::meta::InterfaceId,
-                entry_id: u16,
-                mut input: &[u8],
-                result_handler: fn(&[u8], u128)
-            ) -> Option<()> {
-                use #sails_path::gstd::services::{Exposure, Service};
+            pub #async_kw fn #method_name_ident #method_sig {
+                use #sails_path::gstd::services::{Service, Exposure};
                 use #sails_path::gstd::{InvocationIo, CommandReply};
 
                 // Then check own methods
@@ -199,6 +192,35 @@ impl ServiceBuilder<'_> {
                 }
             }
         }
+    }
+
+    fn generate_handle_method(&self, is_async: bool) -> TokenStream {
+        let sails_path = self.sails_path;
+        let method_ident = Ident::new(if is_async { "try_handle_async" } else { "try_handle" }, Span::call_site());
+
+        let method_sig = quote! {
+            (
+                mut self,
+                interface_id: #sails_path::meta::InterfaceId,
+                entry_id: u16,
+                mut input: &[u8],
+                result_handler: fn(&[u8], u128)
+            ) -> Option<()>
+        };
+
+        self.generate_dispatch_impl(
+            is_async,
+            &method_ident,
+            method_sig,
+            |fn_builder, await_token| self.generate_decode_and_handle(fn_builder, await_token),
+            |idx_token, await_token, method_name| {
+                quote! {
+                    if #sails_path::gstd::services::Service::expose(base_services #idx_token, self.route_idx) . #method_name(interface_id, entry_id, input, result_handler) #await_token.is_some() {
+                        return Some(());
+                    }
+                }
+            }
+        )
     }
 
     pub(super) fn exposure_impl(&self) -> TokenStream {
