@@ -82,5 +82,4 @@ mod code {
     include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 }
 
-pub const INTERFACE_ID: sails_rs::meta::InterfaceId =
-    <PingPongStack as sails_rs::meta::Identifiable>::INTERFACE_ID;
+pub const INTERFACE_ID: InterfaceId = <PingPongStack as Identifiable>::INTERFACE_ID;

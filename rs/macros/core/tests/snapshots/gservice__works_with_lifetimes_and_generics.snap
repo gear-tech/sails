@@ -58,7 +58,7 @@ where
         mut input: &[u8],
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
-        use sails_rs::gstd::services::{Service, Exposure};
+        use sails_rs::gstd::services::{Exposure, Service};
         use sails_rs::gstd::{InvocationIo, CommandReply};
         if interface_id
             == <self::SomeService<
@@ -98,7 +98,7 @@ where
         mut input: &[u8],
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
-        use sails_rs::gstd::services::{Service, Exposure};
+        use sails_rs::gstd::services::{Exposure, Service};
         use sails_rs::gstd::{InvocationIo, CommandReply};
         if interface_id
             == <self::SomeService<

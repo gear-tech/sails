@@ -73,7 +73,7 @@ impl<'a> ExtendedLifetimeExposure<ExtendedLifetime<'a>> {
         mut input: &[u8],
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
-        use sails_rs::gstd::services::{Service, Exposure};
+        use sails_rs::gstd::services::{Exposure, Service};
         use sails_rs::gstd::{InvocationIo, CommandReply};
         if interface_id
             == <self::ExtendedLifetime<'a> as sails_rs::meta::Identifiable>::INTERFACE_ID
@@ -131,7 +131,7 @@ impl<'a> ExtendedLifetimeExposure<ExtendedLifetime<'a>> {
         mut input: &[u8],
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
-        use sails_rs::gstd::services::{Service, Exposure};
+        use sails_rs::gstd::services::{Exposure, Service};
         use sails_rs::gstd::{InvocationIo, CommandReply};
         if interface_id
             == <self::ExtendedLifetime<'a> as sails_rs::meta::Identifiable>::INTERFACE_ID

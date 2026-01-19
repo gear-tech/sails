@@ -42,9 +42,16 @@ impl ServiceBuilder<'_> {
 
     pub(super) fn try_handle_solidity_impl(&self) -> TokenStream {
         let impl_method = |is_async: bool| {
-            let method_ident = Ident::new(if is_async { "try_handle_solidity_async" } else { "try_handle_solidity" }, Span::call_site());
+            let method_ident = Ident::new(
+                if is_async {
+                    "try_handle_solidity_async"
+                } else {
+                    "try_handle_solidity"
+                },
+                Span::call_site(),
+            );
             let sails_path = self.sails_path;
-            
+
             let method_sig = quote! {
                 (
                     mut self,
@@ -54,10 +61,15 @@ impl ServiceBuilder<'_> {
                 ) -> Option<(#sails_path::Vec<u8>, u128, bool)>
             };
 
+            let extra_imports = quote! {
+                use #sails_path::gstd::CommandReply;
+            };
+
             self.generate_dispatch_impl(
                 is_async,
                 &method_ident,
                 method_sig,
+                extra_imports,
                 |fn_builder, _| self.generate_sol_decode_and_handle(fn_builder),
                 |idx_token, await_token, method_name| {
                     quote! {

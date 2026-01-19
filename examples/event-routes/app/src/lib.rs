@@ -1,6 +1,6 @@
 #![no_std]
 
-use sails_rs::{gstd, meta::InterfaceId, prelude::*};
+use sails_rs::{gstd, prelude::*};
 
 #[event]
 #[derive(Clone, Debug, PartialEq, Encode, TypeInfo, ReflectHash)]

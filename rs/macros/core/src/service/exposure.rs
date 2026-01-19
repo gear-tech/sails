@@ -124,6 +124,7 @@ impl ServiceBuilder<'_> {
         is_async: bool,
         method_name_ident: &Ident,
         method_sig: TokenStream,
+        extra_imports: TokenStream,
         handler_gen: impl Fn(&FnBuilder, &Option<TokenStream>) -> TokenStream,
         base_call_gen: impl Fn(&Option<TokenStream>, &Option<TokenStream>, &Ident) -> TokenStream,
     ) -> TokenStream {
@@ -177,8 +178,8 @@ impl ServiceBuilder<'_> {
 
         quote! {
             pub #async_kw fn #method_name_ident #method_sig {
-                use #sails_path::gstd::services::{Service, Exposure};
-                use #sails_path::gstd::{InvocationIo, CommandReply};
+                use #sails_path::gstd::services::{Exposure, Service};
+                #extra_imports
 
                 // Then check own methods
                 if interface_id == <self:: #service_type_path as #sails_path::meta::Identifiable>::INTERFACE_ID {
@@ -196,7 +197,14 @@ impl ServiceBuilder<'_> {
 
     fn generate_handle_method(&self, is_async: bool) -> TokenStream {
         let sails_path = self.sails_path;
-        let method_ident = Ident::new(if is_async { "try_handle_async" } else { "try_handle" }, Span::call_site());
+        let method_ident = Ident::new(
+            if is_async {
+                "try_handle_async"
+            } else {
+                "try_handle"
+            },
+            Span::call_site(),
+        );
 
         let method_sig = quote! {
             (
@@ -208,10 +216,15 @@ impl ServiceBuilder<'_> {
             ) -> Option<()>
         };
 
+        let extra_imports = quote! {
+            use #sails_path::gstd::{InvocationIo, CommandReply};
+        };
+
         self.generate_dispatch_impl(
             is_async,
             &method_ident,
             method_sig,
+            extra_imports,
             |fn_builder, await_token| self.generate_decode_and_handle(fn_builder, await_token),
             |idx_token, await_token, method_name| {
                 quote! {
