@@ -74,22 +74,64 @@ program TestProgram {
 }
 
 service Svc {
-  events {
-    MixedEvent {
-      /// #[indexed]
-      f1: u32,
-      f2: String,
-      /// #[indexed]
-      f3: u128,
-      f4: u128
+    events {
+        MixedEvent {
+            /// #[indexed]
+            f1: u32,
+            f2: String,
+            /// #[indexed]
+            f3: u128,
+            f4: u128
+        }
     }
-  }
 }
 "#;
 
 #[test]
 fn test_generate_contract_w_mixed_indexed_events() {
     let contract = generate_solidity_contract(IDL_MIXED_INDEXED, "TestContract");
+
+    assert!(
+        contract.is_ok(),
+        "Failed to generate contract: {:?}",
+        contract.err()
+    );
+    assert_snapshot!(String::from_utf8(contract.unwrap().data).unwrap());
+}
+
+const PAYABLE_IDL: &str = r#"
+program TestProgram {
+    constructors {
+        /// #[payable]
+        Create();
+    }
+    services {
+        MyService
+    }
+}
+
+service MyService {
+    functions {
+        /// #[payable]
+        Deposit() -> ();
+
+        /// #[returns_value]
+        Withdraw() -> u128;
+
+        /// #[payable]
+        /// #[returns_value]
+        SwapAndRefund() -> u128;
+
+        @query
+        RegularCall() -> bool;
+    }
+}
+"#;
+
+#[test]
+
+fn test_generate_payable_contract() {
+    let contract = generate_solidity_contract(PAYABLE_IDL, "PayableContract");
 
     assert!(
         contract.is_ok(),

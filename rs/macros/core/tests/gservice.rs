@@ -9,8 +9,8 @@ fn works_with_basics() {
     let input = quote! {
         impl SomeService {
             #[export]
-            pub async fn do_this(&mut self, p1: u32, p2: String) -> u32 {
-                p1
+            pub async fn do_this(&mut self, p1: u32, p2: String) -> String {
+                format!("{p1}: ") + &p2
             }
 
             #[export]

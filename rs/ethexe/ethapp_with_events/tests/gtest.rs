@@ -4,6 +4,7 @@ use sails_rs::{
     client::*,
     futures::StreamExt,
     gtest::{Program, System},
+    meta::SailsMessageHeader,
     prelude::*,
 };
 
@@ -61,9 +62,9 @@ async fn ethapp_with_events_low_level_works() {
         .find(|entry| entry.reply_to() == Some(message_id))
         .unwrap();
     let reply_payload = reply_log_record.payload();
-    let reply = u32::abi_decode(reply_payload, true);
+    let reply = u32::abi_decode(reply_payload);
 
-    assert_eq!(reply, Ok(42));
+    assert_eq!(reply, Ok(84));
 
     let gas_burned = *run_result
         .gas_burned
@@ -93,13 +94,12 @@ async fn ethapp_with_events_low_level_works() {
     let topic1 = &event_payload[1..1 + 32];
     assert_eq!(sig.as_slice(), topic1);
 
-    let hash2 = Events::topic_hash(&42u32);
+    let hash2 = Events::topic_hash(&84u32);
     let topic2 = &event_payload[1 + 32..1 + 32 + 32];
     assert_eq!(hash2.as_slice(), topic2);
 
-    let (s,): (String,) =
-        SolValue::abi_decode_sequence(&event_payload[1 + 32 + 32..], false).unwrap();
-    assert_eq!("hello", s);
+    let (s,): (String,) = SolValue::abi_decode_sequence(&event_payload[1 + 32 + 32..]).unwrap();
+    assert_eq!("hello: greetings from sails #1", s);
 }
 
 #[tokio::test]
@@ -130,8 +130,8 @@ async fn ethapp_with_events_remoting_works() {
         .await
         .unwrap();
 
-    let reply = u32::abi_decode(reply_payload.as_slice(), true);
-    assert_eq!(reply, Ok(42));
+    let reply = u32::abi_decode(reply_payload.as_slice());
+    assert_eq!(reply, Ok(84));
 
     let (from, event_payload) = listener.next().await.unwrap();
     assert_eq!(from, program_id);
@@ -141,13 +141,12 @@ async fn ethapp_with_events_remoting_works() {
     let topic1 = &event_payload[1..1 + 32];
     assert_eq!(sig.as_slice(), topic1);
 
-    let hash2 = Events::topic_hash(&42u32);
+    let hash2 = Events::topic_hash(&84u32);
     let topic2 = &event_payload[1 + 32..1 + 32 + 32];
     assert_eq!(hash2.as_slice(), topic2);
 
-    let (s,): (String,) =
-        SolValue::abi_decode_sequence(&event_payload[1 + 32 + 32..], false).unwrap();
-    assert_eq!("hello", s);
+    let (s,): (String,) = SolValue::abi_decode_sequence(&event_payload[1 + 32 + 32..]).unwrap();
+    assert_eq!("hello: greetings from sails #1", s);
 }
 
 #[tokio::test]
@@ -178,8 +177,8 @@ async fn ethapp_with_events_exposure_emit_works() {
         .await
         .unwrap();
 
-    let reply = u32::abi_decode(reply_payload.as_slice(), true);
-    assert_eq!(reply, Ok(42));
+    let reply = u32::abi_decode(reply_payload.as_slice());
+    assert_eq!(reply, Ok(84));
 
     // assert eth event
     let (from, event_payload) = listener.next().await.unwrap();
@@ -190,22 +189,25 @@ async fn ethapp_with_events_exposure_emit_works() {
     let topic1 = &event_payload[1..1 + 32];
     assert_eq!(sig.as_slice(), topic1);
 
-    let hash2 = Events::topic_hash(&42u32);
+    let hash2 = Events::topic_hash(&84u32);
     let topic2 = &event_payload[1 + 32..1 + 32 + 32];
     assert_eq!(hash2.as_slice(), topic2);
 
-    let (s,): (String,) =
-        SolValue::abi_decode_sequence(&event_payload[1 + 32 + 32..], false).unwrap();
-    assert_eq!("hello", s);
+    let (s,): (String,) = SolValue::abi_decode_sequence(&event_payload[1 + 32 + 32..]).unwrap();
+    assert_eq!("hello: greetings from sails #2", s);
 
     // assert gear event
     let (from, event_payload) = listener.next().await.unwrap();
     assert_eq!(from, program_id);
 
-    let (route, event_name, p1, p2): (String, String, u32, String) =
+    let (header, p1, p2): (SailsMessageHeader, u32, String) =
         Decode::decode(&mut event_payload.as_slice()).unwrap();
-    assert_eq!(route, "Svc1");
-    assert_eq!(event_name, "DoThisEvent");
-    assert_eq!(p1, 42);
-    assert_eq!(p2, "hello");
+    assert_eq!(
+        header.interface_id(),
+        ethapp_with_events::SomeService::INTERFACE_ID
+    );
+    assert_eq!(header.route_id(), 1);
+    assert_eq!(header.entry_id(), 0);
+    assert_eq!(p1, 84);
+    assert_eq!(p2, "hello: greetings from sails #2");
 }

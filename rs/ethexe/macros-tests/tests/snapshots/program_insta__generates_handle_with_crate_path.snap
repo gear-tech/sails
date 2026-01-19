@@ -14,16 +14,10 @@ impl sails_rename::meta::ProgramMeta for MyProgram {
 }
 mod meta_in_program {
     use super::*;
-    use sails_rename::gstd::InvocationIo;
     #[derive(sails_rename::Decode, sails_rename::TypeInfo)]
     #[codec(crate = sails_rename::scale_codec)]
     #[scale_info(crate = sails_rename::scale_info)]
     pub struct __CreateParams {}
-    impl InvocationIo for __CreateParams {
-        const ROUTE: &'static [u8] = &[24u8, 67u8, 114u8, 101u8, 97u8, 116u8, 101u8];
-        type Params = Self;
-        const ASYNC: bool = false;
-    }
     #[derive(sails_rename::TypeInfo)]
     #[scale_info(crate = sails_rename::scale_info)]
     pub enum ConstructorsMeta {
@@ -33,7 +27,8 @@ mod meta_in_program {
 impl sails_rename::solidity::ProgramSignature for MyProgram {
     const CTORS: &'static [sails_rename::solidity::MethodExpo] = &[
         (
-            &[24u8, 67u8, 114u8, 101u8, 97u8, 116u8, 101u8] as &[u8],
+            sails_rename::meta::InterfaceId::zero(),
+            0u16,
             "create",
             <<(
                 bool,
@@ -56,8 +51,9 @@ const __METHOD_SIGS: [[u8; 4]; <MyProgram as sails_rename::solidity::ProgramSign
     MyProgram,
 >::method_sigs();
 const __METHOD_ROUTES: [(
-    &'static [u8],
-    &'static [u8],
+    sails_rename::meta::InterfaceId,
+    u16,
+    u8,
 ); <MyProgram as sails_rename::solidity::ProgramSignature>::METHODS_LEN] = sails_rename::solidity::ConstProgramMeta::<
     MyProgram,
 >::method_routes();
@@ -71,15 +67,11 @@ pub mod wasm {
     static mut PROGRAM: Option<MyProgram> = None;
     #[unsafe(no_mangle)]
     extern "C" fn init() {
-        use gstd::InvocationIo;
         let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
         if let Ok(sig) = TryInto::<[u8; 4]>::try_into(&input[..4]) {
             if let Some(idx) = __CTOR_SIGS.iter().position(|s| s == &sig) {
-                let (ctor_route, ..) = <MyProgram as sails_rename::solidity::ProgramSignature>::CTORS[idx];
-                if let Some(encode_reply) = match_ctor_solidity(
-                    ctor_route,
-                    &input[4..],
-                ) {
+                let (_, entry_id, ..) = <MyProgram as sails_rename::solidity::ProgramSignature>::CTORS[idx];
+                if let Some(encode_reply) = match_ctor_solidity(entry_id, &input[4..]) {
                     if encode_reply {
                         let output = [
                             __CTOR_CALLBACK_SIGS[idx].as_slice(),
@@ -93,38 +85,83 @@ pub mod wasm {
                 }
             }
         }
-        if let Ok(request) = meta_in_program::__CreateParams::decode_params(input) {
-            let program = MyProgram::create();
-            unsafe {
-                PROGRAM = Some(program);
+        if let Ok(header) = <sails_rename::meta::SailsMessageHeader as sails_rename::Decode>::decode(
+            &mut input,
+        ) {
+            if header.interface_id() != sails_rename::meta::InterfaceId::zero() {
+                sails_rename::gstd::unknown_input_panic(
+                    "Non zero ctor interface_id",
+                    header.to_bytes().as_slice(),
+                );
             }
-        } else {
-            gstd::unknown_input_panic("Unexpected ctor", input)
-        };
-    }
-    fn match_ctor_solidity(ctor: &[u8], input: &[u8]) -> Option<bool> {
-        if ctor == &[24u8, 67u8, 114u8, 101u8, 97u8, 116u8, 101u8] {
-            let (__encode_reply,): (bool,) = sails_rename::alloy_sol_types::SolValue::abi_decode_params(
-                    input,
-                    false,
-                )
-                .expect("Failed to decode request");
-            let program = MyProgram::create();
-            unsafe { PROGRAM = Some(program) };
-            return Some(__encode_reply);
+            match header.entry_id() {
+                0u16 => {
+                    let (): () = sails_rename::Decode::decode(&mut input)
+                        .unwrap_or_else(|_| sails_rename::gstd::unknown_input_panic(
+                            "Unknown request",
+                            input,
+                        ));
+                    #[cfg(target_arch = "wasm32")]
+                    if sails_rename::gstd::msg::value() > 0 {
+                        core::panic!("'create' accepts no value");
+                    }
+                    let program = MyProgram::create();
+                    unsafe {
+                        PROGRAM = Some(program);
+                    }
+                }
+                _ => {
+                    sails_rename::gstd::unknown_input_panic(
+                        "Unexpected ctor entry_id",
+                        input,
+                    )
+                }
+            }
         }
-        None
     }
+    fn match_ctor_solidity(entry_id: u16, input: &[u8]) -> Option<bool> {
+        match entry_id {
+            0u16 => {
+                let (__encode_reply,): (bool,) = sails_rename::alloy_sol_types::SolValue::abi_decode_params(
+                        input,
+                    )
+                    .expect("Failed to decode request");
+                #[cfg(target_arch = "wasm32")]
+                if sails_rename::gstd::msg::value() > 0 {
+                    core::panic!("'create' accepts no value");
+                }
+                let program = MyProgram::create();
+                unsafe { PROGRAM = Some(program) };
+                Some(__encode_reply)
+            }
+            _ => None,
+        }
+    }
+    const SERVICES_COUNT: usize = 0usize;
+    const INTERFACE_IDS: &'static [(sails_rename::meta::InterfaceId, u8)] = &sails_rename::meta::interface_ids::<
+        SERVICES_COUNT,
+    >(&[]);
     #[unsafe(no_mangle)]
     extern "C" fn handle() {
         let mut input = gstd::msg::load_bytes().expect("Failed to read input");
         let program_ref = unsafe { PROGRAM.as_mut() }.expect("Program not initialized");
         if let Ok(sig) = TryInto::<[u8; 4]>::try_into(&input[..4]) {
             if let Some(idx) = __METHOD_SIGS.iter().position(|s| s == &sig) {
-                let (route, method) = __METHOD_ROUTES[idx];
+                let (interface_id, entry_id, route_idx) = __METHOD_ROUTES[idx];
             }
         }
-        { gstd::unknown_input_panic("Unexpected service", &input) };
+        if let Ok(header) = <sails_rename::meta::SailsMessageHeader as sails_rename::Decode>::decode(
+            &mut input.as_slice(),
+        ) {
+            let header_len = header.hlen().inner() as usize;
+            let (interface_id, route_id, entry_id) = header
+                .try_match_interfaces(INTERFACE_IDS)
+                .expect("Failed to find matching service")
+                .into_inner();
+            match route_id {
+                _ => gstd::unknown_input_panic("Unknown route_id", &[route_id]),
+            }
+        }
     }
     #[unsafe(no_mangle)]
     extern "C" fn handle_reply() {

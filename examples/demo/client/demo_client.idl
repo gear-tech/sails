@@ -1,13 +1,13 @@
 
-!@sails: 0.9.2
+!@sails: 0.10.2
 
-service PingPong {
+service PingPong@0x6d0eb40dde4038f7 {
     functions {
-        Ping(input: String) -> String throws String;
+        Ping(input: String) -> Result<String, String>;
     }
 }
 
-service Counter {
+service Counter@0x579d6daba41b7d82 {
     events {
         /// Emitted when a new value is added to the counter
         Added(u32),
@@ -25,7 +25,7 @@ service Counter {
     }
 }
 
-service WalkerService {
+service WalkerService@0xee1536b55170bf0a {
     events {
         Walked {
             from: (i32, i32),
@@ -39,7 +39,7 @@ service WalkerService {
     }
 }
 
-service MammalService {
+service MammalService@0xff6b93e1961026fe {
     functions {
         MakeSound() -> String;
         @query
@@ -47,10 +47,10 @@ service MammalService {
     }
 }
 
-service Dog {
+service Dog@0x18666e67a21917a1 {
     extends {
-        WalkerService,
-        MammalService,
+        MammalService@0xff6b93e1961026fe,
+        WalkerService@0xee1536b55170bf0a,
     }
     events {
         Barked,
@@ -60,13 +60,13 @@ service Dog {
     }
 }
 
-service References {
+service References@0x8a0f8abe176d75b9 {
     functions {
         Add(v: u32) -> u32;
         AddByte(byte: u8) -> [u8];
-        GuessNum(number: u8) -> String throws String;
+        GuessNum(number: u8) -> Result<String, String>;
         Incr() -> ReferenceCount;
-        SetNum(number: u8) throws String;
+        SetNum(number: u8) -> Result<(), String>;
         @query
         Baked() -> String;
         @query
@@ -79,13 +79,13 @@ service References {
     }
 }
 
-service ThisThat {
+service ThisThat@0x381e13fdd02d675f {
     functions {
-        DoThat(param: DoThatParam) -> (ActorId, NonZeroU32, ManyVariantsReply) throws (String);
+        DoThat(param: DoThatParam) -> Result<(ActorId, NonZeroU32, ManyVariantsReply), (String)>;
         DoThis(p1: u32, p2: String, p3: (Option<H160>, NonZeroU8), p4: TupleStruct) -> (String, u32);
         Noop();
         @query
-        That() -> String throws String;
+        That() -> Result<String, String>;
         @query
         This() -> u32;
     }
@@ -120,7 +120,7 @@ service ThisThat {
     }
 }
 
-service ValueFee {
+service ValueFee@0x41c1080b4e1e8dc5 {
     events {
         Withheld(u128),
     }
@@ -131,7 +131,7 @@ service ValueFee {
     }
 }
 
-service Chaos {
+service Chaos@0xf0c8c80dfabf72d5 {
     functions {
         @query
         PanicAfterWait();
@@ -142,7 +142,7 @@ service Chaos {
     }
 }
 
-program ProgramToDo {
+program DemoClient {
     constructors {
         /// Program constructor (called once at the very beginning of the program lifetime)
         Default();
@@ -150,12 +150,12 @@ program ProgramToDo {
         New(counter: Option<u32>, dog_position: Option<(i32, i32)>);
     }
     services {
-        PingPong,
-        Counter,
-        Dog,
-        References,
-        ThisThat,
-        ValueFee,
-        Chaos,
+        PingPong@0x6d0eb40dde4038f7,
+        Counter@0x579d6daba41b7d82,
+        Dog@0x18666e67a21917a1,
+        References@0x8a0f8abe176d75b9,
+        ThisThat@0x381e13fdd02d675f,
+        ValueFee@0x41c1080b4e1e8dc5,
+        Chaos@0xf0c8c80dfabf72d5,
     }
 }

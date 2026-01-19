@@ -3,8 +3,9 @@
 `Sails` is a library for bringing your experience of writing applications utilizing
 [Gear Protocol](https://gear-tech.io/) to the next level of simplicity and
 clarity. It deals with things like:
+
 - eliminating the necessity of writing some low-level boilerplate code and letting
-  you to stay focused on your business problem
+  you stay focused on your business problem
 - generated [IDL](https://en.wikipedia.org/wiki/Interface_description_language) file
   for your application
 - generated client allowing to interact with your application from code written in
@@ -13,17 +14,18 @@ clarity. It deals with things like:
 > **NOTE**
 >
 > The `Sails` library is published under the name `sails-rs` on `crates-io`.
->
 
 ## Getting started
 
 Either use `Sails` CLI:
+
 ```bash
 cargo install sails-cli
-cargo sails program my-ping
+cargo sails new my-ping
 ```
 
 Or add the following to your `Cargo.toml`
+
 ```toml
 [dependencies]
 sails-rs = "*"
@@ -81,11 +83,11 @@ interacting with the network.
 
 `Sails` architecture for applications is based on a few key concepts.
 
-The first one is *__service__* which is represented by an impl of some Rust struct
+The first one is _**service**_ which is represented by an impl of some Rust struct
 marked with the `#[service]` attribute. The service main responsibility is
 implementing some aspect of application business logic.
 
-A set of service's __public__ methods with `#[export]` attribute defined by the impl
+A set of service's **public** methods with `#[export]` attribute defined by the impl
 is essentially a set of remote calls the service exposes to external consumers.
 Each such method working over a `&mut self` is treated as a command changing some state, whereas each method
 working over a `&self` is treated as a query keeping everything unchanged and
@@ -129,8 +131,8 @@ impl MyService {
 
     // This is a command returning `()` or panicking
     #[export(unwrap_result)]
-    pub fn do_somethig_with_unwrap_result(&mut self, amount: u64) -> Result<(), String> {
-        do_somethig_returning_result()?;
+    pub fn do_something_with_unwrap_result(&mut self, amount: u64) -> Result<(), String> {
+        do_something_returning_result()?;
         Ok(())
     }
 
@@ -140,25 +142,25 @@ impl MyService {
         ...
     }
 
-    // This is a inner method, not accesible via remote calls
+    // This is a inner method, not accessible via remote calls
     pub fn do_something_inner(&mut self, p1: u32, p2: String) -> &'static [u8] {
         ...
     }
 }
 ```
 
-The second key concept is *__program__* which is similarly to the service represented
+The second key concept is _**program**_ which is similarly to the service represented
 by an impl of some Rust struct marked with the `#[program]` attribute. The program
 main responsibility is hosting one or more services and exposing them to the external
 consumers.
 
-A set of its associated __public__ functions returning `Self` are treated as application
+A set of its associated **public** functions returning `Self` are treated as application
 constructors. These functions can accept some parameters passed by a client and can be
 synchronous or asynchronous. One of them will be called once at the very beginning of
 the application lifetime, i.e. when the application is loaded onto the network. The
 returned program instance will live until the application stays on the network.
 
-If there are no such methods discovered, *__program__* struct must implement the `Default` trait,
+If there are no such methods discovered, _**program**_ struct must implement the `Default` trait,
 and a default constructor with the following signature will be generated:
 
 ```rust
@@ -167,7 +169,7 @@ pub fn create() -> Self {
 }
 ```
 
-A set of program's __public__ methods working over `&self` and having no other parameters
+A set of program's **public** methods working over `&self` and having no other parameters
 are treated as exposed service constructors and are called each time when an incoming
 request message needs be dispatched to a selected service. All the other methods and
 associated functions are treated as implementation details and ignored. The code
@@ -196,14 +198,13 @@ impl MyProgram {
 }
 ```
 
-
-And the final key concept is message *__routing__*. This concept doesn't have a
+And the final key concept is message _**routing**_. This concept doesn't have a
 mandatory representation in code, but can be altered by using the `#[export]`
 attribute applied to those public methods and associated functions described above.
 The concept itself is about rules for dispatching an incoming request message to
 a specific service's method using service and method names. By default, every
 service exposed via program is exposed using the name of the service constructor
-method converted into *PascalCase*. For example:
+method converted into _PascalCase_. For example:
 
 ```rust
 #[program]
@@ -359,35 +360,47 @@ impl MyServiceC {
         ...
     }
 
-    // do_b from MyServiceB will exposed due to the extends argument
+    // do_b from MyServiceB will be exposed due to the extends argument
 }
 ```
 
 ### Payload Encoding
 
-An application written with `Sails` uses [SCALE Codec](https://github.com/paritytech/parity-scale-codec) to encode/decode data
-at its base.
+Sails messages use [SCALE Codec](https://github.com/paritytech/parity-scale-codec) for payload data but begin with a Sails Header v1
+envelope that lives inside the message payload. The header exposes deterministic routing identifiers without changing the
+underlying Gear message layout.
 
-Every incoming request message is expected to have the following format:
+Base header layout (16 bytes, little-endian for multi-byte integers):
 
-__|__ *SCALE encoded service name* __|__ *SCALE encoded method name* __|__ *SCALE encoded parameters* __|__
+| Field | Size (bytes) | Description |
+| --- | --- | --- |
+| Magic | 2 | ASCII "GM" (0x47 0x4D) |
+| Version | 1 | Header version (0x01) |
+| Header length | 1 | Total header size in bytes; base header = 0x10 |
+| Interface ID | 8 | Deterministic 64-bit interface identifier |
+| Entry ID | 2 | Deterministic 16-bit entry identifier |
+| Route index | 1 | Service instance index; 0x00 is default |
+| Reserved | 1 | Must be 0x00 in v1 |
 
-Every outgoing response message has the following format:
+Payload bytes start at offset `header length` and are SCALE-encoded entry data:
 
-__|__ *SCALE encoded service name* __|__ *SCALE encoded method name* __|__ *SCALE encoded result* __|__
+- Calls: parameters
+- Replies: result
+- Events: event data
 
-Every outgoing event message has the following format:
-
-__|__ *SCALE encoded service name* __|__ *SCALE encoded event name* __|__ *SCALE encoded event data* __|__
+`interface_id` and `entry_id` are derived from the canonical IDL definition; `route_idx` is assigned by the program author.
+Optional extensions may follow the base header when `header length` >= 0x10. See `docs/SAILS_HEADER_V1_SPEC.md` for full
+format and validation rules.
 
 ### Syscalls
 
 During message processing, `Sails` program can obtain details of incoming messages and current execution environment by using `Syscall` struct which provides a collection of methods that abstract lower-level operations ([`message_source`], [`message_size`], [`message_id`], [`message_value`], [`reply_to`], [`reply_code`], [`signal_from`], [`signal_code`], [`program_id`], etc.).
 
 These methods are essential for enabling on-chain applications to interact with the Gear runtime in a consistent manner. Depending on the target environment, different implementations are provided:
+
 - For the WASM target, direct calls are made to `gstd::msg` and `gstd::exec` to fetch runtime data.
 - In standard (`std`) environments, a mock implementation uses thread-local state for testing purposes.
-- In `no_std` configurations without the `std` feature and and not WASM target, the functions are marked as unimplemented.
+- In `no_std` configurations without the `std` feature and not WASM target, the functions are marked as unimplemented.
 
 ### Client
 
@@ -396,6 +409,7 @@ several options for interaction.
 
 Firstly, it supports manual interaction using the [Gear Protocol](https://gear-tech.io/).
 You can use:
+
 - The `msg::send` functions from the `gstd` crate to interact between applications.
 - The `gclient` crate to interact from off-chain code with an on-chain application.
 - The `@gear-js/api` library to interact with your program from JavaScript.
@@ -404,10 +418,11 @@ All you need to do is compose a byte payload according to the layout outlined in
 [Payload Encoding](#payload-encoding) section and send it to the application.
 
 Thanks to the generated IDL, `Sails` provides a way to interact with your application
-using generated clients with an interface similar to the one exposed by latter in
+using generated clients with an interface similar to the one exposed by later in
 a clearer way. Currently, `Sails` can generate client code for Rust and TypeScript.
 
 When it comes to Rust, there are two options:
+
 - Use generated code that can encode and decode byte payloads for you, allowing you
   to continue using functions that send raw bytes.
 - Use fully generated code that can interact with your application in an RPC style.
@@ -461,7 +476,7 @@ include!(concat!(env!("OUT_DIR"), "/my_program.rs"));
 
 fn some_client_code() {
     let mut my_service = MyProgram::client(actor_id) // create client to MyProgram
-        .with_env(env)  // `env` is an runtime environment
+        .with_env(env)  // `env` is a runtime environment
         .my_service();
     let reply = client.do_something(42, "Hello".to_string())
         .with_reply_deposit(42)
@@ -480,8 +495,9 @@ to be passed to the client instantiation code. This object should implement the 
 trait from the `sails-rs` crate. It abstracts the low-level communication details
 between client and the application. The `sails-rs` crate provides three implementations of this
 trait:
+
 - `sails_rs::client::GstdEnv` should be used when the client code is executed
-  as a part of another on-chain application.
+  as part of another on-chain application.
 - `sails_rs::client::GclientEnv` should be used when the client code is executed
   as a part of an off-chain application.
 - `sails_rs::client::GtestEnv` should be used when the client code is executed
@@ -547,6 +563,7 @@ necessary, as retrying an already completed idempotent action is harmless and on
 increases the overall cost.
 
 To summarize:
+
 - Implement an orchestrating `Saga` (orchestrator application) by maintaining its state.
 - Design calls to other applications as either compensatable or retriable transactions.
 - Record a list of actions needed to execute the transactions in the `Saga`’s state, along
@@ -556,6 +573,72 @@ To summarize:
   is to propagate these errors to the top-level caller for retries.
   - For `Timeout` errors, optimize by increasing the number of blocks allowed for waiting on a response.
 - Keep in mind that every call to an application will eventually yield a response.
+
+### `ethexe` feature
+
+The `ethexe` cargo feature enables several features:
+
+When this feature is active:
+
+- Identifiers for **program constructors** and **exposed service constructors** (methods within a `#[program]` block that return a service) are validated against Solidity reserved keywords. Using a reserved name for these (e.g., `new` for a program constructor, or `function` for an exposed service constructor) will result in a compilation error, preventing naming conflicts in the generated Solidity interface. The comprehensive list of these reserved keywords can be found in the [source code](rs/macros/core/src/shared.rs) (see the `SOL_KEYWORDS` constant).
+- The `#[export]` macro accepts a `payable` argument (`#[export(payable)]`). This allows service methods and program constructors to accept value with a message. If a non-payable method or constructor receives value, the execution will panic.
+
+> **NOTE**
+>
+> The accepted value (tokens) depends on whether the `ethexe` feature is enabled. Without the feature, these are native VARA tokens; with the feature, these are ETH.
+
+- The generated IDL is enhanced with additional documentation to signify payable methods and methods that return value. Specifically, methods marked with `#[export(payable)]` will have a `/// #[payable]` doc comment, and methods returning `CommandReply<T>` will have a `/// #[returns_value]` doc comment. This metadata is necessary for the correct generation of Solidity interfaces via the `sails-sol-gen` crate.
+
+Here is an example demonstrating these features:
+
+```rust
+#![no_std]
+
+use sails_rs::prelude::*;
+
+pub struct MyProgram;
+
+#[program]
+impl MyProgram {
+    pub fn create_prg() -> Self {
+        MyProgram
+    }
+
+    #[export(payable)]
+    pub fn create_payable() -> Self {
+        MyProgram
+    }
+
+    pub fn svc1(&self) -> SomeService {
+        SomeService
+    }
+}
+
+pub struct SomeService;
+
+#[service]
+impl SomeService {
+    #[export]
+    pub async fn do_this(&mut self, p1: u32, _p2: String) -> u32 {
+        p1
+    }
+
+    #[export(payable)]
+    pub fn do_this_payable(&mut self, p1: u32) -> u32 {
+        p1
+    }
+
+    // This method implicitly `returns_value` because of its return type
+    #[export]
+    pub fn withdraw(&mut self, amount: u64) -> CommandReply<()> {
+        CommandReply::new(()).with_value(amount)
+    }
+}
+```
+
+In the example above, `create_payable` is a payable constructor, and `do_this_payable` is a payable service method.
+The `withdraw` method will have the `/// #[returns_value]` doc comment in the IDL.
+For more details, you can refer to the full example at [`rs/ethexe/ethapp/src/lib.rs`](rs/ethexe/ethapp/src/lib.rs).
 
 ## Examples
 

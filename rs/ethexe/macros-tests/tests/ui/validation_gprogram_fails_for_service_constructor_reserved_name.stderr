@@ -1,0 +1,8 @@
+error: The name 'function' cannot be used for a Exposed Service because it is a reserved keyword in Solidity.
+
+         = help: Please rename this item to avoid compilation errors in the generated Solidity contract.
+
+  --> tests/ui/validation_gprogram_fails_for_service_constructor_reserved_name.rs:11:12
+   |
+11 |     pub fn function(&self) -> MyService {
+   |            ^^^^^^^^

@@ -6,7 +6,7 @@ impl ServiceBuilder<'_> {
     pub(super) fn exposure_struct(&self) -> TokenStream {
         let sails_path = self.sails_path;
         let exposure_ident = &self.exposure_ident;
-        let route_ident = &self.route_ident;
+        let route_idx_ident = &self.route_idx_ident;
         let inner_ident = &self.inner_ident;
 
         let check_asyncness_impl = self.check_asyncness_impl();
@@ -23,13 +23,17 @@ impl ServiceBuilder<'_> {
 
         quote! {
             pub struct #exposure_ident<T> {
-                #route_ident : &'static [u8],
+                #route_idx_ident : u8,
                 #inner_ident : T,
             }
 
             impl<T: #sails_path::meta::ServiceMeta> #sails_path::gstd::services::Exposure for #exposure_ident<T> {
-                fn route(&self) -> &'static [u8] {
-                    self. #route_ident
+                fn interface_id() -> #sails_path::meta::InterfaceId {
+                    <T as #sails_path::meta::Identifiable>::INTERFACE_ID
+                }
+
+                fn route_idx(&self) -> u8 {
+                    self. #route_idx_ident
                 }
 
                 #check_asyncness_impl
@@ -69,8 +73,170 @@ impl ServiceBuilder<'_> {
         })
     }
 
-    pub(super) fn exposure_impl(&self) -> TokenStream {
+    pub(super) fn generate_decode_and_handle(
+        &self,
+        fn_builder: &FnBuilder,
+        await_token: &Option<TokenStream>,
+    ) -> TokenStream {
         let sails_path = self.sails_path;
+        let meta_module_ident = &self.meta_module_ident;
+        let handler_func_ident = fn_builder.ident;
+        let params_struct_ident = &fn_builder.params_struct_ident;
+        let handler_func_params = fn_builder
+            .params_idents()
+            .iter()
+            .map(|ident| quote!(request.#ident));
+
+        let (result_type, reply_with_value) = fn_builder.result_type_with_value();
+        let unwrap_token = fn_builder.unwrap_result.then(|| quote!(.unwrap()));
+
+        let handle_token = if reply_with_value {
+            quote! {
+                let command_reply: CommandReply< #result_type > = self.#handler_func_ident(#(#handler_func_params),*)#await_token #unwrap_token.into();
+                let (result, value) = command_reply.to_tuple();
+            }
+        } else {
+            quote! {
+                let result = self.#handler_func_ident(#(#handler_func_params),*)#await_token #unwrap_token;
+                let value = 0u128;
+            }
+        };
+
+        let result_type_static = fn_builder.result_type_with_static_lifetime();
+
+        quote! {
+            let request: #meta_module_ident::#params_struct_ident = #sails_path::scale_codec::Decode::decode(&mut input)
+                .expect("Failed to decode params");
+            #handle_token
+            if ! #sails_path::gstd::is_empty_tuple::<#result_type_static>() {
+                <#meta_module_ident::#params_struct_ident as #sails_path::gstd::InvocationIo>::with_optimized_encode(
+                    &result,
+                    self.route_idx,
+                    |encoded_result| result_handler(encoded_result, value),
+                );
+            }
+            return Some(());
+        }
+    }
+
+    pub(super) fn generate_dispatch_impl(
+        &self,
+        is_async: bool,
+        method_name_ident: &Ident,
+        method_sig: TokenStream,
+        extra_imports: TokenStream,
+        handler_gen: impl Fn(&FnBuilder, &Option<TokenStream>) -> TokenStream,
+        base_call_gen: impl Fn(&Option<TokenStream>, &Option<TokenStream>, &Ident) -> TokenStream,
+    ) -> TokenStream {
+        let sails_path = self.sails_path;
+        let service_type_path = self.type_path;
+        let inner_ident = &self.inner_ident;
+
+        let (async_kw, await_token) = if is_async {
+            (Some(quote!(async)), Some(quote!(.await)))
+        } else {
+            (None, None)
+        };
+
+        let mut regular_dispatches = Vec::new();
+
+        for fn_builder in &self.service_handlers {
+            if is_async != fn_builder.is_async() {
+                continue;
+            }
+
+            let entry_id = fn_builder.entry_id;
+            let decode_and_handle = handler_gen(fn_builder, &await_token);
+
+            regular_dispatches.push(quote! {
+                #entry_id => {
+                    #decode_and_handle
+                }
+            });
+        }
+
+        let base_invocation = if self.base_types.is_empty() {
+            None
+        } else {
+            let base_exposure_invocations = self.sorted_base_indices.iter().map(|&idx| {
+                let idx_token = if self.base_types.len() == 1 {
+                    None
+                } else {
+                    let idx_literal = Literal::usize_unsuffixed(idx);
+                    Some(quote! { . #idx_literal })
+                };
+                base_call_gen(&idx_token, &await_token, method_name_ident)
+            });
+
+            let base_types = self.base_types;
+            // Base Services, as `Into` tuple from Service
+            Some(quote! {
+                let base_services: ( #( #base_types ),* ) = self. #inner_ident .into();
+                #( #base_exposure_invocations )*
+            })
+        };
+
+        quote! {
+            pub #async_kw fn #method_name_ident #method_sig {
+                use #sails_path::gstd::services::{Exposure, Service};
+                #extra_imports
+
+                // Then check own methods
+                if interface_id == <self:: #service_type_path as #sails_path::meta::Identifiable>::INTERFACE_ID {
+                    match entry_id {
+                        #( #regular_dispatches )*
+                        _ => None,
+                    }
+                } else {
+                    #base_invocation
+                    None
+                }
+            }
+        }
+    }
+
+    fn generate_handle_method(&self, is_async: bool) -> TokenStream {
+        let sails_path = self.sails_path;
+        let method_ident = Ident::new(
+            if is_async {
+                "try_handle_async"
+            } else {
+                "try_handle"
+            },
+            Span::call_site(),
+        );
+
+        let method_sig = quote! {
+            (
+                mut self,
+                interface_id: #sails_path::meta::InterfaceId,
+                entry_id: u16,
+                mut input: &[u8],
+                result_handler: fn(&[u8], u128)
+            ) -> Option<()>
+        };
+
+        let extra_imports = quote! {
+            use #sails_path::gstd::{InvocationIo, CommandReply};
+        };
+
+        self.generate_dispatch_impl(
+            is_async,
+            &method_ident,
+            method_sig,
+            extra_imports,
+            |fn_builder, await_token| self.generate_decode_and_handle(fn_builder, await_token),
+            |idx_token, await_token, method_name| {
+                quote! {
+                    if #sails_path::gstd::services::Service::expose(base_services #idx_token, self.route_idx) . #method_name(interface_id, entry_id, input, result_handler) #await_token.is_some() {
+                        return Some(());
+                    }
+                }
+            }
+        )
+    }
+
+    pub(super) fn exposure_impl(&self) -> TokenStream {
         let exposure_ident = &self.exposure_ident;
         let generics = &self.generics;
         let service_type_path = self.type_path;
@@ -97,10 +263,6 @@ impl ServiceBuilder<'_> {
             impl #generics #exposure_ident< #service_type_path > #service_type_constraints {
                 #( #exposure_funcs )*
 
-                pub fn check_asyncness(&self, input: &[u8]) -> Option<bool> {
-                    <Self as #sails_path::gstd::services::Exposure>::check_asyncness(input)
-                }
-
                 #try_handle_impl
 
                 #try_handle_solidity_impl
@@ -113,63 +275,8 @@ impl ServiceBuilder<'_> {
     }
 
     pub(super) fn try_handle_impl(&self) -> TokenStream {
-        let sails_path = self.sails_path;
-        let inner_ident = &self.inner_ident;
-        let input_ident = &self.input_ident;
-        let impl_inner = |is_async: bool| {
-            let (name_ident, asyncness, await_token) = if is_async {
-                (
-                    quote!(try_handle_async),
-                    Some(quote!(async)),
-                    Some(quote!(.await)),
-                )
-            } else {
-                (quote!(try_handle), None, None)
-            };
-
-            let invocation_dispatches = self.service_handlers.iter().filter_map(|fn_builder| {
-                if is_async == fn_builder.is_async() {
-                    Some(fn_builder.try_handle_branch_impl(&self.meta_module_ident, input_ident))
-                } else {
-                    None
-                }
-            });
-
-            let base_invocation = if self.base_types.is_empty() {
-                None
-            } else {
-                let base_types = self.base_types;
-                let base_exposure_invocations = base_types.iter().enumerate().map(|(idx, _)| {
-                    let idx_token = if base_types.len() == 1 { None } else {
-                        let idx_literal = Literal::usize_unsuffixed(idx);
-                        Some(quote! { . #idx_literal })
-                    };
-                    quote! {
-                        if base_services #idx_token .expose(self.route) . #name_ident(#input_ident, result_handler) #await_token.is_some() {
-                            return Some(());
-                        }
-                    }
-                });
-                // Base Services, as `Into` tuple from Service
-                Some(quote! {
-                    let base_services: ( #( #base_types ),* ) = self. #inner_ident .into();
-                    #( #base_exposure_invocations )*
-                })
-            };
-
-            quote! {
-                pub #asyncness fn #name_ident(mut self, #input_ident : &[u8], result_handler: fn(&[u8], u128)) -> Option<()> {
-                    use #sails_path::gstd::InvocationIo;
-                    use #sails_path::gstd::services::{Service, Exposure};
-                    #( #invocation_dispatches )*
-                    #base_invocation
-                    None
-                }
-            }
-        };
-
-        let sync_impl = impl_inner(false);
-        let async_impl = impl_inner(true);
+        let sync_impl = self.generate_handle_method(false);
+        let async_impl = self.generate_handle_method(true);
 
         quote! {
             #sync_impl
@@ -184,16 +291,16 @@ impl ServiceBuilder<'_> {
         let service_type_path = self.type_path;
         let service_type_constraints = self.type_constraints();
 
-        let route_ident = &self.route_ident;
+        let route_idx_ident = &self.route_idx_ident;
         let inner_ident = &self.inner_ident;
 
         quote!(
             impl #generics #sails_path::gstd::services::Service for #service_type_path #service_type_constraints {
                 type Exposure = #exposure_ident<Self>;
 
-                fn expose(self, #route_ident : &'static [u8]) -> Self::Exposure {
+                fn expose(self, #route_idx_ident : u8) -> Self::Exposure {
                     Self::Exposure {
-                        #route_ident ,
+                        #route_idx_ident ,
                         #inner_ident : self,
                     }
                 }
@@ -203,7 +310,6 @@ impl ServiceBuilder<'_> {
 
     fn check_asyncness_impl(&self) -> TokenStream {
         let sails_path = self.sails_path;
-        let input_ident = &self.input_ident;
 
         // Here `T` is Service Type
         let service_asyncness_check = quote! {
@@ -215,31 +321,37 @@ impl ServiceBuilder<'_> {
             }
         };
 
+        // Generate match arms for each handler's entry_id
         let asyncness_checks = self.service_handlers.iter().map(|fn_builder| {
-            fn_builder.check_asyncness_branch_impl(&self.meta_module_ident, input_ident)
+            let entry_id = fn_builder.entry_id;
+            let is_async = fn_builder.is_async();
+            quote! {
+                #entry_id => Some(#is_async),
+            }
         });
 
-        let base_services_asyncness_checks = self.base_types.iter().map(|base_type| {
-            let path_wo_lifetimes = shared::remove_lifetimes(base_type);
+        let base_services_asyncness_checks = self.sorted_base_indices.iter().map(|&idx| {
+            let path_wo_lifetimes = shared::remove_lifetimes(&self.base_types[idx]);
             quote! {
-                if let Some(is_async) = <<#path_wo_lifetimes as Service>::Exposure as Exposure>::check_asyncness(#input_ident) {
+                if let Some(is_async) = <<#path_wo_lifetimes as #sails_path::gstd::services::Service>::Exposure as #sails_path::gstd::services::Exposure>::check_asyncness(interface_id, entry_id) {
                     return Some(is_async);
                 }
             }
         });
 
         quote! {
-            fn check_asyncness(#input_ident : &[u8]) -> Option<bool> {
-                use #sails_path::gstd::InvocationIo;
-                use #sails_path::gstd::services::{Service, Exposure};
-
+            fn check_asyncness(interface_id: #sails_path::meta::InterfaceId, entry_id: u16) -> Option<bool> {
                 #service_asyncness_check
 
-                #( #asyncness_checks )*
-
-                #( #base_services_asyncness_checks )*
-
-                None
+                if interface_id == <T as #sails_path::meta::Identifiable>::INTERFACE_ID {
+                    match entry_id {
+                        #( #asyncness_checks )*
+                        _ => None,
+                    }
+                } else {
+                    #( #base_services_asyncness_checks )*
+                    None
+                }
             }
         }
     }
@@ -254,7 +366,8 @@ impl ServiceBuilder<'_> {
         let service_type_constraints = self.type_constraints();
         let base_types = self.base_types;
 
-        let into_impl = base_types.iter().enumerate().map(|(idx, base_type)| {
+        let into_impl = self.sorted_base_indices.iter().map(|&idx| {
+            let base_type = &self.base_types[idx];
             let idx_token = if base_types.len() == 1 { None } else {
                 let idx_literal = Literal::usize_unsuffixed(idx);
                 Some(quote! { . #idx_literal })

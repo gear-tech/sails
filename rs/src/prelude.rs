@@ -53,6 +53,7 @@ pub use gear_core_errors::{
 };
 
 pub use parity_scale_codec::{self as scale_codec, Decode, Encode, EncodeLike, Output};
+pub use sails_idl_meta::{Identifiable, InterfaceId, MethodMeta};
 pub use sails_reflect_hash::{self as sails_reflect_hash, ReflectHash};
 pub use scale_info::{self as scale_info, TypeInfo};
 

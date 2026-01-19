@@ -124,19 +124,19 @@ impl GtestEnv {
                 }
                 continue;
             }
-            if let Some(message_id) = entry.reply_to() {
-                if let Some(sender) = reply_senders.remove(&message_id) {
-                    log::debug!("Extract reply from entry {entry:?}");
-                    let reply: result::Result<Vec<u8>, _> = match entry.reply_code() {
-                        None => Err(GtestError::ReplyIsMissing),
-                        Some(ReplyCode::Error(reason)) => {
-                            Err(GtestError::ReplyHasError(reason, entry.payload().to_vec()))
-                        }
-                        Some(ReplyCode::Success(_)) => Ok(entry.payload().to_vec()),
-                        _ => Err(GtestError::ReplyIsMissing),
-                    };
-                    _ = sender.send(reply);
-                }
+            if let Some(message_id) = entry.reply_to()
+                && let Some(sender) = reply_senders.remove(&message_id)
+            {
+                log::debug!("Extract reply from entry {entry:?}");
+                let reply: result::Result<Vec<u8>, _> = match entry.reply_code() {
+                    None => Err(GtestError::ReplyIsMissing),
+                    Some(ReplyCode::Error(reason)) => {
+                        Err(GtestError::ReplyHasError(reason, entry.payload().to_vec()))
+                    }
+                    Some(ReplyCode::Success(_)) => Ok(entry.payload().to_vec()),
+                    _ => Err(GtestError::ReplyIsMissing),
+                };
+                _ = sender.send(reply);
             }
         }
     }
@@ -274,7 +274,7 @@ impl GearEnv for GtestEnv {
     type MessageState = ReplyReceiver;
 }
 
-impl<T: CallCodec> PendingCall<T, GtestEnv> {
+impl<T: ServiceCall> PendingCall<T, GtestEnv> {
     pub fn send_one_way(&mut self) -> Result<MessageId, GtestError> {
         if self.state.is_some() {
             panic!("{PENDING_CALL_INVALID_STATE}");
@@ -298,12 +298,12 @@ impl<T: CallCodec> PendingCall<T, GtestEnv> {
         let reply_bytes = self.env.query(self.destination, payload, params)?;
 
         // Decode reply
-        T::decode_reply_with_prefix(self.route, reply_bytes)
+        T::decode_reply_with_header(self.route_idx, reply_bytes)
             .map_err(|err| TestError::ScaleCodecError(err).into())
     }
 }
 
-impl<T: CallCodec> Future for PendingCall<T, GtestEnv> {
+impl<T: ServiceCall> Future for PendingCall<T, GtestEnv> {
     type Output = Result<T::Reply, <GtestEnv as GearEnv>::Error>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -330,7 +330,7 @@ impl<T: CallCodec> Future for PendingCall<T, GtestEnv> {
         // Poll reply receiver
         match ready!(reply_receiver.poll(cx)) {
             Ok(res) => match res {
-                Ok(payload) => match T::decode_reply_with_prefix(self.route, payload) {
+                Ok(payload) => match T::decode_reply_with_header(self.route_idx, payload) {
                     Ok(reply) => Poll::Ready(Ok(reply)),
                     Err(err) => Poll::Ready(Err(TestError::ScaleCodecError(err).into())),
                 },
@@ -341,7 +341,7 @@ impl<T: CallCodec> Future for PendingCall<T, GtestEnv> {
     }
 }
 
-impl<A, T: CallCodec> PendingCtor<A, T, GtestEnv> {
+impl<A, T: ServiceCall> PendingCtor<A, T, GtestEnv> {
     pub fn create_program(mut self) -> Result<Self, GtestError> {
         if self.state.is_some() {
             panic!("{PENDING_CTOR_INVALID_STATE}");
@@ -351,7 +351,7 @@ impl<A, T: CallCodec> PendingCtor<A, T, GtestEnv> {
             .args
             .take()
             .unwrap_or_else(|| panic!("{PENDING_CTOR_INVALID_STATE}"));
-        let payload = T::encode_params(&args);
+        let payload = T::encode_params_with_header(0, &args);
         let params = self.params.take().unwrap_or_default();
         let salt = self.salt.take().unwrap_or_default();
         let send_res = self
@@ -372,7 +372,7 @@ impl<A, T: CallCodec> PendingCtor<A, T, GtestEnv> {
     }
 }
 
-impl<A, T: CallCodec> Future for PendingCtor<A, T, GtestEnv> {
+impl<A, T: ServiceCall> Future for PendingCtor<A, T, GtestEnv> {
     type Output = Result<Actor<A, GtestEnv>, <GtestEnv as GearEnv>::Error>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -382,7 +382,7 @@ impl<A, T: CallCodec> Future for PendingCtor<A, T, GtestEnv> {
                 .args
                 .take()
                 .unwrap_or_else(|| panic!("{PENDING_CTOR_INVALID_STATE}"));
-            let payload = T::encode_params(&args);
+            let payload = T::encode_params_with_header(0, &args);
             let params = self.params.take().unwrap_or_default();
             let salt = self.salt.take().unwrap_or_default();
             let send_res = self

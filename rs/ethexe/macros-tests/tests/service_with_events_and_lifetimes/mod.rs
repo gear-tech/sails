@@ -2,7 +2,7 @@ use core::marker::PhantomData;
 use sails_rs::prelude::*;
 
 #[derive(Default)]
-pub(super) struct MyGenericEventsService<'l, T> {
+pub(super) struct MyGenericEventsService<'l, T = String> {
     _t: Option<u64>,
     _a: PhantomData<&'l T>,
 }

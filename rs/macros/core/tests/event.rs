@@ -35,3 +35,22 @@ fn event_sails_rename() {
 
     insta::assert_snapshot!(result);
 }
+
+#[test]
+fn event_sort_by_name() {
+    let input = quote! {
+        pub enum Events {
+            MyEvent2(u128, u128, String),
+            MyEvent1 {
+                sender: u128,
+                amount: u128,
+                note: String,
+            },
+            MyEvent3,
+        }
+    };
+    let result = event(quote!(), input).to_string();
+    let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
+
+    insta::assert_snapshot!(result);
+}

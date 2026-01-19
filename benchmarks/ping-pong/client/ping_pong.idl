@@ -1,9 +1,9 @@
-program PingPongProgram {
-    constructors {
-        NewForBench();
-    }
-    services {
-        PingPongService,
+
+!@sails: 0.10.2
+
+service PingPongService@0x6a72968a4c62e7d7 {
+    functions {
+        Ping(payload: PingPongPayload) -> PingPongPayload;
     }
     types {
         enum PingPongPayload {
@@ -15,8 +15,11 @@ program PingPongProgram {
     }
 }
 
-service PingPongService {
-    functions {
-        Ping(payload: PingPongPayload) -> PingPongPayload;
+program PingPong {
+    constructors {
+        NewForBench();
+    }
+    services {
+        PingPongService@0x6a72968a4c62e7d7,
     }
 }

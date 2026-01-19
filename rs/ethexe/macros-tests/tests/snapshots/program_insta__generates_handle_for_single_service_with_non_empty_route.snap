@@ -13,14 +13,11 @@ impl MyProgram {
         let service = self.__service();
         let exposure = <MyService as sails_rs::gstd::services::Service>::expose(
             service,
-            __ROUTE_SERVICE.as_ref(),
+            1u8,
         );
         exposure
     }
 }
-const __ROUTE_SERVICE: [u8; 8usize] = [
-    28u8, 83u8, 101u8, 114u8, 118u8, 105u8, 99u8, 101u8,
-];
 impl sails_rs::meta::ProgramMeta for MyProgram {
     type ConstructorsMeta = meta_in_program::ConstructorsMeta;
     const SERVICES: &'static [(&'static str, sails_rs::meta::AnyServiceMetaFn)] = &[
@@ -30,16 +27,10 @@ impl sails_rs::meta::ProgramMeta for MyProgram {
 }
 mod meta_in_program {
     use super::*;
-    use sails_rs::gstd::InvocationIo;
     #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub struct __CreateParams {}
-    impl InvocationIo for __CreateParams {
-        const ROUTE: &'static [u8] = &[24u8, 67u8, 114u8, 101u8, 97u8, 116u8, 101u8];
-        type Params = Self;
-        const ASYNC: bool = false;
-    }
     #[derive(sails_rs::TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum ConstructorsMeta {
@@ -49,7 +40,8 @@ mod meta_in_program {
 impl sails_rs::solidity::ProgramSignature for MyProgram {
     const CTORS: &'static [sails_rs::solidity::MethodExpo] = &[
         (
-            &[24u8, 67u8, 114u8, 101u8, 97u8, 116u8, 101u8] as &[u8],
+            sails_rs::meta::InterfaceId::zero(),
+            0u16,
             "create",
             <<(
                 bool,
@@ -60,11 +52,7 @@ impl sails_rs::solidity::ProgramSignature for MyProgram {
         ),
     ];
     const SERVICES: &'static [sails_rs::solidity::ServiceExpo] = &[
-        (
-            "service",
-            &[28u8, 83u8, 101u8, 114u8, 118u8, 105u8, 99u8, 101u8] as &[u8],
-            <MyService as sails_rs::solidity::ServiceSignature>::METHODS,
-        ),
+        ("service", 1u8, <MyService as sails_rs::solidity::ServiceSignature>::METHODS),
     ];
     const METHODS_LEN: usize = <MyService as sails_rs::solidity::ServiceSignature>::METHODS
         .len();
@@ -77,8 +65,9 @@ const __METHOD_SIGS: [[u8; 4]; <MyProgram as sails_rs::solidity::ProgramSignatur
     MyProgram,
 >::method_sigs();
 const __METHOD_ROUTES: [(
-    &'static [u8],
-    &'static [u8],
+    sails_rs::meta::InterfaceId,
+    u16,
+    u8,
 ); <MyProgram as sails_rs::solidity::ProgramSignature>::METHODS_LEN] = sails_rs::solidity::ConstProgramMeta::<
     MyProgram,
 >::method_routes();
@@ -92,15 +81,11 @@ pub mod wasm {
     static mut PROGRAM: Option<MyProgram> = None;
     #[unsafe(no_mangle)]
     extern "C" fn init() {
-        use gstd::InvocationIo;
         let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
         if let Ok(sig) = TryInto::<[u8; 4]>::try_into(&input[..4]) {
             if let Some(idx) = __CTOR_SIGS.iter().position(|s| s == &sig) {
-                let (ctor_route, ..) = <MyProgram as sails_rs::solidity::ProgramSignature>::CTORS[idx];
-                if let Some(encode_reply) = match_ctor_solidity(
-                    ctor_route,
-                    &input[4..],
-                ) {
+                let (_, entry_id, ..) = <MyProgram as sails_rs::solidity::ProgramSignature>::CTORS[idx];
+                if let Some(encode_reply) = match_ctor_solidity(entry_id, &input[4..]) {
                     if encode_reply {
                         let output = [
                             __CTOR_CALLBACK_SIGS[idx].as_slice(),
@@ -114,44 +99,86 @@ pub mod wasm {
                 }
             }
         }
-        if let Ok(request) = meta_in_program::__CreateParams::decode_params(input) {
-            let program = MyProgram::create();
-            unsafe {
-                PROGRAM = Some(program);
+        if let Ok(header) = <sails_rs::meta::SailsMessageHeader as sails_rs::Decode>::decode(
+            &mut input,
+        ) {
+            if header.interface_id() != sails_rs::meta::InterfaceId::zero() {
+                sails_rs::gstd::unknown_input_panic(
+                    "Non zero ctor interface_id",
+                    header.to_bytes().as_slice(),
+                );
             }
-        } else {
-            gstd::unknown_input_panic("Unexpected ctor", input)
-        };
-    }
-    fn match_ctor_solidity(ctor: &[u8], input: &[u8]) -> Option<bool> {
-        if ctor == &[24u8, 67u8, 114u8, 101u8, 97u8, 116u8, 101u8] {
-            let (__encode_reply,): (bool,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
-                    input,
-                    false,
-                )
-                .expect("Failed to decode request");
-            let program = MyProgram::create();
-            unsafe { PROGRAM = Some(program) };
-            return Some(__encode_reply);
+            match header.entry_id() {
+                0u16 => {
+                    let (): () = sails_rs::Decode::decode(&mut input)
+                        .unwrap_or_else(|_| sails_rs::gstd::unknown_input_panic(
+                            "Unknown request",
+                            input,
+                        ));
+                    #[cfg(target_arch = "wasm32")]
+                    if sails_rs::gstd::msg::value() > 0 {
+                        core::panic!("'create' accepts no value");
+                    }
+                    let program = MyProgram::create();
+                    unsafe {
+                        PROGRAM = Some(program);
+                    }
+                }
+                _ => {
+                    sails_rs::gstd::unknown_input_panic(
+                        "Unexpected ctor entry_id",
+                        input,
+                    )
+                }
+            }
         }
-        None
     }
+    fn match_ctor_solidity(entry_id: u16, input: &[u8]) -> Option<bool> {
+        match entry_id {
+            0u16 => {
+                let (__encode_reply,): (bool,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
+                        input,
+                    )
+                    .expect("Failed to decode request");
+                #[cfg(target_arch = "wasm32")]
+                if sails_rs::gstd::msg::value() > 0 {
+                    core::panic!("'create' accepts no value");
+                }
+                let program = MyProgram::create();
+                unsafe { PROGRAM = Some(program) };
+                Some(__encode_reply)
+            }
+            _ => None,
+        }
+    }
+    const SERVICES_COUNT: usize = 1usize
+        + sails_rs::meta::count_base_services::<MyService>();
+    const INTERFACE_IDS: &'static [(sails_rs::meta::InterfaceId, u8)] = &sails_rs::meta::interface_ids::<
+        SERVICES_COUNT,
+    >(&[sails_rs::meta::BaseServiceMeta::new::<MyService>("")]);
     #[unsafe(no_mangle)]
     extern "C" fn handle() {
         let mut input = gstd::msg::load_bytes().expect("Failed to read input");
         let program_ref = unsafe { PROGRAM.as_mut() }.expect("Program not initialized");
         if let Ok(sig) = TryInto::<[u8; 4]>::try_into(&input[..4]) {
             if let Some(idx) = __METHOD_SIGS.iter().position(|s| s == &sig) {
-                let (route, method) = __METHOD_ROUTES[idx];
-                if route == &__ROUTE_SERVICE {
+                let (interface_id, entry_id, route_idx) = __METHOD_ROUTES[idx];
+                if route_idx == 1u8 {
                     let mut service = program_ref.service();
-                    let Some(is_async) = service.check_asyncness(method) else {
+                    let Some(is_async) = <MyService as sails_rs::gstd::services::Service>::Exposure::check_asyncness(
+                        interface_id,
+                        entry_id,
+                    ) else {
                         gstd::unknown_input_panic("Unknown service method", &input);
                     };
                     if is_async {
                         gstd::message_loop(async move {
                             let (output, value, encode_reply) = service
-                                .try_handle_solidity_async(method, &input[4..])
+                                .try_handle_solidity_async(
+                                    interface_id,
+                                    entry_id,
+                                    &input[4..],
+                                )
                                 .await
                                 .unwrap_or_else(|| {
                                     gstd::unknown_input_panic("Unknown request", &input)
@@ -167,7 +194,7 @@ pub mod wasm {
                         });
                     } else {
                         let (output, value, encode_reply) = service
-                            .try_handle_solidity(method, &input[4..])
+                            .try_handle_solidity(interface_id, entry_id, &input[4..])
                             .unwrap_or_else(|| {
                                 gstd::unknown_input_panic("Unknown request", &input)
                             });
@@ -184,48 +211,59 @@ pub mod wasm {
                 }
             }
         }
-        if input.starts_with(&__ROUTE_SERVICE) {
-            let mut service = program_ref.service();
-            let is_async = service
-                .check_asyncness(&input[__ROUTE_SERVICE.len()..])
-                .unwrap_or_else(|| {
-                    gstd::unknown_input_panic(
-                        "Unknown call",
-                        &input[__ROUTE_SERVICE.len()..],
-                    )
-                });
-            if is_async {
-                gstd::message_loop(async move {
-                    service
-                        .try_handle_async(
-                            &input[__ROUTE_SERVICE.len()..],
-                            |encoded_result, value| {
-                                gstd::msg::reply_bytes(encoded_result, value)
-                                    .expect("Failed to send output");
-                            },
+        if let Ok(header) = <sails_rs::meta::SailsMessageHeader as sails_rs::Decode>::decode(
+            &mut input.as_slice(),
+        ) {
+            let header_len = header.hlen().inner() as usize;
+            let (interface_id, route_id, entry_id) = header
+                .try_match_interfaces(INTERFACE_IDS)
+                .expect("Failed to find matching service")
+                .into_inner();
+            match route_id {
+                1u8 => {
+                    let svc = program_ref.service();
+                    let is_async = <MyService as sails_rs::gstd::services::Service>::Exposure::check_asyncness(
+                            interface_id,
+                            entry_id,
                         )
-                        .await
                         .unwrap_or_else(|| {
-                            gstd::unknown_input_panic("Unknown request", &input)
+                            gstd::unknown_input_panic("Unknown call", &[])
                         });
-                });
-            } else {
-                service
-                    .try_handle(
-                        &input[__ROUTE_SERVICE.len()..],
-                        |encoded_result, value| {
-                            gstd::msg::reply_bytes(encoded_result, value)
-                                .expect("Failed to send output");
-                        },
-                    )
-                    .unwrap_or_else(|| gstd::unknown_input_panic(
-                        "Unknown request",
-                        &input,
-                    ));
+                    if is_async {
+                        gstd::message_loop(async move {
+                            svc.try_handle_async(
+                                    interface_id,
+                                    entry_id,
+                                    &input[header_len..],
+                                    |encoded_result, value| {
+                                        gstd::msg::reply_bytes(encoded_result, value)
+                                            .expect("Failed to send output");
+                                    },
+                                )
+                                .await
+                                .unwrap_or_else(|| {
+                                    gstd::unknown_input_panic("Unknown request", &[])
+                                });
+                        });
+                    } else {
+                        svc.try_handle(
+                                interface_id,
+                                entry_id,
+                                &input[header_len..],
+                                |encoded_result, value| {
+                                    gstd::msg::reply_bytes(encoded_result, value)
+                                        .expect("Failed to send output");
+                                },
+                            )
+                            .unwrap_or_else(|| gstd::unknown_input_panic(
+                                "Unknown request",
+                                &[],
+                            ));
+                    }
+                }
+                _ => gstd::unknown_input_panic("Unknown route_id", &[route_id]),
             }
-        } else {
-            gstd::unknown_input_panic("Unexpected service", &input)
-        };
+        }
     }
     #[unsafe(no_mangle)]
     extern "C" fn handle_reply() {

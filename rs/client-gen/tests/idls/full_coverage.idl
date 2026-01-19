@@ -317,6 +317,12 @@ service AnotherService {
         Ping() -> String;
         ProcessValues(data: [U256]) throws ProgramError;
     }
+    types {
+        enum ProgramError {
+            InvalidOwner,
+            ConfigError(String),
+        }
+    }
 }
 
 service MyComplexService {
@@ -368,5 +374,12 @@ service MyComplexService {
             Paused,
             Error(ProgramError), // Using ProgramError
         }
+        enum ProgramError {
+            InvalidOwner,
+            ConfigError(String),
+        }
     }
+}
+
+service RmrkCatalog {
 }

@@ -42,7 +42,8 @@ impl TypeDeclToSol for PrimitiveType {
             Self::I64 => "int64",
             Self::I128 => "int128",
             Self::String => "string",
-            Self::ActorId | Self::H256 | Self::CodeId | Self::MessageId => "bytes32",
+            Self::ActorId => "address",
+            Self::H256 | Self::CodeId | Self::MessageId => "bytes32",
             Self::H160 => "bytes20",
             _ => return Err(anyhow!("type is not supported")),
         }

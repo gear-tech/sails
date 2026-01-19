@@ -27,6 +27,13 @@ impl sails_rs::SailsEvent for Events {
             }
         }
     }
+    fn entry_id(&self) -> u16 {
+        match self {
+            Events::MyEvent1 { .. } => 0u16,
+            Events::MyEvent2(..) => 1u16,
+            Events::MyEvent3 => 2u16,
+        }
+    }
     fn skip_bytes() -> usize {
         1
     }
@@ -83,7 +90,7 @@ impl sails_rs::EthEvent for Events {
                 .finalize(),
         ),
     ];
-    #[allow(unused_variables)]
+    #[allow(unused)]
     fn topics(&self) -> sails_rs::Vec<sails_rs::alloy_primitives::B256> {
         match self {
             Events::MyEvent1 { sender, amount, note } => {
@@ -108,7 +115,7 @@ impl sails_rs::EthEvent for Events {
             }
         }
     }
-    #[allow(unused_variables)]
+    #[allow(unused)]
     fn data(&self) -> sails_rs::Vec<u8> {
         match self {
             Events::MyEvent1 { sender, amount, note } => Self::encode_sequence(&(note,)),

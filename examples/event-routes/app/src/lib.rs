@@ -62,3 +62,5 @@ pub use code::WASM_BINARY_OPT as WASM_BINARY;
 mod code {
     include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 }
+
+pub const INTERFACE_ID: InterfaceId = <Service as Identifiable>::INTERFACE_ID;

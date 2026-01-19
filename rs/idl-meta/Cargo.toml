@@ -10,14 +10,17 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-askama = { workspace = true, optional = true }
+askama = { workspace = true, optional = true, features = ["alloc", "derive"] }
+keccak-const.workspace = true
 parity-scale-codec.workspace = true
-serde = { workspace = true, features = ["derive"], optional = true }
+serde = { workspace = true, features = ["alloc", "derive"], optional = true }
 serde-json = { workspace = true, features = ["alloc"], optional = true }
 scale-info.workspace = true
 
 [dev-dependencies]
+gprimitives.workspace = true
 insta.workspace = true
+sails-reflect-hash.workspace = true
 
 [features]
 default = ["ast"]

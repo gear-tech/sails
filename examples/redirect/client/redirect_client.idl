@@ -1,7 +1,7 @@
 
-!@sails: 0.9.2
+!@sails: 0.10.2
 
-service Redirect {
+service Redirect@0xba58dee1cb75511e {
     functions {
         /// Exit from program with inheritor ID
         Exit(inheritor_id: ActorId);
@@ -11,11 +11,11 @@ service Redirect {
     }
 }
 
-program ProgramToDo {
+program RedirectClient {
     constructors {
         New();
     }
     services {
-        Redirect,
+        Redirect@0xba58dee1cb75511e,
     }
 }

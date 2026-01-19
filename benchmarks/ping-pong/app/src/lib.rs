@@ -28,13 +28,13 @@ impl PingPongService {
             PingPongPayload::Start(actor_id) => {
                 let mut api = client::PingPongProgram::client(actor_id).ping_pong_service();
                 let result = api
-                    .ping(client::PingPongPayload::Ping)
+                    .ping(client::ping_pong_service::PingPongPayload::Ping)
                     .await
                     .unwrap_or_else(|e| {
                         panic!("Failed to receiving successful ping result: {e:?}")
                     });
 
-                if matches!(result, client::PingPongPayload::Pong) {
+                if matches!(result, client::ping_pong_service::PingPongPayload::Pong) {
                     PingPongPayload::Finished
                 } else {
                     panic!("Unexpected payload received: {result:?}")

@@ -14,7 +14,7 @@ path = "src/main.rs"
 
 [dependencies]
 anyhow.workspace = true
-askama.workspace = true
+askama = { workspace = true, features = ["derive", "std"] }
 cargo-generate.workspace = true
 cargo_metadata.workspace = true
 clap = { workspace = true, features = ["derive"] }

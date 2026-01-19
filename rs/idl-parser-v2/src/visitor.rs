@@ -381,6 +381,6 @@ mod tests {
         accept_idl_doc(&doc, &mut visitor);
 
         assert_eq!(visitor.program_count, 0);
-        assert_eq!(visitor.service_count, 2);
+        assert_eq!(visitor.service_count, 4);
     }
 }

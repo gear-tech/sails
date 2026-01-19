@@ -2,6 +2,7 @@
 source: rs/idl-meta/tests/templates.rs
 expression: idl
 ---
+
 !@sails: 0.1.0
 !@include: ownable.idl
 !@include: git://github.com/some_repo/tippable.idl
@@ -19,7 +20,7 @@ program Demo {
         Ping,
         Counter,
         /// Another Counter service
-        Counter2: Counter,
+        Counter: Counter2,
     }
     types {
         struct DoThatParam {

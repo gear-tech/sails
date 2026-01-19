@@ -60,15 +60,16 @@ struct ServiceBuilder<'a> {
     service_impl: &'a ItemImpl,
     sails_path: &'a Path,
     base_types: &'a [Path],
+    /// Indices into `base_types` sorted lexicographically by service name.
+    sorted_base_indices: Vec<usize>,
     generics: Generics,
     type_constraints: Option<WhereClause>,
     type_path: &'a TypePath,
     events_type: Option<&'a Path>,
     service_handlers: Vec<FnBuilder<'a>>,
     exposure_ident: Ident,
-    route_ident: Ident,
+    route_idx_ident: Ident,
     inner_ident: Ident,
-    input_ident: Ident,
     meta_module_ident: Ident,
 }
 
@@ -87,25 +88,37 @@ impl<'a> ServiceBuilder<'a> {
             service_ident.to_string().to_case(Case::Pascal)
         );
         let exposure_ident = Ident::new(&exposure_name, Span::call_site());
-        let route_ident = Ident::new("route", Span::call_site());
+        let route_idx_ident = Ident::new("route_idx", Span::call_site());
         let inner_ident = Ident::new("inner", Span::call_site());
-        let input_ident = Ident::new("input", Span::call_site());
         let meta_module_name = format!("{}_meta", service_ident.to_string().to_case(Case::Snake));
         let meta_module_ident = Ident::new(&meta_module_name, Span::call_site());
+
+        let base_types = service_args.base_types();
+        let mut sorted_base_indices: Vec<_> = (0..base_types.len()).collect();
+
+        sorted_base_indices.sort_by_key(|&idx| {
+            base_types[idx]
+                .segments
+                .last()
+                .expect("Base service path should have at least one segment")
+                .ident
+                .to_string()
+                .to_lowercase()
+        });
 
         Self {
             service_impl,
             sails_path,
-            base_types: service_args.base_types(),
+            base_types,
+            sorted_base_indices,
             generics,
             type_constraints,
             type_path,
             events_type: service_args.events_type(),
             service_handlers,
             exposure_ident,
-            route_ident,
+            route_idx_ident,
             inner_ident,
-            input_ident,
             meta_module_ident,
         }
     }
@@ -149,7 +162,6 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         );
     }
 
-    let meta_trait_impl = service_builder.meta_trait_impl();
     let meta_module = service_builder.meta_module();
 
     let exposure_struct = service_builder.exposure_struct();
@@ -166,8 +178,6 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
 
         #service_trait_impl
 
-        #meta_trait_impl
-
         #meta_module
 
         #service_signature_impl
@@ -178,14 +188,20 @@ fn discover_service_handlers<'a>(
     service_impl: &'a ItemImpl,
     sails_path: &'a Path,
 ) -> Vec<FnBuilder<'a>> {
-    shared::discover_invocation_targets(
+    let mut vec: Vec<_> = shared::discover_invocation_targets(
         service_impl,
         |fn_item| matches!(fn_item.vis, Visibility::Public(_)) && fn_item.sig.receiver().is_some(),
         sails_path,
     )
     .into_iter()
     .filter(|fn_builder| fn_builder.export)
-    .collect()
+    .collect();
+    // service funcs ordered by (fn_type, name)
+    vec.sort_by_key(|f| (f.is_query(), f.route.to_lowercase()));
+    vec.iter_mut()
+        .enumerate()
+        .for_each(|(idx, f)| f.entry_id = idx as u16);
+    vec
 }
 
 impl FnBuilder<'_> {
@@ -205,91 +221,59 @@ impl FnBuilder<'_> {
         let params_struct_ident = &self.params_struct_ident;
         let result_type = self.result_type_with_static_lifetime();
 
+        let payable_doc = if cfg!(feature = "ethexe") {
+            self.payable.then(|| quote!(#[doc = " #[payable]"]))
+        } else {
+            None
+        };
+
+        let returns_value_doc = if cfg!(feature = "ethexe") {
+            self.result_type_with_value()
+                .1
+                .then(|| quote!(#[doc = " #[returns_value]"]))
+        } else {
+            None
+        };
         quote!(
             #( #handler_docs_attrs )*
+            #payable_doc
+            #returns_value_doc
             #handler_route_ident(#params_struct_ident, #result_type)
         )
     }
 
-    fn params_struct(&self, scale_codec_path: &Path, scale_info_path: &Path) -> TokenStream {
+    fn params_struct(
+        &self,
+        service_path: &TypePath,
+        scale_codec_path: &Path,
+        scale_info_path: &Path,
+    ) -> TokenStream {
+        let sails_path = self.sails_path;
         let params_struct_ident = &self.params_struct_ident;
         let params_struct_members = self.params().map(|(ident, ty)| quote!(#ident: #ty));
-        let handler_route_bytes = self.encoded_route.as_slice();
-        let is_async = self.is_async();
+        let entry_id = &self.entry_id;
+        let path_wo_lifetimes = shared::remove_lifetimes(&service_path.path);
 
         quote!(
-            #[derive(Decode, TypeInfo)]
+            #[derive(#sails_path::Decode, #sails_path::TypeInfo)]
             #[codec(crate = #scale_codec_path )]
             #[scale_info(crate = #scale_info_path )]
             pub struct #params_struct_ident {
                 #(pub(super) #params_struct_members,)*
             }
 
-            impl InvocationIo for #params_struct_ident {
-                const ROUTE: &'static [u8] = &[ #(#handler_route_bytes),* ];
+            impl #sails_path::meta::Identifiable for #params_struct_ident {
+                const INTERFACE_ID: #sails_path::meta::InterfaceId = <super:: #path_wo_lifetimes as #sails_path::meta::Identifiable>::INTERFACE_ID;
+            }
+
+            impl #sails_path::meta::MethodMeta for #params_struct_ident {
+                const ENTRY_ID: u16 = #entry_id;
+            }
+
+            impl #sails_path::gstd::InvocationIo for #params_struct_ident {
                 type Params = Self;
-                const ASYNC: bool = #is_async;
             }
         )
-    }
-
-    fn try_handle_branch_impl(
-        &self,
-        meta_module_ident: &Ident,
-        input_ident: &Ident,
-    ) -> TokenStream {
-        let handler_func_ident = self.ident;
-
-        let params_struct_ident = &self.params_struct_ident;
-        let handler_func_params = self
-            .params_idents()
-            .iter()
-            .map(|ident| quote!(request.#ident));
-
-        let (result_type, reply_with_value) = self.result_type_with_value();
-        let await_token = self.is_async().then(|| quote!(.await));
-        let unwrap_token = self.unwrap_result.then(|| quote!(.unwrap()));
-
-        let handle_token = if reply_with_value {
-            quote! {
-                let command_reply: CommandReply< #result_type > = self.#handler_func_ident(#(#handler_func_params),*)#await_token #unwrap_token.into();
-                let (result, value) = command_reply.to_tuple();
-            }
-        } else {
-            quote! {
-                let result = self.#handler_func_ident(#(#handler_func_params),*)#await_token #unwrap_token;
-                let value = 0u128;
-            }
-        };
-
-        let result_type = self.result_type_with_static_lifetime();
-        quote! {
-            if let Ok(request) = #meta_module_ident::#params_struct_ident::decode_params( #input_ident) {
-                #handle_token
-                if !#meta_module_ident::#params_struct_ident::is_empty_tuple::<#result_type>() {
-                    #meta_module_ident::#params_struct_ident::with_optimized_encode(
-                        &result,
-                        self.route().as_ref(),
-                        |encoded_result| result_handler(encoded_result, value),
-                    );
-                }
-                return Some(());
-            }
-        }
-    }
-
-    fn check_asyncness_branch_impl(
-        &self,
-        meta_module_ident: &Ident,
-        input_ident: &Ident,
-    ) -> TokenStream {
-        let params_struct_ident = &self.params_struct_ident;
-
-        quote! {
-            if let Ok(is_async) = #meta_module_ident::#params_struct_ident::check_asyncness( #input_ident) {
-                return Some(is_async);
-            }
-        }
     }
 }
 
@@ -325,13 +309,13 @@ mod tests {
         .unwrap();
 
         let sails_path = &sails_paths::sails_path_or_default(None);
-        let discovered_ctors = discover_service_handlers(&service_impl, sails_path)
+        let discovered_svcs = discover_service_handlers(&service_impl, sails_path)
             .iter()
             .map(|fn_builder| fn_builder.ident.to_string())
             .collect::<Vec<_>>();
 
         assert_eq!(
-            discovered_ctors,
+            discovered_svcs,
             &[
                 "export_public_method_returning_self",
                 "export_public_method_returning_smth",

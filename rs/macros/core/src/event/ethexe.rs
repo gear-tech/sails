@@ -120,14 +120,14 @@ pub(super) fn generate_eth_event_impl(input: &ItemEnum, sails_path: &Path) -> To
                 #( #sigs_const ),*
             ];
 
-            #[allow(unused_variables)]
+            #[allow(unused)]
             fn topics(&self) -> #sails_path::Vec<#sails_path::alloy_primitives::B256> {
                 match self {
                     #( #topics_match_arms ),*
                 }
             }
 
-            #[allow(unused_variables)]
+            #[allow(unused)]
             fn data(&self) -> #sails_path::Vec<u8> {
                 match self {
                     #( #data_match_arms ),*

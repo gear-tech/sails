@@ -11,8 +11,10 @@ mod tests {
     fn test_io_module_encode() {
         use this_that::*;
 
-        let bytes = io::DoThat::encode_params_with_prefix(
-            "ThisThat",
+        // Use the new simplified encode_call method
+        // It automatically uses the InterfaceId from the service module
+        let bytes = io::DoThat::encode_call(
+            DemoClientProgram::ROUTE_ID_THIS_THAT,
             DoThatParam {
                 p1: NonZeroU32::MAX,
                 p2: 123.into(),
@@ -20,35 +22,46 @@ mod tests {
             },
         );
 
-        assert_eq!(
-            bytes,
-            vec![
-                32, 84, 104, 105, 115, 84, 104, 97, 116, // ThisThat
-                24, 68, 111, 84, 104, 97, 116, // DoThat
-                255, 255, 255, 255, // p1
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 123, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, // p2
-                0, // p3
-            ]
-        );
+        let mut expected = vec![
+            0x47, 0x4D, 0x01, 0x10, // Magic, Version, Header Length
+            56, 30, 19, 253, 208, 45, 103, 95, // Interface ID
+            0, 0, // Entry ID
+            5, // Route Index
+            0, // Reserved
+        ];
+        expected.extend_from_slice(&[
+            255, 255, 255, 255, // p1
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 123, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, // p2
+            0, // p3
+        ]);
+
+        assert_eq!(bytes, expected);
     }
 
     #[test]
     fn test_io_module_decode_reply() {
         use this_that::*;
 
-        let bytes = vec![
-            32, 84, 104, 105, 115, 84, 104, 97, 116, // ThisThat
-            24, 68, 111, 84, 104, 97, 116, // DoThat
-            0,   // Ok
+        // We don't need manual InterfaceId anymore, it's inside decode_reply
+        let mut bytes = vec![
+            0x47, 0x4D, 0x01, 0x10, // Magic, Version, Header Length
+            56, 30, 19, 253, 208, 45, 103, 95, // Interface ID
+            0, 0, // Entry ID
+            0, // Route Index
+            0, // Reserved
+        ];
+        bytes.extend_from_slice(&[
+            0, // Ok
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 123, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, // 123
             255, 255, 255, 255, // NonZeroU32::MAX
             0,   // ManyVariantsReply::One
-        ];
+        ]);
 
+        // Use the simplified method
         let reply: Result<(ActorId, NonZeroU32, ManyVariantsReply), (String,)> =
-            io::DoThat::decode_reply_with_prefix("ThisThat", bytes).unwrap();
+            io::DoThat::decode_reply(0, bytes).unwrap();
 
         assert_eq!(
             reply,

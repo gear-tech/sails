@@ -1,6 +1,5 @@
 use crate::export;
 use convert_case::{Case, Casing};
-use parity_scale_codec::Encode;
 use proc_macro_error::abort;
 use proc_macro2::Span;
 use quote::ToTokens;
@@ -76,27 +75,48 @@ pub(crate) fn unwrap_result_type(handler_signature: &Signature, unwrap_result: b
     }
 }
 
-pub(crate) fn invocation_export(fn_impl: &ImplItemFn) -> Option<(Span, String, bool, bool)> {
+pub(crate) struct InvocationExport {
+    pub span: Span,
+    pub route: String,
+    pub unwrap_result: bool,
+    pub export: bool,
+    #[cfg(feature = "ethexe")]
+    pub payable: bool,
+}
+
+pub(crate) fn invocation_export(fn_impl: &ImplItemFn) -> Option<InvocationExport> {
     export::parse_export_args(&fn_impl.attrs).map(|(args, span)| {
         let ident = &fn_impl.sig.ident;
         let unwrap_result = args.unwrap_result();
+        #[cfg(feature = "ethexe")]
+        let payable = args.payable();
+
         let route = args.route().map_or_else(
             || ident.to_string().to_case(Case::Pascal),
             |route| route.to_case(Case::Pascal),
         );
-        (span, route, unwrap_result, true)
+        InvocationExport {
+            span,
+            route,
+            unwrap_result,
+            export: true,
+            #[cfg(feature = "ethexe")]
+            payable,
+        }
     })
 }
 
-pub(crate) fn invocation_export_or_default(fn_impl: &ImplItemFn) -> (Span, String, bool, bool) {
+pub(crate) fn invocation_export_or_default(fn_impl: &ImplItemFn) -> InvocationExport {
     invocation_export(fn_impl).unwrap_or_else(|| {
         let ident = &fn_impl.sig.ident;
-        (
-            ident.span(),
-            ident.to_string().to_case(Case::Pascal),
-            false,
-            false,
-        )
+        InvocationExport {
+            span: ident.span(),
+            route: ident.to_string().to_case(Case::Pascal),
+            unwrap_result: false,
+            export: false,
+            #[cfg(feature = "ethexe")]
+            payable: false,
+        }
     })
 }
 
@@ -106,15 +126,23 @@ pub(crate) fn discover_invocation_targets<'a>(
     sails_path: &'a Path,
 ) -> Vec<FnBuilder<'a>> {
     let mut routes = BTreeMap::<String, String>::new();
-    let mut vec: Vec<FnBuilder<'a>> = item_impl
+    let vec: Vec<FnBuilder<'a>> = item_impl
         .items
         .iter()
         .filter_map(|item| {
             if let ImplItem::Fn(fn_item) = item
                 && filter(fn_item)
             {
-                let (span, route, unwrap_result, export) = invocation_export_or_default(fn_item);
-
+                let InvocationExport {
+                    span,
+                    route,
+                    unwrap_result,
+                    export,
+                    #[cfg(feature = "ethexe")]
+                    payable,
+                } = invocation_export_or_default(fn_item);
+                // `entry_id` in order of appearance
+                let entry_id = routes.len() as u16;
                 if let Some(duplicate) = routes.insert(route.clone(), fn_item.sig.ident.to_string())
                 {
                     abort!(
@@ -123,13 +151,15 @@ pub(crate) fn discover_invocation_targets<'a>(
                         duplicate
                     );
                 }
-                let fn_builder = FnBuilder::from(route, export, fn_item, unwrap_result, sails_path);
+                let fn_builder =
+                    FnBuilder::new(route, entry_id, export, fn_item, unwrap_result, sails_path);
+                #[cfg(feature = "ethexe")]
+                let fn_builder = fn_builder.payable(payable);
                 return Some(fn_builder);
             }
             None
         })
         .collect();
-    vec.sort_by(|a, b| a.route.cmp(&b.route));
     vec
 }
 
@@ -270,8 +300,9 @@ pub(crate) fn extract_result_types(tp: &TypePath) -> Option<(&Type, &Type)> {
 #[derive(Clone)]
 pub(crate) struct FnBuilder<'a> {
     pub route: String,
+    pub entry_id: u16,
     pub export: bool,
-    pub encoded_route: Vec<u8>,
+    pub payable: bool,
     pub impl_fn: &'a ImplItemFn,
     pub ident: &'a Ident,
     pub params_struct_ident: Ident,
@@ -283,14 +314,14 @@ pub(crate) struct FnBuilder<'a> {
 }
 
 impl<'a> FnBuilder<'a> {
-    pub(crate) fn from(
+    pub(crate) fn new(
         route: String,
+        entry_id: u16,
         export: bool,
         impl_fn: &'a ImplItemFn,
         unwrap_result: bool,
         sails_path: &'a Path,
     ) -> Self {
-        let encoded_route = route.encode();
         let signature = &impl_fn.sig;
         let ident = &signature.ident;
         let params_struct_ident = Ident::new(&format!("__{route}Params"), Span::call_site());
@@ -299,8 +330,9 @@ impl<'a> FnBuilder<'a> {
 
         Self {
             route,
+            entry_id,
             export,
-            encoded_route,
+            payable: false,
             impl_fn,
             ident,
             params_struct_ident,
@@ -312,6 +344,11 @@ impl<'a> FnBuilder<'a> {
         }
     }
 
+    #[cfg(feature = "ethexe")]
+    pub(crate) fn payable(mut self, payable: bool) -> Self {
+        self.payable = payable;
+        self
+    }
     pub(crate) fn is_async(&self) -> bool {
         self.impl_fn.sig.asyncness.is_some()
     }
@@ -345,7 +382,6 @@ impl<'a> FnBuilder<'a> {
         self.params_idents.as_slice()
     }
 
-    #[cfg(feature = "ethexe")]
     pub(crate) fn params_types(&self) -> &[&Type] {
         self.params_types.as_slice()
     }
@@ -357,5 +393,248 @@ impl<'a> FnBuilder<'a> {
         self.route
             .with_boundaries(&[Boundary::UNDERSCORE, Boundary::LOWER_UPPER])
             .to_case(Case::Camel)
+    }
+
+    #[cfg(feature = "ethexe")]
+    pub(crate) fn payable_check(&self) -> proc_macro2::TokenStream {
+        if !self.payable {
+            let sails_path = self.sails_path;
+            let msg = format!("'{}' accepts no value", self.ident);
+            quote::quote! {
+                #[cfg(target_arch = "wasm32")]
+                if #sails_path::gstd::msg::value() > 0 {
+                    core::panic!(#msg);
+                }
+            }
+        } else {
+            quote::quote!()
+        }
+    }
+}
+
+#[cfg(feature = "ethexe")]
+pub mod validation {
+    use proc_macro_error::abort;
+    use proc_macro2::Span;
+
+    // Source: https://github.com/argotorg/solidity/blob/develop/liblangutil/Token.h
+    // docs:
+    // https://docs.soliditylang.org/en/latest/types.html
+    // https://docs.soliditylang.org/en/latest/units-and-global-variables.html#reserved-keywords
+    const SOL_KEYWORDS: &[&str] = &[
+        "abi",
+        "abstract",
+        "addmod",
+        "address",
+        "after",
+        "alias",
+        "anonymous",
+        "apply",
+        "as",
+        "assembly",
+        "assert",
+        "auto",
+        "block",
+        "blockhash",
+        "bool",
+        "break",
+        "byte",
+        "bytes",
+        "calldata",
+        "case",
+        "catch",
+        "constant",
+        "constructor",
+        "continue",
+        "contract",
+        "copyof",
+        "days",
+        "default",
+        "define",
+        "delete",
+        "do",
+        "ecrecover",
+        "else",
+        "emit",
+        "enum",
+        "ether",
+        "event",
+        "external",
+        "false",
+        "final",
+        "fixed",
+        "for",
+        "function",
+        "gasleft",
+        "gwei",
+        "hex",
+        "hours",
+        "if",
+        "immutable",
+        "implements",
+        "import",
+        "in",
+        "indexed",
+        "inline",
+        "int",
+        "interface",
+        "internal",
+        "is",
+        "keccak256",
+        "let",
+        "library",
+        "macro",
+        "mapping",
+        "match",
+        "memory",
+        "minutes",
+        "modifier",
+        "msg",
+        "mulmod",
+        "mutable",
+        "new",
+        "null",
+        "of",
+        "override",
+        "partial",
+        "payable",
+        "pragma",
+        "private",
+        "promise",
+        "public",
+        "pure",
+        "reference",
+        "relocatable",
+        "require",
+        "return",
+        "returns",
+        "revert",
+        "ripemd160",
+        "sealed",
+        "seconds",
+        "selfdestruct",
+        "sha256",
+        "sizeof",
+        "static",
+        "storage",
+        "string",
+        "struct",
+        "super",
+        "supports",
+        "switch",
+        "this",
+        "throw",
+        "true",
+        "try",
+        "tx",
+        "type",
+        "typedef",
+        "typeof",
+        "ufixed",
+        "uint",
+        "unchecked",
+        "unicode",
+        "using",
+        "var",
+        "view",
+        "virtual",
+        "weeks",
+        "wei",
+        "while",
+        "years",
+    ];
+
+    fn is_reserved(s: &str) -> bool {
+        let s = s.to_ascii_lowercase();
+
+        if SOL_KEYWORDS.binary_search(&s.as_str()).is_ok() {
+            return true;
+        }
+
+        // bytes<N>
+        if let Some(num) = s.strip_prefix("bytes").and_then(|x| x.parse::<u8>().ok()) {
+            return (1..=32).contains(&num);
+        }
+
+        // uint<N> | int<N>
+        if let Some(rest) = s.strip_prefix("uint").or_else(|| s.strip_prefix("int"))
+            && let Ok(n) = rest.parse::<u16>()
+        {
+            return n == 8 || (16..=256).contains(&n) && n % 8 == 0;
+        }
+
+        // ufixed<M>x<N> | fixed<M>x<N>
+        if let Some(rest) = s.strip_prefix("ufixed").or_else(|| s.strip_prefix("fixed"))
+            && let Some((m_str, n_str)) = rest.split_once('x')
+            && let (Ok(m), Ok(n)) = (m_str.parse::<u16>(), n_str.parse::<u8>())
+            && (8..=256).contains(&m)
+            && m % 8 == 0
+            && n <= 80
+        {
+            return true;
+        }
+
+        false
+    }
+
+    pub fn validate_identifier(name: &str, span: Span, type_of_ident: &str) {
+        if is_reserved(name) {
+            abort!(
+                span,
+                "The name '{}' cannot be used for a {} because it is a reserved keyword in Solidity.",
+                name,
+                type_of_ident;
+                help = "Please rename this item to avoid compilation errors in the generated Solidity contract."
+            );
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn is_reserved_works() {
+            // Keywords
+            assert!(is_reserved("address"));
+            assert!(is_reserved("contract"));
+            assert!(is_reserved("function"));
+            assert!(!is_reserved("myfunction"));
+
+            // bytes<N>
+            assert!(is_reserved("bytes1"));
+            assert!(is_reserved("bytes16"));
+            assert!(is_reserved("bytes32"));
+            assert!(!is_reserved("bytes0"));
+            assert!(!is_reserved("bytes33"));
+            assert!(!is_reserved("sbytes1"));
+
+            // uint<N> | int<N>
+            assert!(is_reserved("uint8"));
+            assert!(is_reserved("int8"));
+            assert!(is_reserved("uint16"));
+            assert!(is_reserved("int24"));
+            assert!(is_reserved("uint256"));
+            assert!(!is_reserved("uint9"));
+            assert!(!is_reserved("int17"));
+            assert!(!is_reserved("uint257"));
+            assert!(!is_reserved("uint249"));
+            assert!(!is_reserved("uint"));
+            assert!(!is_reserved("int"));
+
+            // ufixed<M>x<N> | fixed<M>x<N>
+            assert!(is_reserved("fixed128x18"));
+            assert!(is_reserved("ufixed256x80"));
+            assert!(is_reserved("fixed8x1"));
+            assert!(is_reserved("ufixed256x0"));
+            assert!(!is_reserved("fixed"));
+            assert!(!is_reserved("ufixed"));
+            assert!(!is_reserved("fixed128x81")); // N > 80
+            assert!(!is_reserved("fixed264x18")); // M > 256
+            assert!(!is_reserved("fixed129x18")); // M not divisible by 8
+            assert!(!is_reserved("fixed4x1")); // M < 8
+            assert!(!is_reserved("fixed128"));
+            assert!(!is_reserved("fixed128xN"));
+        }
     }
 }

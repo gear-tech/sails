@@ -24,6 +24,8 @@ struct FunctionData {
     pub args: Vec<ArgData>,
     pub reply_type: Option<String>,
     pub reply_mem_location: Option<String>,
+    pub payable: bool,
+    pub returns_value: bool,
 }
 
 #[derive(Serialize)]
@@ -93,8 +95,10 @@ fn functions_from_idl(doc: &IdlDoc) -> Result<Vec<FunctionData>> {
             }
             functions.push(FunctionData {
                 name: func.name.to_case(Case::Camel),
-                reply_type: None,
+                reply_type: None, // Constructors don't have replies in this sense
                 reply_mem_location: None,
+                payable: has_tag(&func.docs, "#[payable]"),
+                returns_value: false, // Constructors don't return CommandReply values
                 args,
             });
         }
@@ -117,11 +121,13 @@ fn functions_from_idl(doc: &IdlDoc) -> Result<Vec<FunctionData>> {
                 None
             };
             functions.push(FunctionData {
-                name: format!("{}{}", svc.name, f.name)
+                name: format!("{}{}", svc.name.name, f.name)
                     .as_str()
                     .to_case(Case::Camel),
                 reply_type,
                 reply_mem_location: f.output.get_mem_location(),
+                payable: has_tag(&f.docs, "#[payable]"),
+                returns_value: has_tag(&f.docs, "#[returns_value]"),
                 args,
             });
         }
@@ -152,4 +158,8 @@ fn events_from_idl(doc: &IdlDoc) -> Result<Vec<EventData>> {
     }
 
     Ok(events)
+}
+
+fn has_tag(docs: &[String], tag: &str) -> bool {
+    docs.iter().any(|doc| doc.contains(tag))
 }

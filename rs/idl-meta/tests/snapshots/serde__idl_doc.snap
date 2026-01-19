@@ -65,14 +65,17 @@ expression: serialized
     ],
     "services": [
       {
-        "name": "Ping"
+        "name": "Ping",
+        "route_idx": 1
       },
       {
-        "name": "Counter"
+        "name": "Counter",
+        "route_idx": 2
       },
       {
         "name": "Counter",
         "route": "Counter2",
+        "route_idx": 3,
         "docs": [
           "Another Counter service"
         ]
@@ -146,7 +149,6 @@ expression: serialized
             }
           ],
           "output": "u32",
-          "throws": "String",
           "kind": "command",
           "docs": [
             "Substract a value from the counter"

@@ -5,6 +5,19 @@ program RmrkResource {
     services {
         RmrkResource,
     }
+}
+
+service RmrkResource {
+    functions {
+        AddPartToResource(resource_id: u8, part_id: u32) -> Result<u32, Error>;
+        AddResourceEntry(resource_id: u8, resource: Resource) -> Result<(u8, Resource), Error>;
+        @query
+        Resource(resource_id: u8) -> Result<Resource, Error>;
+    }
+    events {
+        ResourceAdded(resource_id: u8),
+        PartAdded(resource_id: u8, part_id: u32),
+    }
     types {
         enum Error {
             NotAuthorized,
@@ -55,18 +68,5 @@ program RmrkResource {
             base: ActorId,
             parts: [u32],
         }
-    }
-}
-
-service RmrkResource {
-    functions {
-        AddPartToResource(resource_id: u8, part_id: u32) -> Result<u32, Error>;
-        AddResourceEntry(resource_id: u8, resource: Resource) -> Result<(u8, Resource), Error>;
-        @query
-        Resource(resource_id: u8) -> Result<Resource, Error>;
-    }
-    events {
-        ResourceAdded(resource_id: u8),
-        PartAdded(resource_id: u8, part_id: u32),
     }
 }

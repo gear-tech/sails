@@ -154,6 +154,8 @@ pub trait EthEvent {
 
 #[cfg(test)]
 mod tests {
+    #![allow(unused_assignments)]
+
     use super::*;
     use crate::{self as sails_rs, Encode, String, TypeInfo, event};
 
