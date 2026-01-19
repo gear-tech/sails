@@ -21,7 +21,7 @@ for SomeServiceExposure<T> {
         if !T::ASYNC {
             return Some(false);
         }
-        if interface_id == T::INTERFACE_ID {
+        if interface_id == <T as sails_rename::meta::Identifiable>::INTERFACE_ID {
             match entry_id {
                 0u16 => Some(true),
                 1u16 => Some(false),
@@ -62,7 +62,7 @@ impl SomeServiceExposure<SomeService> {
         use sails_rename::gstd::services::{Exposure, Service};
         use sails_rename::gstd::{InvocationIo, CommandReply};
         if interface_id
-            == <self::SomeService as sails_rename::meta::ServiceMeta>::INTERFACE_ID
+            == <self::SomeService as sails_rename::meta::Identifiable>::INTERFACE_ID
         {
             match entry_id {
                 1u16 => {
@@ -97,7 +97,7 @@ impl SomeServiceExposure<SomeService> {
         use sails_rename::gstd::services::{Exposure, Service};
         use sails_rename::gstd::{InvocationIo, CommandReply};
         if interface_id
-            == <self::SomeService as sails_rename::meta::ServiceMeta>::INTERFACE_ID
+            == <self::SomeService as sails_rename::meta::Identifiable>::INTERFACE_ID
         {
             match entry_id {
                 0u16 => {
@@ -134,12 +134,7 @@ impl sails_rename::gstd::services::Service for SomeService {
 }
 mod some_service_meta {
     use super::*;
-    impl sails_rename::meta::ServiceMeta for super::SomeService {
-        type CommandsMeta = CommandsMeta;
-        type QueriesMeta = QueriesMeta;
-        type EventsMeta = EventsMeta;
-        const BASE_SERVICES: &'static [sails_rename::meta::BaseServiceMeta] = &[];
-        const ASYNC: bool = true;
+    impl sails_rename::meta::Identifiable for super::SomeService {
         const INTERFACE_ID: sails_rename::meta::InterfaceId = {
             let mut final_hash = sails_rename::keccak_const::Keccak256::new();
             final_hash = final_hash
@@ -150,6 +145,13 @@ mod some_service_meta {
             sails_rename::meta::InterfaceId::from_bytes_32(hash)
         };
     }
+    impl sails_rename::meta::ServiceMeta for super::SomeService {
+        type CommandsMeta = CommandsMeta;
+        type QueriesMeta = QueriesMeta;
+        type EventsMeta = EventsMeta;
+        const BASE_SERVICES: &'static [sails_rename::meta::BaseServiceMeta] = &[];
+        const ASYNC: bool = true;
+    }
     #[derive(sails_rename::Decode, sails_rename::TypeInfo)]
     #[codec(crate = sails_rename::scale_codec)]
     #[scale_info(crate = sails_rename::scale_info)]
@@ -157,9 +159,13 @@ mod some_service_meta {
         pub(super) p1: u32,
         pub(super) p2: String,
     }
-    impl sails_rename::gstd::InvocationIo for __DoThisParams {
-        const INTERFACE_ID: sails_rename::meta::InterfaceId = <super::SomeService as sails_rename::meta::ServiceMeta>::INTERFACE_ID;
+    impl sails_rename::meta::Identifiable for __DoThisParams {
+        const INTERFACE_ID: sails_rename::meta::InterfaceId = <super::SomeService as sails_rename::meta::Identifiable>::INTERFACE_ID;
+    }
+    impl sails_rename::meta::MethodMeta for __DoThisParams {
         const ENTRY_ID: u16 = 0u16;
+    }
+    impl sails_rename::gstd::InvocationIo for __DoThisParams {
         type Params = Self;
     }
     #[derive(sails_rename::Decode, sails_rename::TypeInfo)]
@@ -168,9 +174,13 @@ mod some_service_meta {
     pub struct __ThisParams {
         pub(super) p1: bool,
     }
-    impl sails_rename::gstd::InvocationIo for __ThisParams {
-        const INTERFACE_ID: sails_rename::meta::InterfaceId = <super::SomeService as sails_rename::meta::ServiceMeta>::INTERFACE_ID;
+    impl sails_rename::meta::Identifiable for __ThisParams {
+        const INTERFACE_ID: sails_rename::meta::InterfaceId = <super::SomeService as sails_rename::meta::Identifiable>::INTERFACE_ID;
+    }
+    impl sails_rename::meta::MethodMeta for __ThisParams {
         const ENTRY_ID: u16 = 1u16;
+    }
+    impl sails_rename::gstd::InvocationIo for __ThisParams {
         type Params = Self;
     }
     #[derive(sails_rename::TypeInfo)]

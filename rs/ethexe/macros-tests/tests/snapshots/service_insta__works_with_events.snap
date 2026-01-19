@@ -9,7 +9,7 @@ pub struct MyServiceWithEventsExposure<T> {
 impl<T: sails_rs::meta::ServiceMeta> sails_rs::gstd::services::Exposure
 for MyServiceWithEventsExposure<T> {
     fn interface_id() -> sails_rs::meta::InterfaceId {
-        T::INTERFACE_ID
+        <T as sails_rs::meta::Identifiable>::INTERFACE_ID
     }
     fn route_idx(&self) -> u8 {
         self.route_idx
@@ -21,7 +21,7 @@ for MyServiceWithEventsExposure<T> {
         if !T::ASYNC {
             return Some(false);
         }
-        if interface_id == T::INTERFACE_ID {
+        if interface_id == <T as sails_rs::meta::Identifiable>::INTERFACE_ID {
             match entry_id {
                 0u16 => Some(false),
                 1u16 => Some(false),
@@ -66,7 +66,7 @@ impl MyServiceWithEventsExposure<MyServiceWithEvents> {
         use sails_rs::gstd::services::{Exposure, Service};
         use sails_rs::gstd::{InvocationIo, CommandReply};
         if interface_id
-            == <self::MyServiceWithEvents as sails_rs::meta::ServiceMeta>::INTERFACE_ID
+            == <self::MyServiceWithEvents as sails_rs::meta::Identifiable>::INTERFACE_ID
         {
             match entry_id {
                 0u16 => {
@@ -117,7 +117,7 @@ impl MyServiceWithEventsExposure<MyServiceWithEvents> {
         use sails_rs::gstd::services::{Exposure, Service};
         use sails_rs::gstd::{InvocationIo, CommandReply};
         if interface_id
-            == <self::MyServiceWithEvents as sails_rs::meta::ServiceMeta>::INTERFACE_ID
+            == <self::MyServiceWithEvents as sails_rs::meta::Identifiable>::INTERFACE_ID
         {
             match entry_id {
                 _ => None,
@@ -133,8 +133,9 @@ impl MyServiceWithEventsExposure<MyServiceWithEvents> {
         input: &[u8],
     ) -> Option<(sails_rs::Vec<u8>, u128, bool)> {
         use sails_rs::gstd::services::{Service, Exposure};
+        use sails_rs::gstd::CommandReply;
         if interface_id
-            == <self::MyServiceWithEvents as sails_rs::meta::ServiceMeta>::INTERFACE_ID
+            == <self::MyServiceWithEvents as sails_rs::meta::Identifiable>::INTERFACE_ID
         {
             match entry_id {
                 0u16 => {
@@ -200,8 +201,9 @@ impl MyServiceWithEventsExposure<MyServiceWithEvents> {
         input: &[u8],
     ) -> Option<(sails_rs::Vec<u8>, u128, bool)> {
         use sails_rs::gstd::services::{Service, Exposure};
+        use sails_rs::gstd::CommandReply;
         if interface_id
-            == <self::MyServiceWithEvents as sails_rs::meta::ServiceMeta>::INTERFACE_ID
+            == <self::MyServiceWithEvents as sails_rs::meta::Identifiable>::INTERFACE_ID
         {
             match entry_id {
                 _ => None,
@@ -230,12 +232,7 @@ impl sails_rs::gstd::services::Service for MyServiceWithEvents {
 }
 mod my_service_with_events_meta {
     use super::*;
-    impl sails_rs::meta::ServiceMeta for super::MyServiceWithEvents {
-        type CommandsMeta = CommandsMeta;
-        type QueriesMeta = QueriesMeta;
-        type EventsMeta = EventsMeta;
-        const BASE_SERVICES: &'static [sails_rs::meta::BaseServiceMeta] = &[];
-        const ASYNC: bool = false;
+    impl sails_rs::meta::Identifiable for super::MyServiceWithEvents {
         const INTERFACE_ID: sails_rs::meta::InterfaceId = {
             let mut final_hash = sails_rs::keccak_const::Keccak256::new();
             final_hash = final_hash.update(&sails_rs::hash_fn!(command DoThis() -> u32));
@@ -246,22 +243,37 @@ mod my_service_with_events_meta {
             sails_rs::meta::InterfaceId::from_bytes_32(hash)
         };
     }
+    impl sails_rs::meta::ServiceMeta for super::MyServiceWithEvents {
+        type CommandsMeta = CommandsMeta;
+        type QueriesMeta = QueriesMeta;
+        type EventsMeta = EventsMeta;
+        const BASE_SERVICES: &'static [sails_rs::meta::BaseServiceMeta] = &[];
+        const ASYNC: bool = false;
+    }
     #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub struct __DoThisParams {}
-    impl sails_rs::gstd::InvocationIo for __DoThisParams {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::MyServiceWithEvents as sails_rs::meta::ServiceMeta>::INTERFACE_ID;
+    impl sails_rs::meta::Identifiable for __DoThisParams {
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::MyServiceWithEvents as sails_rs::meta::Identifiable>::INTERFACE_ID;
+    }
+    impl sails_rs::meta::MethodMeta for __DoThisParams {
         const ENTRY_ID: u16 = 0u16;
+    }
+    impl sails_rs::gstd::InvocationIo for __DoThisParams {
         type Params = Self;
     }
     #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub struct __ThisParams {}
-    impl sails_rs::gstd::InvocationIo for __ThisParams {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::MyServiceWithEvents as sails_rs::meta::ServiceMeta>::INTERFACE_ID;
+    impl sails_rs::meta::Identifiable for __ThisParams {
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::MyServiceWithEvents as sails_rs::meta::Identifiable>::INTERFACE_ID;
+    }
+    impl sails_rs::meta::MethodMeta for __ThisParams {
         const ENTRY_ID: u16 = 1u16;
+    }
+    impl sails_rs::gstd::InvocationIo for __ThisParams {
         type Params = Self;
     }
     #[derive(sails_rs::TypeInfo)]
@@ -282,7 +294,7 @@ mod my_service_with_events_meta {
 impl sails_rs::solidity::ServiceSignature for MyServiceWithEvents {
     const METHODS: &'static [sails_rs::solidity::MethodExpo] = &[
         (
-            <MyServiceWithEvents as sails_rs::meta::ServiceMeta>::INTERFACE_ID,
+            <MyServiceWithEvents as sails_rs::meta::Identifiable>::INTERFACE_ID,
             0u16,
             "DoThis",
             <<(
@@ -294,7 +306,7 @@ impl sails_rs::solidity::ServiceSignature for MyServiceWithEvents {
             ) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
         ),
         (
-            <MyServiceWithEvents as sails_rs::meta::ServiceMeta>::INTERFACE_ID,
+            <MyServiceWithEvents as sails_rs::meta::Identifiable>::INTERFACE_ID,
             1u16,
             "This",
             <<(

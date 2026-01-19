@@ -18,8 +18,8 @@ impl ServiceBuilder<'_> {
                 &[#( #service_method_expo, )*]
             }
         } else {
-            let base_methods = self.base_types.iter().map(|path| {
-                let path_wo_lifetimes = shared::remove_lifetimes(path);
+            let base_methods = self.sorted_base_indices.iter().map(|&idx| {
+                let path_wo_lifetimes = shared::remove_lifetimes(&self.base_types[idx]);
                 quote! {
                     <#path_wo_lifetimes as #sails_path::solidity::ServiceSignature>::METHODS
                 }
@@ -41,75 +41,8 @@ impl ServiceBuilder<'_> {
     }
 
     pub(super) fn try_handle_solidity_impl(&self) -> TokenStream {
-        let sails_path = self.sails_path;
-        let service_type_path = self.type_path;
-        let inner_ident = &self.inner_ident;
-
-        let impl_inner = |is_async: bool| {
-            let (name_ident, asyncness, await_token) = if is_async {
-                (
-                    quote!(try_handle_solidity_async),
-                    Some(quote!(async)),
-                    Some(quote!(.await)),
-                )
-            } else {
-                (quote!(try_handle_solidity), None, None)
-            };
-
-            let service_method_branches = self.service_handlers.iter().filter_map(|fn_builder| {
-                if is_async == fn_builder.is_async() {
-                    Some(fn_builder.sol_try_handle_branch_impl())
-                } else {
-                    None
-                }
-            });
-
-            let base_invocation = if self.base_types.is_empty() {
-                None
-            } else {
-                let base_types = self.base_types;
-                let base_exposure_invocations = base_types.iter().enumerate().map(|(idx, _)| {
-                    let idx_token = if base_types.len() == 1 { None } else {
-                        let idx_literal = Literal::usize_unsuffixed(idx);
-                        Some(quote! { . #idx_literal })
-                    };
-                    quote! {
-                        if let Some(result) = base_services #idx_token .expose(self.route_idx) . #name_ident(interface_id, entry_id, input) #await_token {
-                            return Some(result);
-                        }
-                    }
-                });
-                // Base Services, as `Into` tuple from Service
-                Some(quote! {
-                    let base_services: ( #( #base_types ),* ) = self. #inner_ident .into();
-                    #( #base_exposure_invocations )*
-                })
-            };
-
-            quote! {
-                pub #asyncness fn #name_ident(
-                    mut self,
-                    interface_id: #sails_path::meta::InterfaceId,
-                    entry_id: u16,
-                    input: &[u8],
-                ) -> Option<(#sails_path::Vec<u8>, u128, bool)> {
-                    use #sails_path::gstd::services::{Service, Exposure};
-
-                    if interface_id == <self:: #service_type_path as #sails_path::meta::ServiceMeta>::INTERFACE_ID {
-                        match entry_id {
-                            #( #service_method_branches )*
-                            _ => None,
-                        }
-                    } else {
-                        #base_invocation
-                        None
-                    }
-                }
-            }
-        };
-
-        let sync_impl = impl_inner(false);
-        let async_impl = impl_inner(true);
+        let sync_impl = self.generate_sol_handle_method(false);
+        let async_impl = self.generate_sol_handle_method(true);
 
         quote! {
             #sync_impl
@@ -130,51 +63,26 @@ impl ServiceBuilder<'_> {
             }
         })
     }
-}
 
-impl FnBuilder<'_> {
-    /// Generates code
-    /// ```rust
-    /// 0u16 => {
-    ///     // invocation
-    /// }
-    /// ```
-    fn sol_try_handle_branch_impl(&self) -> TokenStream {
-        let entry_id = self.entry_id;
-        let invocation = self.sol_invocation_func();
-
-        quote! {
-            #entry_id => {
-                #invocation
-            }
-        }
-    }
-
-    /// Generates code for encode/decode parameters and fn invocation
-    /// ```rust
-    /// let (__encode_reply, p1, p2): (bool, u32, String) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(input, false).ok()?;
-    /// let result: u32 = self.do_this(p1, p2).await;
-    /// let value = 0u128;
-    /// ```
-    fn sol_invocation_func(&self) -> TokenStream {
+    fn generate_sol_decode_and_handle(&self, fn_builder: &FnBuilder) -> TokenStream {
         let sails_path = self.sails_path;
-        let handler_ident = self.ident;
-        let handler_params = self.params_idents();
-        let sol_types = self.params_types().iter().map(|t| {
+        let handler_ident = fn_builder.ident;
+        let handler_params = fn_builder.params_idents();
+        let sol_types = fn_builder.params_types().iter().map(|t| {
             quote! {
                 << #t as #sails_path::alloy_sol_types::SolValue >::SolType as #sails_path::alloy_sol_types::SolType>::RustType
             }
         });
-        let handler_params_into = self.params_idents().iter().map(|p| {
+        let handler_params_into = fn_builder.params_idents().iter().map(|p| {
             quote! {
                 #p.into()
             }
         });
 
-        let (result_type, reply_with_value) = self.result_type_with_value();
+        let (result_type, reply_with_value) = fn_builder.result_type_with_value();
 
-        let await_token = self.is_async().then(|| quote!(.await));
-        let unwrap_token = self.unwrap_result.then(|| quote!(.unwrap()));
+        let await_token = fn_builder.is_async().then(|| quote!(.await));
+        let unwrap_token = fn_builder.unwrap_result.then(|| quote!(.unwrap()));
 
         let handle_token = if reply_with_value {
             quote! {
@@ -188,7 +96,7 @@ impl FnBuilder<'_> {
             }
         };
 
-        let payable_check = self.payable_check();
+        let payable_check = fn_builder.payable_check();
 
         quote! {
             let (__encode_reply, #(#handler_params,)*) : (bool, #(#sol_types,)*) = #sails_path::alloy_sol_types::SolValue::abi_decode_params(input).ok()?;
@@ -202,7 +110,87 @@ impl FnBuilder<'_> {
                 #sails_path::alloy_sol_types::SolValue::abi_encode_sequence(&(result,))
             };
             return Some((output, value, __encode_reply));
+        }
+    }
 
+    fn generate_sol_handle_method(&self, is_async: bool) -> TokenStream {
+        let sails_path = self.sails_path;
+        let service_type_path = self.type_path;
+        let inner_ident = &self.inner_ident;
+
+        let (name_ident, asyncness, await_token) = if is_async {
+            (
+                quote!(try_handle_solidity_async),
+                Some(quote!(async)),
+                Some(quote!(.await)),
+            )
+        } else {
+            (quote!(try_handle_solidity), None, None)
+        };
+
+        let mut regular_dispatches = Vec::new();
+
+        for fn_builder in &self.service_handlers {
+            if is_async != fn_builder.is_async() {
+                continue;
+            }
+
+            let entry_id = fn_builder.entry_id;
+            let decode_and_handle = self.generate_sol_decode_and_handle(fn_builder);
+
+            regular_dispatches.push(quote! {
+                #entry_id => {
+                    #decode_and_handle
+                }
+            });
+        }
+
+        let base_invocation = if self.base_types.is_empty() {
+            None
+        } else {
+            let base_exposure_invocations = self.sorted_base_indices.iter().map(|&idx| {
+                let idx_token = if self.base_types.len() == 1 {
+                    None
+                } else {
+                    let idx_literal = Literal::usize_unsuffixed(idx);
+                    Some(quote! { . #idx_literal })
+                };
+                quote! {
+                    if let Some(result) = base_services #idx_token .expose(self.route_idx) . #name_ident(interface_id, entry_id, input) #await_token {
+                        return Some(result);
+                    }
+                }
+            });
+
+            let base_types = self.base_types;
+            // Base Services, as `Into` tuple from Service
+            Some(quote! {
+                let base_services: ( #( #base_types ),* ) = self. #inner_ident .into();
+                #( #base_exposure_invocations )*
+            })
+        };
+
+        quote! {
+            pub #asyncness fn #name_ident(
+                mut self,
+                interface_id: #sails_path::meta::InterfaceId,
+                entry_id: u16,
+                input: &[u8],
+            ) -> Option<(#sails_path::Vec<u8>, u128, bool)> {
+                use #sails_path::gstd::services::{Service, Exposure};
+                use #sails_path::gstd::CommandReply;
+
+                // Then check own methods
+                if interface_id == <self:: #service_type_path as #sails_path::meta::Identifiable>::INTERFACE_ID {
+                    match entry_id {
+                        #( #regular_dispatches )*
+                        _ => None,
+                    }
+                } else {
+                    #base_invocation
+                    None
+                }
+            }
         }
     }
 }

@@ -21,7 +21,7 @@ for MyGenericEventsServiceExposure<T> {
         if !T::ASYNC {
             return Some(false);
         }
-        if interface_id == T::INTERFACE_ID {
+        if interface_id == <T as sails_rs::meta::Identifiable>::INTERFACE_ID {
             match entry_id {
                 0u16 => Some(false),
                 _ => None,
@@ -67,7 +67,7 @@ where
             == <self::MyGenericEventsService<
                 'a,
                 T,
-            > as sails_rs::meta::ServiceMeta>::INTERFACE_ID
+            > as sails_rs::meta::Identifiable>::INTERFACE_ID
         {
             match entry_id {
                 0u16 => {
@@ -105,7 +105,7 @@ where
             == <self::MyGenericEventsService<
                 'a,
                 T,
-            > as sails_rs::meta::ServiceMeta>::INTERFACE_ID
+            > as sails_rs::meta::Identifiable>::INTERFACE_ID
         {
             match entry_id {
                 _ => None,
@@ -133,15 +133,10 @@ where
 }
 mod my_generic_events_service_meta {
     use super::*;
-    impl<'a, T> sails_rs::meta::ServiceMeta for super::MyGenericEventsService<'a, T>
+    impl<'a, T> sails_rs::meta::Identifiable for super::MyGenericEventsService<'a, T>
     where
         T: Clone,
     {
-        type CommandsMeta = CommandsMeta;
-        type QueriesMeta = QueriesMeta;
-        type EventsMeta = EventsMeta;
-        const BASE_SERVICES: &'static [sails_rs::meta::BaseServiceMeta] = &[];
-        const ASYNC: bool = false;
         const INTERFACE_ID: sails_rs::meta::InterfaceId = {
             let mut final_hash = sails_rs::keccak_const::Keccak256::new();
             final_hash = final_hash.update(&sails_rs::hash_fn!(command DoThis() -> u32));
@@ -151,13 +146,27 @@ mod my_generic_events_service_meta {
             sails_rs::meta::InterfaceId::from_bytes_32(hash)
         };
     }
+    impl<'a, T> sails_rs::meta::ServiceMeta for super::MyGenericEventsService<'a, T>
+    where
+        T: Clone,
+    {
+        type CommandsMeta = CommandsMeta;
+        type QueriesMeta = QueriesMeta;
+        type EventsMeta = EventsMeta;
+        const BASE_SERVICES: &'static [sails_rs::meta::BaseServiceMeta] = &[];
+        const ASYNC: bool = false;
+    }
     #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub struct __DoThisParams {}
-    impl sails_rs::gstd::InvocationIo for __DoThisParams {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::MyGenericEventsService as sails_rs::meta::ServiceMeta>::INTERFACE_ID;
+    impl sails_rs::meta::Identifiable for __DoThisParams {
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::MyGenericEventsService as sails_rs::meta::Identifiable>::INTERFACE_ID;
+    }
+    impl sails_rs::meta::MethodMeta for __DoThisParams {
         const ENTRY_ID: u16 = 0u16;
+    }
+    impl sails_rs::gstd::InvocationIo for __DoThisParams {
         type Params = Self;
     }
     #[derive(sails_rs::TypeInfo)]

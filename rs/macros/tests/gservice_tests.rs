@@ -1,7 +1,7 @@
 #![cfg(not(feature = "ethexe"))]
 
 use sails_rs::gstd::services::{Exposure, ExposureWithEvents, Service};
-use sails_rs::meta::{InterfaceId, SailsMessageHeader, ServiceMeta};
+use sails_rs::meta::{Identifiable, InterfaceId, SailsMessageHeader};
 use sails_rs::{Decode, Encode};
 
 mod gservice_with_basics;
@@ -208,7 +208,7 @@ fn gservice_with_lifecycles_and_generics() {
     let my_service = SomeService::<'_, '_, String, _>::new(&mut iter);
 
     // SomeService::do_this
-    let header = SailsMessageHeader::v1(<SomeService as ServiceMeta>::INTERFACE_ID, 0, 1);
+    let header = SailsMessageHeader::v1(<SomeService as Identifiable>::INTERFACE_ID, 0, 1);
 
     my_service
         .expose(1)
@@ -220,7 +220,7 @@ fn gservice_with_lifecycles_and_generics() {
                 let res_header = SailsMessageHeader::decode(&mut output).unwrap();
                 assert_eq!(
                     res_header.interface_id(),
-                    <SomeService as ServiceMeta>::INTERFACE_ID
+                    <SomeService as Identifiable>::INTERFACE_ID
                 );
                 assert_eq!(res_header.entry_id(), 0);
                 assert_eq!(res_header.route_id(), 1);
@@ -300,7 +300,7 @@ fn gservice_with_lifetimes_and_events() {
     let my_service = Service::<'_, String>::default();
     let exposure = my_service.expose(1);
     // Base::name
-    let header = SailsMessageHeader::v1(<Service as ServiceMeta>::INTERFACE_ID, 0, 1);
+    let header = SailsMessageHeader::v1(<Service as Identifiable>::INTERFACE_ID, 0, 1);
 
     let mut emitter = exposure.emitter();
     exposure
@@ -312,7 +312,7 @@ fn gservice_with_lifetimes_and_events() {
                 let res_header = SailsMessageHeader::decode(&mut output).unwrap();
                 assert_eq!(
                     res_header.interface_id(),
-                    <Service as ServiceMeta>::INTERFACE_ID
+                    <Service as Identifiable>::INTERFACE_ID
                 );
 
                 let result = u32::decode(&mut output).unwrap();
@@ -503,7 +503,7 @@ async fn gservice_with_trait_bounds() {
 
     // MyServiceWithTraitBounds::do_this
     let header = SailsMessageHeader::v1(
-        <MyServiceWithTraitBounds as ServiceMeta>::INTERFACE_ID,
+        <MyServiceWithTraitBounds as Identifiable>::INTERFACE_ID,
         0,
         1,
     );
@@ -527,7 +527,7 @@ async fn gservice_with_trait_bounds() {
                 let res_header = SailsMessageHeader::decode(&mut output).unwrap();
                 assert_eq!(
                     res_header.interface_id(),
-                    <MyServiceWithTraitBounds as ServiceMeta>::INTERFACE_ID,
+                    <MyServiceWithTraitBounds as Identifiable>::INTERFACE_ID,
                 );
 
                 let result = u32::decode(&mut output).unwrap();
@@ -541,7 +541,7 @@ async fn gservice_with_trait_bounds() {
 
 macro_rules! gservice_works {
     ($service:ty) => {
-        let header = SailsMessageHeader::v1(<$service as ServiceMeta>::INTERFACE_ID, 0, 1);
+        let header = SailsMessageHeader::v1(<$service as Identifiable>::INTERFACE_ID, 0, 1);
         // `DO_THIS` is an async call
         let input = gservice_with_multiple_names::MyDoThisParams {
             p1: 42,
@@ -559,7 +559,7 @@ macro_rules! gservice_works {
                     let res_header = SailsMessageHeader::decode(&mut output).unwrap();
                     assert_eq!(
                         res_header.interface_id(),
-                        <$service as ServiceMeta>::INTERFACE_ID,
+                        <$service as Identifiable>::INTERFACE_ID,
                     );
 
                     let result = String::decode(&mut output).unwrap();
@@ -584,7 +584,7 @@ async fn gservice_with_export_unwrap_result() {
     use gservice_with_export_unwrap_result::MyDoThisParams;
     use gservice_with_export_unwrap_result::MyService;
 
-    let header = SailsMessageHeader::v1(<MyService as ServiceMeta>::INTERFACE_ID, 0, 1);
+    let header = SailsMessageHeader::v1(<MyService as Identifiable>::INTERFACE_ID, 0, 1);
 
     let input = MyDoThisParams {
         p1: 42,
@@ -602,7 +602,7 @@ async fn gservice_with_export_unwrap_result() {
                 let res_header = SailsMessageHeader::decode(&mut output).unwrap();
                 assert_eq!(
                     res_header.interface_id(),
-                    <MyService as ServiceMeta>::INTERFACE_ID,
+                    <MyService as Identifiable>::INTERFACE_ID,
                 );
 
                 let result = String::decode(&mut output).unwrap();
@@ -620,7 +620,7 @@ async fn gservice_with_export_unwrap_result() {
 async fn gservice_with_export_unwrap_result_panic() {
     use gservice_with_export_unwrap_result::MyService;
 
-    let header = SailsMessageHeader::v1(<MyService as ServiceMeta>::INTERFACE_ID, 1, 1);
+    let header = SailsMessageHeader::v1(<MyService as Identifiable>::INTERFACE_ID, 1, 1);
 
     let input = "not a number".encode();
 

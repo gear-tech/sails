@@ -57,6 +57,10 @@ impl ServiceBuilder<'_> {
         let interface_id_computation = self.generate_interface_id();
 
         quote! {
+            impl #generics #sails_path::meta::Identifiable for super:: #service_type_path #service_type_constraints {
+                const INTERFACE_ID: #sails_path::meta::InterfaceId = #interface_id_computation;
+            }
+
             impl #generics #sails_path::meta::ServiceMeta for super:: #service_type_path #service_type_constraints {
                 type CommandsMeta = CommandsMeta;
                 type QueriesMeta = QueriesMeta;
@@ -65,7 +69,6 @@ impl ServiceBuilder<'_> {
                     #( #base_services_meta ),*
                 ];
                 const ASYNC: bool = #service_meta_asyncness ;
-                const INTERFACE_ID: #sails_path::meta::InterfaceId = #interface_id_computation;
             }
         }
     }
@@ -168,23 +171,9 @@ impl ServiceBuilder<'_> {
 
         // Handle base services if present
         let base_services_hash = if !self.base_types.is_empty() {
-            let mut base_services = self
-                .base_types
-                .iter()
-                .map(shared::remove_lifetimes)
-                .collect::<Vec<_>>();
-            base_services.sort_by_key(|base_type_no_lifetime| {
-                base_type_no_lifetime
-                    .segments
-                    .last()
-                    .expect("Base service path should have at least one segment")
-                    .ident
-                    .to_string()
-                    .to_lowercase()
-            });
-
-            let base_service_ids = base_services.into_iter().map(|base_type_no_lifetime| {
-                quote!(final_hash = final_hash.update(&<super:: #base_type_no_lifetime as #sails_path::meta::ServiceMeta>::INTERFACE_ID.0);)
+            let base_service_ids = self.sorted_base_indices.iter().map(|&idx| {
+                let path_wo_lifetimes = shared::remove_lifetimes(&self.base_types[idx]);
+                quote!(final_hash = final_hash.update(&<super:: #path_wo_lifetimes as #sails_path::meta::Identifiable>::INTERFACE_ID.0);)
             });
 
             quote!(#(#base_service_ids)*)

@@ -1,6 +1,6 @@
 use crate::prelude::*;
 use alloy_primitives::Selector;
-use sails_idl_meta::{InterfaceId, ServiceMeta};
+use sails_idl_meta::InterfaceId;
 
 #[cfg(any(feature = "gtest", all(feature = "gstd", target_arch = "wasm32")))]
 pub(crate) const ETH_EVENT_ADDR: gstd::ActorId = gstd::ActorId::new([
@@ -22,7 +22,7 @@ pub type ServiceExpo = (
     &'static [MethodExpo], // Method routes
 );
 
-pub trait ServiceSignature: ServiceMeta {
+pub trait ServiceSignature: Identifiable {
     const METHODS: &'static [MethodExpo];
 }
 
@@ -185,6 +185,7 @@ mod tests {
     use super::*;
     use alloy_primitives::B256;
     use alloy_sol_types::{SolType, SolValue};
+    use sails_idl_meta::Identifiable;
 
     #[test]
     fn type_names() {
@@ -210,13 +211,16 @@ mod tests {
     #[derive(crate::TypeInfo)]
     enum Empty {}
 
-    impl ServiceMeta for Svc {
+    impl Identifiable for Svc {
+        const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(1);
+    }
+
+    impl sails_idl_meta::ServiceMeta for Svc {
         type CommandsMeta = Empty;
         type QueriesMeta = Empty;
         type EventsMeta = Empty;
         const BASE_SERVICES: &'static [sails_idl_meta::BaseServiceMeta] = &[];
         const ASYNC: bool = false;
-        const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(1);
     }
 
     impl ServiceSignature for Svc {
@@ -238,13 +242,16 @@ mod tests {
         ];
     }
 
-    impl ServiceMeta for ExtendedSvc {
+    impl Identifiable for ExtendedSvc {
+        const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(2);
+    }
+
+    impl sails_idl_meta::ServiceMeta for ExtendedSvc {
         type CommandsMeta = Empty;
         type QueriesMeta = Empty;
         type EventsMeta = Empty;
         const BASE_SERVICES: &'static [sails_idl_meta::BaseServiceMeta] = &[];
         const ASYNC: bool = false;
-        const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(2);
     }
 
     impl ServiceSignature for ExtendedSvc {

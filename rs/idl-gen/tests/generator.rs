@@ -2,7 +2,8 @@ use gprimitives::*;
 use meta_params::*;
 use sails_idl_gen::{program, service};
 use sails_idl_meta::{
-    AnyServiceMeta, AnyServiceMetaFn, BaseServiceMeta, InterfaceId, ProgramMeta, ServiceMeta,
+    AnyServiceMeta, AnyServiceMetaFn, BaseServiceMeta, Identifiable, InterfaceId, ProgramMeta,
+    ServiceMeta,
 };
 use scale_info::{StaticTypeInfo, TypeInfo};
 use std::{collections::BTreeMap, result::Result as StdResult};
@@ -184,15 +185,21 @@ struct GenericService<C, Q, E, const ID: u64> {
     _events: std::marker::PhantomData<E>,
 }
 
-impl<C: StaticTypeInfo, Q: StaticTypeInfo, E: StaticTypeInfo, const ID: u64> ServiceMeta
-    for GenericService<C, Q, E, ID>
+impl<C, Q, E, const ID: u64> Identifiable for GenericService<C, Q, E, ID> {
+    const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(ID);
+}
+
+impl<C, Q, E, const ID: u64> ServiceMeta for GenericService<C, Q, E, ID>
+where
+    C: StaticTypeInfo,
+    Q: StaticTypeInfo,
+    E: StaticTypeInfo,
 {
     type CommandsMeta = C;
     type QueriesMeta = Q;
     type EventsMeta = E;
     const BASE_SERVICES: &'static [BaseServiceMeta] = &[];
     const ASYNC: bool = false;
-    const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(ID);
 }
 
 struct GenericServiceWithBase<C, Q, E, B, const ID: u64> {
@@ -202,15 +209,22 @@ struct GenericServiceWithBase<C, Q, E, B, const ID: u64> {
     _base: std::marker::PhantomData<B>,
 }
 
-impl<C: StaticTypeInfo, Q: StaticTypeInfo, E: StaticTypeInfo, B: ServiceMeta, const ID: u64>
-    ServiceMeta for GenericServiceWithBase<C, Q, E, B, ID>
+impl<C, Q, E, B, const ID: u64> Identifiable for GenericServiceWithBase<C, Q, E, B, ID> {
+    const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(ID);
+}
+
+impl<C, Q, E, B, const ID: u64> ServiceMeta for GenericServiceWithBase<C, Q, E, B, ID>
+where
+    C: StaticTypeInfo,
+    Q: StaticTypeInfo,
+    E: StaticTypeInfo,
+    B: ServiceMeta + 'static,
 {
     type CommandsMeta = C;
     type QueriesMeta = Q;
     type EventsMeta = E;
     const BASE_SERVICES: &'static [BaseServiceMeta] = &[BaseServiceMeta::new::<B>("B")];
     const ASYNC: bool = false;
-    const INTERFACE_ID: InterfaceId = InterfaceId::from_u64(ID);
 }
 
 type TestServiceMeta = GenericService<CommandsMeta, QueriesMeta, EventsMeta, 0xd42ae9a4dc1efdf0>;

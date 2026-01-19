@@ -60,6 +60,8 @@ struct ServiceBuilder<'a> {
     service_impl: &'a ItemImpl,
     sails_path: &'a Path,
     base_types: &'a [Path],
+    /// Indices into `base_types` sorted lexicographically by service name.
+    sorted_base_indices: Vec<usize>,
     generics: Generics,
     type_constraints: Option<WhereClause>,
     type_path: &'a TypePath,
@@ -91,10 +93,24 @@ impl<'a> ServiceBuilder<'a> {
         let meta_module_name = format!("{}_meta", service_ident.to_string().to_case(Case::Snake));
         let meta_module_ident = Ident::new(&meta_module_name, Span::call_site());
 
+        let base_types = service_args.base_types();
+        let mut sorted_base_indices: Vec<_> = (0..base_types.len()).collect();
+
+        sorted_base_indices.sort_by_key(|&idx| {
+            base_types[idx]
+                .segments
+                .last()
+                .expect("Base service path should have at least one segment")
+                .ident
+                .to_string()
+                .to_lowercase()
+        });
+
         Self {
             service_impl,
             sails_path,
-            base_types: service_args.base_types(),
+            base_types,
+            sorted_base_indices,
             generics,
             type_constraints,
             type_path,
@@ -246,9 +262,15 @@ impl FnBuilder<'_> {
                 #(pub(super) #params_struct_members,)*
             }
 
-            impl #sails_path::gstd::InvocationIo for #params_struct_ident {
-                const INTERFACE_ID: #sails_path::meta::InterfaceId = <super:: #path_wo_lifetimes as #sails_path::meta::ServiceMeta>::INTERFACE_ID;
+            impl #sails_path::meta::Identifiable for #params_struct_ident {
+                const INTERFACE_ID: #sails_path::meta::InterfaceId = <super:: #path_wo_lifetimes as #sails_path::meta::Identifiable>::INTERFACE_ID;
+            }
+
+            impl #sails_path::meta::MethodMeta for #params_struct_ident {
                 const ENTRY_ID: u16 = #entry_id;
+            }
+
+            impl #sails_path::gstd::InvocationIo for #params_struct_ident {
                 type Params = Self;
             }
         )
