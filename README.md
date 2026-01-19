@@ -5,7 +5,7 @@
 clarity. It deals with things like:
 
 - eliminating the necessity of writing some low-level boilerplate code and letting
-  you to stay focused on your business problem
+  you stay focused on your business problem
 - generated [IDL](https://en.wikipedia.org/wiki/Interface_description_language) file
   for your application
 - generated client allowing to interact with your application from code written in
@@ -131,7 +131,7 @@ impl MyService {
 
     // This is a command returning `()` or panicking
     #[export(unwrap_result)]
-    pub fn do_somethig_with_unwrap_result(&mut self, amount: u64) -> Result<(), String> {
+    pub fn do_something_with_unwrap_result(&mut self, amount: u64) -> Result<(), String> {
         do_somethig_returning_result()?;
         Ok(())
     }
@@ -142,7 +142,7 @@ impl MyService {
         ...
     }
 
-    // This is a inner method, not accesible via remote calls
+    // This is a inner method, not accessible via remote calls
     pub fn do_something_inner(&mut self, p1: u32, p2: String) -> &'static [u8] {
         ...
     }
@@ -360,7 +360,7 @@ impl MyServiceC {
         ...
     }
 
-    // do_b from MyServiceB will exposed due to the extends argument
+    // do_b from MyServiceB will be exposed due to the extends argument
 }
 ```
 
@@ -400,7 +400,7 @@ These methods are essential for enabling on-chain applications to interact with 
 
 - For the WASM target, direct calls are made to `gstd::msg` and `gstd::exec` to fetch runtime data.
 - In standard (`std`) environments, a mock implementation uses thread-local state for testing purposes.
-- In `no_std` configurations without the `std` feature and and not WASM target, the functions are marked as unimplemented.
+- In `no_std` configurations without the `std` feature and not WASM target, the functions are marked as unimplemented.
 
 ### Client
 
@@ -418,7 +418,7 @@ All you need to do is compose a byte payload according to the layout outlined in
 [Payload Encoding](#payload-encoding) section and send it to the application.
 
 Thanks to the generated IDL, `Sails` provides a way to interact with your application
-using generated clients with an interface similar to the one exposed by latter in
+using generated clients with an interface similar to the one exposed by later in
 a clearer way. Currently, `Sails` can generate client code for Rust and TypeScript.
 
 When it comes to Rust, there are two options:
@@ -476,7 +476,7 @@ include!(concat!(env!("OUT_DIR"), "/my_program.rs"));
 
 fn some_client_code() {
     let mut my_service = MyProgram::client(actor_id) // create client to MyProgram
-        .with_env(env)  // `env` is an runtime environment
+        .with_env(env)  // `env` is a runtime environment
         .my_service();
     let reply = client.do_something(42, "Hello".to_string())
         .with_reply_deposit(42)
@@ -497,7 +497,7 @@ between client and the application. The `sails-rs` crate provides three implemen
 trait:
 
 - `sails_rs::client::GstdEnv` should be used when the client code is executed
-  as a part of another on-chain application.
+  as part of another on-chain application.
 - `sails_rs::client::GclientEnv` should be used when the client code is executed
   as a part of an off-chain application.
 - `sails_rs::client::GtestEnv` should be used when the client code is executed
