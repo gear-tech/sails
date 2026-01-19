@@ -366,20 +366,31 @@ impl MyServiceC {
 
 ### Payload Encoding
 
-An application written with `Sails` uses [SCALE Codec](https://github.com/paritytech/parity-scale-codec) to encode/decode data
-at its base.
+Sails messages use [SCALE Codec](https://github.com/paritytech/parity-scale-codec) for payload data but begin with a Sails Header v1
+envelope that lives inside the message payload. The header exposes deterministic routing identifiers without changing the
+underlying Gear message layout.
 
-Every incoming request message is expected to have the following format:
+Base header layout (16 bytes, little-endian for multi-byte integers):
 
-**|** _SCALE encoded service name_ **|** _SCALE encoded method name_ **|** _SCALE encoded parameters_ **|**
+| Field | Size (bytes) | Description |
+| --- | --- | --- |
+| Magic | 2 | ASCII "GM" (0x47 0x4D) |
+| Version | 1 | Header version (0x01) |
+| Header length | 1 | Total header size in bytes; base header = 0x10 |
+| Interface ID | 8 | Deterministic 64-bit interface identifier |
+| Entry ID | 2 | Deterministic 16-bit entry identifier |
+| Route index | 1 | Service instance index; 0x00 is default |
+| Reserved | 1 | Must be 0x00 in v1 |
 
-Every outgoing response message has the following format:
+Payload bytes start at offset `header length` and are SCALE-encoded entry data:
 
-**|** _SCALE encoded service name_ **|** _SCALE encoded method name_ **|** _SCALE encoded result_ **|**
+- Calls: parameters
+- Replies: result
+- Events: event data
 
-Every outgoing event message has the following format:
-
-**|** _SCALE encoded service name_ **|** _SCALE encoded event name_ **|** _SCALE encoded event data_ **|**
+`interface_id` and `entry_id` are derived from the canonical IDL definition; `route_idx` is assigned by the program author.
+Optional extensions may follow the base header when `header length` >= 0x10. See `docs/SAILS_HEADER_V1_SPEC.md` for full
+format and validation rules.
 
 ### Syscalls
 
