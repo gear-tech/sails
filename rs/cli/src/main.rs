@@ -1,4 +1,5 @@
 use clap::{Parser, Subcommand};
+use convert_case::{Case, Casing};
 use sails_cli::{
     idlgen::CrateIdlGenerator, program::ProgramGenerator, program_new, solgen::SolidityGenerator,
 };
@@ -93,6 +94,9 @@ enum SailsCommands {
         /// Level of dependencies to look for program implementation. Default: 1
         #[arg(long)]
         deps_level: Option<usize>,
+        /// Name of the program in IDL
+        #[arg(long, short = 'n')]
+        program_name: Option<String>,
     },
 
     /// Generate Solidity ABI-contracts from IDL
@@ -182,7 +186,14 @@ fn main() -> Result<(), i32> {
             manifest_path,
             target_dir,
             deps_level,
-        } => CrateIdlGenerator::new(manifest_path, target_dir, deps_level).generate(),
+            program_name,
+        } => CrateIdlGenerator::new(
+            manifest_path,
+            target_dir,
+            deps_level,
+            program_name.map(|s| s.to_case(Case::Pascal)),
+        )
+        .generate(),
         SailsCommands::SolGen {
             idl_path,
             target_dir,

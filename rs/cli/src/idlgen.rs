@@ -14,6 +14,7 @@ pub struct CrateIdlGenerator {
     manifest_path: Utf8PathBuf,
     target_dir: Option<Utf8PathBuf>,
     deps_level: usize,
+    program_name: Option<String>,
 }
 
 impl CrateIdlGenerator {
@@ -21,6 +22,7 @@ impl CrateIdlGenerator {
         manifest_path: Option<PathBuf>,
         target_dir: Option<PathBuf>,
         deps_level: Option<usize>,
+        program_name: Option<String>,
     ) -> Self {
         Self {
             manifest_path: Utf8PathBuf::from_path_buf(
@@ -32,6 +34,7 @@ impl CrateIdlGenerator {
                 .map(Utf8PathBuf::from_path_buf)
                 .and_then(|t| t.ok()),
             deps_level: deps_level.unwrap_or(1),
+            program_name,
         }
     }
 
@@ -65,6 +68,7 @@ impl CrateIdlGenerator {
                 &sails_packages,
                 target_dir,
                 &metadata.workspace_root,
+                self.program_name.clone(),
             );
             match get_program_struct_path_from_doc(program_package, target_dir) {
                 Ok(program_struct_path) => {
@@ -88,6 +92,7 @@ struct PackageIdlGenerator<'a> {
     sails_packages: &'a Vec<&'a Package>,
     target_dir: &'a Utf8Path,
     workspace_root: &'a Utf8Path,
+    program_name: Option<String>,
 }
 
 impl<'a> PackageIdlGenerator<'a> {
@@ -96,12 +101,14 @@ impl<'a> PackageIdlGenerator<'a> {
         sails_packages: &'a Vec<&'a Package>,
         target_dir: &'a Utf8Path,
         workspace_root: &'a Utf8Path,
+        program_name: Option<String>,
     ) -> Self {
         Self {
             program_package,
             sails_packages,
             target_dir,
             workspace_root,
+            program_name,
         }
     }
 
@@ -137,7 +144,10 @@ impl<'a> PackageIdlGenerator<'a> {
         let out_file = self
             .target_dir
             .join(format!("{}.idl", &self.program_package.name));
-        let program_name = &self.program_package.name.to_case(Case::Pascal);
+        let program_name = self
+            .program_name
+            .clone()
+            .unwrap_or_else(|| self.program_package.name.to_case(Case::Pascal));
         let main_rs_path = src_dir.join("main.rs");
         write_file(
             main_rs_path,
@@ -231,13 +241,7 @@ fn get_program_struct_path_from_doc(
     let program_meta_id = doc_crate
         .paths
         .iter()
-        .find_map(|(id, summary)| {
-            if summary.path == META_PATH {
-                Some(id)
-            } else {
-                None
-            }
-        })
+        .find_map(|(id, summary)| (summary.path == META_PATH).then_some(id))
         .context("failed to find `sails_rs::meta::ProgramMeta` definition in dependencies")?;
     // find struct implementing `sails_rs::meta::ProgramMeta`
     let program_struct_path = doc_crate
