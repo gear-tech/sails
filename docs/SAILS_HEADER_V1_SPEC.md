@@ -176,4 +176,4 @@ Check the magic/version, read `interface_id` and `entry_id`, and consult a regis
 
 ---
 
-This document is intentionally implementation-neutral. Any language or framework can adopt the Sails Header provided it implements the canonical hashing rules and the binary layout defined above.\*\*\*
+This document is intentionally implementation-neutral. Any language or framework can adopt the Sails Header provided it implements the canonical hashing rules and the binary layout defined above.
