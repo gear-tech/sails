@@ -8,7 +8,7 @@ use core::{
     task::{Context, Poll},
 };
 use futures::Stream;
-pub use sails_idl_meta::InterfaceId;
+pub use sails_idl_meta::{Identifiable, InterfaceId, MethodMeta};
 
 #[cfg(feature = "gtest")]
 #[cfg(not(target_arch = "wasm32"))]
@@ -131,10 +131,6 @@ impl<A, E: GearEnv> Actor<A, E> {
     pub fn service<S>(&self, route_idx: u8) -> Service<S, E> {
         Service::new(self.env.clone(), self.id, route_idx)
     }
-}
-
-pub trait Identifiable {
-    const INTERFACE_ID: InterfaceId;
 }
 
 #[derive(Debug, Clone)]
@@ -337,8 +333,7 @@ impl<A, T: ServiceCall, E: GearEnv> PendingCtor<A, T, E> {
     }
 }
 
-pub trait ServiceCall: Identifiable {
-    const ENTRY_ID: u16;
+pub trait ServiceCall: MethodMeta {
     type Params: Encode;
     type Reply: Decode + 'static;
 
@@ -381,12 +376,22 @@ pub trait ServiceCall: Identifiable {
         value: &Self::Params,
         f: impl FnOnce(&[u8]) -> R,
     ) -> R {
+        Self::with_optimized_encode_with_id(Self::INTERFACE_ID, Self::ENTRY_ID, route_idx, value, f)
+    }
+
+    fn with_optimized_encode_with_id<R>(
+        interface_id: InterfaceId,
+        entry_id: u16,
+        route_idx: u8,
+        value: &Self::Params,
+        f: impl FnOnce(&[u8]) -> R,
+    ) -> R {
         let header = SailsMessageHeader::new(
             crate::meta::Version::v1(),
             crate::meta::HeaderLength::new(crate::meta::MINIMAL_HLEN).unwrap(),
-            Self::INTERFACE_ID,
+            interface_id,
             route_idx,
-            Self::ENTRY_ID,
+            entry_id,
         );
         let size = (crate::meta::MINIMAL_HLEN as usize) + Encode::encoded_size(value);
         gcore::stack_buffer::with_byte_buffer(size, |buffer| {
@@ -512,8 +517,10 @@ macro_rules! io_struct_impl {
         impl Identifiable for $name {
             const INTERFACE_ID: InterfaceId = $interface_id;
         }
-        impl ServiceCall for $name {
+        impl MethodMeta for $name {
             const ENTRY_ID: u16 = $entry_id;
+        }
+        impl ServiceCall for $name {
             type Params = ( $( $ty, )* );
             type Reply = $reply;
         }

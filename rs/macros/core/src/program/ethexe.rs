@@ -160,7 +160,7 @@ impl FnBuilder<'_> {
         let intrface_id = if let Some(service_path) = service_path {
             let path_wo_lifetimes = shared::remove_lifetimes(&service_path.path);
             quote! {
-                <#path_wo_lifetimes as #sails_path::meta::ServiceMeta>::INTERFACE_ID
+                <#path_wo_lifetimes as #sails_path::meta::Identifiable>::INTERFACE_ID
             }
         } else {
             quote! {

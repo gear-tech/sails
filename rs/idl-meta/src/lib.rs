@@ -21,6 +21,16 @@ pub use header::*;
 
 pub type AnyServiceMetaFn = fn() -> AnyServiceMeta;
 
+/// A trait for types that have a static Interface ID.
+pub trait Identifiable {
+    const INTERFACE_ID: InterfaceId;
+}
+
+/// A trait for types that represent a service method, providing its Entry ID.
+pub trait MethodMeta: Identifiable {
+    const ENTRY_ID: u16;
+}
+
 /// Unique identifier for a service (or "interface" in terms of sails binary protocol).
 ///
 /// For more information about interface IDs, see the interface ID spec.
@@ -156,7 +166,7 @@ impl BaseServiceMeta {
     }
 }
 
-pub trait ServiceMeta {
+pub trait ServiceMeta: Identifiable {
     type CommandsMeta: StaticTypeInfo;
     type QueriesMeta: StaticTypeInfo;
     type EventsMeta: StaticTypeInfo;
@@ -165,7 +175,6 @@ pub trait ServiceMeta {
     /// The order of base services here is lexicographical by their names
     // const BASE_SERVICES_IDS: &'static [AnyServiceIds];
     const ASYNC: bool;
-    const INTERFACE_ID: InterfaceId;
 
     fn commands() -> MetaType {
         MetaType::new::<Self::CommandsMeta>()

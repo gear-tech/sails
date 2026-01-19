@@ -9,7 +9,7 @@ pub use gstd::handle_signal;
 #[doc(hidden)]
 pub use gstd::{async_init, async_main, handle_reply_with_hook, message_loop};
 pub use gstd::{debug, exec, msg};
-use sails_idl_meta::InterfaceId;
+use sails_idl_meta::{InterfaceId, MethodMeta};
 #[doc(hidden)]
 pub use sails_macros::{event, export, program, service};
 pub use syscalls::Syscall;
@@ -96,9 +96,7 @@ impl<T: AsRef<[u8]>> core::fmt::Debug for HexSlice<T> {
     }
 }
 
-pub trait InvocationIo {
-    const INTERFACE_ID: InterfaceId;
-    const ENTRY_ID: u16;
+pub trait InvocationIo: MethodMeta {
     type Params: Decode;
 
     fn decode_params(payload: impl AsRef<[u8]>) -> Result<Self::Params> {
@@ -119,7 +117,17 @@ pub trait InvocationIo {
         route_idx: u8,
         f: impl FnOnce(&[u8]) -> R,
     ) -> R {
-        let header = SailsMessageHeader::v1(Self::INTERFACE_ID, Self::ENTRY_ID, route_idx);
+        Self::with_optimized_encode_with_id(Self::INTERFACE_ID, Self::ENTRY_ID, value, route_idx, f)
+    }
+
+    fn with_optimized_encode_with_id<T: Encode, R>(
+        interface_id: InterfaceId,
+        entry_id: u16,
+        value: &T,
+        route_idx: u8,
+        f: impl FnOnce(&[u8]) -> R,
+    ) -> R {
+        let header = SailsMessageHeader::v1(interface_id, entry_id, route_idx);
         let size = 16 + Encode::encoded_size(value);
         stack_buffer::with_byte_buffer(size, |buffer| {
             let mut buffer_writer = MaybeUninitBufferWriter::new(buffer);

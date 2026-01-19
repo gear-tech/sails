@@ -3,7 +3,7 @@ use sails_rs::{
     alloy_primitives::B256,
     alloy_sol_types::SolValue,
     gstd::services::{Exposure, ExposureWithEvents as _, Service},
-    meta::{SailsMessageHeader, ServiceMeta},
+    meta::{Identifiable, SailsMessageHeader},
 };
 
 mod service_with_basics;
@@ -24,7 +24,7 @@ async fn service_with_basics() {
 
     let exposure = MyService.expose(1);
 
-    let header = SailsMessageHeader::v1(<MyService as ServiceMeta>::INTERFACE_ID, 0, 1);
+    let header = SailsMessageHeader::v1(<MyService as Identifiable>::INTERFACE_ID, 0, 1);
     // Check asyncness for `DoThis`.
     assert!(
         <<MyService as Service>::Exposure as Exposure>::check_asyncness(
@@ -59,7 +59,7 @@ async fn service_with_basics_with_encode_reply() {
     let message_id = MessageId::from(123);
     Syscall::with_message_id(message_id);
 
-    let header = SailsMessageHeader::v1(<MyService as ServiceMeta>::INTERFACE_ID, 0, 1);
+    let header = SailsMessageHeader::v1(<MyService as Identifiable>::INTERFACE_ID, 0, 1);
     // act
     let (output, ..) = MyService
         .expose(1)
@@ -97,7 +97,7 @@ fn service_with_lifetimes_and_events() {
     let mut emitter = exposure.emitter();
 
     let header =
-        SailsMessageHeader::v1(<MyGenericEventsService as ServiceMeta>::INTERFACE_ID, 0, 1);
+        SailsMessageHeader::v1(<MyGenericEventsService as Identifiable>::INTERFACE_ID, 0, 1);
     // Check asyncness for `DoThis`.
     assert!(
         !<<MyGenericEventsService as Service>::Exposure as Exposure>::check_asyncness(
@@ -131,7 +131,7 @@ fn service_with_extends() {
     let extended_svc = Extended::new(Base).expose(1);
 
     // Extended::extended_name
-    let header = SailsMessageHeader::v1(Extended::INTERFACE_ID, 0, 1);
+    let header = SailsMessageHeader::v1(<Extended as Identifiable>::INTERFACE_ID, 0, 1);
     // Check asyncness of the service.
     assert!(
         !<Extended as Service>::Exposure::check_asyncness(header.interface_id(), header.entry_id())
@@ -147,7 +147,7 @@ fn service_with_extends() {
 
     let extended_svc = Extended::new(Base).expose(1);
     // Base::base_name
-    let header = SailsMessageHeader::v1(Base::INTERFACE_ID, 0, 1);
+    let header = SailsMessageHeader::v1(<Base as Identifiable>::INTERFACE_ID, 0, 1);
     let (output, ..) = extended_svc
         .try_handle_solidity(header.interface_id(), header.entry_id(), &input)
         .unwrap();
@@ -156,7 +156,7 @@ fn service_with_extends() {
 
     let extended_svc = Extended::new(Base).expose(1);
     // Extended::name
-    let header = SailsMessageHeader::v1(Extended::INTERFACE_ID, 1, 1);
+    let header = SailsMessageHeader::v1(<Extended as Identifiable>::INTERFACE_ID, 1, 1);
     let (output, ..) = extended_svc
         .try_handle_solidity(header.interface_id(), header.entry_id(), &input)
         .unwrap();
@@ -173,7 +173,7 @@ fn service_with_lifecycles_and_generics() {
 
     let my_service = MyGenericService::<'_, String>::default();
     // SomeService::do_this
-    let header = SailsMessageHeader::v1(<MyGenericService as ServiceMeta>::INTERFACE_ID, 0, 1);
+    let header = SailsMessageHeader::v1(<MyGenericService as Identifiable>::INTERFACE_ID, 0, 1);
 
     let (output, ..) = my_service
         .expose(1)
@@ -196,7 +196,7 @@ fn service_with_extends_and_lifetimes() {
     let extended_svc = ExtendedWithLifetime::new(BaseWithLifetime::new(&int)).expose(1);
 
     // ExtendedWithLifetime::extended_name
-    let header = SailsMessageHeader::v1(ExtendedWithLifetime::INTERFACE_ID, 0, 1);
+    let header = SailsMessageHeader::v1(<ExtendedWithLifetime as Identifiable>::INTERFACE_ID, 0, 1);
     let (output, ..) = extended_svc
         .try_handle_solidity(header.interface_id(), header.entry_id(), &input)
         .unwrap();
@@ -206,7 +206,7 @@ fn service_with_extends_and_lifetimes() {
 
     let extended_svc = ExtendedWithLifetime::new(BaseWithLifetime::new(&int)).expose(1);
     // BaseWithLifetime::base_name
-    let header = SailsMessageHeader::v1(BaseWithLifetime::INTERFACE_ID, 0, 1);
+    let header = SailsMessageHeader::v1(<BaseWithLifetime as Identifiable>::INTERFACE_ID, 0, 1);
     let (output, ..) = extended_svc
         .try_handle_solidity(header.interface_id(), header.entry_id(), &input)
         .unwrap();
@@ -216,7 +216,7 @@ fn service_with_extends_and_lifetimes() {
 
     let extended_svc = ExtendedWithLifetime::new(BaseWithLifetime::new(&int)).expose(1);
     // ExtendedWithLifetime::name
-    let header = SailsMessageHeader::v1(ExtendedWithLifetime::INTERFACE_ID, 1, 1);
+    let header = SailsMessageHeader::v1(<ExtendedWithLifetime as Identifiable>::INTERFACE_ID, 1, 1);
     let (output, ..) = extended_svc
         .try_handle_solidity(header.interface_id(), header.entry_id(), &input)
         .unwrap();
@@ -229,7 +229,7 @@ fn service_with_extends_and_lifetimes() {
 async fn service_with_export_unwrap_result() {
     use service_with_export_unwrap_result::MyService;
 
-    let header = SailsMessageHeader::v1(<MyService as ServiceMeta>::INTERFACE_ID, 0, 1);
+    let header = SailsMessageHeader::v1(<MyService as Identifiable>::INTERFACE_ID, 0, 1);
 
     let input = (false, 42u32, "correct").abi_encode_sequence();
     let (output, ..) = MyService
@@ -247,7 +247,7 @@ async fn service_with_export_unwrap_result() {
 async fn service_with_export_unwrap_result_panic() {
     use service_with_export_unwrap_result::MyService;
 
-    let header = SailsMessageHeader::v1(<MyService as ServiceMeta>::INTERFACE_ID, 1, 1);
+    let header = SailsMessageHeader::v1(<MyService as Identifiable>::INTERFACE_ID, 1, 1);
 
     let input = (false, "not a number").abi_encode_sequence();
 
@@ -263,7 +263,7 @@ async fn service_with_reply_with_value() {
     use service_with_reply_with_value::MyServiceWithReplyWithValue;
 
     // MyServiceWithReplyWithValue::do_this
-    let header = SailsMessageHeader::v1(MyServiceWithReplyWithValue::INTERFACE_ID, 1, 1);
+    let header = SailsMessageHeader::v1(<MyServiceWithReplyWithValue as Identifiable>::INTERFACE_ID, 1, 1);
     let input = (false, 42u32, "correct".to_owned()).abi_encode_sequence();
     let (output, value, ..) = MyServiceWithReplyWithValue
         .expose(1)
@@ -282,7 +282,7 @@ async fn service_with_reply_with_value_with_impl_from() {
     use service_with_reply_with_value::MyServiceWithReplyWithValue;
 
     // MyServiceWithReplyWithValue::do_that
-    let header = SailsMessageHeader::v1(MyServiceWithReplyWithValue::INTERFACE_ID, 0, 1);
+    let header = SailsMessageHeader::v1(<MyServiceWithReplyWithValue as Identifiable>::INTERFACE_ID, 0, 1);
     let input = (false, 42u32, "correct".to_owned()).abi_encode_sequence();
     let (output, value, ..) = MyServiceWithReplyWithValue
         .expose(1)
@@ -304,7 +304,7 @@ async fn service_with_trait_bounds() {
 
     // MyServiceWithTraitBounds::do_this
     let header = SailsMessageHeader::v1(
-        <MyServiceWithTraitBounds as ServiceMeta>::INTERFACE_ID,
+        <MyServiceWithTraitBounds as Identifiable>::INTERFACE_ID,
         0,
         1,
     );

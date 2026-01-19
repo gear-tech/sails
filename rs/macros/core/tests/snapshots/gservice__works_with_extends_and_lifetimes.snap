@@ -9,7 +9,7 @@ pub struct ExtendedLifetimeExposure<T> {
 impl<T: sails_rs::meta::ServiceMeta> sails_rs::gstd::services::Exposure
 for ExtendedLifetimeExposure<T> {
     fn interface_id() -> sails_rs::meta::InterfaceId {
-        T::INTERFACE_ID
+        <T as sails_rs::meta::Identifiable>::INTERFACE_ID
     }
     fn route_idx(&self) -> u8 {
         self.route_idx
@@ -21,7 +21,7 @@ for ExtendedLifetimeExposure<T> {
         if !T::ASYNC {
             return Some(false);
         }
-        if interface_id == T::INTERFACE_ID {
+        if interface_id == <T as sails_rs::meta::Identifiable>::INTERFACE_ID {
             match entry_id {
                 0u16 => Some(false),
                 1u16 => Some(false),
@@ -76,7 +76,7 @@ impl<'a> ExtendedLifetimeExposure<ExtendedLifetime<'a>> {
         use sails_rs::gstd::services::{Exposure, Service};
         use sails_rs::gstd::{InvocationIo, CommandReply};
         if interface_id
-            == <self::ExtendedLifetime<'a> as sails_rs::meta::ServiceMeta>::INTERFACE_ID
+            == <self::ExtendedLifetime<'a> as sails_rs::meta::Identifiable>::INTERFACE_ID
         {
             match entry_id {
                 0u16 => {
@@ -134,7 +134,7 @@ impl<'a> ExtendedLifetimeExposure<ExtendedLifetime<'a>> {
         use sails_rs::gstd::services::{Exposure, Service};
         use sails_rs::gstd::{InvocationIo, CommandReply};
         if interface_id
-            == <self::ExtendedLifetime<'a> as sails_rs::meta::ServiceMeta>::INTERFACE_ID
+            == <self::ExtendedLifetime<'a> as sails_rs::meta::Identifiable>::INTERFACE_ID
         {
             match entry_id {
                 _ => None,
@@ -163,6 +163,21 @@ impl<'a> sails_rs::gstd::services::Service for ExtendedLifetime<'a> {
 }
 mod extended_lifetime_meta {
     use super::*;
+    impl<'a> sails_rs::meta::Identifiable for super::ExtendedLifetime<'a> {
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = {
+            let mut final_hash = sails_rs::keccak_const::Keccak256::new();
+            final_hash = final_hash
+                .update(&sails_rs::hash_fn!(query ExtendedName() -> String));
+            final_hash = final_hash.update(&sails_rs::hash_fn!(query Name() -> String));
+            final_hash = final_hash
+                .update(
+                    &<super::base::BaseLifetime as sails_rs::meta::Identifiable>::INTERFACE_ID
+                        .0,
+                );
+            let hash = final_hash.finalize();
+            sails_rs::meta::InterfaceId::from_bytes_32(hash)
+        };
+    }
     impl<'a> sails_rs::meta::ServiceMeta for super::ExtendedLifetime<'a> {
         type CommandsMeta = CommandsMeta;
         type QueriesMeta = QueriesMeta;
@@ -173,36 +188,31 @@ mod extended_lifetime_meta {
             >("BaseLifetime"),
         ];
         const ASYNC: bool = <super::base::BaseLifetime as sails_rs::meta::ServiceMeta>::ASYNC;
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = {
-            let mut final_hash = sails_rs::keccak_const::Keccak256::new();
-            final_hash = final_hash
-                .update(&sails_rs::hash_fn!(query ExtendedName() -> String));
-            final_hash = final_hash.update(&sails_rs::hash_fn!(query Name() -> String));
-            final_hash = final_hash
-                .update(
-                    &<super::base::BaseLifetime as sails_rs::meta::ServiceMeta>::INTERFACE_ID
-                        .0,
-                );
-            let hash = final_hash.finalize();
-            sails_rs::meta::InterfaceId::from_bytes_32(hash)
-        };
     }
     #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub struct __ExtendedNameParams {}
-    impl sails_rs::gstd::InvocationIo for __ExtendedNameParams {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::ExtendedLifetime as sails_rs::meta::ServiceMeta>::INTERFACE_ID;
+    impl sails_rs::meta::Identifiable for __ExtendedNameParams {
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::ExtendedLifetime as sails_rs::meta::Identifiable>::INTERFACE_ID;
+    }
+    impl sails_rs::meta::MethodMeta for __ExtendedNameParams {
         const ENTRY_ID: u16 = 0u16;
+    }
+    impl sails_rs::gstd::InvocationIo for __ExtendedNameParams {
         type Params = Self;
     }
     #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub struct __NameParams {}
-    impl sails_rs::gstd::InvocationIo for __NameParams {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::ExtendedLifetime as sails_rs::meta::ServiceMeta>::INTERFACE_ID;
+    impl sails_rs::meta::Identifiable for __NameParams {
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::ExtendedLifetime as sails_rs::meta::Identifiable>::INTERFACE_ID;
+    }
+    impl sails_rs::meta::MethodMeta for __NameParams {
         const ENTRY_ID: u16 = 1u16;
+    }
+    impl sails_rs::gstd::InvocationIo for __NameParams {
         type Params = Self;
     }
     #[derive(sails_rs::TypeInfo)]

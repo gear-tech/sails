@@ -9,7 +9,7 @@ pub struct ReferenceServiceExposure<T> {
 impl<T: sails_rs::meta::ServiceMeta> sails_rs::gstd::services::Exposure
 for ReferenceServiceExposure<T> {
     fn interface_id() -> sails_rs::meta::InterfaceId {
-        T::INTERFACE_ID
+        <T as sails_rs::meta::Identifiable>::INTERFACE_ID
     }
     fn route_idx(&self) -> u8 {
         self.route_idx
@@ -21,7 +21,7 @@ for ReferenceServiceExposure<T> {
         if !T::ASYNC {
             return Some(false);
         }
-        if interface_id == T::INTERFACE_ID {
+        if interface_id == <T as sails_rs::meta::Identifiable>::INTERFACE_ID {
             match entry_id {
                 0u16 => Some(false),
                 1u16 => Some(false),
@@ -83,7 +83,7 @@ impl ReferenceServiceExposure<ReferenceService> {
         use sails_rs::gstd::services::{Exposure, Service};
         use sails_rs::gstd::{InvocationIo, CommandReply};
         if interface_id
-            == <self::ReferenceService as sails_rs::meta::ServiceMeta>::INTERFACE_ID
+            == <self::ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID
         {
             match entry_id {
                 0u16 => {
@@ -150,7 +150,7 @@ impl ReferenceServiceExposure<ReferenceService> {
         use sails_rs::gstd::services::{Exposure, Service};
         use sails_rs::gstd::{InvocationIo, CommandReply};
         if interface_id
-            == <self::ReferenceService as sails_rs::meta::ServiceMeta>::INTERFACE_ID
+            == <self::ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID
         {
             match entry_id {
                 3u16 => {
@@ -197,9 +197,10 @@ impl ReferenceServiceExposure<ReferenceService> {
         entry_id: u16,
         input: &[u8],
     ) -> Option<(sails_rs::Vec<u8>, u128, bool)> {
-        use sails_rs::gstd::services::{Service, Exposure};
+        use sails_rs::gstd::services::{Exposure, Service};
+        use sails_rs::gstd::CommandReply;
         if interface_id
-            == <self::ReferenceService as sails_rs::meta::ServiceMeta>::INTERFACE_ID
+            == <self::ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID
         {
             match entry_id {
                 0u16 => {
@@ -293,9 +294,10 @@ impl ReferenceServiceExposure<ReferenceService> {
         entry_id: u16,
         input: &[u8],
     ) -> Option<(sails_rs::Vec<u8>, u128, bool)> {
-        use sails_rs::gstd::services::{Service, Exposure};
+        use sails_rs::gstd::services::{Exposure, Service};
+        use sails_rs::gstd::CommandReply;
         if interface_id
-            == <self::ReferenceService as sails_rs::meta::ServiceMeta>::INTERFACE_ID
+            == <self::ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID
         {
             match entry_id {
                 3u16 => {
@@ -366,12 +368,7 @@ impl sails_rs::gstd::services::Service for ReferenceService {
 }
 mod reference_service_meta {
     use super::*;
-    impl sails_rs::meta::ServiceMeta for super::ReferenceService {
-        type CommandsMeta = CommandsMeta;
-        type QueriesMeta = QueriesMeta;
-        type EventsMeta = EventsMeta;
-        const BASE_SERVICES: &'static [sails_rs::meta::BaseServiceMeta] = &[];
-        const ASYNC: bool = true;
+    impl sails_rs::meta::Identifiable for super::ReferenceService {
         const INTERFACE_ID: sails_rs::meta::InterfaceId = {
             let mut final_hash = sails_rs::keccak_const::Keccak256::new();
             final_hash = final_hash
@@ -392,51 +389,78 @@ mod reference_service_meta {
             sails_rs::meta::InterfaceId::from_bytes_32(hash)
         };
     }
+    impl sails_rs::meta::ServiceMeta for super::ReferenceService {
+        type CommandsMeta = CommandsMeta;
+        type QueriesMeta = QueriesMeta;
+        type EventsMeta = EventsMeta;
+        const BASE_SERVICES: &'static [sails_rs::meta::BaseServiceMeta] = &[];
+        const ASYNC: bool = true;
+    }
     #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub struct __AddByteParams {
         pub(super) byte: u8,
     }
-    impl sails_rs::gstd::InvocationIo for __AddByteParams {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::ReferenceService as sails_rs::meta::ServiceMeta>::INTERFACE_ID;
+    impl sails_rs::meta::Identifiable for __AddByteParams {
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID;
+    }
+    impl sails_rs::meta::MethodMeta for __AddByteParams {
         const ENTRY_ID: u16 = 0u16;
+    }
+    impl sails_rs::gstd::InvocationIo for __AddByteParams {
         type Params = Self;
     }
     #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub struct __IncrParams {}
-    impl sails_rs::gstd::InvocationIo for __IncrParams {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::ReferenceService as sails_rs::meta::ServiceMeta>::INTERFACE_ID;
+    impl sails_rs::meta::Identifiable for __IncrParams {
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID;
+    }
+    impl sails_rs::meta::MethodMeta for __IncrParams {
         const ENTRY_ID: u16 = 1u16;
+    }
+    impl sails_rs::gstd::InvocationIo for __IncrParams {
         type Params = Self;
     }
     #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub struct __BakedParams {}
-    impl sails_rs::gstd::InvocationIo for __BakedParams {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::ReferenceService as sails_rs::meta::ServiceMeta>::INTERFACE_ID;
+    impl sails_rs::meta::Identifiable for __BakedParams {
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID;
+    }
+    impl sails_rs::meta::MethodMeta for __BakedParams {
         const ENTRY_ID: u16 = 2u16;
+    }
+    impl sails_rs::gstd::InvocationIo for __BakedParams {
         type Params = Self;
     }
     #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub struct __FirstByteParams {}
-    impl sails_rs::gstd::InvocationIo for __FirstByteParams {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::ReferenceService as sails_rs::meta::ServiceMeta>::INTERFACE_ID;
+    impl sails_rs::meta::Identifiable for __FirstByteParams {
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID;
+    }
+    impl sails_rs::meta::MethodMeta for __FirstByteParams {
         const ENTRY_ID: u16 = 3u16;
+    }
+    impl sails_rs::gstd::InvocationIo for __FirstByteParams {
         type Params = Self;
     }
     #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub struct __LastByteParams {}
-    impl sails_rs::gstd::InvocationIo for __LastByteParams {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::ReferenceService as sails_rs::meta::ServiceMeta>::INTERFACE_ID;
+    impl sails_rs::meta::Identifiable for __LastByteParams {
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID;
+    }
+    impl sails_rs::meta::MethodMeta for __LastByteParams {
         const ENTRY_ID: u16 = 4u16;
+    }
+    impl sails_rs::gstd::InvocationIo for __LastByteParams {
         type Params = Self;
     }
     #[derive(sails_rs::TypeInfo)]
@@ -460,7 +484,7 @@ mod reference_service_meta {
 impl sails_rs::solidity::ServiceSignature for ReferenceService {
     const METHODS: &'static [sails_rs::solidity::MethodExpo] = &[
         (
-            <ReferenceService as sails_rs::meta::ServiceMeta>::INTERFACE_ID,
+            <ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID,
             0u16,
             "AddByte",
             <<(
@@ -473,7 +497,7 @@ impl sails_rs::solidity::ServiceSignature for ReferenceService {
             ) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
         ),
         (
-            <ReferenceService as sails_rs::meta::ServiceMeta>::INTERFACE_ID,
+            <ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID,
             1u16,
             "Incr",
             <<(
@@ -485,7 +509,7 @@ impl sails_rs::solidity::ServiceSignature for ReferenceService {
             ) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
         ),
         (
-            <ReferenceService as sails_rs::meta::ServiceMeta>::INTERFACE_ID,
+            <ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID,
             2u16,
             "Baked",
             <<(
@@ -497,7 +521,7 @@ impl sails_rs::solidity::ServiceSignature for ReferenceService {
             ) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
         ),
         (
-            <ReferenceService as sails_rs::meta::ServiceMeta>::INTERFACE_ID,
+            <ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID,
             3u16,
             "FirstByte",
             <<(
@@ -509,7 +533,7 @@ impl sails_rs::solidity::ServiceSignature for ReferenceService {
             ) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
         ),
         (
-            <ReferenceService as sails_rs::meta::ServiceMeta>::INTERFACE_ID,
+            <ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID,
             4u16,
             "LastByte",
             <<(

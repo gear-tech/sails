@@ -9,7 +9,7 @@ pub struct MyGenericEventsServiceExposure<T> {
 impl<T: sails_rs::meta::ServiceMeta> sails_rs::gstd::services::Exposure
 for MyGenericEventsServiceExposure<T> {
     fn interface_id() -> sails_rs::meta::InterfaceId {
-        T::INTERFACE_ID
+        <T as sails_rs::meta::Identifiable>::INTERFACE_ID
     }
     fn route_idx(&self) -> u8 {
         self.route_idx
@@ -21,7 +21,7 @@ for MyGenericEventsServiceExposure<T> {
         if !T::ASYNC {
             return Some(false);
         }
-        if interface_id == T::INTERFACE_ID {
+        if interface_id == <T as sails_rs::meta::Identifiable>::INTERFACE_ID {
             match entry_id {
                 0u16 => Some(false),
                 _ => None,
@@ -68,7 +68,7 @@ where
                 '_,
                 '_,
                 T,
-            > as sails_rs::meta::ServiceMeta>::INTERFACE_ID
+            > as sails_rs::meta::Identifiable>::INTERFACE_ID
         {
             match entry_id {
                 0u16 => {
@@ -107,7 +107,7 @@ where
                 '_,
                 '_,
                 T,
-            > as sails_rs::meta::ServiceMeta>::INTERFACE_ID
+            > as sails_rs::meta::Identifiable>::INTERFACE_ID
         {
             match entry_id {
                 _ => None,
@@ -122,13 +122,14 @@ where
         entry_id: u16,
         input: &[u8],
     ) -> Option<(sails_rs::Vec<u8>, u128, bool)> {
-        use sails_rs::gstd::services::{Service, Exposure};
+        use sails_rs::gstd::services::{Exposure, Service};
+        use sails_rs::gstd::CommandReply;
         if interface_id
             == <self::MyGenericEventsService<
                 '_,
                 '_,
                 T,
-            > as sails_rs::meta::ServiceMeta>::INTERFACE_ID
+            > as sails_rs::meta::Identifiable>::INTERFACE_ID
         {
             match entry_id {
                 0u16 => {
@@ -168,13 +169,14 @@ where
         entry_id: u16,
         input: &[u8],
     ) -> Option<(sails_rs::Vec<u8>, u128, bool)> {
-        use sails_rs::gstd::services::{Service, Exposure};
+        use sails_rs::gstd::services::{Exposure, Service};
+        use sails_rs::gstd::CommandReply;
         if interface_id
             == <self::MyGenericEventsService<
                 '_,
                 '_,
                 T,
-            > as sails_rs::meta::ServiceMeta>::INTERFACE_ID
+            > as sails_rs::meta::Identifiable>::INTERFACE_ID
         {
             match entry_id {
                 _ => None,
@@ -206,15 +208,10 @@ where
 }
 mod my_generic_events_service_meta {
     use super::*;
-    impl<T> sails_rs::meta::ServiceMeta for super::MyGenericEventsService<'_, '_, T>
+    impl<T> sails_rs::meta::Identifiable for super::MyGenericEventsService<'_, '_, T>
     where
         T: Clone,
     {
-        type CommandsMeta = CommandsMeta;
-        type QueriesMeta = QueriesMeta;
-        type EventsMeta = EventsMeta;
-        const BASE_SERVICES: &'static [sails_rs::meta::BaseServiceMeta] = &[];
-        const ASYNC: bool = false;
         const INTERFACE_ID: sails_rs::meta::InterfaceId = {
             let mut final_hash = sails_rs::keccak_const::Keccak256::new();
             final_hash = final_hash.update(&sails_rs::hash_fn!(command DoThis() -> u32));
@@ -224,13 +221,27 @@ mod my_generic_events_service_meta {
             sails_rs::meta::InterfaceId::from_bytes_32(hash)
         };
     }
+    impl<T> sails_rs::meta::ServiceMeta for super::MyGenericEventsService<'_, '_, T>
+    where
+        T: Clone,
+    {
+        type CommandsMeta = CommandsMeta;
+        type QueriesMeta = QueriesMeta;
+        type EventsMeta = EventsMeta;
+        const BASE_SERVICES: &'static [sails_rs::meta::BaseServiceMeta] = &[];
+        const ASYNC: bool = false;
+    }
     #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub struct __DoThisParams {}
-    impl sails_rs::gstd::InvocationIo for __DoThisParams {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::MyGenericEventsService as sails_rs::meta::ServiceMeta>::INTERFACE_ID;
+    impl sails_rs::meta::Identifiable for __DoThisParams {
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::MyGenericEventsService as sails_rs::meta::Identifiable>::INTERFACE_ID;
+    }
+    impl sails_rs::meta::MethodMeta for __DoThisParams {
         const ENTRY_ID: u16 = 0u16;
+    }
+    impl sails_rs::gstd::InvocationIo for __DoThisParams {
         type Params = Self;
     }
     #[derive(sails_rs::TypeInfo)]
@@ -252,7 +263,7 @@ where
 {
     const METHODS: &'static [sails_rs::solidity::MethodExpo] = &[
         (
-            <MyGenericEventsService as sails_rs::meta::ServiceMeta>::INTERFACE_ID,
+            <MyGenericEventsService as sails_rs::meta::Identifiable>::INTERFACE_ID,
             0u16,
             "DoThis",
             <<(

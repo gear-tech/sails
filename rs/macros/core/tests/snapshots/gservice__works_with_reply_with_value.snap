@@ -9,7 +9,7 @@ pub struct SomeServiceExposure<T> {
 impl<T: sails_rs::meta::ServiceMeta> sails_rs::gstd::services::Exposure
 for SomeServiceExposure<T> {
     fn interface_id() -> sails_rs::meta::InterfaceId {
-        T::INTERFACE_ID
+        <T as sails_rs::meta::Identifiable>::INTERFACE_ID
     }
     fn route_idx(&self) -> u8 {
         self.route_idx
@@ -21,7 +21,7 @@ for SomeServiceExposure<T> {
         if !T::ASYNC {
             return Some(false);
         }
-        if interface_id == T::INTERFACE_ID {
+        if interface_id == <T as sails_rs::meta::Identifiable>::INTERFACE_ID {
             match entry_id {
                 0u16 => Some(true),
                 1u16 => Some(false),
@@ -62,7 +62,7 @@ impl SomeServiceExposure<SomeService> {
         use sails_rs::gstd::services::{Exposure, Service};
         use sails_rs::gstd::{InvocationIo, CommandReply};
         if interface_id
-            == <self::SomeService as sails_rs::meta::ServiceMeta>::INTERFACE_ID
+            == <self::SomeService as sails_rs::meta::Identifiable>::INTERFACE_ID
         {
             match entry_id {
                 1u16 => {
@@ -97,7 +97,7 @@ impl SomeServiceExposure<SomeService> {
         use sails_rs::gstd::services::{Exposure, Service};
         use sails_rs::gstd::{InvocationIo, CommandReply};
         if interface_id
-            == <self::SomeService as sails_rs::meta::ServiceMeta>::INTERFACE_ID
+            == <self::SomeService as sails_rs::meta::Identifiable>::INTERFACE_ID
         {
             match entry_id {
                 0u16 => {
@@ -137,12 +137,7 @@ impl sails_rs::gstd::services::Service for SomeService {
 }
 mod some_service_meta {
     use super::*;
-    impl sails_rs::meta::ServiceMeta for super::SomeService {
-        type CommandsMeta = CommandsMeta;
-        type QueriesMeta = QueriesMeta;
-        type EventsMeta = EventsMeta;
-        const BASE_SERVICES: &'static [sails_rs::meta::BaseServiceMeta] = &[];
-        const ASYNC: bool = true;
+    impl sails_rs::meta::Identifiable for super::SomeService {
         const INTERFACE_ID: sails_rs::meta::InterfaceId = {
             let mut final_hash = sails_rs::keccak_const::Keccak256::new();
             final_hash = final_hash
@@ -153,6 +148,13 @@ mod some_service_meta {
             sails_rs::meta::InterfaceId::from_bytes_32(hash)
         };
     }
+    impl sails_rs::meta::ServiceMeta for super::SomeService {
+        type CommandsMeta = CommandsMeta;
+        type QueriesMeta = QueriesMeta;
+        type EventsMeta = EventsMeta;
+        const BASE_SERVICES: &'static [sails_rs::meta::BaseServiceMeta] = &[];
+        const ASYNC: bool = true;
+    }
     #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
@@ -160,9 +162,13 @@ mod some_service_meta {
         pub(super) p1: u32,
         pub(super) p2: String,
     }
-    impl sails_rs::gstd::InvocationIo for __DoThisParams {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::SomeService as sails_rs::meta::ServiceMeta>::INTERFACE_ID;
+    impl sails_rs::meta::Identifiable for __DoThisParams {
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::SomeService as sails_rs::meta::Identifiable>::INTERFACE_ID;
+    }
+    impl sails_rs::meta::MethodMeta for __DoThisParams {
         const ENTRY_ID: u16 = 0u16;
+    }
+    impl sails_rs::gstd::InvocationIo for __DoThisParams {
         type Params = Self;
     }
     #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
@@ -171,9 +177,13 @@ mod some_service_meta {
     pub struct __ThisParams {
         pub(super) p1: bool,
     }
-    impl sails_rs::gstd::InvocationIo for __ThisParams {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::SomeService as sails_rs::meta::ServiceMeta>::INTERFACE_ID;
+    impl sails_rs::meta::Identifiable for __ThisParams {
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::SomeService as sails_rs::meta::Identifiable>::INTERFACE_ID;
+    }
+    impl sails_rs::meta::MethodMeta for __ThisParams {
         const ENTRY_ID: u16 = 1u16;
+    }
+    impl sails_rs::gstd::InvocationIo for __ThisParams {
         type Params = Self;
     }
     #[derive(sails_rs::TypeInfo)]
