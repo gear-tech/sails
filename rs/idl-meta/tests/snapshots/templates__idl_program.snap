@@ -18,9 +18,9 @@ program Demo {
     }
     services {
         Ping,
-        Counter,
+        Counter@0x579d6daba41b7d82,
         /// Another Counter service
-        Counter: Counter2,
+        Counter@0x579d6daba41b7d82: Counter2,
     }
     types {
         struct DoThatParam {

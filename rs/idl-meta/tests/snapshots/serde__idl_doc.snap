@@ -70,10 +70,12 @@ expression: serialized
       },
       {
         "name": "Counter",
+        "interface_id": "0x579d6daba41b7d82",
         "route_idx": 2
       },
       {
         "name": "Counter",
+        "interface_id": "0x579d6daba41b7d82",
         "route": "Counter2",
         "route_idx": 3,
         "docs": [

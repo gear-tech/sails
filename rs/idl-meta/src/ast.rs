@@ -87,13 +87,17 @@ pub struct ProgramUnit {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(
-    feature = "serde",
-    derive(Serialize, Deserialize),
-)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct ServiceIdent {
     pub name: String,
-    #[cfg_attr(feature = "serde", serde(skip))]
+    #[cfg_attr(
+        feature = "serde",
+        serde(
+            default,
+            skip_serializing_if = "Option::is_none",
+            with = "serde_opt_str"
+        )
+    )]
     pub interface_id: Option<InterfaceId>,
 }
 
@@ -756,5 +760,34 @@ mod serde_str {
     {
         let s = String::deserialize(deserializer)?;
         T::from_str(s.as_str()).map_err(serde::de::Error::custom)
+    }
+}
+
+#[cfg(feature = "serde")]
+mod serde_opt_str {
+    use super::*;
+    use core::str::FromStr;
+    use serde::{Deserializer, Serializer};
+
+    pub(super) fn serialize<T, S>(value: &Option<T>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        T: Display,
+        S: Serializer,
+    {
+        match value {
+            Some(value) => serializer.collect_str(value),
+            None => serializer.serialize_none(),
+        }
+    }
+
+    pub(super) fn deserialize<'de, T, D>(deserializer: D) -> Result<Option<T>, D::Error>
+    where
+        T: FromStr,
+        <T as FromStr>::Err: Display,
+        D: Deserializer<'de>,
+    {
+        let opt = Option::<String>::deserialize(deserializer)?;
+        opt.map(|s| T::from_str(s.as_str()).map_err(serde::de::Error::custom))
+            .transpose()
     }
 }
