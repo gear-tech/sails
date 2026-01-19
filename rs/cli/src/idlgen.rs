@@ -1,11 +1,14 @@
 use anyhow::Context;
 use cargo_metadata::{Package, PackageId, camino::*};
+use convert_case::{Case, Casing};
 use std::{
     collections::{HashMap, HashSet},
     env, fs,
     path::{Path, PathBuf},
     process::{Command, ExitStatus},
 };
+
+const META_PATH: &[&str] = &["sails_idl_meta", "ProgramMeta"];
 
 pub struct CrateIdlGenerator {
     manifest_path: Utf8PathBuf,
@@ -64,10 +67,9 @@ impl CrateIdlGenerator {
                 &metadata.workspace_root,
             );
             match get_program_struct_path_from_doc(program_package, target_dir) {
-                Ok((program_struct_path, meta_path_version)) => {
+                Ok(program_struct_path) => {
                     println!("...found Program implemetation: {program_struct_path}");
-                    let file_path = idl_gen
-                        .try_generate_for_package(&program_struct_path, meta_path_version)?;
+                    let file_path = idl_gen.try_generate_for_package(&program_struct_path)?;
                     println!("Generated IDL: {file_path}");
 
                     return Ok(());
@@ -103,11 +105,7 @@ impl<'a> PackageIdlGenerator<'a> {
         }
     }
 
-    fn try_generate_for_package(
-        &self,
-        program_struct_path: &str,
-        meta_path_version: MetaPathVersion,
-    ) -> anyhow::Result<Utf8PathBuf> {
+    fn try_generate_for_package(&self, program_struct_path: &str) -> anyhow::Result<Utf8PathBuf> {
         // find `sails-rs` dependency
         let sails_dep = self
             .program_package
@@ -133,14 +131,18 @@ impl<'a> PackageIdlGenerator<'a> {
         let gen_manifest_path = crate_dir.join("Cargo.toml");
         write_file(
             &gen_manifest_path,
-            gen_cargo_toml(self.program_package, sails_package, meta_path_version),
+            gen_cargo_toml(self.program_package, sails_package),
         )?;
 
         let out_file = self
             .target_dir
             .join(format!("{}.idl", &self.program_package.name));
+        let program_name = &self.program_package.name.to_case(Case::Pascal);
         let main_rs_path = src_dir.join("main.rs");
-        write_file(main_rs_path, gen_main_rs(program_struct_path, &out_file))?;
+        write_file(
+            main_rs_path,
+            gen_main_rs(program_struct_path, &program_name, &out_file),
+        )?;
 
         let from_lock = &self.workspace_root.join("Cargo.lock");
         let to_lock = &crate_dir.join("Cargo.lock");
@@ -209,7 +211,7 @@ fn get_package_list(
 fn get_program_struct_path_from_doc(
     program_package: &Package,
     target_dir: &Utf8Path,
-) -> anyhow::Result<(String, MetaPathVersion)> {
+) -> anyhow::Result<String> {
     let program_package_file_name = program_package.name.to_lowercase().replace('-', "_");
     println!(
         "...running doc generation for `{}`",
@@ -226,10 +228,16 @@ fn get_program_struct_path_from_doc(
     let doc_crate: rustdoc_types::Crate = serde_json::from_str(&json_string)?;
 
     // find `sails_rs::meta::ProgramMeta` path id
-    let (program_meta_id, meta_path_version) = doc_crate
+    let program_meta_id = doc_crate
         .paths
         .iter()
-        .find_map(|(id, summary)| MetaPathVersion::matches(&summary.path).map(|v| (id, v)))
+        .find_map(|(id, summary)| {
+            if summary.path == META_PATH {
+                Some(id)
+            } else {
+                None
+            }
+        })
         .context("failed to find `sails_rs::meta::ProgramMeta` definition in dependencies")?;
     // find struct implementing `sails_rs::meta::ProgramMeta`
     let program_struct_path = doc_crate
@@ -242,7 +250,7 @@ fn get_program_struct_path_from_doc(
         .get(&program_struct_path.id)
         .context("failed to get Program struct by id")?;
     let program_struct_path = program_struct.path.join("::");
-    Ok((program_struct_path, meta_path_version))
+    Ok(program_struct_path)
 }
 
 fn try_get_trait_implementation_path(
@@ -314,31 +322,7 @@ fn cargo_run_bin(
     cmd.status().context("failed to execute `cargo` command")
 }
 
-enum MetaPathVersion {
-    V1,
-    V2,
-}
-
-impl MetaPathVersion {
-    const META_PATH_V1: &[&str] = &["sails_rs", "meta", "ProgramMeta"];
-    const META_PATH_V2: &[&str] = &["sails_idl_meta", "ProgramMeta"];
-
-    fn matches(path: &Vec<String>) -> Option<Self> {
-        if path == Self::META_PATH_V1 {
-            Some(MetaPathVersion::V1)
-        } else if path == Self::META_PATH_V2 {
-            Some(MetaPathVersion::V2)
-        } else {
-            None
-        }
-    }
-}
-
-fn gen_cargo_toml(
-    program_package: &Package,
-    sails_package: &Package,
-    meta_path_version: MetaPathVersion,
-) -> String {
+fn gen_cargo_toml(program_package: &Package, sails_package: &Package) -> String {
     let mut manifest = toml_edit::DocumentMut::new();
     manifest["package"] = toml_edit::Item::Table(toml_edit::Table::new());
     manifest["package"]["name"] = toml_edit::value(get_idl_gen_crate_name(program_package));
@@ -351,10 +335,7 @@ fn gen_cargo_toml(
     package_table.insert("path", manifets_dir.as_str().into());
     dep_table[&program_package.name] = toml_edit::value(package_table);
 
-    let sails_dep = match meta_path_version {
-        MetaPathVersion::V1 => sails_dep_v1(sails_package),
-        MetaPathVersion::V2 => sails_dep_v2(sails_package),
-    };
+    let sails_dep = sails_dep_v2(sails_package);
     dep_table[&sails_package.name] = toml_edit::value(sails_dep);
 
     manifest["dependencies"] = toml_edit::Item::Table(dep_table);
@@ -375,16 +356,10 @@ fn gen_cargo_toml(
     manifest.to_string()
 }
 
-fn sails_dep_v1(sails_package: &Package) -> toml_edit::InlineTable {
-    let mut sails_table = toml_edit::InlineTable::new();
-    sails_table.insert("package", "sails-idl-gen".into());
-    sails_table.insert("version", sails_package.version.to_string().into());
-    sails_table
-}
-
 fn sails_dep_v2(sails_package: &Package) -> toml_edit::InlineTable {
     let mut features = toml_edit::Array::default();
     features.push("idl-gen");
+    features.push("std");
     let mut sails_table = toml_edit::InlineTable::new();
     let manifets_dir = sails_package.manifest_path.parent().unwrap();
     sails_table.insert("package", sails_package.name.as_str().into());
@@ -393,16 +368,22 @@ fn sails_dep_v2(sails_package: &Package) -> toml_edit::InlineTable {
     sails_table
 }
 
-fn gen_main_rs(program_struct_path: &str, out_file: &cargo_metadata::camino::Utf8Path) -> String {
+fn gen_main_rs(
+    program_struct_path: &str,
+    program_name: &str,
+    out_file: &cargo_metadata::camino::Utf8Path,
+) -> String {
     format!(
         "
 fn main() {{
     sails_rs::generate_idl_to_file::<{}>(
+        Some(r\"{}\"),
         std::path::PathBuf::from(r\"{}\")
     )
     .unwrap();
 }}",
         program_struct_path,
+        program_name,
         out_file.as_str(),
     )
 }
