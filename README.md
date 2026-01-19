@@ -132,7 +132,7 @@ impl MyService {
     // This is a command returning `()` or panicking
     #[export(unwrap_result)]
     pub fn do_something_with_unwrap_result(&mut self, amount: u64) -> Result<(), String> {
-        do_somethig_returning_result()?;
+        do_something_returning_result()?;
         Ok(())
     }
 
