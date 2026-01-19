@@ -9,7 +9,7 @@ pub use gstd::handle_signal;
 #[doc(hidden)]
 pub use gstd::{async_init, async_main, handle_reply_with_hook, message_loop};
 pub use gstd::{debug, exec, msg};
-use sails_idl_meta::{Identifiable, InterfaceId, MethodMeta};
+use sails_idl_meta::{InterfaceId, MethodMeta};
 #[doc(hidden)]
 pub use sails_macros::{event, export, program, service};
 pub use syscalls::Syscall;
@@ -96,7 +96,7 @@ impl<T: AsRef<[u8]>> core::fmt::Debug for HexSlice<T> {
     }
 }
 
-pub trait InvocationIo: Identifiable + MethodMeta {
+pub trait InvocationIo: MethodMeta {
     type Params: Decode;
 
     fn decode_params(payload: impl AsRef<[u8]>) -> Result<Self::Params> {

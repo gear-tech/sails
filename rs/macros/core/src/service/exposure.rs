@@ -158,7 +158,7 @@ impl ServiceBuilder<'_> {
         let base_invocation = if self.base_types.is_empty() {
             None
         } else {
-            let base_exposure_invocations = self.base_types.iter().enumerate().map(|(idx, _)| {
+            let base_exposure_invocations = self.sorted_base_indices.iter().map(|&idx| {
                 let idx_token = if self.base_types.len() == 1 {
                     None
                 } else {

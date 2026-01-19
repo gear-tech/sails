@@ -333,7 +333,7 @@ impl<A, T: ServiceCall, E: GearEnv> PendingCtor<A, T, E> {
     }
 }
 
-pub trait ServiceCall: Identifiable + MethodMeta {
+pub trait ServiceCall: MethodMeta {
     type Params: Encode;
     type Reply: Decode + 'static;
 
