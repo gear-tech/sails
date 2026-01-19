@@ -59,7 +59,7 @@ impl CrateIdlGenerator {
 
         let package_list = get_package_list(&metadata, self.deps_level)?;
         println!(
-            "...looking for Program implemetation in {} package(s)",
+            "...looking for Program implementation in {} package(s)",
             package_list.len()
         );
         for program_package in package_list {
@@ -72,7 +72,7 @@ impl CrateIdlGenerator {
             );
             match get_program_struct_path_from_doc(program_package, target_dir) {
                 Ok(program_struct_path) => {
-                    println!("...found Program implemetation: {program_struct_path}");
+                    println!("...found Program implementation: {program_struct_path}");
                     let file_path = idl_gen.try_generate_for_package(&program_struct_path)?;
                     println!("Generated IDL: {file_path}");
 
@@ -248,7 +248,7 @@ fn get_program_struct_path_from_doc(
         .index
         .values()
         .find_map(|idx| try_get_trait_implementation_path(idx, program_meta_id))
-        .context("failed to find `sails_rs::meta::ProgramMeta` implemetation")?;
+        .context("failed to find `sails_rs::meta::ProgramMeta` implementation")?;
     let program_struct = doc_crate
         .paths
         .get(&program_struct_path.id)
@@ -335,8 +335,8 @@ fn gen_cargo_toml(program_package: &Package, sails_package: &Package) -> String 
 
     let mut dep_table = toml_edit::Table::default();
     let mut package_table = toml_edit::InlineTable::new();
-    let manifets_dir = program_package.manifest_path.parent().unwrap();
-    package_table.insert("path", manifets_dir.as_str().into());
+    let manifest_dir = program_package.manifest_path.parent().unwrap();
+    package_table.insert("path", manifest_dir.as_str().into());
     dep_table[&program_package.name] = toml_edit::value(package_table);
 
     let sails_dep = sails_dep_v2(sails_package);
@@ -365,9 +365,9 @@ fn sails_dep_v2(sails_package: &Package) -> toml_edit::InlineTable {
     features.push("idl-gen");
     features.push("std");
     let mut sails_table = toml_edit::InlineTable::new();
-    let manifets_dir = sails_package.manifest_path.parent().unwrap();
+    let manifest_dir = sails_package.manifest_path.parent().unwrap();
     sails_table.insert("package", sails_package.name.as_str().into());
-    sails_table.insert("path", manifets_dir.as_str().into());
+    sails_table.insert("path", manifest_dir.as_str().into());
     sails_table.insert("features", features.into());
     sails_table
 }
