@@ -25,6 +25,7 @@ pub use service::{__gservice_internal, gservice};
 
 mod event;
 mod export;
+mod overrides;
 mod program;
 mod sails_paths;
 mod service;

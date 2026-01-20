@@ -698,6 +698,10 @@ async fn inheritance_redefine_works() {
     // Act & Assert
 
     // 1. Check InheritanceService (Composite)
+    // Non-overridden method from Walker (Isolation check)
+    let pos = inheritance_client.walker_service().position().await.unwrap();
+    assert_eq!(pos, (0, 0)); // Initial position from dog_data()
+
     // Direct call (via Inheritance interface)
     inheritance_client.walk(1, 1).await.unwrap();
     // Polymorphic call (via Walker interface)
