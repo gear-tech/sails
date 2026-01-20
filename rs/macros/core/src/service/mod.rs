@@ -71,6 +71,14 @@ struct ServiceBuilder<'a> {
     meta_module_ident: Ident,
 }
 
+struct DispatchParams<'a> {
+    is_async: bool,
+    method_name_ident: &'a Ident,
+    method_sig: &'a TokenStream,
+    extra_imports: &'a TokenStream,
+    metadata_type: &'a TokenStream,
+}
+
 impl<'a> ServiceBuilder<'a> {
     fn from(
         service_impl: &'a ItemImpl,

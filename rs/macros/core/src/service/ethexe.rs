@@ -65,15 +65,24 @@ impl ServiceBuilder<'_> {
                 use #sails_path::gstd::CommandReply;
             };
 
-            self.generate_dispatch_impl(
+            let service_type_path = self.type_path;
+
+            let metadata_type = quote!(self::#service_type_path);
+
+            let params = DispatchParams {
                 is_async,
-                &method_ident,
-                method_sig,
-                extra_imports,
+                method_name_ident: &method_ident,
+                method_sig: &method_sig,
+                extra_imports: &extra_imports,
+                metadata_type: &metadata_type,
+            };
+
+            self.generate_dispatch_impl(
+                params,
                 |fn_builder, _| self.generate_sol_decode_and_handle(fn_builder),
                 |base_service_token, await_token, method_name| {
                     quote! {
-                        #base_service_token .expose(self.route_idx) . #method_name (interface_id, entry_id, input) #await_token
+                        #sails_path::gstd::services::Service::expose(#base_service_token, self.route_idx) . #method_name (interface_id, entry_id, input) #await_token
                     }
                 }
             )

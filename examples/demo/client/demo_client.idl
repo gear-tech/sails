@@ -25,6 +25,14 @@ service Counter@0x579d6daba41b7d82 {
     }
 }
 
+service MammalService@0xff6b93e1961026fe {
+    functions {
+        MakeSound() -> String;
+        @query
+        AvgWeight() -> u32;
+    }
+}
+
 service WalkerService@0xee1536b55170bf0a {
     events {
         Walked {
@@ -36,14 +44,6 @@ service WalkerService@0xee1536b55170bf0a {
         Walk(dx: i32, dy: i32);
         @query
         Position() -> (i32, i32);
-    }
-}
-
-service MammalService@0xff6b93e1961026fe {
-    functions {
-        MakeSound() -> String;
-        @query
-        AvgWeight() -> u32;
     }
 }
 

@@ -121,16 +121,19 @@ impl ServiceBuilder<'_> {
 
     pub(super) fn generate_dispatch_impl(
         &self,
-        is_async: bool,
-        method_name_ident: &Ident,
-        method_sig: TokenStream,
-        extra_imports: TokenStream,
+        params: DispatchParams,
         handler_gen: impl Fn(&FnBuilder, &Option<TokenStream>) -> TokenStream,
         base_call_gen: impl Fn(TokenStream, &Option<TokenStream>, &Ident) -> TokenStream,
     ) -> TokenStream {
         let sails_path = self.sails_path;
-        let service_type_path = self.type_path;
         let inner_ident = &self.inner_ident;
+        let DispatchParams {
+            is_async,
+            method_name_ident,
+            method_sig,
+            extra_imports,
+            metadata_type,
+        } = params;
 
         let (async_kw, await_token) = if is_async {
             (Some(quote!(async)), Some(quote!(.await)))
@@ -162,7 +165,7 @@ impl ServiceBuilder<'_> {
                 let idx_literal = Literal::usize_unsuffixed(idx);
                 let base_call = base_call_gen(quote!(base_service), &await_token, method_name_ident);
                 quote! {
-                    if #sails_path::meta::service_has_interface_id(&<#service_type_path as #sails_path::meta::ServiceMeta>::BASE_SERVICES[#idx_literal], interface_id) {
+                    if #sails_path::meta::service_has_interface_id(&<#metadata_type as #sails_path::meta::ServiceMeta>::BASE_SERVICES[#idx_literal], interface_id) {
                         let base_service: #base_type = self.#inner_ident.into();
                         return #base_call;
                     }
@@ -179,7 +182,7 @@ impl ServiceBuilder<'_> {
                 #extra_imports
 
                 // Then check own methods
-                if interface_id == <self:: #service_type_path as #sails_path::meta::Identifiable>::INTERFACE_ID {
+                if interface_id == <#metadata_type as #sails_path::meta::Identifiable>::INTERFACE_ID {
                     match entry_id {
                         #( #regular_dispatches )*
                         _ => None,
@@ -194,6 +197,7 @@ impl ServiceBuilder<'_> {
 
     fn generate_handle_method(&self, is_async: bool) -> TokenStream {
         let sails_path = self.sails_path;
+        let service_type_path = self.type_path;
         let method_ident = Ident::new(
             if is_async {
                 "try_handle_async"
@@ -215,14 +219,20 @@ impl ServiceBuilder<'_> {
 
         let extra_imports = quote! {
             use #sails_path::gstd::{InvocationIo, CommandReply};
-            use #sails_path::gstd::services::{Exposure, Service};
+        };
+
+        let metadata_type = quote!(self::#service_type_path);
+
+        let params = DispatchParams {
+            is_async,
+            method_name_ident: &method_ident,
+            method_sig: &method_sig,
+            extra_imports: &extra_imports,
+            metadata_type: &metadata_type,
         };
 
         self.generate_dispatch_impl(
-            is_async,
-            &method_ident,
-            method_sig,
-            extra_imports,
+            params,
             |fn_builder, await_token| self.generate_decode_and_handle(fn_builder, await_token),
             |base_service_token, await_token, method_name| {
                 quote! {
@@ -306,7 +316,6 @@ impl ServiceBuilder<'_> {
 
     fn check_asyncness_impl(&self) -> TokenStream {
         let sails_path = self.sails_path;
-        let service_type_path = self.type_path;
 
         // Here `T` is Service Type
         let service_asyncness_check = quote! {
@@ -331,7 +340,7 @@ impl ServiceBuilder<'_> {
             let path_wo_lifetimes = shared::remove_lifetimes(base_type);
             let idx_literal = Literal::usize_unsuffixed(idx);
             quote! {
-                if #sails_path::meta::service_has_interface_id(&<#service_type_path as #sails_path::meta::ServiceMeta>::BASE_SERVICES[#idx_literal], interface_id) {
+                if #sails_path::meta::service_has_interface_id(&T::BASE_SERVICES[#idx_literal], interface_id) {
                     return <<#path_wo_lifetimes as #sails_path::gstd::services::Service>::Exposure as #sails_path::gstd::services::Exposure>::check_asyncness(interface_id, entry_id);
                 }
             }

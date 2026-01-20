@@ -167,8 +167,8 @@ mod tests {
 
         let expected = ServiceArgs {
             base_types: vec![
-                PathSegment::from(Ident::new("SomeService", Span::call_site())).into(),
                 PathSegment::from(Ident::new("AnotherService", Span::call_site())).into(),
+                PathSegment::from(Ident::new("SomeService", Span::call_site())).into(),
             ],
             events_type: None,
             sails_path: None,

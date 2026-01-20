@@ -99,9 +99,15 @@ pub(super) mod extended_renamed {
     #[service(extends = [RenamedBase, other_base::Base])]
     impl ExtendedRenamed {}
 
-    impl From<ExtendedRenamed> for (RenamedBase, other_base::Base) {
+    impl From<ExtendedRenamed> for RenamedBase {
         fn from(value: ExtendedRenamed) -> Self {
-            (value.base.0, value.base.1)
+            value.base.0
+        }
+    }
+
+    impl From<ExtendedRenamed> for other_base::Base {
+        fn from(value: ExtendedRenamed) -> Self {
+            value.base.1
         }
     }
 }
