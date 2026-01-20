@@ -71,7 +71,7 @@ The result hash depends on whether the return type is a `Result<T, E>`:
 
 **For non-Result types:**
 ```
-RES_HASH = bytes("res) || REFLECT_HASH
+RES_HASH = bytes("res") || REFLECT_HASH
 ```
 It's a concatenation of the UTF-8 bytes of the string "res" and the structural hash of the return type.
 
@@ -121,7 +121,7 @@ So if a service is declared as:
 #[service(base = [BaseServiceC, ServiceD, BaseServiceB, ServiceA])]
 ```
 
-The base services would be sorted as: `[BaseServiceB, BaseServiceC, ServiceC, ServiceD]` for hashing purposes.
+The base services would be sorted as: `[BaseServiceB, BaseServiceC, ServiceA, ServiceD]` for hashing purposes.
 
 If no base services exist, this component is omitted from the interface ID computation.
 

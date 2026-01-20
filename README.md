@@ -5,7 +5,7 @@
 clarity. It deals with things like:
 
 - eliminating the necessity of writing some low-level boilerplate code and letting
-  you to stay focused on your business problem
+  you stay focused on your business problem
 - generated [IDL](https://en.wikipedia.org/wiki/Interface_description_language) file
   for your application
 - generated client allowing to interact with your application from code written in
@@ -131,8 +131,8 @@ impl MyService {
 
     // This is a command returning `()` or panicking
     #[export(unwrap_result)]
-    pub fn do_somethig_with_unwrap_result(&mut self, amount: u64) -> Result<(), String> {
-        do_somethig_returning_result()?;
+    pub fn do_something_with_unwrap_result(&mut self, amount: u64) -> Result<(), String> {
+        do_something_returning_result()?;
         Ok(())
     }
 
@@ -142,7 +142,7 @@ impl MyService {
         ...
     }
 
-    // This is a inner method, not accesible via remote calls
+    // This is a inner method, not accessible via remote calls
     pub fn do_something_inner(&mut self, p1: u32, p2: String) -> &'static [u8] {
         ...
     }
@@ -360,26 +360,37 @@ impl MyServiceC {
         ...
     }
 
-    // do_b from MyServiceB will exposed due to the extends argument
+    // do_b from MyServiceB will be exposed due to the extends argument
 }
 ```
 
 ### Payload Encoding
 
-An application written with `Sails` uses [SCALE Codec](https://github.com/paritytech/parity-scale-codec) to encode/decode data
-at its base.
+Sails messages use [SCALE Codec](https://github.com/paritytech/parity-scale-codec) for payload data but begin with a Sails Header v1
+envelope that lives inside the message payload. The header exposes deterministic routing identifiers without changing the
+underlying Gear message layout.
 
-Every incoming request message is expected to have the following format:
+Base header layout (16 bytes, little-endian for multi-byte integers):
 
-**|** _SCALE encoded service name_ **|** _SCALE encoded method name_ **|** _SCALE encoded parameters_ **|**
+| Field | Size (bytes) | Description |
+| --- | --- | --- |
+| Magic | 2 | ASCII "GM" (0x47 0x4D) |
+| Version | 1 | Header version (0x01) |
+| Header length | 1 | Total header size in bytes; base header = 0x10 |
+| Interface ID | 8 | Deterministic 64-bit interface identifier |
+| Entry ID | 2 | Deterministic 16-bit entry identifier |
+| Route index | 1 | Service instance index; 0x00 is default |
+| Reserved | 1 | Must be 0x00 in v1 |
 
-Every outgoing response message has the following format:
+Payload bytes start at offset `header length` and are SCALE-encoded entry data:
 
-**|** _SCALE encoded service name_ **|** _SCALE encoded method name_ **|** _SCALE encoded result_ **|**
+- Calls: parameters
+- Replies: result
+- Events: event data
 
-Every outgoing event message has the following format:
-
-**|** _SCALE encoded service name_ **|** _SCALE encoded event name_ **|** _SCALE encoded event data_ **|**
+`interface_id` and `entry_id` are derived from the canonical IDL definition; `route_idx` is assigned by the program author.
+Optional extensions may follow the base header when `header length` >= 0x10. See `docs/SAILS_HEADER_V1_SPEC.md` for full
+format and validation rules.
 
 ### Syscalls
 
@@ -389,7 +400,7 @@ These methods are essential for enabling on-chain applications to interact with 
 
 - For the WASM target, direct calls are made to `gstd::msg` and `gstd::exec` to fetch runtime data.
 - In standard (`std`) environments, a mock implementation uses thread-local state for testing purposes.
-- In `no_std` configurations without the `std` feature and and not WASM target, the functions are marked as unimplemented.
+- In `no_std` configurations without the `std` feature and not WASM target, the functions are marked as unimplemented.
 
 ### Client
 
@@ -407,7 +418,7 @@ All you need to do is compose a byte payload according to the layout outlined in
 [Payload Encoding](#payload-encoding) section and send it to the application.
 
 Thanks to the generated IDL, `Sails` provides a way to interact with your application
-using generated clients with an interface similar to the one exposed by latter in
+using generated clients with an interface similar to the one exposed by later in
 a clearer way. Currently, `Sails` can generate client code for Rust and TypeScript.
 
 When it comes to Rust, there are two options:
@@ -465,7 +476,7 @@ include!(concat!(env!("OUT_DIR"), "/my_program.rs"));
 
 fn some_client_code() {
     let mut my_service = MyProgram::client(actor_id) // create client to MyProgram
-        .with_env(env)  // `env` is an runtime environment
+        .with_env(env)  // `env` is a runtime environment
         .my_service();
     let reply = client.do_something(42, "Hello".to_string())
         .with_reply_deposit(42)
@@ -486,7 +497,7 @@ between client and the application. The `sails-rs` crate provides three implemen
 trait:
 
 - `sails_rs::client::GstdEnv` should be used when the client code is executed
-  as a part of another on-chain application.
+  as part of another on-chain application.
 - `sails_rs::client::GclientEnv` should be used when the client code is executed
   as a part of an off-chain application.
 - `sails_rs::client::GtestEnv` should be used when the client code is executed

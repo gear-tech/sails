@@ -170,7 +170,7 @@ enum Type<T> {
 #### Builtins (TBD)
 
 - void
-  - `aliad void = ();`
+  - `alias void = ();`
 - list
   - `alias list<T> = [T]`
 - map
