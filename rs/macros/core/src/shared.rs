@@ -5,10 +5,42 @@ use proc_macro2::Span;
 use quote::ToTokens;
 use std::collections::BTreeMap;
 use syn::{
-    FnArg, GenericArgument, Generics, Ident, ImplItem, ImplItemFn, ItemImpl, Lifetime, Pat, Path,
-    PathArguments, PathSegment, ReturnType, Signature, Token, Type, TypeImplTrait, TypeParamBound,
-    TypePath, TypeReference, TypeTuple, WhereClause, punctuated::Punctuated, spanned::Spanned,
+    FnArg, GenericArgument, Generics, Ident, ImplItem, ImplItemFn, ItemImpl, Lifetime, LitInt, Pat,
+    Path, PathArguments, PathSegment, ReturnType, Signature, Token, Type, TypeImplTrait,
+    TypeParamBound, TypePath, TypeReference, TypeTuple, WhereClause,
+    parse::{Parse, ParseStream},
+    punctuated::Punctuated,
+    spanned::Spanned,
 };
+
+#[derive(Clone, Debug)]
+pub(crate) struct OverrideInfo {
+    pub target: OverrideTarget,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) enum OverrideTarget {
+    Type(Path),
+    Manual { interface: Path, entry_id: u16 },
+}
+
+impl Parse for OverrideInfo {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let first_arg = input.parse::<Path>()?;
+        let mut target = OverrideTarget::Type(first_arg.clone());
+
+        if input.peek(Token![,]) && input.peek2(LitInt) {
+            input.parse::<Token![,]>()?;
+            let lit = input.parse::<LitInt>()?;
+            let entry_id = lit.base10_parse::<u16>()?;
+            target = OverrideTarget::Manual {
+                interface: first_arg,
+                entry_id,
+            };
+        }
+        Ok(Self { target })
+    }
+}
 
 pub(crate) fn impl_type_refs(item_impl_type: &Type) -> (&TypePath, &PathArguments, &Ident) {
     let path = if let Type::Path(type_path) = item_impl_type {
@@ -106,6 +138,29 @@ pub(crate) fn invocation_export(fn_impl: &ImplItemFn) -> Option<InvocationExport
     })
 }
 
+pub(crate) fn invocation_override(fn_impl: &ImplItemFn) -> Option<OverrideInfo> {
+    fn_impl
+        .attrs
+        .iter()
+        .find(|attr| attr.path().is_ident("override_entry"))
+        .map(|attr| {
+            let list = attr.meta.require_list().unwrap_or_else(|_| {
+                abort!(
+                    attr.span(),
+                    "failed to parse `override_entry` attribute: expected `#[override_entry(...)]`"
+                )
+            });
+            list.parse_args_with(OverrideInfo::parse)
+                .unwrap_or_else(|err| {
+                    abort!(
+                        list.span(),
+                        "failed to parse `override_entry` attribute: {}",
+                        err
+                    )
+                })
+        })
+}
+
 pub(crate) fn invocation_export_or_default(fn_impl: &ImplItemFn) -> InvocationExport {
     invocation_export(fn_impl).unwrap_or_else(|| {
         let ident = &fn_impl.sig.ident;
@@ -133,28 +188,30 @@ pub(crate) fn discover_invocation_targets<'a>(
             if let ImplItem::Fn(fn_item) = item
                 && filter(fn_item)
             {
-                let InvocationExport {
-                    span,
-                    route,
-                    unwrap_result,
-                    export,
-                    #[cfg(feature = "ethexe")]
-                    payable,
-                } = invocation_export_or_default(fn_item);
+                let override_info = invocation_override(fn_item);
+                let mut ie = invocation_export_or_default(fn_item);
+
+                // If override is present, we don't treat it as a new export route
+                if override_info.is_some() {
+                    ie.export = false;
+                }
+
                 // `entry_id` in order of appearance
                 let entry_id = routes.len() as u16;
-                if let Some(duplicate) = routes.insert(route.clone(), fn_item.sig.ident.to_string())
-                {
-                    abort!(
-                        span,
-                        "`export` attribute conflicts with one already assigned to '{}'",
-                        duplicate
-                    );
+
+                if override_info.is_none() {
+                    if let Some(duplicate) =
+                        routes.insert(ie.route.clone(), fn_item.sig.ident.to_string())
+                    {
+                        abort!(
+                            ie.span,
+                            "`export` attribute conflicts with one already assigned to '{}'",
+                            duplicate
+                        );
+                    }
                 }
-                let fn_builder =
-                    FnBuilder::new(route, entry_id, export, fn_item, unwrap_result, sails_path);
-                #[cfg(feature = "ethexe")]
-                let fn_builder = fn_builder.payable(payable);
+
+                let fn_builder = FnBuilder::new(ie, entry_id, fn_item, sails_path, override_info);
                 return Some(fn_builder);
             }
             None
@@ -302,6 +359,7 @@ pub(crate) struct FnBuilder<'a> {
     pub route: String,
     pub entry_id: u16,
     pub export: bool,
+    #[cfg(feature = "ethexe")]
     pub payable: bool,
     pub impl_fn: &'a ImplItemFn,
     pub ident: &'a Ident,
@@ -311,17 +369,25 @@ pub(crate) struct FnBuilder<'a> {
     pub result_type: Type,
     pub unwrap_result: bool,
     pub sails_path: &'a Path,
+    pub override_info: Option<OverrideInfo>,
 }
 
 impl<'a> FnBuilder<'a> {
     pub(crate) fn new(
-        route: String,
+        ie: InvocationExport,
         entry_id: u16,
-        export: bool,
         impl_fn: &'a ImplItemFn,
-        unwrap_result: bool,
         sails_path: &'a Path,
+        override_info: Option<OverrideInfo>,
     ) -> Self {
+        let InvocationExport {
+            route,
+            unwrap_result,
+            export,
+            #[cfg(feature = "ethexe")]
+            payable,
+            ..
+        } = ie;
         let signature = &impl_fn.sig;
         let ident = &signature.ident;
         let params_struct_ident = Ident::new(&format!("__{route}Params"), Span::call_site());
@@ -332,7 +398,8 @@ impl<'a> FnBuilder<'a> {
             route,
             entry_id,
             export,
-            payable: false,
+            #[cfg(feature = "ethexe")]
+            payable,
             impl_fn,
             ident,
             params_struct_ident,
@@ -341,14 +408,10 @@ impl<'a> FnBuilder<'a> {
             result_type,
             unwrap_result,
             sails_path,
+            override_info,
         }
     }
 
-    #[cfg(feature = "ethexe")]
-    pub(crate) fn payable(mut self, payable: bool) -> Self {
-        self.payable = payable;
-        self
-    }
     pub(crate) fn is_async(&self) -> bool {
         self.impl_fn.sig.asyncness.is_some()
     }

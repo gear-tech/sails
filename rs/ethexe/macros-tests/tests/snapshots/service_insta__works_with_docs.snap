@@ -75,7 +75,9 @@ impl SomeServiceExposure<SomeService> {
                     let result = self.this(request.p1);
                     let value = 0u128;
                     if !sails_rs::gstd::is_empty_tuple::<bool>() {
-                        <some_service_meta::__ThisParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                        <some_service_meta::__ThisParams as sails_rs::gstd::InvocationIo>::with_optimized_encode_with_id(
+                            interface_id,
+                            entry_id,
                             &result,
                             self.route_idx,
                             |encoded_result| result_handler(encoded_result, value),
@@ -109,7 +111,9 @@ impl SomeServiceExposure<SomeService> {
                     let result = self.do_this(request.p1, request.p2).await;
                     let value = 0u128;
                     if !sails_rs::gstd::is_empty_tuple::<u32>() {
-                        <some_service_meta::__DoThisParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                        <some_service_meta::__DoThisParams as sails_rs::gstd::InvocationIo>::with_optimized_encode_with_id(
+                            interface_id,
+                            entry_id,
                             &result,
                             self.route_idx,
                             |encoded_result| result_handler(encoded_result, value),
@@ -295,6 +299,23 @@ mod some_service_meta {
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum NoEvents {}
     pub type EventsMeta = NoEvents;
+}
+pub mod some_service_methods {
+    use super::*;
+    pub struct DoThis;
+    impl sails_rs::meta::Identifiable for DoThis {
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::SomeService as sails_rs::meta::Identifiable>::INTERFACE_ID;
+    }
+    impl sails_rs::meta::MethodMeta for DoThis {
+        const ENTRY_ID: u16 = 0u16;
+    }
+    pub struct This;
+    impl sails_rs::meta::Identifiable for This {
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::SomeService as sails_rs::meta::Identifiable>::INTERFACE_ID;
+    }
+    impl sails_rs::meta::MethodMeta for This {
+        const ENTRY_ID: u16 = 1u16;
+    }
 }
 impl sails_rs::solidity::ServiceSignature for SomeService {
     const METHODS: &'static [sails_rs::solidity::MethodExpo] = &[

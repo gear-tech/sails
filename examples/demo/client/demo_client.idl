@@ -142,6 +142,31 @@ service Chaos@0xf0c8c80dfabf72d5 {
     }
 }
 
+service Inheritance@0x73525d289b34c9ae {
+    extends {
+        MammalService@0xff6b93e1961026fe,
+        WalkerService@0xee1536b55170bf0a,
+    }
+    functions {
+        MakeSound() -> String;
+        Walk(_dx: i32, _dy: i32);
+        @query
+        AvgWeight() -> u32;
+    }
+}
+
+service Chain@0x8802fb35f73cfdf6 {
+    extends {
+        Inheritance@0x73525d289b34c9ae,
+    }
+    functions {
+        MakeSound() -> String;
+        Walk(_dx: i32, _dy: i32);
+        @query
+        Position() -> (i32, i32);
+    }
+}
+
 program DemoClient {
     constructors {
         /// Program constructor (called once at the very beginning of the program lifetime)
@@ -157,5 +182,7 @@ program DemoClient {
         ThisThat@0x381e13fdd02d675f,
         ValueFee@0x41c1080b4e1e8dc5,
         Chaos@0xf0c8c80dfabf72d5,
+        Inheritance@0x73525d289b34c9ae,
+        Chain@0x8802fb35f73cfdf6,
     }
 }

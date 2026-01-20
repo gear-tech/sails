@@ -6,6 +6,7 @@ use sails_rs::{cell::RefCell, prelude::*};
 mod chaos;
 mod counter;
 mod dog;
+mod inheritance;
 mod mammal;
 mod ping;
 mod references;
@@ -96,6 +97,21 @@ impl DemoProgram {
 
     pub fn chaos(&self) -> chaos::ChaosService {
         chaos::ChaosService
+    }
+
+    pub fn inheritance(&self) -> inheritance::InheritanceService {
+        inheritance::InheritanceService::new(
+            walker::WalkerService::new(dog_data()),
+            mammal::MammalService::new(42),
+        )
+    }
+
+    pub fn chain(&self) -> inheritance::ChainService {
+        let inheritance = inheritance::InheritanceService::new(
+            walker::WalkerService::new(dog_data()),
+            mammal::MammalService::new(42),
+        );
+        inheritance::ChainService::new(inheritance)
     }
 }
 

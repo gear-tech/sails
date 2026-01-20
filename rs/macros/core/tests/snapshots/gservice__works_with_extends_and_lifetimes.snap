@@ -88,7 +88,9 @@ impl<'a> ExtendedLifetimeExposure<ExtendedLifetime<'a>> {
                     let result = self.extended_name();
                     let value = 0u128;
                     if !sails_rs::gstd::is_empty_tuple::<String>() {
-                        <extended_lifetime_meta::__ExtendedNameParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                        <extended_lifetime_meta::__ExtendedNameParams as sails_rs::gstd::InvocationIo>::with_optimized_encode_with_id(
+                            interface_id,
+                            entry_id,
                             &result,
                             self.route_idx,
                             |encoded_result| result_handler(encoded_result, value),
@@ -104,7 +106,9 @@ impl<'a> ExtendedLifetimeExposure<ExtendedLifetime<'a>> {
                     let result = self.name();
                     let value = 0u128;
                     if !sails_rs::gstd::is_empty_tuple::<String>() {
-                        <extended_lifetime_meta::__NameParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                        <extended_lifetime_meta::__NameParams as sails_rs::gstd::InvocationIo>::with_optimized_encode_with_id(
+                            interface_id,
+                            entry_id,
                             &result,
                             self.route_idx,
                             |encoded_result| result_handler(encoded_result, value),
@@ -240,4 +244,21 @@ mod extended_lifetime_meta {
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum NoEvents {}
     pub type EventsMeta = NoEvents;
+}
+pub mod extended_lifetime_methods {
+    use super::*;
+    pub struct ExtendedName;
+    impl sails_rs::meta::Identifiable for ExtendedName {
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::ExtendedLifetime as sails_rs::meta::Identifiable>::INTERFACE_ID;
+    }
+    impl sails_rs::meta::MethodMeta for ExtendedName {
+        const ENTRY_ID: u16 = 0u16;
+    }
+    pub struct Name;
+    impl sails_rs::meta::Identifiable for Name {
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::ExtendedLifetime as sails_rs::meta::Identifiable>::INTERFACE_ID;
+    }
+    impl sails_rs::meta::MethodMeta for Name {
+        const ENTRY_ID: u16 = 1u16;
+    }
 }

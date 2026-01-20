@@ -69,6 +69,7 @@ struct ServiceBuilder<'a> {
     route_idx_ident: Ident,
     inner_ident: Ident,
     meta_module_ident: Ident,
+    methods_module_ident: Ident,
 }
 
 struct DispatchParams<'a> {
@@ -98,6 +99,9 @@ impl<'a> ServiceBuilder<'a> {
         let inner_ident = Ident::new("inner", Span::call_site());
         let meta_module_name = format!("{}_meta", service_ident.to_string().to_case(Case::Snake));
         let meta_module_ident = Ident::new(&meta_module_name, Span::call_site());
+        let methods_module_name =
+            format!("{}_methods", service_ident.to_string().to_case(Case::Snake));
+        let methods_module_ident = Ident::new(&methods_module_name, Span::call_site());
 
         let base_types = service_args.base_types();
 
@@ -114,6 +118,7 @@ impl<'a> ServiceBuilder<'a> {
             route_idx_ident,
             inner_ident,
             meta_module_ident,
+            methods_module_ident,
         }
     }
 
@@ -157,6 +162,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     }
 
     let meta_module = service_builder.meta_module();
+    let methods_module = service_builder.methods_module();
 
     let exposure_struct = service_builder.exposure_struct();
     let exposure_impl = service_builder.exposure_impl();
@@ -174,6 +180,8 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
 
         #meta_module
 
+        #methods_module
+
         #service_signature_impl
     )
 }
@@ -188,7 +196,7 @@ fn discover_service_handlers<'a>(
         sails_path,
     )
     .into_iter()
-    .filter(|fn_builder| fn_builder.export)
+    .filter(|fn_builder| fn_builder.export || fn_builder.override_info.is_some())
     .collect();
     // service funcs ordered by (fn_type, name)
     vec.sort_by_key(|f| (f.is_query(), f.route.to_lowercase()));
@@ -215,11 +223,10 @@ impl FnBuilder<'_> {
         let params_struct_ident = &self.params_struct_ident;
         let result_type = self.result_type_with_static_lifetime();
 
-        let payable_doc = if cfg!(feature = "ethexe") {
-            self.payable.then(|| quote!(#[doc = " #[payable]"]))
-        } else {
-            None
-        };
+        #[cfg(feature = "ethexe")]
+        let payable_doc = self.payable.then(|| quote!(#[doc = " #[payable]"]));
+        #[cfg(not(feature = "ethexe"))]
+        let payable_doc: Option<TokenStream> = None;
 
         let returns_value_doc = if cfg!(feature = "ethexe") {
             self.result_type_with_value()

@@ -1,4 +1,5 @@
 use super::*;
+use crate::shared::{OverrideInfo, OverrideTarget};
 use proc_macro2::TokenStream;
 use quote::quote;
 
@@ -109,13 +110,46 @@ impl ServiceBuilder<'_> {
                 .expect("Failed to decode params");
             #handle_token
             if ! #sails_path::gstd::is_empty_tuple::<#result_type_static>() {
-                <#meta_module_ident::#params_struct_ident as #sails_path::gstd::InvocationIo>::with_optimized_encode(
+                <#meta_module_ident::#params_struct_ident as #sails_path::gstd::InvocationIo>::with_optimized_encode_with_id(
+                    interface_id,
+                    entry_id,
                     &result,
                     self.route_idx,
                     |encoded_result| result_handler(encoded_result, value),
                 );
             }
             return Some(());
+        }
+    }
+
+    pub(super) fn generate_override_condition(
+        &self,
+        override_info: &OverrideInfo,
+        entry_id: &u16,
+        metadata_type: &TokenStream,
+    ) -> TokenStream {
+        let sails_path = self.sails_path;
+
+        match &override_info.target {
+            OverrideTarget::Type(path) => {
+                quote! {
+                    (interface_id == <#path as #sails_path::meta::Identifiable>::INTERFACE_ID
+                    && entry_id == <#path as #sails_path::meta::MethodMeta>::ENTRY_ID)
+                    || (interface_id == <#metadata_type as #sails_path::meta::Identifiable>::INTERFACE_ID
+                    && entry_id == #entry_id)
+                }
+            }
+            OverrideTarget::Manual {
+                interface,
+                entry_id: base_entry_id,
+            } => {
+                quote! {
+                    (interface_id == <#interface as #sails_path::meta::Identifiable>::INTERFACE_ID
+                    && entry_id == #base_entry_id)
+                    || (interface_id == <#metadata_type as #sails_path::meta::Identifiable>::INTERFACE_ID
+                    && entry_id == #entry_id)
+                }
+            }
         }
     }
 
@@ -142,6 +176,7 @@ impl ServiceBuilder<'_> {
         };
 
         let mut regular_dispatches = Vec::new();
+        let mut override_dispatches = Vec::new();
 
         for fn_builder in &self.service_handlers {
             if is_async != fn_builder.is_async() {
@@ -151,26 +186,38 @@ impl ServiceBuilder<'_> {
             let entry_id = fn_builder.entry_id;
             let decode_and_handle = handler_gen(fn_builder, &await_token);
 
-            regular_dispatches.push(quote! {
-                #entry_id => {
-                    #decode_and_handle
-                }
-            });
+            if let Some(override_info) = &fn_builder.override_info {
+                let condition =
+                    self.generate_override_condition(override_info, &entry_id, metadata_type);
+                override_dispatches.push(quote! {
+                    if #condition {
+                        #decode_and_handle
+                    }
+                });
+            } else {
+                regular_dispatches.push(quote! {
+                    #entry_id => {
+                        #decode_and_handle
+                    }
+                });
+            }
         }
 
         let base_invocation = if self.base_types.is_empty() {
             None
         } else {
-            let base_exposure_invocations = self.base_types.iter().enumerate().map(|(idx, base_type)| {
-                let idx_literal = Literal::usize_unsuffixed(idx);
-                let base_call = base_call_gen(quote!(base_service), &await_token, method_name_ident);
-                quote! {
-                    if #sails_path::meta::service_has_interface_id(&<#metadata_type as #sails_path::meta::ServiceMeta>::BASE_SERVICES[#idx_literal], interface_id) {
-                        let base_service: #base_type = self.#inner_ident.into();
-                        return #base_call;
+            let base_exposure_invocations =
+                self.base_types.iter().enumerate().map(|(idx, base_type)| {
+                    let idx_literal = Literal::usize_unsuffixed(idx);
+                    let base_call =
+                        base_call_gen(quote!(base_service), &await_token, method_name_ident);
+                    quote! {
+                        if #sails_path::meta::service_has_interface_id(&<#metadata_type as #sails_path::meta::ServiceMeta>::BASE_SERVICES[#idx_literal], interface_id) {
+                            let base_service: #base_type = self.#inner_ident.into();
+                            return #base_call;
+                        }
                     }
-                }
-            });
+                });
 
             Some(quote! {
                 #( #base_exposure_invocations )*
@@ -180,6 +227,9 @@ impl ServiceBuilder<'_> {
         quote! {
             pub #async_kw fn #method_name_ident #method_sig {
                 #extra_imports
+
+                // Check overridden methods first
+                #( #override_dispatches )*
 
                 // Then check own methods
                 if interface_id == <#metadata_type as #sails_path::meta::Identifiable>::INTERFACE_ID {

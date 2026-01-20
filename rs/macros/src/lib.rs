@@ -203,3 +203,15 @@ pub fn export(args: TokenStream, impl_item_fn_tokens: TokenStream) -> TokenStrea
 pub fn event(args: TokenStream, input: TokenStream) -> TokenStream {
     sails_macros_core::event(args.into(), input.into()).into()
 }
+
+/// Marks a method as an override of a base service method.
+///
+/// This attribute is handled by the `#[service]` macro.
+///
+/// Arguments:
+/// - First argument: Path to the redefined method meta (e.g. `crate::MyMeta`) OR `Interface, EntryId`.
+#[proc_macro_error]
+#[proc_macro_attribute]
+pub fn override_entry(_args: TokenStream, impl_item_fn_tokens: TokenStream) -> TokenStream {
+    impl_item_fn_tokens
+}

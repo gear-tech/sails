@@ -93,7 +93,9 @@ impl ReferenceServiceExposure<ReferenceService> {
                     let result = self.add_byte(request.byte);
                     let value = 0u128;
                     if !sails_rs::gstd::is_empty_tuple::<&'static [u8]>() {
-                        <reference_service_meta::__AddByteParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                        <reference_service_meta::__AddByteParams as sails_rs::gstd::InvocationIo>::with_optimized_encode_with_id(
+                            interface_id,
+                            entry_id,
                             &result,
                             self.route_idx,
                             |encoded_result| result_handler(encoded_result, value),
@@ -109,7 +111,9 @@ impl ReferenceServiceExposure<ReferenceService> {
                     let result = self.incr();
                     let value = 0u128;
                     if !sails_rs::gstd::is_empty_tuple::<&'static ReferenceCount>() {
-                        <reference_service_meta::__IncrParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                        <reference_service_meta::__IncrParams as sails_rs::gstd::InvocationIo>::with_optimized_encode_with_id(
+                            interface_id,
+                            entry_id,
                             &result,
                             self.route_idx,
                             |encoded_result| result_handler(encoded_result, value),
@@ -125,7 +129,9 @@ impl ReferenceServiceExposure<ReferenceService> {
                     let result = self.baked();
                     let value = 0u128;
                     if !sails_rs::gstd::is_empty_tuple::<&'static str>() {
-                        <reference_service_meta::__BakedParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                        <reference_service_meta::__BakedParams as sails_rs::gstd::InvocationIo>::with_optimized_encode_with_id(
+                            interface_id,
+                            entry_id,
                             &result,
                             self.route_idx,
                             |encoded_result| result_handler(encoded_result, value),
@@ -159,7 +165,9 @@ impl ReferenceServiceExposure<ReferenceService> {
                     let result = self.first_byte().await;
                     let value = 0u128;
                     if !sails_rs::gstd::is_empty_tuple::<Option<&'static u8>>() {
-                        <reference_service_meta::__FirstByteParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                        <reference_service_meta::__FirstByteParams as sails_rs::gstd::InvocationIo>::with_optimized_encode_with_id(
+                            interface_id,
+                            entry_id,
                             &result,
                             self.route_idx,
                             |encoded_result| result_handler(encoded_result, value),
@@ -175,7 +183,9 @@ impl ReferenceServiceExposure<ReferenceService> {
                     let result = self.last_byte().await;
                     let value = 0u128;
                     if !sails_rs::gstd::is_empty_tuple::<Option<&'static u8>>() {
-                        <reference_service_meta::__LastByteParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                        <reference_service_meta::__LastByteParams as sails_rs::gstd::InvocationIo>::with_optimized_encode_with_id(
+                            interface_id,
+                            entry_id,
                             &result,
                             self.route_idx,
                             |encoded_result| result_handler(encoded_result, value),
@@ -313,4 +323,42 @@ mod reference_service_meta {
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum NoEvents {}
     pub type EventsMeta = NoEvents;
+}
+pub mod reference_service_methods {
+    use super::*;
+    pub struct AddByte;
+    impl sails_rs::meta::Identifiable for AddByte {
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID;
+    }
+    impl sails_rs::meta::MethodMeta for AddByte {
+        const ENTRY_ID: u16 = 0u16;
+    }
+    pub struct Incr;
+    impl sails_rs::meta::Identifiable for Incr {
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID;
+    }
+    impl sails_rs::meta::MethodMeta for Incr {
+        const ENTRY_ID: u16 = 1u16;
+    }
+    pub struct Baked;
+    impl sails_rs::meta::Identifiable for Baked {
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID;
+    }
+    impl sails_rs::meta::MethodMeta for Baked {
+        const ENTRY_ID: u16 = 2u16;
+    }
+    pub struct FirstByte;
+    impl sails_rs::meta::Identifiable for FirstByte {
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID;
+    }
+    impl sails_rs::meta::MethodMeta for FirstByte {
+        const ENTRY_ID: u16 = 3u16;
+    }
+    pub struct LastByte;
+    impl sails_rs::meta::Identifiable for LastByte {
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID;
+    }
+    impl sails_rs::meta::MethodMeta for LastByte {
+        const ENTRY_ID: u16 = 4u16;
+    }
 }

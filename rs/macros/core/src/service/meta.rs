@@ -73,6 +73,34 @@ impl ServiceBuilder<'_> {
         }
     }
 
+    pub(super) fn methods_module(&self) -> TokenStream {
+        let sails_path = self.sails_path;
+        let service_type_path = self.type_path;
+        let path_wo_lifetimes = shared::remove_lifetimes(&service_type_path.path);
+        let methods_module_ident = &self.methods_module_ident;
+
+        let method_markers = self.service_handlers.iter().map(|handler| {
+            let method_name = Ident::new(&handler.route.to_case(Case::Pascal), Span::call_site());
+            let entry_id = handler.entry_id;
+            quote! {
+                pub struct #method_name;
+                impl #sails_path::meta::Identifiable for #method_name {
+                    const INTERFACE_ID: #sails_path::meta::InterfaceId = <super:: #path_wo_lifetimes as #sails_path::meta::Identifiable>::INTERFACE_ID;
+                }
+                impl #sails_path::meta::MethodMeta for #method_name {
+                    const ENTRY_ID: u16 = #entry_id;
+                }
+            }
+        });
+
+        quote! {
+            pub mod #methods_module_ident {
+                use super::*;
+                #( #method_markers )*
+            }
+        }
+    }
+
     pub(super) fn meta_module(&self) -> TokenStream {
         let sails_path = self.sails_path;
         let scale_codec_path = &sails_paths::scale_codec_path(sails_path);

@@ -43,8 +43,8 @@ pub mod ffi {
 
 #[cfg(feature = "gstd")]
 pub use crate::gstd::{
-    CommandReply, EventEmitter, SailsEvent, Syscall, event, export, program, service,
-    services::Exposure as _, services::ExposureWithEvents as _,
+    CommandReply, EventEmitter, SailsEvent, Syscall, event, export, override_entry, program,
+    service, services::Exposure as _, services::ExposureWithEvents as _,
 };
 pub use crate::types::*;
 pub use gear_core_errors::{

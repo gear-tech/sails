@@ -72,7 +72,9 @@ impl SomeServiceExposure<SomeService> {
                     let result = self.this(request.p1);
                     let value = 0u128;
                     if !sails_rename::gstd::is_empty_tuple::<bool>() {
-                        <some_service_meta::__ThisParams as sails_rename::gstd::InvocationIo>::with_optimized_encode(
+                        <some_service_meta::__ThisParams as sails_rename::gstd::InvocationIo>::with_optimized_encode_with_id(
+                            interface_id,
+                            entry_id,
                             &result,
                             self.route_idx,
                             |encoded_result| result_handler(encoded_result, value),
@@ -106,7 +108,9 @@ impl SomeServiceExposure<SomeService> {
                     let result = self.do_this(request.p1, request.p2).await;
                     let value = 0u128;
                     if !sails_rename::gstd::is_empty_tuple::<u32>() {
-                        <some_service_meta::__DoThisParams as sails_rename::gstd::InvocationIo>::with_optimized_encode(
+                        <some_service_meta::__DoThisParams as sails_rename::gstd::InvocationIo>::with_optimized_encode_with_id(
+                            interface_id,
+                            entry_id,
                             &result,
                             self.route_idx,
                             |encoded_result| result_handler(encoded_result, value),
@@ -289,6 +293,23 @@ mod some_service_meta {
     #[scale_info(crate = sails_rename::scale_info)]
     pub enum NoEvents {}
     pub type EventsMeta = NoEvents;
+}
+pub mod some_service_methods {
+    use super::*;
+    pub struct DoThis;
+    impl sails_rename::meta::Identifiable for DoThis {
+        const INTERFACE_ID: sails_rename::meta::InterfaceId = <super::SomeService as sails_rename::meta::Identifiable>::INTERFACE_ID;
+    }
+    impl sails_rename::meta::MethodMeta for DoThis {
+        const ENTRY_ID: u16 = 0u16;
+    }
+    pub struct This;
+    impl sails_rename::meta::Identifiable for This {
+        const INTERFACE_ID: sails_rename::meta::InterfaceId = <super::SomeService as sails_rename::meta::Identifiable>::INTERFACE_ID;
+    }
+    impl sails_rename::meta::MethodMeta for This {
+        const ENTRY_ID: u16 = 1u16;
+    }
 }
 impl sails_rename::solidity::ServiceSignature for SomeService {
     const METHODS: &'static [sails_rename::solidity::MethodExpo] = &[

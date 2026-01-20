@@ -78,7 +78,9 @@ where
                     let result = self.do_this();
                     let value = 0u128;
                     if !sails_rs::gstd::is_empty_tuple::<u32>() {
-                        <my_generic_events_service_meta::__DoThisParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                        <my_generic_events_service_meta::__DoThisParams as sails_rs::gstd::InvocationIo>::with_optimized_encode_with_id(
+                            interface_id,
+                            entry_id,
                             &result,
                             self.route_idx,
                             |encoded_result| result_handler(encoded_result, value),
@@ -252,6 +254,16 @@ mod my_generic_events_service_meta {
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum NoEvents {}
     pub type EventsMeta = MyEvents;
+}
+pub mod my_generic_events_service_methods {
+    use super::*;
+    pub struct DoThis;
+    impl sails_rs::meta::Identifiable for DoThis {
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::MyGenericEventsService as sails_rs::meta::Identifiable>::INTERFACE_ID;
+    }
+    impl sails_rs::meta::MethodMeta for DoThis {
+        const ENTRY_ID: u16 = 0u16;
+    }
 }
 impl<T> sails_rs::solidity::ServiceSignature for MyGenericEventsService<'_, '_, T>
 where

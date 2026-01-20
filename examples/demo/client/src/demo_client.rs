@@ -17,6 +17,8 @@ impl DemoClientProgram {
     pub const ROUTE_ID_THIS_THAT: u8 = 5;
     pub const ROUTE_ID_VALUE_FEE: u8 = 6;
     pub const ROUTE_ID_CHAOS: u8 = 7;
+    pub const ROUTE_ID_INHERITANCE: u8 = 8;
+    pub const ROUTE_ID_CHAIN: u8 = 9;
 }
 impl sails_rs::client::Program for DemoClientProgram {}
 pub trait DemoClient {
@@ -28,6 +30,8 @@ pub trait DemoClient {
     fn this_that(&self) -> sails_rs::client::Service<this_that::ThisThatImpl, Self::Env>;
     fn value_fee(&self) -> sails_rs::client::Service<value_fee::ValueFeeImpl, Self::Env>;
     fn chaos(&self) -> sails_rs::client::Service<chaos::ChaosImpl, Self::Env>;
+    fn inheritance(&self) -> sails_rs::client::Service<inheritance::InheritanceImpl, Self::Env>;
+    fn chain(&self) -> sails_rs::client::Service<chain::ChainImpl, Self::Env>;
 }
 impl<E: sails_rs::client::GearEnv> DemoClient for sails_rs::client::Actor<DemoClientProgram, E> {
     type Env = E;
@@ -51,6 +55,12 @@ impl<E: sails_rs::client::GearEnv> DemoClient for sails_rs::client::Actor<DemoCl
     }
     fn chaos(&self) -> sails_rs::client::Service<chaos::ChaosImpl, Self::Env> {
         self.service(DemoClientProgram::ROUTE_ID_CHAOS)
+    }
+    fn inheritance(&self) -> sails_rs::client::Service<inheritance::InheritanceImpl, Self::Env> {
+        self.service(DemoClientProgram::ROUTE_ID_INHERITANCE)
+    }
+    fn chain(&self) -> sails_rs::client::Service<chain::ChainImpl, Self::Env> {
+        self.service(DemoClientProgram::ROUTE_ID_CHAIN)
     }
 }
 pub trait DemoClientCtors {
@@ -673,5 +683,131 @@ pub mod chaos {
         use super::*;
         use sails_rs::mockall::*;
         mock! { pub Chaos {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl chaos::Chaos for Chaos { type Env = sails_rs::client::GstdEnv; fn panic_after_wait (&self, ) -> sails_rs::client::PendingCall<chaos::io::PanicAfterWait, sails_rs::client::GstdEnv>;fn reply_hook_counter (&self, ) -> sails_rs::client::PendingCall<chaos::io::ReplyHookCounter, sails_rs::client::GstdEnv>;fn timeout_wait (&self, ) -> sails_rs::client::PendingCall<chaos::io::TimeoutWait, sails_rs::client::GstdEnv>; } }
+    }
+}
+
+pub mod inheritance {
+    use super::*;
+    pub trait Inheritance {
+        type Env: sails_rs::client::GearEnv;
+        fn make_sound(&mut self) -> sails_rs::client::PendingCall<io::MakeSound, Self::Env>;
+        fn walk(
+            &mut self,
+            _dx: i32,
+            _dy: i32,
+        ) -> sails_rs::client::PendingCall<io::Walk, Self::Env>;
+        fn avg_weight(&self) -> sails_rs::client::PendingCall<io::AvgWeight, Self::Env>;
+        fn mammal_service(
+            &self,
+        ) -> sails_rs::client::Service<super::mammal_service::MammalServiceImpl, Self::Env>;
+        fn walker_service(
+            &self,
+        ) -> sails_rs::client::Service<super::walker_service::WalkerServiceImpl, Self::Env>;
+    }
+    pub struct InheritanceImpl;
+    impl sails_rs::client::Identifiable for InheritanceImpl {
+        const INTERFACE_ID: sails_rs::InterfaceId =
+            sails_rs::InterfaceId::from_bytes_8([115, 82, 93, 40, 155, 52, 201, 174]);
+    }
+    impl<E: sails_rs::client::GearEnv> Inheritance for sails_rs::client::Service<InheritanceImpl, E> {
+        type Env = E;
+        fn make_sound(&mut self) -> sails_rs::client::PendingCall<io::MakeSound, Self::Env> {
+            self.pending_call(())
+        }
+        fn walk(
+            &mut self,
+            _dx: i32,
+            _dy: i32,
+        ) -> sails_rs::client::PendingCall<io::Walk, Self::Env> {
+            self.pending_call((_dx, _dy))
+        }
+        fn avg_weight(&self) -> sails_rs::client::PendingCall<io::AvgWeight, Self::Env> {
+            self.pending_call(())
+        }
+        fn mammal_service(
+            &self,
+        ) -> sails_rs::client::Service<super::mammal_service::MammalServiceImpl, Self::Env>
+        {
+            self.base_service()
+        }
+        fn walker_service(
+            &self,
+        ) -> sails_rs::client::Service<super::walker_service::WalkerServiceImpl, Self::Env>
+        {
+            self.base_service()
+        }
+    }
+
+    pub mod io {
+        use super::*;
+        sails_rs::io_struct_impl!(MakeSound () -> String, 0, <super::InheritanceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Walk (_dx: i32, _dy: i32) -> (), 1, <super::InheritanceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(AvgWeight () -> u32, 2, <super::InheritanceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+    }
+
+    #[cfg(feature = "with_mocks")]
+    #[cfg(not(target_arch = "wasm32"))]
+    pub mod mockall {
+        use super::*;
+        use sails_rs::mockall::*;
+        mock! { pub Inheritance {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl inheritance::Inheritance for Inheritance { type Env = sails_rs::client::GstdEnv; fn make_sound (&mut self, ) -> sails_rs::client::PendingCall<inheritance::io::MakeSound, sails_rs::client::GstdEnv>;fn walk (&mut self, _dx: i32, _dy: i32) -> sails_rs::client::PendingCall<inheritance::io::Walk, sails_rs::client::GstdEnv>;fn avg_weight (&self, ) -> sails_rs::client::PendingCall<inheritance::io::AvgWeight, sails_rs::client::GstdEnv>;fn mammal_service (&self, ) -> sails_rs::client::Service<super::mammal_service::MammalServiceImpl, sails_rs::client::GstdEnv>;fn walker_service (&self, ) -> sails_rs::client::Service<super::walker_service::WalkerServiceImpl, sails_rs::client::GstdEnv>; } }
+    }
+}
+
+pub mod chain {
+    use super::*;
+    pub trait Chain {
+        type Env: sails_rs::client::GearEnv;
+        fn make_sound(&mut self) -> sails_rs::client::PendingCall<io::MakeSound, Self::Env>;
+        fn walk(
+            &mut self,
+            _dx: i32,
+            _dy: i32,
+        ) -> sails_rs::client::PendingCall<io::Walk, Self::Env>;
+        fn position(&self) -> sails_rs::client::PendingCall<io::Position, Self::Env>;
+        fn inheritance(
+            &self,
+        ) -> sails_rs::client::Service<super::inheritance::InheritanceImpl, Self::Env>;
+    }
+    pub struct ChainImpl;
+    impl sails_rs::client::Identifiable for ChainImpl {
+        const INTERFACE_ID: sails_rs::InterfaceId =
+            sails_rs::InterfaceId::from_bytes_8([136, 2, 251, 53, 247, 60, 253, 246]);
+    }
+    impl<E: sails_rs::client::GearEnv> Chain for sails_rs::client::Service<ChainImpl, E> {
+        type Env = E;
+        fn make_sound(&mut self) -> sails_rs::client::PendingCall<io::MakeSound, Self::Env> {
+            self.pending_call(())
+        }
+        fn walk(
+            &mut self,
+            _dx: i32,
+            _dy: i32,
+        ) -> sails_rs::client::PendingCall<io::Walk, Self::Env> {
+            self.pending_call((_dx, _dy))
+        }
+        fn position(&self) -> sails_rs::client::PendingCall<io::Position, Self::Env> {
+            self.pending_call(())
+        }
+        fn inheritance(
+            &self,
+        ) -> sails_rs::client::Service<super::inheritance::InheritanceImpl, Self::Env> {
+            self.base_service()
+        }
+    }
+
+    pub mod io {
+        use super::*;
+        sails_rs::io_struct_impl!(MakeSound () -> String, 0, <super::ChainImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Walk (_dx: i32, _dy: i32) -> (), 1, <super::ChainImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Position () -> (i32, i32, ), 2, <super::ChainImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+    }
+
+    #[cfg(feature = "with_mocks")]
+    #[cfg(not(target_arch = "wasm32"))]
+    pub mod mockall {
+        use super::*;
+        use sails_rs::mockall::*;
+        mock! { pub Chain {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl chain::Chain for Chain { type Env = sails_rs::client::GstdEnv; fn make_sound (&mut self, ) -> sails_rs::client::PendingCall<chain::io::MakeSound, sails_rs::client::GstdEnv>;fn walk (&mut self, _dx: i32, _dy: i32) -> sails_rs::client::PendingCall<chain::io::Walk, sails_rs::client::GstdEnv>;fn position (&self, ) -> sails_rs::client::PendingCall<chain::io::Position, sails_rs::client::GstdEnv>;fn inheritance (&self, ) -> sails_rs::client::Service<super::inheritance::InheritanceImpl, sails_rs::client::GstdEnv>; } }
     }
 }
