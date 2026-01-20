@@ -28,11 +28,14 @@ for ExtendedWithLifetimeExposure<T> {
                 _ => None,
             }
         } else {
-            if let Some(is_async) = <<BaseWithLifetime as sails_rs::gstd::services::Service>::Exposure as sails_rs::gstd::services::Exposure>::check_asyncness(
+            if sails_rs::meta::service_has_interface_id(
+                &T::BASE_SERVICES[0],
                 interface_id,
-                entry_id,
             ) {
-                return Some(is_async);
+                return <<BaseWithLifetime as sails_rs::gstd::services::Service>::Exposure as sails_rs::gstd::services::Exposure>::check_asyncness(
+                    interface_id,
+                    entry_id,
+                );
             }
             None
         }
@@ -53,8 +56,7 @@ impl<T> core::ops::DerefMut for ExtendedWithLifetimeExposure<T> {
 impl<'a> Into<BaseWithLifetime<'a>>
 for ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
     fn into(self) -> BaseWithLifetime<'a> {
-        let base_services: (BaseWithLifetime<'a>) = self.inner.into();
-        base_services
+        self.inner.into()
     }
 }
 impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
@@ -73,7 +75,6 @@ impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
         mut input: &[u8],
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
-        use sails_rs::gstd::services::{Exposure, Service};
         use sails_rs::gstd::{InvocationIo, CommandReply};
         if interface_id
             == <self::ExtendedWithLifetime<
@@ -116,12 +117,18 @@ impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
                 _ => None,
             }
         } else {
-            let base_services: (BaseWithLifetime<'a>) = self.inner.into();
-            if sails_rs::gstd::services::Service::expose(base_services, self.route_idx)
-                .try_handle(interface_id, entry_id, input, result_handler)
-                .is_some()
-            {
-                return Some(());
+            if sails_rs::meta::service_has_interface_id(
+                &<self::ExtendedWithLifetime<
+                    'a,
+                > as sails_rs::meta::ServiceMeta>::BASE_SERVICES[0],
+                interface_id,
+            ) {
+                let base_service: BaseWithLifetime<'a> = self.inner.into();
+                return sails_rs::gstd::services::Service::expose(
+                        base_service,
+                        self.route_idx,
+                    )
+                    .try_handle(interface_id, entry_id, input, result_handler);
             }
             None
         }
@@ -133,7 +140,6 @@ impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
         mut input: &[u8],
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
-        use sails_rs::gstd::services::{Exposure, Service};
         use sails_rs::gstd::{InvocationIo, CommandReply};
         if interface_id
             == <self::ExtendedWithLifetime<
@@ -144,13 +150,19 @@ impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
                 _ => None,
             }
         } else {
-            let base_services: (BaseWithLifetime<'a>) = self.inner.into();
-            if sails_rs::gstd::services::Service::expose(base_services, self.route_idx)
-                .try_handle_async(interface_id, entry_id, input, result_handler)
-                .await
-                .is_some()
-            {
-                return Some(());
+            if sails_rs::meta::service_has_interface_id(
+                &<self::ExtendedWithLifetime<
+                    'a,
+                > as sails_rs::meta::ServiceMeta>::BASE_SERVICES[0],
+                interface_id,
+            ) {
+                let base_service: BaseWithLifetime<'a> = self.inner.into();
+                return sails_rs::gstd::services::Service::expose(
+                        base_service,
+                        self.route_idx,
+                    )
+                    .try_handle_async(interface_id, entry_id, input, result_handler)
+                    .await;
             }
             None
         }
@@ -161,7 +173,6 @@ impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
         entry_id: u16,
         input: &[u8],
     ) -> Option<(sails_rs::Vec<u8>, u128, bool)> {
-        use sails_rs::gstd::services::{Exposure, Service};
         use sails_rs::gstd::CommandReply;
         if interface_id
             == <self::ExtendedWithLifetime<
@@ -222,12 +233,18 @@ impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
                 _ => None,
             }
         } else {
-            let base_services: (BaseWithLifetime<'a>) = self.inner.into();
-            if let Some(result) = base_services
-                .expose(self.route_idx)
-                .try_handle_solidity(interface_id, entry_id, input)
-            {
-                return Some(result);
+            if sails_rs::meta::service_has_interface_id(
+                &<self::ExtendedWithLifetime<
+                    'a,
+                > as sails_rs::meta::ServiceMeta>::BASE_SERVICES[0],
+                interface_id,
+            ) {
+                let base_service: BaseWithLifetime<'a> = self.inner.into();
+                return sails_rs::gstd::services::Service::expose(
+                        base_service,
+                        self.route_idx,
+                    )
+                    .try_handle_solidity(interface_id, entry_id, input);
             }
             None
         }
@@ -238,7 +255,6 @@ impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
         entry_id: u16,
         input: &[u8],
     ) -> Option<(sails_rs::Vec<u8>, u128, bool)> {
-        use sails_rs::gstd::services::{Exposure, Service};
         use sails_rs::gstd::CommandReply;
         if interface_id
             == <self::ExtendedWithLifetime<
@@ -249,13 +265,19 @@ impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
                 _ => None,
             }
         } else {
-            let base_services: (BaseWithLifetime<'a>) = self.inner.into();
-            if let Some(result) = base_services
-                .expose(self.route_idx)
-                .try_handle_solidity_async(interface_id, entry_id, input)
-                .await
-            {
-                return Some(result);
+            if sails_rs::meta::service_has_interface_id(
+                &<self::ExtendedWithLifetime<
+                    'a,
+                > as sails_rs::meta::ServiceMeta>::BASE_SERVICES[0],
+                interface_id,
+            ) {
+                let base_service: BaseWithLifetime<'a> = self.inner.into();
+                return sails_rs::gstd::services::Service::expose(
+                        base_service,
+                        self.route_idx,
+                    )
+                    .try_handle_solidity_async(interface_id, entry_id, input)
+                    .await;
             }
             None
         }

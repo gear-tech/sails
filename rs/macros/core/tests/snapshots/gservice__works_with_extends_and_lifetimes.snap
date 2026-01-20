@@ -28,11 +28,14 @@ for ExtendedLifetimeExposure<T> {
                 _ => None,
             }
         } else {
-            if let Some(is_async) = <<base::BaseLifetime as sails_rs::gstd::services::Service>::Exposure as sails_rs::gstd::services::Exposure>::check_asyncness(
+            if sails_rs::meta::service_has_interface_id(
+                &T::BASE_SERVICES[0],
                 interface_id,
-                entry_id,
             ) {
-                return Some(is_async);
+                return <<base::BaseLifetime as sails_rs::gstd::services::Service>::Exposure as sails_rs::gstd::services::Exposure>::check_asyncness(
+                    interface_id,
+                    entry_id,
+                );
             }
             None
         }
@@ -53,8 +56,7 @@ impl<T> core::ops::DerefMut for ExtendedLifetimeExposure<T> {
 impl<'a> Into<base::BaseLifetime<'a>>
 for ExtendedLifetimeExposure<ExtendedLifetime<'a>> {
     fn into(self) -> base::BaseLifetime<'a> {
-        let base_services: (base::BaseLifetime<'a>) = self.inner.into();
-        base_services
+        self.inner.into()
     }
 }
 impl<'a> ExtendedLifetimeExposure<ExtendedLifetime<'a>> {
@@ -73,7 +75,6 @@ impl<'a> ExtendedLifetimeExposure<ExtendedLifetime<'a>> {
         mut input: &[u8],
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
-        use sails_rs::gstd::services::{Exposure, Service};
         use sails_rs::gstd::{InvocationIo, CommandReply};
         if interface_id
             == <self::ExtendedLifetime<'a> as sails_rs::meta::Identifiable>::INTERFACE_ID
@@ -114,12 +115,18 @@ impl<'a> ExtendedLifetimeExposure<ExtendedLifetime<'a>> {
                 _ => None,
             }
         } else {
-            let base_services: (base::BaseLifetime<'a>) = self.inner.into();
-            if sails_rs::gstd::services::Service::expose(base_services, self.route_idx)
-                .try_handle(interface_id, entry_id, input, result_handler)
-                .is_some()
-            {
-                return Some(());
+            if sails_rs::meta::service_has_interface_id(
+                &<self::ExtendedLifetime<
+                    'a,
+                > as sails_rs::meta::ServiceMeta>::BASE_SERVICES[0],
+                interface_id,
+            ) {
+                let base_service: base::BaseLifetime<'a> = self.inner.into();
+                return sails_rs::gstd::services::Service::expose(
+                        base_service,
+                        self.route_idx,
+                    )
+                    .try_handle(interface_id, entry_id, input, result_handler);
             }
             None
         }
@@ -131,7 +138,6 @@ impl<'a> ExtendedLifetimeExposure<ExtendedLifetime<'a>> {
         mut input: &[u8],
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
-        use sails_rs::gstd::services::{Exposure, Service};
         use sails_rs::gstd::{InvocationIo, CommandReply};
         if interface_id
             == <self::ExtendedLifetime<'a> as sails_rs::meta::Identifiable>::INTERFACE_ID
@@ -140,13 +146,19 @@ impl<'a> ExtendedLifetimeExposure<ExtendedLifetime<'a>> {
                 _ => None,
             }
         } else {
-            let base_services: (base::BaseLifetime<'a>) = self.inner.into();
-            if sails_rs::gstd::services::Service::expose(base_services, self.route_idx)
-                .try_handle_async(interface_id, entry_id, input, result_handler)
-                .await
-                .is_some()
-            {
-                return Some(());
+            if sails_rs::meta::service_has_interface_id(
+                &<self::ExtendedLifetime<
+                    'a,
+                > as sails_rs::meta::ServiceMeta>::BASE_SERVICES[0],
+                interface_id,
+            ) {
+                let base_service: base::BaseLifetime<'a> = self.inner.into();
+                return sails_rs::gstd::services::Service::expose(
+                        base_service,
+                        self.route_idx,
+                    )
+                    .try_handle_async(interface_id, entry_id, input, result_handler)
+                    .await;
             }
             None
         }

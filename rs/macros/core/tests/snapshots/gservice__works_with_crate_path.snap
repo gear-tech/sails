@@ -59,7 +59,6 @@ impl SomeServiceExposure<SomeService> {
         mut input: &[u8],
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
-        use sails_rename::gstd::services::{Exposure, Service};
         use sails_rename::gstd::{InvocationIo, CommandReply};
         if interface_id
             == <self::SomeService as sails_rename::meta::Identifiable>::INTERFACE_ID
@@ -94,7 +93,6 @@ impl SomeServiceExposure<SomeService> {
         mut input: &[u8],
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
-        use sails_rename::gstd::services::{Exposure, Service};
         use sails_rename::gstd::{InvocationIo, CommandReply};
         if interface_id
             == <self::SomeService as sails_rename::meta::Identifiable>::INTERFACE_ID
