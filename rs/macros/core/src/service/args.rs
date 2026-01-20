@@ -31,7 +31,7 @@ impl ServiceArgs {
 impl Parse for ServiceArgs {
     fn parse(input: ParseStream) -> SynResult<Self> {
         let items = input.parse_terminated(ServiceArg::parse, Token![,])?;
-        let base_types = items
+        let mut base_types: Vec<Path> = items
             .iter()
             .filter_map(|arg| match arg {
                 ServiceArg::Extends(paths) => Some(paths.clone()),
@@ -39,6 +39,16 @@ impl Parse for ServiceArgs {
             })
             .flatten()
             .collect();
+
+        base_types.sort_by_cached_key(|path| {
+            path.segments
+                .last()
+                .expect("path has at least one segment")
+                .ident
+                .to_string()
+                .to_lowercase()
+        });
+
         let mut events_types = items.iter().filter_map(|arg| match arg {
             ServiceArg::Events(path) => Some(path.clone()),
             _ => None,

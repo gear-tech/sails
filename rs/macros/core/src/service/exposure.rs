@@ -158,7 +158,7 @@ impl ServiceBuilder<'_> {
         let base_invocation = if self.base_types.is_empty() {
             None
         } else {
-            let base_exposure_invocations = self.sorted_base_indices.iter().map(|&idx| {
+            let base_exposure_invocations = self.base_types.iter().enumerate().map(|(idx, _)| {
                 let idx_token = if self.base_types.len() == 1 {
                     None
                 } else {
@@ -330,8 +330,8 @@ impl ServiceBuilder<'_> {
             }
         });
 
-        let base_services_asyncness_checks = self.sorted_base_indices.iter().map(|&idx| {
-            let path_wo_lifetimes = shared::remove_lifetimes(&self.base_types[idx]);
+        let base_services_asyncness_checks = self.base_types.iter().map(|base_type| {
+            let path_wo_lifetimes = shared::remove_lifetimes(base_type);
             quote! {
                 if let Some(is_async) = <<#path_wo_lifetimes as #sails_path::gstd::services::Service>::Exposure as #sails_path::gstd::services::Exposure>::check_asyncness(interface_id, entry_id) {
                     return Some(is_async);
@@ -366,8 +366,7 @@ impl ServiceBuilder<'_> {
         let service_type_constraints = self.type_constraints();
         let base_types = self.base_types;
 
-        let into_impl = self.sorted_base_indices.iter().map(|&idx| {
-            let base_type = &self.base_types[idx];
+        let into_impl = self.base_types.iter().enumerate().map(|(idx, base_type)| {
             let idx_token = if base_types.len() == 1 { None } else {
                 let idx_literal = Literal::usize_unsuffixed(idx);
                 Some(quote! { . #idx_literal })
