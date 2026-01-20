@@ -171,8 +171,8 @@ impl ServiceBuilder<'_> {
 
         // Handle base services if present
         let base_services_hash = if !self.base_types.is_empty() {
-            let base_service_ids = self.sorted_base_indices.iter().map(|&idx| {
-                let path_wo_lifetimes = shared::remove_lifetimes(&self.base_types[idx]);
+            let base_service_ids = self.base_types.iter().map(|base_type| {
+                let path_wo_lifetimes = shared::remove_lifetimes(base_type);
                 quote!(final_hash = final_hash.update(&<super:: #path_wo_lifetimes as #sails_path::meta::Identifiable>::INTERFACE_ID.0);)
             });
 

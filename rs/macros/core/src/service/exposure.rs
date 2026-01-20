@@ -121,16 +121,19 @@ impl ServiceBuilder<'_> {
 
     pub(super) fn generate_dispatch_impl(
         &self,
-        is_async: bool,
-        method_name_ident: &Ident,
-        method_sig: TokenStream,
-        extra_imports: TokenStream,
+        params: DispatchParams,
         handler_gen: impl Fn(&FnBuilder, &Option<TokenStream>) -> TokenStream,
-        base_call_gen: impl Fn(&Option<TokenStream>, &Option<TokenStream>, &Ident) -> TokenStream,
+        base_call_gen: impl Fn(TokenStream, &Option<TokenStream>, &Ident) -> TokenStream,
     ) -> TokenStream {
         let sails_path = self.sails_path;
-        let service_type_path = self.type_path;
         let inner_ident = &self.inner_ident;
+        let DispatchParams {
+            is_async,
+            method_name_ident,
+            method_sig,
+            extra_imports,
+            metadata_type,
+        } = params;
 
         let (async_kw, await_token) = if is_async {
             (Some(quote!(async)), Some(quote!(.await)))
@@ -158,31 +161,28 @@ impl ServiceBuilder<'_> {
         let base_invocation = if self.base_types.is_empty() {
             None
         } else {
-            let base_exposure_invocations = self.sorted_base_indices.iter().map(|&idx| {
-                let idx_token = if self.base_types.len() == 1 {
-                    None
-                } else {
-                    let idx_literal = Literal::usize_unsuffixed(idx);
-                    Some(quote! { . #idx_literal })
-                };
-                base_call_gen(&idx_token, &await_token, method_name_ident)
+            let base_exposure_invocations = self.base_types.iter().enumerate().map(|(idx, base_type)| {
+                let idx_literal = Literal::usize_unsuffixed(idx);
+                let base_call = base_call_gen(quote!(base_service), &await_token, method_name_ident);
+                quote! {
+                    if #sails_path::meta::service_has_interface_id(&<#metadata_type as #sails_path::meta::ServiceMeta>::BASE_SERVICES[#idx_literal], interface_id) {
+                        let base_service: #base_type = self.#inner_ident.into();
+                        return #base_call;
+                    }
+                }
             });
 
-            let base_types = self.base_types;
-            // Base Services, as `Into` tuple from Service
             Some(quote! {
-                let base_services: ( #( #base_types ),* ) = self. #inner_ident .into();
                 #( #base_exposure_invocations )*
             })
         };
 
         quote! {
             pub #async_kw fn #method_name_ident #method_sig {
-                use #sails_path::gstd::services::{Exposure, Service};
                 #extra_imports
 
                 // Then check own methods
-                if interface_id == <self:: #service_type_path as #sails_path::meta::Identifiable>::INTERFACE_ID {
+                if interface_id == <#metadata_type as #sails_path::meta::Identifiable>::INTERFACE_ID {
                     match entry_id {
                         #( #regular_dispatches )*
                         _ => None,
@@ -197,6 +197,7 @@ impl ServiceBuilder<'_> {
 
     fn generate_handle_method(&self, is_async: bool) -> TokenStream {
         let sails_path = self.sails_path;
+        let service_type_path = self.type_path;
         let method_ident = Ident::new(
             if is_async {
                 "try_handle_async"
@@ -220,17 +221,22 @@ impl ServiceBuilder<'_> {
             use #sails_path::gstd::{InvocationIo, CommandReply};
         };
 
-        self.generate_dispatch_impl(
+        let metadata_type = quote!(self::#service_type_path);
+
+        let params = DispatchParams {
             is_async,
-            &method_ident,
-            method_sig,
-            extra_imports,
+            method_name_ident: &method_ident,
+            method_sig: &method_sig,
+            extra_imports: &extra_imports,
+            metadata_type: &metadata_type,
+        };
+
+        self.generate_dispatch_impl(
+            params,
             |fn_builder, await_token| self.generate_decode_and_handle(fn_builder, await_token),
-            |idx_token, await_token, method_name| {
+            |base_service_token, await_token, method_name| {
                 quote! {
-                    if #sails_path::gstd::services::Service::expose(base_services #idx_token, self.route_idx) . #method_name(interface_id, entry_id, input, result_handler) #await_token.is_some() {
-                        return Some(());
-                    }
+                    #sails_path::gstd::services::Service::expose(#base_service_token, self.route_idx) . #method_name(interface_id, entry_id, input, result_handler) #await_token
                 }
             }
         )
@@ -330,11 +336,12 @@ impl ServiceBuilder<'_> {
             }
         });
 
-        let base_services_asyncness_checks = self.sorted_base_indices.iter().map(|&idx| {
-            let path_wo_lifetimes = shared::remove_lifetimes(&self.base_types[idx]);
+        let base_services_asyncness_checks = self.base_types.iter().enumerate().map(|(idx, base_type)| {
+            let path_wo_lifetimes = shared::remove_lifetimes(base_type);
+            let idx_literal = Literal::usize_unsuffixed(idx);
             quote! {
-                if let Some(is_async) = <<#path_wo_lifetimes as #sails_path::gstd::services::Service>::Exposure as #sails_path::gstd::services::Exposure>::check_asyncness(interface_id, entry_id) {
-                    return Some(is_async);
+                if #sails_path::meta::service_has_interface_id(&T::BASE_SERVICES[#idx_literal], interface_id) {
+                    return <<#path_wo_lifetimes as #sails_path::gstd::services::Service>::Exposure as #sails_path::gstd::services::Exposure>::check_asyncness(interface_id, entry_id);
                 }
             }
         });
@@ -364,20 +371,13 @@ impl ServiceBuilder<'_> {
         let generics = &self.generics;
         let service_type_path = self.type_path;
         let service_type_constraints = self.type_constraints();
-        let base_types = self.base_types;
 
-        let into_impl = self.sorted_base_indices.iter().map(|&idx| {
-            let base_type = &self.base_types[idx];
-            let idx_token = if base_types.len() == 1 { None } else {
-                let idx_literal = Literal::usize_unsuffixed(idx);
-                Some(quote! { . #idx_literal })
-            };
+        let into_impl = self.base_types.iter().map(|base_type| {
             quote! {
                 #[allow(clippy::from_over_into)]
                 impl #generics Into< #base_type > for #exposure_ident< #service_type_path > #service_type_constraints {
                     fn into(self) -> #base_type {
-                        let base_services: ( #( #base_types ),* ) = self. #inner_ident .into();
-                        base_services #idx_token
+                        self. #inner_ident .into()
                     }
                 }
             }

@@ -60,8 +60,6 @@ struct ServiceBuilder<'a> {
     service_impl: &'a ItemImpl,
     sails_path: &'a Path,
     base_types: &'a [Path],
-    /// Indices into `base_types` sorted lexicographically by service name.
-    sorted_base_indices: Vec<usize>,
     generics: Generics,
     type_constraints: Option<WhereClause>,
     type_path: &'a TypePath,
@@ -71,6 +69,14 @@ struct ServiceBuilder<'a> {
     route_idx_ident: Ident,
     inner_ident: Ident,
     meta_module_ident: Ident,
+}
+
+struct DispatchParams<'a> {
+    is_async: bool,
+    method_name_ident: &'a Ident,
+    method_sig: &'a TokenStream,
+    extra_imports: &'a TokenStream,
+    metadata_type: &'a TokenStream,
 }
 
 impl<'a> ServiceBuilder<'a> {
@@ -94,23 +100,11 @@ impl<'a> ServiceBuilder<'a> {
         let meta_module_ident = Ident::new(&meta_module_name, Span::call_site());
 
         let base_types = service_args.base_types();
-        let mut sorted_base_indices: Vec<_> = (0..base_types.len()).collect();
-
-        sorted_base_indices.sort_by_key(|&idx| {
-            base_types[idx]
-                .segments
-                .last()
-                .expect("Base service path should have at least one segment")
-                .ident
-                .to_string()
-                .to_lowercase()
-        });
 
         Self {
             service_impl,
             sails_path,
             base_types,
-            sorted_base_indices,
             generics,
             type_constraints,
             type_path,

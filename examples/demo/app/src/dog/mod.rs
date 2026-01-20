@@ -26,9 +26,15 @@ impl DogService {
 }
 
 // Implementing `From` for each of the extended services
-impl From<DogService> for (WalkerService, MammalService) {
+impl From<DogService> for WalkerService {
     fn from(value: DogService) -> Self {
-        (value.walker, value.mammal)
+        value.walker
+    }
+}
+
+impl From<DogService> for MammalService {
+    fn from(value: DogService) -> Self {
+        value.mammal
     }
 }
 

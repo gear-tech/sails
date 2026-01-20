@@ -163,10 +163,10 @@ fn gservice_with_extends_renamed() {
     let _ = ExtendedRenamed::new((Base, OtherBase)).expose(1);
 
     let base_service_meta = base_services[0];
-    assert_eq!(base_service_meta.name, "RenamedBase");
+    assert_eq!(base_service_meta.name, "Base");
 
     let other_base_service_meta = base_services[1];
-    assert_eq!(other_base_service_meta.name, "Base");
+    assert_eq!(other_base_service_meta.name, "RenamedBase");
 }
 
 #[test]
