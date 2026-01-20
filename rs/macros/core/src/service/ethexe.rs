@@ -71,11 +71,9 @@ impl ServiceBuilder<'_> {
                 method_sig,
                 extra_imports,
                 |fn_builder, _| self.generate_sol_decode_and_handle(fn_builder),
-                |idx_token, await_token, method_name| {
+                |base_service_token, await_token, method_name| {
                     quote! {
-                        if let Some(result) = base_services #idx_token .expose(self.route_idx) . #method_name (interface_id, entry_id, input) #await_token {
-                            return Some(result);
-                        }
+                        #base_service_token .expose(self.route_idx) . #method_name (interface_id, entry_id, input) #await_token
                     }
                 }
             )
