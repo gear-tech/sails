@@ -1,8 +1,9 @@
 use proc_macro_error::abort;
+use proc_macro2::TokenStream;
 use syn::{
+    ImplItemFn, LitInt, Path, Token,
     parse::{Parse, ParseStream},
     spanned::Spanned,
-    ImplItemFn, LitInt, Path, Token,
 };
 
 #[derive(Clone, Debug)]
@@ -55,4 +56,27 @@ pub(crate) fn invocation_override(fn_impl: &ImplItemFn) -> Option<OverrideInfo> 
                     )
                 })
         })
+}
+
+pub fn override_entry(args: TokenStream, impl_item_fn_tokens: TokenStream) -> TokenStream {
+    let fn_impl: ImplItemFn = syn::parse2::<ImplItemFn>(impl_item_fn_tokens.clone())
+        .unwrap_or_else(|err| {
+            abort!(
+                err.span(),
+                "`override_entry` attribute can be applied to methods only: {}",
+                err
+            )
+        });
+
+    if !args.is_empty() {
+        let _ = syn::parse2::<OverrideInfo>(args).unwrap_or_else(|err| {
+            abort!(
+                fn_impl.span(),
+                "`override_entry` attribute cannot be parsed: {}",
+                err
+            )
+        });
+    }
+
+    impl_item_fn_tokens
 }

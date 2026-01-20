@@ -122,10 +122,7 @@ impl ServiceBuilder<'_> {
         }
     }
 
-    pub(super) fn generate_override_condition(
-        &self,
-        override_info: &OverrideInfo,
-    ) -> TokenStream {
+    pub(super) fn generate_override_condition(&self, override_info: &OverrideInfo) -> TokenStream {
         let sails_path = self.sails_path;
 
         match &override_info.target {

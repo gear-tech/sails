@@ -212,6 +212,6 @@ pub fn event(args: TokenStream, input: TokenStream) -> TokenStream {
 /// - First argument: Path to the redefined method meta (e.g. `crate::MyMeta`) OR `Interface, EntryId`.
 #[proc_macro_error]
 #[proc_macro_attribute]
-pub fn override_entry(_args: TokenStream, impl_item_fn_tokens: TokenStream) -> TokenStream {
-    impl_item_fn_tokens
+pub fn override_entry(args: TokenStream, impl_item_fn_tokens: TokenStream) -> TokenStream {
+    sails_macros_core::override_entry(args.into(), impl_item_fn_tokens.into()).into()
 }
