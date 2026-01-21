@@ -196,7 +196,7 @@ fn discover_service_handlers<'a>(
         sails_path,
     )
     .into_iter()
-    .filter(|fn_builder| fn_builder.export || fn_builder.override_info.is_some())
+    .filter(|fn_builder| fn_builder.export)
     .collect();
     // service funcs ordered by (fn_type, name)
     vec.sort_by_key(|f| (f.is_query(), f.route.to_lowercase()));

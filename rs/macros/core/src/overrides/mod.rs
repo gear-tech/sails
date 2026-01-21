@@ -68,15 +68,20 @@ pub fn override_entry(args: TokenStream, impl_item_fn_tokens: TokenStream) -> To
             )
         });
 
-    if !args.is_empty() {
-        let _ = syn::parse2::<OverrideInfo>(args).unwrap_or_else(|err| {
-            abort!(
-                fn_impl.span(),
-                "`override_entry` attribute cannot be parsed: {}",
-                err
-            )
-        });
+    if args.is_empty() {
+        abort!(
+            fn_impl.span(),
+            "`override_entry` attribute requires arguments"
+        );
     }
+
+    let _ = syn::parse2::<OverrideInfo>(args).unwrap_or_else(|err| {
+        abort!(
+            fn_impl.span(),
+            "`override_entry` attribute cannot be parsed: {}",
+            err
+        )
+    });
 
     impl_item_fn_tokens
 }
