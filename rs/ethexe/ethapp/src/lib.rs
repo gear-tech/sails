@@ -20,10 +20,11 @@ impl MyProgram {
     }
 
     pub fn inherited(&self) -> InheritedService {
-        InheritedService::new()
+        InheritedService::default()
     }
 }
 
+#[derive(Default)]
 pub struct BaseService;
 
 #[service]
@@ -34,14 +35,9 @@ impl BaseService {
     }
 }
 
+#[derive(Default)]
 pub struct InheritedService {
     base: BaseService,
-}
-
-impl InheritedService {
-    pub fn new() -> Self {
-        Self { base: BaseService }
-    }
 }
 
 impl From<InheritedService> for BaseService {
@@ -54,7 +50,6 @@ impl From<InheritedService> for BaseService {
 impl InheritedService {
     // We override 'foo' from BaseService using a method named 'bar'
     #[override_entry(base_service_methods::Foo)]
-    #[export]
     pub fn bar(&self) -> u32 {
         200
     }
