@@ -100,17 +100,12 @@ impl DemoProgram {
     }
 
     pub fn inheritance(&self) -> inheritance::InheritanceService {
-        inheritance::InheritanceService::new(
-            walker::WalkerService::new(dog_data()),
-            mammal::MammalService::new(42),
-        )
+        inheritance::InheritanceService::new(walker::WalkerService::new(dog_data()))
     }
 
     pub fn chain(&self) -> inheritance::ChainService {
-        let inheritance = inheritance::InheritanceService::new(
-            walker::WalkerService::new(dog_data()),
-            mammal::MammalService::new(42),
-        );
+        let inheritance =
+            inheritance::InheritanceService::new(walker::WalkerService::new(dog_data()));
         inheritance::ChainService::new(inheritance)
     }
 }

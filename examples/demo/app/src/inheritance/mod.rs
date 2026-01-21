@@ -10,8 +10,11 @@ pub struct InheritanceService {
 }
 
 impl InheritanceService {
-    pub fn new(walker: WalkerService, mammal: MammalService) -> Self {
-        Self { walker, mammal }
+    pub fn new(walker: WalkerService) -> Self {
+        Self {
+            walker,
+            mammal: MammalService::new(42),
+        }
     }
 }
 
