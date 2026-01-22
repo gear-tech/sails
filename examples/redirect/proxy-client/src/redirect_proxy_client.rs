@@ -66,6 +66,6 @@ pub mod proxy {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(GetProgramId () -> ActorId, 0, <super::ProxyImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws false);
+        sails_rs::io_struct_impl!(GetProgramId () -> ActorId, 0, <super::ProxyImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 }

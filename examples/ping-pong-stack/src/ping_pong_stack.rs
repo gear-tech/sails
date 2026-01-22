@@ -81,7 +81,7 @@ pub mod ping_pong_stack {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(Ping (countdown: u32) -> (), 0, <super::PingPongStackImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws false);
-        sails_rs::io_struct_impl!(Start (limit: u32) -> (), 1, <super::PingPongStackImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws false);
+        sails_rs::io_struct_impl!(Ping (countdown: u32) -> (), 0, <super::PingPongStackImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Start (limit: u32) -> (), 1, <super::PingPongStackImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 }

@@ -67,8 +67,8 @@ pub mod basic {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(DoThat (p1: (u8, u32, )) -> u8, 0, <super::BasicImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws false);
-        sails_rs::io_struct_impl!(DoThis (p1: u32, p2: super::MyParam) -> u16, 1, <super::BasicImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws false);
+        sails_rs::io_struct_impl!(DoThat (p1: (u8, u32, )) -> u8, 0, <super::BasicImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(DoThis (p1: u32, p2: super::MyParam) -> u16, 1, <super::BasicImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(feature = "with_mocks")]

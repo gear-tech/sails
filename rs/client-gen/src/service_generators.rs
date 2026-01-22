@@ -208,14 +208,14 @@ impl<'ast> Visitor<'ast> for ServiceGenerator<'ast> {
 
         let params_with_types_super = &fn_args_with_types_path(&func.params, "super");
         let entry_id = self.entry_ids.get(func.name.as_str()).copied().unwrap_or(0);
-        let is_throws = if func.throws.is_some() {
-            "true"
+        let throws_token: rust::Tokens = if func.throws.is_some() {
+            quote!(, throws)
         } else {
-            "false"
+            quote!()
         };
 
         quote_in! { self.io_tokens =>
-            $(self.sails_path)::io_struct_impl!($fn_name ($params_with_types_super) -> $output_type_decl_code, $entry_id, <super::$(self.service_name)Impl as $(self.sails_path)::client::Identifiable>::INTERFACE_ID, throws $is_throws);
+            $(self.sails_path)::io_struct_impl!($fn_name ($params_with_types_super) -> $output_type_decl_code, $entry_id, <super::$(self.service_name)Impl as $(self.sails_path)::client::Identifiable>::INTERFACE_ID$throws_token);
         };
     }
 }

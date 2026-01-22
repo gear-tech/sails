@@ -80,6 +80,6 @@ pub mod ping_pong_service {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(Ping (payload: super::PingPongPayload) -> super::PingPongPayload, 0, <super::PingPongServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws false);
+        sails_rs::io_struct_impl!(Ping (payload: super::PingPongPayload) -> super::PingPongPayload, 0, <super::PingPongServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 }

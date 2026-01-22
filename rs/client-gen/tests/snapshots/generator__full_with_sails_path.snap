@@ -300,10 +300,10 @@ pub mod canvas {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(ColorPoint (point: super::Point<u32, >, color: super::Color) -> super::Result<(), super::ColorError>, 0, <super::CanvasImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws true);
-        my_crate::sails::io_struct_impl!(KillPoint (point: super::Point<u32, >) -> super::Result<bool, String>, 1, <super::CanvasImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws true);
-        my_crate::sails::io_struct_impl!(Points (offset: u32, len: u32) -> super::Result<Vec<(super::Point<u32, >, super::PointStatus, )>, String>, 2, <super::CanvasImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws true);
-        my_crate::sails::io_struct_impl!(PointStatus (point: super::Point<u32, >) -> super::Option<super::PointStatus, >, 3, <super::CanvasImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws false);
+        my_crate::sails::io_struct_impl!(ColorPoint (point: super::Point<u32, >, color: super::Color) -> super::Result<(), super::ColorError>, 0, <super::CanvasImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws);
+        my_crate::sails::io_struct_impl!(KillPoint (point: super::Point<u32, >) -> super::Result<bool, String>, 1, <super::CanvasImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws);
+        my_crate::sails::io_struct_impl!(Points (offset: u32, len: u32) -> super::Result<Vec<(super::Point<u32, >, super::PointStatus, )>, String>, 2, <super::CanvasImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws);
+        my_crate::sails::io_struct_impl!(PointStatus (point: super::Point<u32, >) -> super::Option<super::PointStatus, >, 3, <super::CanvasImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -372,7 +372,7 @@ pub mod ping_pong {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(Ping (input: String) -> super::Result<String, String>, 0, <super::PingPongImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws true);
+        my_crate::sails::io_struct_impl!(Ping (input: String) -> super::Result<String, String>, 0, <super::PingPongImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws);
     }
 }
 
@@ -409,9 +409,9 @@ pub mod counter {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(Add (value: u32) -> u32, 0, <super::CounterImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws false);
-        my_crate::sails::io_struct_impl!(Sub (value: u32) -> u32, 1, <super::CounterImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws false);
-        my_crate::sails::io_struct_impl!(Value () -> u32, 2, <super::CounterImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws false);
+        my_crate::sails::io_struct_impl!(Add (value: u32) -> u32, 0, <super::CounterImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(Sub (value: u32) -> u32, 1, <super::CounterImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(Value () -> u32, 2, <super::CounterImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -487,10 +487,10 @@ pub mod dog {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(MakeSound () -> String, 0, <super::DogImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws false);
-        my_crate::sails::io_struct_impl!(Walk (dx: i32, dy: i32) -> (), 1, <super::DogImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws false);
-        my_crate::sails::io_struct_impl!(AvgWeight () -> u32, 2, <super::DogImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws false);
-        my_crate::sails::io_struct_impl!(Position () -> (i32, i32, ), 3, <super::DogImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws false);
+        my_crate::sails::io_struct_impl!(MakeSound () -> String, 0, <super::DogImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(Walk (dx: i32, dy: i32) -> (), 1, <super::DogImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(AvgWeight () -> u32, 2, <super::DogImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(Position () -> (i32, i32, ), 3, <super::DogImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -597,14 +597,14 @@ pub mod references {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(Add (v: u32) -> u32, 0, <super::ReferencesImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws false);
-        my_crate::sails::io_struct_impl!(AddByte (byte: u8) -> Vec<u8>, 1, <super::ReferencesImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws false);
-        my_crate::sails::io_struct_impl!(GuessNum (number: u8) -> super::Result<String, String>, 2, <super::ReferencesImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws true);
-        my_crate::sails::io_struct_impl!(Incr () -> super::ReferenceCount, 3, <super::ReferencesImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws false);
-        my_crate::sails::io_struct_impl!(SetNum (number: u8) -> super::Result<(), String>, 4, <super::ReferencesImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws true);
-        my_crate::sails::io_struct_impl!(Baked () -> String, 5, <super::ReferencesImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws false);
-        my_crate::sails::io_struct_impl!(LastByte () -> super::Option<u8, >, 6, <super::ReferencesImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws false);
-        my_crate::sails::io_struct_impl!(Message () -> super::Option<String, >, 7, <super::ReferencesImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws false);
+        my_crate::sails::io_struct_impl!(Add (v: u32) -> u32, 0, <super::ReferencesImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(AddByte (byte: u8) -> Vec<u8>, 1, <super::ReferencesImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(GuessNum (number: u8) -> super::Result<String, String>, 2, <super::ReferencesImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws);
+        my_crate::sails::io_struct_impl!(Incr () -> super::ReferenceCount, 3, <super::ReferencesImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(SetNum (number: u8) -> super::Result<(), String>, 4, <super::ReferencesImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws);
+        my_crate::sails::io_struct_impl!(Baked () -> String, 5, <super::ReferencesImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(LastByte () -> super::Option<u8, >, 6, <super::ReferencesImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(Message () -> super::Option<String, >, 7, <super::ReferencesImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
     }
 }
 
@@ -702,11 +702,11 @@ pub mod this_that {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(DoThat (param: super::DoThatParam) -> super::Result<(ActorId, u32, super::ManyVariantsReply, ), (String, )>, 0, <super::ThisThatImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws true);
-        my_crate::sails::io_struct_impl!(DoThis (p1: u32, p2: String, p3: (super::Option<H160, >, u8, ), p4: super::TupleStruct) -> (String, u32, ), 1, <super::ThisThatImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws false);
-        my_crate::sails::io_struct_impl!(Noop () -> (), 2, <super::ThisThatImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws false);
-        my_crate::sails::io_struct_impl!(That () -> super::Result<String, String>, 3, <super::ThisThatImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws true);
-        my_crate::sails::io_struct_impl!(This () -> u32, 4, <super::ThisThatImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws false);
+        my_crate::sails::io_struct_impl!(DoThat (param: super::DoThatParam) -> super::Result<(ActorId, u32, super::ManyVariantsReply, ), (String, )>, 0, <super::ThisThatImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws);
+        my_crate::sails::io_struct_impl!(DoThis (p1: u32, p2: String, p3: (super::Option<H160, >, u8, ), p4: super::TupleStruct) -> (String, u32, ), 1, <super::ThisThatImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(Noop () -> (), 2, <super::ThisThatImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(That () -> super::Result<String, String>, 3, <super::ThisThatImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws);
+        my_crate::sails::io_struct_impl!(This () -> u32, 4, <super::ThisThatImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
     }
 }
 
@@ -738,7 +738,7 @@ pub mod value_fee {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(DoSomethingAndTakeFee () -> bool, 0, <super::ValueFeeImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws false);
+        my_crate::sails::io_struct_impl!(DoSomethingAndTakeFee () -> bool, 0, <super::ValueFeeImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -800,8 +800,8 @@ pub mod pausable {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(Pause () -> (), 0, <super::PausableImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws false);
-        my_crate::sails::io_struct_impl!(Unpause () -> (), 1, <super::PausableImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws false);
+        my_crate::sails::io_struct_impl!(Pause () -> (), 0, <super::PausableImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(Unpause () -> (), 1, <super::PausableImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -857,7 +857,7 @@ pub mod ownable {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(GetOwner () -> ActorId, 0, <super::OwnableImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws false);
+        my_crate::sails::io_struct_impl!(GetOwner () -> ActorId, 0, <super::OwnableImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
     }
 }
 
@@ -887,7 +887,7 @@ pub mod tippable {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(Tip (amount: u128) -> (), 0, <super::TippableImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws false);
+        my_crate::sails::io_struct_impl!(Tip (amount: u128) -> (), 0, <super::TippableImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
     }
 }
 
@@ -930,7 +930,7 @@ pub mod non_zero_params {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(DoThis (p1: U256, p2: super::MyParam) -> u64, 0, <super::NonZeroParamsImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws false);
+        my_crate::sails::io_struct_impl!(DoThis (p1: U256, p2: super::MyParam) -> u64, 0, <super::NonZeroParamsImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
     }
 }
 
@@ -973,7 +973,7 @@ pub mod service_with_events {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(DoThis (p1: U256, p2: super::MyParam) -> u64, 0, <super::ServiceWithEventsImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws false);
+        my_crate::sails::io_struct_impl!(DoThis (p1: U256, p2: super::MyParam) -> u64, 0, <super::ServiceWithEventsImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -1065,8 +1065,8 @@ pub mod basic {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(DoThat (p1: (u8, u32, )) -> u8, 0, <super::BasicImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws false);
-        my_crate::sails::io_struct_impl!(DoThis (p1: u32, p2: super::MyParam) -> u16, 1, <super::BasicImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws false);
+        my_crate::sails::io_struct_impl!(DoThat (p1: (u8, u32, )) -> u8, 0, <super::BasicImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(DoThis (p1: u32, p2: super::MyParam) -> u16, 1, <super::BasicImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
     }
 }
 
@@ -1110,8 +1110,8 @@ pub mod another_service {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(Ping () -> String, 0, <super::AnotherServiceImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws false);
-        my_crate::sails::io_struct_impl!(ProcessValues (data: Vec<U256>) -> super::Result<(), super::ProgramError>, 1, <super::AnotherServiceImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws true);
+        my_crate::sails::io_struct_impl!(Ping () -> String, 0, <super::AnotherServiceImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(ProcessValues (data: Vec<U256>) -> super::Result<(), super::ProgramError>, 1, <super::AnotherServiceImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws);
     }
 }
 
@@ -1272,12 +1272,12 @@ pub mod my_complex_service {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(GetActorIds (count: u32) -> Vec<ActorId>, 0, <super::MyComplexServiceImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws false);
-        my_crate::sails::io_struct_impl!(GetData (key: String) -> super::Result<super::ProgramScopedData, super::ProgramError>, 1, <super::MyComplexServiceImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws true);
-        my_crate::sails::io_struct_impl!(GetInfo () -> super::ProgramGlobalInfo, 2, <super::MyComplexServiceImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws false);
-        my_crate::sails::io_struct_impl!(Initialize (start_data: super::ProgramGlobalInfo, max_size: u32) -> super::Result<(), super::ProgramError>, 3, <super::MyComplexServiceImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws true);
-        my_crate::sails::io_struct_impl!(ProcessGenericData (input_data: super::GenericData<u32, String, >, list_of_generics: Vec<super::GenericData<ActorId, U256, >>, optional_generic_result: super::Option<super::GenericResult<bool, >, >) -> super::GenericData<bool, u8, >, 4, <super::MyComplexServiceImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws false);
-        my_crate::sails::io_struct_impl!(UpdateStatus (id: u64, new_status: super::ServiceStatus, metadata: super::Option<String, >) -> super::GenericResult<u32, >, 5, <super::MyComplexServiceImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws false);
+        my_crate::sails::io_struct_impl!(GetActorIds (count: u32) -> Vec<ActorId>, 0, <super::MyComplexServiceImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(GetData (key: String) -> super::Result<super::ProgramScopedData, super::ProgramError>, 1, <super::MyComplexServiceImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws);
+        my_crate::sails::io_struct_impl!(GetInfo () -> super::ProgramGlobalInfo, 2, <super::MyComplexServiceImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(Initialize (start_data: super::ProgramGlobalInfo, max_size: u32) -> super::Result<(), super::ProgramError>, 3, <super::MyComplexServiceImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID, throws);
+        my_crate::sails::io_struct_impl!(ProcessGenericData (input_data: super::GenericData<u32, String, >, list_of_generics: Vec<super::GenericData<ActorId, U256, >>, optional_generic_result: super::Option<super::GenericResult<bool, >, >) -> super::GenericData<bool, u8, >, 4, <super::MyComplexServiceImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(UpdateStatus (id: u64, new_status: super::ServiceStatus, metadata: super::Option<String, >) -> super::GenericResult<u32, >, 5, <super::MyComplexServiceImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
     }
 }
 

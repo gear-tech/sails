@@ -79,6 +79,6 @@ pub mod compute_stress {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(ComputeStress (n: u32) -> super::ComputeStressResult, 0, <super::ComputeStressImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws false);
+        sails_rs::io_struct_impl!(ComputeStress (n: u32) -> super::ComputeStressResult, 0, <super::ComputeStressImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 }

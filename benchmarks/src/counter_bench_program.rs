@@ -68,7 +68,7 @@ pub mod counter_bench {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(Inc () -> u64, 0, <super::CounterBenchImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws false);
-        sails_rs::io_struct_impl!(IncAsync () -> u64, 1, <super::CounterBenchImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws false);
+        sails_rs::io_struct_impl!(Inc () -> u64, 0, <super::CounterBenchImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(IncAsync () -> u64, 1, <super::CounterBenchImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 }

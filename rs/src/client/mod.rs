@@ -550,6 +550,11 @@ macro_rules! io_struct_impl {
         }
     };
     (
+        $name:ident ( $( $param:ident : $ty:ty ),* ) -> $reply:ty, $entry_id:expr, $interface_id:expr, throws
+    ) => {
+        $crate::io_struct_impl!($name ( $( $param : $ty ),* ) -> $reply, $entry_id, $interface_id, throws true);
+    };
+    (
         $name:ident ( $( $param:ident : $ty:ty ),* ) -> $reply:ty, $entry_id:expr, $interface_id:expr
     ) => {
         $crate::io_struct_impl!($name ( $( $param : $ty ),* ) -> $reply, $entry_id, $interface_id, throws false);
@@ -557,7 +562,7 @@ macro_rules! io_struct_impl {
     (
         $name:ident ( $( $param:ident : $ty:ty ),* ) -> $reply:ty, $entry_id:expr
     ) => {
-        $crate::io_struct_impl!($name ( $( $param : $ty ),* ) -> $reply, $entry_id, $crate::meta::InterfaceId::zero(), throws false);
+        $crate::io_struct_impl!($name ( $( $param : $ty ),* ) -> $reply, $entry_id, $crate::meta::InterfaceId::zero());
     };
 }
 

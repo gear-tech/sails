@@ -71,6 +71,6 @@ pub mod alloc_stress {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(AllocStress (n: u32) -> super::AllocStressResult, 0, <super::AllocStressImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws false);
+        sails_rs::io_struct_impl!(AllocStress (n: u32) -> super::AllocStressResult, 0, <super::AllocStressImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 }
