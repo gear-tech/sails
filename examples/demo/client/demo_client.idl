@@ -131,8 +131,10 @@ service ValueFee@0x41c1080b4e1e8dc5 {
     }
 }
 
-service Chaos@0xf0c8c80dfabf72d5 {
+service Chaos@0x57e1ee002875357c {
     functions {
+        @query
+        CheckRange(value: u32, min: u32, max: u32) -> u32 throws String;
         @query
         PanicAfterWait();
         @query
@@ -156,6 +158,6 @@ program DemoClient {
         References@0x8a0f8abe176d75b9,
         ThisThat@0x381e13fdd02d675f,
         ValueFee@0x41c1080b4e1e8dc5,
-        Chaos@0xf0c8c80dfabf72d5,
+        Chaos@0x57e1ee002875357c,
     }
 }

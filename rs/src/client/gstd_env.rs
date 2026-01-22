@@ -219,15 +219,13 @@ const _: () = {
                 Err(gstd::errors::Error::ErrorReply(
                     error_payload,
                     ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic),
-                )) => {
-                    match T::decode_reply_with_status(self.route_idx, &error_payload.0, true) {
-                        Ok(res) => Poll::Ready(Ok(res)),
-                        Err(_) => Poll::Ready(Err(gstd::errors::Error::ErrorReply(
-                            error_payload,
-                            ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic),
-                        ))),
-                    }
-                }
+                )) => match T::decode_reply_with_status(self.route_idx, &error_payload.0, true) {
+                    Ok(res) => Poll::Ready(Ok(res)),
+                    Err(_) => Poll::Ready(Err(gstd::errors::Error::ErrorReply(
+                        error_payload,
+                        ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic),
+                    ))),
+                },
                 // reply with ProgramExited
                 Err(gstd::errors::Error::ErrorReply(
                     error_payload,

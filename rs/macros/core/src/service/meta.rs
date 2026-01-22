@@ -143,14 +143,19 @@ impl ServiceBuilder<'_> {
                 let arg_types = handler.params().map(|(_, ty)| ty);
 
                 // Generate RES_HASH - check if result type is Result<T, E>
-                let result_type = handler.result_type_with_static_lifetime();
+                let original_result_type = shared::result_type(&handler.impl_fn.sig);
+                let static_result_type =
+                    shared::replace_any_lifetime_with_static(original_result_type);
+
                 let result_tokens = if handler.unwrap_result
-                    && let Type::Path(ref tp) = result_type
-                    && let Some((ok_ty, err_ty)) = shared::extract_result_types(tp) {
+                    && let Type::Path(ref tp) = static_result_type
+                    && let Some((ok_ty, err_ty)) = shared::extract_result_types(tp)
+                {
                     // Result type: RES_HASH = b"res" || T::HASH || b"throws" || E::HASH
                     quote!( -> #ok_ty | #err_ty )
                 } else {
                     // Other types: RES_HASH = b"res" || REFLECT_HASH
+                    let result_type = handler.result_type_with_static_lifetime();
                     quote!( -> #result_type )
                 };
 

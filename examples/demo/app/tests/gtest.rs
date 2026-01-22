@@ -680,3 +680,25 @@ async fn chaos_panic_does_not_affect_other_services() {
     let final_value = counter_client.value().await.unwrap();
     assert_eq!(final_value, INIT_VALUE + 5);
 }
+
+#[tokio::test]
+async fn chaos_check_range_works() {
+    use demo_client::chaos::Chaos as _;
+
+    let (env, code_id, _gas_limit) = create_env();
+    let demo_program = env
+        .deploy(code_id, vec![])
+        .new(Some(42), None)
+        .await
+        .unwrap();
+
+    let chaos_client = demo_program.chaos();
+
+    // Success case
+    let res = chaos_client.check_range(10, 0, 100).await.unwrap();
+    assert_eq!(res, Ok(10));
+
+    // Error case (throws)
+    let res = chaos_client.check_range(150, 0, 100).await.unwrap();
+    assert_eq!(res, Err("Value 150 is out of range [0, 100]".to_string()));
+}

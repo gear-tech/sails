@@ -154,7 +154,7 @@ mod some_service_meta {
             final_hash = final_hash
                 .update(
                     &sails_rs::hash_fn!(
-                        command DoSomething(u32, String) -> (u32, String)
+                        command DoSomething(u32, String) -> (u32, String) | String
                     ),
                 );
             final_hash = final_hash

@@ -634,6 +634,12 @@ pub mod chaos {
     use super::*;
     pub trait Chaos {
         type Env: sails_rs::client::GearEnv;
+        fn check_range(
+            &self,
+            value: u32,
+            min: u32,
+            max: u32,
+        ) -> sails_rs::client::PendingCall<io::CheckRange, Self::Env>;
         fn panic_after_wait(&self) -> sails_rs::client::PendingCall<io::PanicAfterWait, Self::Env>;
         fn reply_hook_counter(
             &self,
@@ -643,10 +649,18 @@ pub mod chaos {
     pub struct ChaosImpl;
     impl sails_rs::client::Identifiable for ChaosImpl {
         const INTERFACE_ID: sails_rs::InterfaceId =
-            sails_rs::InterfaceId::from_bytes_8([240, 200, 200, 13, 250, 191, 114, 213]);
+            sails_rs::InterfaceId::from_bytes_8([87, 225, 238, 0, 40, 117, 53, 124]);
     }
     impl<E: sails_rs::client::GearEnv> Chaos for sails_rs::client::Service<ChaosImpl, E> {
         type Env = E;
+        fn check_range(
+            &self,
+            value: u32,
+            min: u32,
+            max: u32,
+        ) -> sails_rs::client::PendingCall<io::CheckRange, Self::Env> {
+            self.pending_call((value, min, max))
+        }
         fn panic_after_wait(&self) -> sails_rs::client::PendingCall<io::PanicAfterWait, Self::Env> {
             self.pending_call(())
         }
@@ -662,9 +676,10 @@ pub mod chaos {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(PanicAfterWait () -> (), 0, <super::ChaosImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws false);
-        sails_rs::io_struct_impl!(ReplyHookCounter () -> u32, 1, <super::ChaosImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws false);
-        sails_rs::io_struct_impl!(TimeoutWait () -> (), 2, <super::ChaosImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws false);
+        sails_rs::io_struct_impl!(CheckRange (value: u32, min: u32, max: u32) -> super::Result<u32, String>, 0, <super::ChaosImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws true);
+        sails_rs::io_struct_impl!(PanicAfterWait () -> (), 1, <super::ChaosImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws false);
+        sails_rs::io_struct_impl!(ReplyHookCounter () -> u32, 2, <super::ChaosImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws false);
+        sails_rs::io_struct_impl!(TimeoutWait () -> (), 3, <super::ChaosImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws false);
     }
 
     #[cfg(feature = "with_mocks")]
@@ -672,6 +687,6 @@ pub mod chaos {
     pub mod mockall {
         use super::*;
         use sails_rs::mockall::*;
-        mock! { pub Chaos {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl chaos::Chaos for Chaos { type Env = sails_rs::client::GstdEnv; fn panic_after_wait (&self, ) -> sails_rs::client::PendingCall<chaos::io::PanicAfterWait, sails_rs::client::GstdEnv>;fn reply_hook_counter (&self, ) -> sails_rs::client::PendingCall<chaos::io::ReplyHookCounter, sails_rs::client::GstdEnv>;fn timeout_wait (&self, ) -> sails_rs::client::PendingCall<chaos::io::TimeoutWait, sails_rs::client::GstdEnv>; } }
+        mock! { pub Chaos {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl chaos::Chaos for Chaos { type Env = sails_rs::client::GstdEnv; fn check_range (&self, value: u32, min: u32, max: u32) -> sails_rs::client::PendingCall<chaos::io::CheckRange, sails_rs::client::GstdEnv>;fn panic_after_wait (&self, ) -> sails_rs::client::PendingCall<chaos::io::PanicAfterWait, sails_rs::client::GstdEnv>;fn reply_hook_counter (&self, ) -> sails_rs::client::PendingCall<chaos::io::ReplyHookCounter, sails_rs::client::GstdEnv>;fn timeout_wait (&self, ) -> sails_rs::client::PendingCall<chaos::io::TimeoutWait, sails_rs::client::GstdEnv>; } }
     }
 }
