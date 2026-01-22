@@ -125,9 +125,9 @@ pub mod my_service {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(AnotherAction (input: super::ServiceCommonType) -> u32, 0, <super::MyServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(DoSomething (input: super::CommonType) -> u32, 1, <super::MyServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(UseProgramType (input: super::ProgramOnlyType) -> bool, 2, <super::MyServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(AnotherAction (input: super::ServiceCommonType) -> u32, 0, <super::MyServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws false);
+        sails_rs::io_struct_impl!(DoSomething (input: super::CommonType) -> u32, 1, <super::MyServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws false);
+        sails_rs::io_struct_impl!(UseProgramType (input: super::ProgramOnlyType) -> bool, 2, <super::MyServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws false);
     }
 
     #[cfg(feature = "with_mocks")]

@@ -269,7 +269,7 @@ impl<'a> ServiceBuilder<'a> {
     fn commands(&self, resolver: &TypeResolver) -> Result<Vec<ServiceFunc>> {
         any_funcs(&self.registry, self.commands_type_id)?
             .map(|c| {
-                if c.fields.len() != 2 {
+                if c.fields.len() != 2 && c.fields.len() != 3 {
                     Err(Error::MetaIsInvalid(format!(
                         "command `{}` has invalid number of fields",
                         c.name
@@ -285,12 +285,20 @@ impl<'a> ServiceBuilder<'a> {
                         .get(output_type_id)
                         .cloned()
                         .ok_or(Error::TypeIdIsUnknown(output_type_id))?;
-                    let throws = None;
-                    // TODO: unwrap result param
-                    // if let Some((ok, err)) = TypeDecl::result_type_decl(&output) {
-                    //     output = ok;
-                    //     throws = Some(err);
-                    // };
+                    let throws = if c.fields.len() == 3 {
+                        let throws_type_id = c.fields[2].ty.id;
+                        let throws = resolver
+                            .get(throws_type_id)
+                            .cloned()
+                            .ok_or(Error::TypeIdIsUnknown(throws_type_id))?;
+                        if throws == TypeDecl::Primitive(PrimitiveType::Void) {
+                            None
+                        } else {
+                            Some(throws)
+                        }
+                    } else {
+                        None
+                    };
                     if let scale_info::TypeDef::Composite(params_type) = &params_type.type_def {
                         let params = params_type
                             .fields
@@ -335,7 +343,7 @@ impl<'a> ServiceBuilder<'a> {
     fn queries(&self, resolver: &TypeResolver) -> Result<Vec<ServiceFunc>> {
         any_funcs(&self.registry, self.queries_type_id)?
             .map(|c| {
-                if c.fields.len() != 2 {
+                if c.fields.len() != 2 && c.fields.len() != 3 {
                     Err(Error::MetaIsInvalid(format!(
                         "query `{}` has invalid number of fields",
                         c.name
@@ -351,12 +359,20 @@ impl<'a> ServiceBuilder<'a> {
                         .get(output_type_id)
                         .cloned()
                         .ok_or(Error::TypeIdIsUnknown(output_type_id))?;
-                    let throws = None;
-                    // TODO: unwrap result param
-                    // if let Some((ok, err)) = TypeDecl::result_type_decl(&output) {
-                    //     output = ok;
-                    //     throws = Some(err);
-                    // };
+                    let throws = if c.fields.len() == 3 {
+                        let throws_type_id = c.fields[2].ty.id;
+                        let throws = resolver
+                            .get(throws_type_id)
+                            .cloned()
+                            .ok_or(Error::TypeIdIsUnknown(throws_type_id))?;
+                        if throws == TypeDecl::Primitive(PrimitiveType::Void) {
+                            None
+                        } else {
+                            Some(throws)
+                        }
+                    } else {
+                        None
+                    };
                     if let scale_info::TypeDef::Composite(params_type) = &params_type.type_def {
                         let params = params_type
                             .fields
@@ -1707,7 +1723,7 @@ mod tests {
         #[derive(TypeInfo)]
         #[allow(unused)]
         enum BadCommands2 {
-            ThreeFields(u32, String, bool),
+            FourFields(u32, String, bool, u32),
         }
 
         #[derive(TypeInfo)]
@@ -1719,7 +1735,7 @@ mod tests {
         #[derive(TypeInfo)]
         #[allow(unused)]
         enum BadQueries2 {
-            ThreeFields(u32, String, bool),
+            FourFields(u32, String, bool, u32),
         }
 
         let internal_check = |result: Result<Vec<ServiceUnit>>, expected_msg: &str| {
@@ -1740,11 +1756,11 @@ mod tests {
         );
         internal_check(
             test_service_units::<InvalidCommandsService2>("TestService"),
-            "command `ThreeFields` has invalid number of fields",
+            "command `FourFields` has invalid number of fields",
         );
         internal_check(
             test_service_units::<InvalidQueriesService2>("TestService"),
-            "query `ThreeFields` has invalid number of fields",
+            "query `FourFields` has invalid number of fields",
         );
     }
 

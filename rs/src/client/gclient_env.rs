@@ -3,6 +3,7 @@ use ::gclient::gear::runtime_types::pallet_gear_voucher::internal::VoucherId;
 use ::gclient::{EventListener, EventProcessor as _, GearApi};
 use core::task::ready;
 use futures::{Stream, StreamExt, stream};
+use gear_core_errors::{ErrorReplyReason, SimpleExecutionError};
 
 #[derive(Debug, thiserror::Error)]
 pub enum GclientError {
@@ -136,10 +137,23 @@ impl<T: ServiceCall> Future for PendingCall<T, GclientEnv> {
             .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
         // Poll message future
         match ready!(message_future.poll(cx)) {
-            Ok((_, payload)) => match T::decode_reply_with_header(self.route_idx, payload) {
+            Ok((_, payload)) => match T::decode_reply_with_status(self.route_idx, payload, false) {
                 Ok(decoded) => Poll::Ready(Ok(decoded)),
                 Err(err) => Poll::Ready(Err(gclient::Error::Codec(err).into())),
             },
+            Err(GclientError::ReplyHasError(reason, payload)) => {
+                if matches!(
+                    reason,
+                    ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic)
+                ) {
+                    match T::decode_reply_with_status(self.route_idx, &payload, true) {
+                        Ok(decoded) => Poll::Ready(Ok(decoded)),
+                        Err(_) => Poll::Ready(Err(GclientError::ReplyHasError(reason, payload))),
+                    }
+                } else {
+                    Poll::Ready(Err(GclientError::ReplyHasError(reason, payload)))
+                }
+            }
             Err(err) => Poll::Ready(Err(err)),
         }
     }

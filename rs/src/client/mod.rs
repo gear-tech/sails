@@ -336,6 +336,7 @@ impl<A, T: ServiceCall, E: GearEnv> PendingCtor<A, T, E> {
 pub trait ServiceCall: MethodMeta {
     type Params: Encode;
     type Reply: Decode + 'static;
+    const IS_THROWS: bool = false;
 
     fn encode_params_with_header(route_idx: u8, value: &Self::Params) -> Vec<u8> {
         let header = SailsMessageHeader::new(
@@ -354,6 +355,17 @@ pub trait ServiceCall: MethodMeta {
         route_idx: u8,
         payload: impl AsRef<[u8]>,
     ) -> Result<Self::Reply, parity_scale_codec::Error> {
+        Self::decode_reply_with_status(route_idx, payload, false)
+    }
+
+    fn decode_reply_with_status(
+        route_idx: u8,
+        payload: impl AsRef<[u8]>,
+        is_error: bool,
+    ) -> Result<Self::Reply, parity_scale_codec::Error> {
+        if is_error && !Self::IS_THROWS {
+            return Err("Unexpected error status for non-throwing method".into());
+        }
         let mut value = payload.as_ref();
         if Self::is_empty_tuple::<Self::Reply>() {
             return Decode::decode(&mut value);
@@ -368,7 +380,18 @@ pub trait ServiceCall: MethodMeta {
         if header.entry_id() != Self::ENTRY_ID {
             return Err("Invalid reply entry_id".into());
         }
-        Decode::decode(&mut value)
+
+        if Self::IS_THROWS {
+            let variant_index = if is_error { 1 } else { 0 };
+            let mut input = PrependInput {
+                prepend: variant_index,
+                payload: value,
+                first: true,
+            };
+            Decode::decode(&mut input)
+        } else {
+            Decode::decode(&mut value)
+        }
     }
 
     fn with_optimized_encode<R>(
@@ -501,7 +524,7 @@ macro_rules! params_for_pending_impl {
 #[macro_export]
 macro_rules! io_struct_impl {
     (
-        $name:ident ( $( $param:ident : $ty:ty ),* ) -> $reply:ty, $entry_id:expr, $interface_id:expr
+        $name:ident ( $( $param:ident : $ty:ty ),* ) -> $reply:ty, $entry_id:expr, $interface_id:expr, throws $throws:expr
     ) => {
         pub struct $name(());
         impl $name {
@@ -523,12 +546,18 @@ macro_rules! io_struct_impl {
         impl ServiceCall for $name {
             type Params = ( $( $ty, )* );
             type Reply = $reply;
+            const IS_THROWS: bool = $throws;
         }
+    };
+    (
+        $name:ident ( $( $param:ident : $ty:ty ),* ) -> $reply:ty, $entry_id:expr, $interface_id:expr
+    ) => {
+        $crate::io_struct_impl!($name ( $( $param : $ty ),* ) -> $reply, $entry_id, $interface_id, throws false);
     };
     (
         $name:ident ( $( $param:ident : $ty:ty ),* ) -> $reply:ty, $entry_id:expr
     ) => {
-        $crate::io_struct_impl!($name ( $( $param : $ty ),* ) -> $reply, $entry_id, $crate::meta::InterfaceId::zero());
+        $crate::io_struct_impl!($name ( $( $param : $ty ),* ) -> $reply, $entry_id, $crate::meta::InterfaceId::zero(), throws false);
     };
 }
 
@@ -566,13 +595,13 @@ pub trait Listener {
     ) -> Result<impl Stream<Item = (ActorId, E)> + Unpin, Self::Error>;
 }
 
-struct EventInput<'a> {
-    idx: u8,
+struct PrependInput<'a> {
+    prepend: u8,
     payload: &'a [u8],
     first: bool,
 }
 
-impl<'a> parity_scale_codec::Input for EventInput<'a> {
+impl<'a> parity_scale_codec::Input for PrependInput<'a> {
     fn remaining_len(&mut self) -> Result<Option<usize>, parity_scale_codec::Error> {
         Ok(Some(1 + self.payload.len()))
     }
@@ -583,7 +612,7 @@ impl<'a> parity_scale_codec::Input for EventInput<'a> {
         }
         let (head, tail) = into.split_at_mut(if self.first { 1 } else { 0 });
         if self.first {
-            head[0] = self.idx;
+            head[0] = self.prepend;
             self.first = false;
         }
         if tail.is_empty() {
@@ -600,7 +629,7 @@ impl<'a> parity_scale_codec::Input for EventInput<'a> {
     fn read_byte(&mut self) -> Result<u8, parity_scale_codec::Error> {
         if self.first {
             self.first = false;
-            Ok(self.idx)
+            Ok(self.prepend)
         } else {
             let b = *self.payload.first().ok_or("Not enough data to read byte")?;
             self.payload = &self.payload[1..];
@@ -636,8 +665,8 @@ pub trait Event: Decode + Identifiable {
         // However, the standard Rust `Decode` implementation for enums expects a leading index byte.
         // Therefore, we use a custom Input to prepend the `entry_id` (as u8) to the payload without allocation.
         let variant_index = entry_id as u8;
-        let mut input = EventInput {
-            idx: variant_index,
+        let mut input = PrependInput {
+            prepend: variant_index,
             payload,
             first: true,
         };

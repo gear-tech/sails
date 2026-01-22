@@ -76,6 +76,10 @@ impl Syscall {
     pub fn exit(inheritor_id: ActorId) -> ! {
         gstd::exec::exit(inheritor_id)
     }
+
+    pub fn panic(data: &[u8]) -> ! {
+        gstd::ext::panic_bytes(data)
+    }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -118,6 +122,10 @@ syscall_unimplemented!(
 #[cfg(not(feature = "std"))]
 impl Syscall {
     pub fn exit(_inheritor_id: ActorId) -> ! {
+        unimplemented!("{ERROR}")
+    }
+
+    pub fn panic(_data: &[u8]) -> ! {
         unimplemented!("{ERROR}")
     }
 }
@@ -210,6 +218,17 @@ const _: () = {
 
         pub fn exit(inheritor_id: ActorId) -> ! {
             panic!("Program exited with inheritor id: {}", inheritor_id);
+        }
+
+        pub fn panic(data: &[u8]) -> ! {
+            let mut message = format!("Program panicked with data: {:?}", data);
+            if data.len() >= 16 && &data[0..2] == b"GM" {
+                let mut payload = &data[16..];
+                if let Ok(s) = <String as parity_scale_codec::Decode>::decode(&mut payload) {
+                    message.push_str(&format!(" ('{}')", s));
+                }
+            }
+            panic!("{}", message);
         }
     }
 };

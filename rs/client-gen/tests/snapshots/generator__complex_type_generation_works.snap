@@ -228,12 +228,12 @@ pub mod my_complex_service {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(GetData (key: String) -> super::Result<super::ProgramScopedData, super::ErrorType, >, 0, <super::MyComplexServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(Initialize (start_data: super::ProgramGlobalInfo, max_size: super::NonZeroU32) -> super::Result<(), super::ErrorType, >, 1, <super::MyComplexServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(ProcessGenericData (input_data: super::GenericData<u32, String, >, list_of_generics: Vec<super::GenericData<ActorId, U256, >>, optional_generic_result: super::Option<super::GenericResult<bool, >, >) -> super::GenericData<bool, u8, >, 2, <super::MyComplexServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(UpdateStatus (id: u64, new_status: super::ServiceStatus, metadata: super::Option<String, >) -> super::GenericResult<u32, >, 3, <super::MyComplexServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(GetActorIds (count: u32) -> Vec<ActorId>, 4, <super::MyComplexServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(GetInfo () -> super::ProgramGlobalInfo, 5, <super::MyComplexServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(GetData (key: String) -> super::Result<super::ProgramScopedData, super::ErrorType, >, 0, <super::MyComplexServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws false);
+        sails_rs::io_struct_impl!(Initialize (start_data: super::ProgramGlobalInfo, max_size: super::NonZeroU32) -> super::Result<(), super::ErrorType, >, 1, <super::MyComplexServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws false);
+        sails_rs::io_struct_impl!(ProcessGenericData (input_data: super::GenericData<u32, String, >, list_of_generics: Vec<super::GenericData<ActorId, U256, >>, optional_generic_result: super::Option<super::GenericResult<bool, >, >) -> super::GenericData<bool, u8, >, 2, <super::MyComplexServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws false);
+        sails_rs::io_struct_impl!(UpdateStatus (id: u64, new_status: super::ServiceStatus, metadata: super::Option<String, >) -> super::GenericResult<u32, >, 3, <super::MyComplexServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws false);
+        sails_rs::io_struct_impl!(GetActorIds (count: u32) -> Vec<ActorId>, 4, <super::MyComplexServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws false);
+        sails_rs::io_struct_impl!(GetInfo () -> super::ProgramGlobalInfo, 5, <super::MyComplexServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws false);
     }
 
     #[cfg(feature = "with_mocks")]
@@ -286,8 +286,8 @@ pub mod another_service {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(Ping () -> String, 0, <super::AnotherServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(ProcessValues (data: Vec<U256>) -> super::Result<(), super::ErrorType, >, 1, <super::AnotherServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Ping () -> String, 0, <super::AnotherServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws false);
+        sails_rs::io_struct_impl!(ProcessValues (data: Vec<U256>) -> super::Result<(), super::ErrorType, >, 1, <super::AnotherServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws false);
     }
 
     #[cfg(feature = "with_mocks")]
