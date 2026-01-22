@@ -1,0 +1,25 @@
+{
+  "name": "sails-js-types-v2",
+  "version": "0.5.1",
+  "description": "Common types for sails-js IDL v2 libraries",
+  "types": "lib/index.d.ts",
+  "type": "module",
+  "author": "Gear Technologies",
+  "bugs": {
+    "url": "https://github.com/gear-tech/sails/issues"
+  },
+  "homepage": "https://github.com/gear-tech/sails/tree/master/js/types#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://githib.com/gear-tech/sails.git",
+    "directory": "js/types"
+  },
+  "scripts": {
+    "prebuild": "rm -rf lib",
+    "build": "rollup --config rollup.config.js",
+    "pack-build": "pnpm pack --out ../sails-js-types-v2.tgz"
+  },
+  "files": [
+    "lib"
+  ]
+}

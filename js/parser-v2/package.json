@@ -1,0 +1,51 @@
+{
+  "name": "sails-js-parser-v2",
+  "version": "0.5.1",
+  "description": "Sails-IDL v2 parser for TypeScript",
+  "main": "lib/cjs/index.cjs",
+  "module": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "require": "./lib/cjs/index.cjs",
+      "import": "./lib/index.js",
+      "types": "./index.d.ts"
+    }
+  },
+  "files": [
+    "lib"
+  ],
+  "license": "GPL-3.0",
+  "author": "Gear Technologies",
+  "bugs": {
+    "url": "https://github.com/gear-tech/sails/issues"
+  },
+  "homepage": "https://github.com/gear-tech/sails/tree/master/js#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://githib.com/gear-tech/sails.git",
+    "directory": "js/parser"
+  },
+  "keywords": [
+    "gear",
+    "sails",
+    "parser"
+  ],
+  "scripts": {
+    "prebuild": "rm -rf lib",
+    "build": "rollup --config rollup.config.js",
+    "pack-build": "pnpm pack --out ../sails-js-parser-v2.tgz"
+  },
+  "dependencies": {
+    "sails-js-types-v2": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "jest": "^30.2.0",
+    "rollup-plugin-typescript2": "^0.36.0",
+    "sails-js-types-v2": "workspace:*",
+    "tslib": "^2.8.1",
+    "typescript": "^5.9.3"
+  }
+}

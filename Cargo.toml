@@ -34,6 +34,7 @@ members = [
     "rs/idl-meta",
     "rs/idl-parser",
     "rs/idl-parser-v2",
+    "rs/idl-parser-wasm",
     "rs/macros",
     "rs/macros/core",
     "rs/reflect-hash",

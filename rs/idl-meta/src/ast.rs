@@ -43,6 +43,18 @@ pub struct IdlDoc {
     pub services: Vec<ServiceUnit>,
 }
 
+impl IdlDoc {
+    #[cfg(feature = "serde")]
+    pub fn to_json_string(&self) -> Result<String, serde_json::Error> {
+        serde_json::to_string(self)
+    }
+
+    #[cfg(feature = "serde")]
+    pub fn to_json_string_pretty(&self) -> Result<String, serde_json::Error> {
+        serde_json::to_string_pretty(self)
+    }
+}
+
 /// AST node describing a `program` block.
 ///
 /// A program is an entry point that:
