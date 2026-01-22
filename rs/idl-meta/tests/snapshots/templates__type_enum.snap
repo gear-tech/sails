@@ -2,6 +2,7 @@
 source: rs/idl-meta/tests/templates.rs
 expression: idl
 ---
+
 /// SomeType Enum
 @rusttype: sails-idl-meta::SomeType
 enum SomeType<T1, T2> {

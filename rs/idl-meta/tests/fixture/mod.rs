@@ -418,14 +418,14 @@ pub fn program_unit() -> ProgramUnit {
                 annotations: vec![],
             },
             ServiceExpo {
-                name: "Counter".parse().unwrap(),
+                name: "Counter@0x579d6daba41b7d82".parse().unwrap(),
                 route: None,
                 route_idx: 2,
                 docs: vec![],
                 annotations: vec![],
             },
             ServiceExpo {
-                name: "Counter".parse().unwrap(),
+                name: "Counter@0x579d6daba41b7d82".parse().unwrap(),
                 route: Some("Counter2".to_string()),
                 route_idx: 3,
                 docs: vec!["Another Counter service".to_owned()],
