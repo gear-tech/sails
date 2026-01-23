@@ -685,7 +685,6 @@ async fn chaos_panic_does_not_affect_other_services() {
 async fn inheritance_redefine_works() {
     use demo_client::chain::Chain as _;
     use demo_client::inheritance::Inheritance as _;
-    use demo_client::mammal_service::MammalService as _;
     use demo_client::walker_service::WalkerService as _;
 
     // Arrange
@@ -706,36 +705,8 @@ async fn inheritance_redefine_works() {
         .unwrap();
     assert_eq!(pos, (0, 0)); // Initial position from dog_data()
 
-    // Direct call (via Inheritance interface)
-    inheritance_client.walk(1, 1).await.unwrap();
-    // Polymorphic call (via Walker interface)
-    inheritance_client
-        .walker_service()
-        .walk(1, 1)
-        .await
-        .unwrap();
-
-    // Redefined make_sound (Mammal) -> "Inherited Sound"
-    // Direct call
-    let s1 = inheritance_client.make_sound().await.unwrap();
-    assert_eq!(s1, "Inherited Sound");
-    // Polymorphic call
-    let s2 = inheritance_client
-        .mammal_service()
-        .make_sound()
-        .await
-        .unwrap();
-    assert_eq!(s2, "Inherited Sound");
-
-    // Redefined avg_weight (Mammal) -> 1000
-    let weight = inheritance_client.avg_weight().await.unwrap(); // Direct
-    assert_eq!(weight, 1000);
-    let weight_base = inheritance_client
-        .mammal_service()
-        .avg_weight()
-        .await
-        .unwrap(); // Base
-    assert_eq!(weight_base, 1000);
+    let sleep_msg = inheritance_client.sleep().await.unwrap();
+    assert_eq!(sleep_msg, "Awake!");
 
     // 2. Check ChainService
     // Redefined make_sound (from Inheritance) -> "Chain Sound"

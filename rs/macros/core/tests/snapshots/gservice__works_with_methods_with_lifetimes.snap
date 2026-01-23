@@ -237,6 +237,38 @@ mod reference_service_meta {
         type QueriesMeta = QueriesMeta;
         type EventsMeta = EventsMeta;
         const BASE_SERVICES: &'static [sails_rs::meta::BaseServiceMeta] = &[];
+        const METHODS: &'static [sails_rs::meta::MethodMetadata] = &[
+            sails_rs::meta::MethodMetadata {
+                name: "AddByte",
+                entry_id: 0u16,
+                hash: sails_rs::hash_fn!(command AddByte(u8) -> & 'static [u8]),
+                is_async: false,
+            },
+            sails_rs::meta::MethodMetadata {
+                name: "Incr",
+                entry_id: 1u16,
+                hash: sails_rs::hash_fn!(command Incr() -> & 'static ReferenceCount),
+                is_async: false,
+            },
+            sails_rs::meta::MethodMetadata {
+                name: "Baked",
+                entry_id: 2u16,
+                hash: sails_rs::hash_fn!(query Baked() -> & 'static str),
+                is_async: false,
+            },
+            sails_rs::meta::MethodMetadata {
+                name: "FirstByte",
+                entry_id: 3u16,
+                hash: sails_rs::hash_fn!(query FirstByte() -> Option < & 'static u8 >),
+                is_async: true,
+            },
+            sails_rs::meta::MethodMetadata {
+                name: "LastByte",
+                entry_id: 4u16,
+                hash: sails_rs::hash_fn!(query LastByte() -> Option < & 'static u8 >),
+                is_async: true,
+            },
+        ];
         const ASYNC: bool = true;
     }
     #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
@@ -323,42 +355,4 @@ mod reference_service_meta {
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum NoEvents {}
     pub type EventsMeta = NoEvents;
-}
-pub mod reference_service_methods {
-    use super::*;
-    pub struct AddByte;
-    impl sails_rs::meta::Identifiable for AddByte {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID;
-    }
-    impl sails_rs::meta::MethodMeta for AddByte {
-        const ENTRY_ID: u16 = 0u16;
-    }
-    pub struct Incr;
-    impl sails_rs::meta::Identifiable for Incr {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID;
-    }
-    impl sails_rs::meta::MethodMeta for Incr {
-        const ENTRY_ID: u16 = 1u16;
-    }
-    pub struct Baked;
-    impl sails_rs::meta::Identifiable for Baked {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID;
-    }
-    impl sails_rs::meta::MethodMeta for Baked {
-        const ENTRY_ID: u16 = 2u16;
-    }
-    pub struct FirstByte;
-    impl sails_rs::meta::Identifiable for FirstByte {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID;
-    }
-    impl sails_rs::meta::MethodMeta for FirstByte {
-        const ENTRY_ID: u16 = 3u16;
-    }
-    pub struct LastByte;
-    impl sails_rs::meta::Identifiable for LastByte {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID;
-    }
-    impl sails_rs::meta::MethodMeta for LastByte {
-        const ENTRY_ID: u16 = 4u16;
-    }
 }

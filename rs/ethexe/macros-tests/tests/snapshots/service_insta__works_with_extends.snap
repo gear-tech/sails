@@ -324,6 +324,13 @@ mod some_service_meta {
                 super::ExtendedService2,
             >("ExtendedService2"),
         ];
+        const METHODS: &'static [sails_rs::meta::MethodMetadata] = &[
+            sails_rs::meta::MethodMetadata {
+                name: "DoThis",
+                entry_id: 0u16,
+                hash: sails_rs::hash_fn!(command DoThis() -> u32),
+            },
+        ];
         const ASYNC: bool = <super::ExtendedService1 as sails_rs::meta::ServiceMeta>::ASYNC
             || <super::ExtendedService2 as sails_rs::meta::ServiceMeta>::ASYNC;
     }
@@ -352,16 +359,6 @@ mod some_service_meta {
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum NoEvents {}
     pub type EventsMeta = NoEvents;
-}
-pub mod some_service_methods {
-    use super::*;
-    pub struct DoThis;
-    impl sails_rs::meta::Identifiable for DoThis {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::SomeService as sails_rs::meta::Identifiable>::INTERFACE_ID;
-    }
-    impl sails_rs::meta::MethodMeta for DoThis {
-        const ENTRY_ID: u16 = 0u16;
-    }
 }
 impl sails_rs::solidity::ServiceSignature for SomeService {
     const METHODS: &'static [sails_rs::solidity::MethodExpo] = sails_rs::const_concat_slices!(

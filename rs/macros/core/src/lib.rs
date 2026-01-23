@@ -20,13 +20,11 @@
 
 pub use event::{derive_sails_event, event};
 pub use export::export;
-pub use overrides::override_entry;
 pub use program::{__gprogram_internal, gprogram};
 pub use service::{__gservice_internal, gservice};
 
 mod event;
 mod export;
-mod overrides;
 mod program;
 mod sails_paths;
 mod service;

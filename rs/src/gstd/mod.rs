@@ -11,7 +11,7 @@ pub use gstd::{async_init, async_main, handle_reply_with_hook, message_loop};
 pub use gstd::{debug, exec, msg};
 use sails_idl_meta::{InterfaceId, MethodMeta};
 #[doc(hidden)]
-pub use sails_macros::{event, export, override_entry, program, service};
+pub use sails_macros::{event, export, program, service};
 pub use syscalls::Syscall;
 
 use crate::{

@@ -152,6 +152,14 @@ mod some_service_meta {
         type QueriesMeta = QueriesMeta;
         type EventsMeta = EventsMeta;
         const BASE_SERVICES: &'static [sails_rs::meta::BaseServiceMeta] = &[];
+        const METHODS: &'static [sails_rs::meta::MethodMetadata] = &[
+            sails_rs::meta::MethodMetadata {
+                name: "DoThis",
+                entry_id: 0u16,
+                hash: sails_rs::hash_fn!(command DoThis() -> u32),
+                is_async: false,
+            },
+        ];
         const ASYNC: bool = false;
     }
     #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
@@ -179,14 +187,4 @@ mod some_service_meta {
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum NoEvents {}
     pub type EventsMeta = NoEvents;
-}
-pub mod some_service_methods {
-    use super::*;
-    pub struct DoThis;
-    impl sails_rs::meta::Identifiable for DoThis {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::SomeService as sails_rs::meta::Identifiable>::INTERFACE_ID;
-    }
-    impl sails_rs::meta::MethodMeta for DoThis {
-        const ENTRY_ID: u16 = 0u16;
-    }
 }

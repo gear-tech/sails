@@ -1,0 +1,5 @@
+error[E0080]: evaluation panicked: Method `Foo` is async in the base service but sync in the override
+  --> tests/ui/gservice_fails_override_asyncness_mismatch.rs:21:1
+   |
+21 | #[service(extends = BaseService)]
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ evaluation of `inherited_service_meta::_` failed here

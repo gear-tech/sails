@@ -203,6 +203,20 @@ mod extended_lifetime_meta {
                 super::base::BaseLifetime,
             >("BaseLifetime"),
         ];
+        const METHODS: &'static [sails_rs::meta::MethodMetadata] = &[
+            sails_rs::meta::MethodMetadata {
+                name: "ExtendedName",
+                entry_id: 0u16,
+                hash: sails_rs::hash_fn!(query ExtendedName() -> String),
+                is_async: false,
+            },
+            sails_rs::meta::MethodMetadata {
+                name: "Name",
+                entry_id: 1u16,
+                hash: sails_rs::hash_fn!(query Name() -> String),
+                is_async: false,
+            },
+        ];
         const ASYNC: bool = <super::base::BaseLifetime as sails_rs::meta::ServiceMeta>::ASYNC;
     }
     #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
@@ -244,21 +258,4 @@ mod extended_lifetime_meta {
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum NoEvents {}
     pub type EventsMeta = NoEvents;
-}
-pub mod extended_lifetime_methods {
-    use super::*;
-    pub struct ExtendedName;
-    impl sails_rs::meta::Identifiable for ExtendedName {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::ExtendedLifetime as sails_rs::meta::Identifiable>::INTERFACE_ID;
-    }
-    impl sails_rs::meta::MethodMeta for ExtendedName {
-        const ENTRY_ID: u16 = 0u16;
-    }
-    pub struct Name;
-    impl sails_rs::meta::Identifiable for Name {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::ExtendedLifetime as sails_rs::meta::Identifiable>::INTERFACE_ID;
-    }
-    impl sails_rs::meta::MethodMeta for Name {
-        const ENTRY_ID: u16 = 1u16;
-    }
 }

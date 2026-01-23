@@ -1,5 +1,4 @@
 use super::*;
-use crate::overrides::{OverrideInfo, OverrideTarget};
 use proc_macro2::TokenStream;
 use quote::quote;
 
@@ -122,26 +121,31 @@ impl ServiceBuilder<'_> {
         }
     }
 
-    pub(super) fn generate_override_condition(&self, override_info: &OverrideInfo) -> TokenStream {
+    pub(super) fn generate_override_condition(&self, handler: &FnBuilder) -> Option<TokenStream> {
         let sails_path = self.sails_path;
+        let base_path = handler.overrides.as_ref()?;
+        let base_path_wo_lifetimes = shared::remove_lifetimes(base_path);
 
-        match &override_info.target {
-            OverrideTarget::Type(path) => {
-                quote! {
-                    interface_id == <#path as #sails_path::meta::Identifiable>::INTERFACE_ID
-                    && entry_id == <#path as #sails_path::meta::MethodMeta>::ENTRY_ID
+        let entry_check = if let Some(id) = handler.override_entry_id {
+            quote! { entry_id == #id }
+        } else {
+            let name = &handler.route;
+            quote! {
+                {
+                    let base_methods = <#base_path_wo_lifetimes as #sails_path::meta::ServiceMeta>::METHODS;
+                    if let Some(method) = #sails_path::meta::find_method_data(base_methods, #name, None) {
+                        entry_id == method.entry_id
+                    } else {
+                        false
+                    }
                 }
             }
-            OverrideTarget::Manual {
-                interface,
-                entry_id: base_entry_id,
-            } => {
-                quote! {
-                    interface_id == <#interface as #sails_path::meta::Identifiable>::INTERFACE_ID
-                    && entry_id == #base_entry_id
-                }
-            }
-        }
+        };
+
+        Some(quote! {
+             interface_id == <#base_path_wo_lifetimes as #sails_path::meta::Identifiable>::INTERFACE_ID
+             && #entry_check
+        })
     }
 
     pub(super) fn generate_dispatch_impl(
@@ -174,10 +178,10 @@ impl ServiceBuilder<'_> {
                 continue;
             }
 
-            let entry_id = fn_builder.entry_id;
             let decode_and_handle = handler_gen(fn_builder, &await_token);
 
             if fn_builder.export {
+                let entry_id = fn_builder.entry_id;
                 regular_dispatches.push(quote! {
                     #entry_id => {
                         #decode_and_handle
@@ -185,8 +189,7 @@ impl ServiceBuilder<'_> {
                 });
             }
 
-            if let Some(override_info) = &fn_builder.override_info {
-                let condition = self.generate_override_condition(override_info);
+            if let Some(condition) = self.generate_override_condition(fn_builder) {
                 override_dispatches.push(quote! {
                     if #condition {
                         #decode_and_handle
@@ -198,18 +201,16 @@ impl ServiceBuilder<'_> {
         let base_invocation = if self.base_types.is_empty() && override_dispatches.is_empty() {
             None
         } else {
-            let base_exposure_invocations =
-                self.base_types.iter().enumerate().map(|(idx, base_type)| {
-                    let idx_literal = Literal::usize_unsuffixed(idx);
-                    let base_call =
-                        base_call_gen(quote!(base_service), &await_token, method_name_ident);
-                    quote! {
-                        if #sails_path::meta::service_has_interface_id(&<#metadata_type as #sails_path::meta::ServiceMeta>::BASE_SERVICES[#idx_literal], interface_id) {
-                            let base_service: #base_type = self.#inner_ident.into();
-                            return #base_call;
-                        }
+            let base_exposure_invocations = self.base_types.iter().enumerate().map(|(idx, base_type)| {
+                let idx_literal = Literal::usize_unsuffixed(idx);
+                let base_call = base_call_gen(quote!(base_service), &await_token, method_name_ident);
+                quote! {
+                    if #sails_path::meta::service_has_interface_id(&<#metadata_type as #sails_path::meta::ServiceMeta>::BASE_SERVICES[#idx_literal], interface_id) {
+                        let base_service: #base_type = self.#inner_ident.into();
+                        return #base_call;
                     }
-                });
+                }
+            });
 
             Some(quote! {
                 #( #override_dispatches )*
@@ -221,14 +222,13 @@ impl ServiceBuilder<'_> {
             pub #async_kw fn #method_name_ident #method_sig {
                 #extra_imports
 
-                // Check own methods first
+                // Then check own methods
                 if interface_id == <#metadata_type as #sails_path::meta::Identifiable>::INTERFACE_ID {
                     match entry_id {
                         #( #regular_dispatches )*
                         _ => None,
                     }
                 } else {
-                    // Then check overridden methods or delegate to base services
                     #base_invocation
                     None
                 }
@@ -368,28 +368,14 @@ impl ServiceBuilder<'_> {
             }
         };
 
-        let mut asyncness_checks = Vec::new();
-        let mut override_asyncness_checks = Vec::new();
-
-        for fn_builder in &self.service_handlers {
+        // Generate match arms for each handler's entry_id
+        let asyncness_checks = self.service_handlers.iter().map(|fn_builder| {
+            let entry_id = fn_builder.entry_id;
             let is_async = fn_builder.is_async();
-
-            if fn_builder.export {
-                let entry_id = fn_builder.entry_id;
-                asyncness_checks.push(quote! {
-                    #entry_id => Some(#is_async),
-                });
+            quote! {
+                #entry_id => Some(#is_async),
             }
-
-            if let Some(override_info) = &fn_builder.override_info {
-                let condition = self.generate_override_condition(override_info);
-                override_asyncness_checks.push(quote! {
-                    if #condition {
-                        return Some(#is_async);
-                    }
-                });
-            }
-        }
+        });
 
         let base_services_asyncness_checks = self.base_types.iter().enumerate().map(|(idx, base_type)| {
             let path_wo_lifetimes = shared::remove_lifetimes(base_type);
@@ -411,7 +397,6 @@ impl ServiceBuilder<'_> {
                         _ => None,
                     }
                 } else {
-                    #( #override_asyncness_checks )*
                     #( #base_services_asyncness_checks )*
                     None
                 }

@@ -1,5 +1,4 @@
 use crate::export;
-use crate::overrides::{self, OverrideInfo};
 use convert_case::{Case, Casing};
 use proc_macro_error::abort;
 use proc_macro2::Span;
@@ -83,6 +82,8 @@ pub(crate) struct InvocationExport {
     pub export: bool,
     #[cfg(feature = "ethexe")]
     pub payable: bool,
+    pub overrides: Option<Path>,
+    pub entry_id: Option<u16>,
 }
 
 pub(crate) fn invocation_export(fn_impl: &ImplItemFn) -> Option<InvocationExport> {
@@ -103,6 +104,8 @@ pub(crate) fn invocation_export(fn_impl: &ImplItemFn) -> Option<InvocationExport
             export: true,
             #[cfg(feature = "ethexe")]
             payable,
+            overrides: args.overrides().cloned(),
+            entry_id: args.entry_id(),
         }
     })
 }
@@ -117,6 +120,8 @@ pub(crate) fn invocation_export_or_default(fn_impl: &ImplItemFn) -> InvocationEx
             export: false,
             #[cfg(feature = "ethexe")]
             payable: false,
+            overrides: None,
+            entry_id: None,
         }
     })
 }
@@ -134,17 +139,9 @@ pub(crate) fn discover_invocation_targets<'a>(
             if let ImplItem::Fn(fn_item) = item
                 && filter(fn_item)
             {
-                let override_info = overrides::invocation_override(fn_item);
-                let mut ie = invocation_export_or_default(fn_item);
-
-                // If override is present, we treat it as an export route too
-                if override_info.is_some() {
-                    ie.export = true;
-                }
-
+                let ie = invocation_export_or_default(fn_item);
                 // `entry_id` in order of appearance
                 let entry_id = routes.len() as u16;
-
                 if let Some(duplicate) =
                     routes.insert(ie.route.clone(), fn_item.sig.ident.to_string())
                 {
@@ -154,8 +151,7 @@ pub(crate) fn discover_invocation_targets<'a>(
                         duplicate
                     );
                 }
-
-                let fn_builder = FnBuilder::new(ie, entry_id, fn_item, sails_path, override_info);
+                let fn_builder = FnBuilder::new(ie, entry_id, fn_item, sails_path);
                 return Some(fn_builder);
             }
             None
@@ -305,6 +301,8 @@ pub(crate) struct FnBuilder<'a> {
     pub export: bool,
     #[cfg(feature = "ethexe")]
     pub payable: bool,
+    pub overrides: Option<Path>,
+    pub override_entry_id: Option<u16>,
     pub impl_fn: &'a ImplItemFn,
     pub ident: &'a Ident,
     pub params_struct_ident: Ident,
@@ -313,7 +311,6 @@ pub(crate) struct FnBuilder<'a> {
     pub result_type: Type,
     pub unwrap_result: bool,
     pub sails_path: &'a Path,
-    pub override_info: Option<OverrideInfo>,
 }
 
 impl<'a> FnBuilder<'a> {
@@ -322,7 +319,6 @@ impl<'a> FnBuilder<'a> {
         entry_id: u16,
         impl_fn: &'a ImplItemFn,
         sails_path: &'a Path,
-        override_info: Option<OverrideInfo>,
     ) -> Self {
         let InvocationExport {
             route,
@@ -330,6 +326,8 @@ impl<'a> FnBuilder<'a> {
             export,
             #[cfg(feature = "ethexe")]
             payable,
+            overrides,
+            entry_id: override_entry_id,
             ..
         } = ie;
         let signature = &impl_fn.sig;
@@ -344,6 +342,8 @@ impl<'a> FnBuilder<'a> {
             export,
             #[cfg(feature = "ethexe")]
             payable,
+            overrides,
+            override_entry_id,
             impl_fn,
             ident,
             params_struct_ident,
@@ -352,7 +352,6 @@ impl<'a> FnBuilder<'a> {
             result_type,
             unwrap_result,
             sails_path,
-            override_info,
         }
     }
 

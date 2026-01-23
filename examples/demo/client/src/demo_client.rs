@@ -212,18 +212,22 @@ pub mod mammal_service {
     pub trait MammalService {
         type Env: sails_rs::client::GearEnv;
         fn make_sound(&mut self) -> sails_rs::client::PendingCall<io::MakeSound, Self::Env>;
+        fn sleep(&mut self) -> sails_rs::client::PendingCall<io::Sleep, Self::Env>;
         fn avg_weight(&self) -> sails_rs::client::PendingCall<io::AvgWeight, Self::Env>;
     }
     pub struct MammalServiceImpl;
     impl sails_rs::client::Identifiable for MammalServiceImpl {
         const INTERFACE_ID: sails_rs::InterfaceId =
-            sails_rs::InterfaceId::from_bytes_8([255, 107, 147, 225, 150, 16, 38, 254]);
+            sails_rs::InterfaceId::from_bytes_8([149, 161, 117, 169, 116, 7, 178, 227]);
     }
     impl<E: sails_rs::client::GearEnv> MammalService
         for sails_rs::client::Service<MammalServiceImpl, E>
     {
         type Env = E;
         fn make_sound(&mut self) -> sails_rs::client::PendingCall<io::MakeSound, Self::Env> {
+            self.pending_call(())
+        }
+        fn sleep(&mut self) -> sails_rs::client::PendingCall<io::Sleep, Self::Env> {
             self.pending_call(())
         }
         fn avg_weight(&self) -> sails_rs::client::PendingCall<io::AvgWeight, Self::Env> {
@@ -234,7 +238,8 @@ pub mod mammal_service {
     pub mod io {
         use super::*;
         sails_rs::io_struct_impl!(MakeSound () -> String, 0, <super::MammalServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(AvgWeight () -> u32, 1, <super::MammalServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Sleep () -> String, 1, <super::MammalServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(AvgWeight () -> u32, 2, <super::MammalServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(feature = "with_mocks")]
@@ -242,7 +247,7 @@ pub mod mammal_service {
     pub mod mockall {
         use super::*;
         use sails_rs::mockall::*;
-        mock! { pub MammalService {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl mammal_service::MammalService for MammalService { type Env = sails_rs::client::GstdEnv; fn make_sound (&mut self, ) -> sails_rs::client::PendingCall<mammal_service::io::MakeSound, sails_rs::client::GstdEnv>;fn avg_weight (&self, ) -> sails_rs::client::PendingCall<mammal_service::io::AvgWeight, sails_rs::client::GstdEnv>; } }
+        mock! { pub MammalService {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl mammal_service::MammalService for MammalService { type Env = sails_rs::client::GstdEnv; fn make_sound (&mut self, ) -> sails_rs::client::PendingCall<mammal_service::io::MakeSound, sails_rs::client::GstdEnv>;fn sleep (&mut self, ) -> sails_rs::client::PendingCall<mammal_service::io::Sleep, sails_rs::client::GstdEnv>;fn avg_weight (&self, ) -> sails_rs::client::PendingCall<mammal_service::io::AvgWeight, sails_rs::client::GstdEnv>; } }
     }
 }
 
@@ -327,7 +332,7 @@ pub mod dog {
     pub struct DogImpl;
     impl sails_rs::client::Identifiable for DogImpl {
         const INTERFACE_ID: sails_rs::InterfaceId =
-            sails_rs::InterfaceId::from_bytes_8([24, 102, 110, 103, 162, 25, 23, 161]);
+            sails_rs::InterfaceId::from_bytes_8([222, 7, 107, 60, 12, 222, 58, 79]);
     }
     impl<E: sails_rs::client::GearEnv> Dog for sails_rs::client::Service<DogImpl, E> {
         type Env = E;
@@ -691,6 +696,7 @@ pub mod inheritance {
     pub trait Inheritance {
         type Env: sails_rs::client::GearEnv;
         fn make_sound(&mut self) -> sails_rs::client::PendingCall<io::MakeSound, Self::Env>;
+        fn sleep(&mut self) -> sails_rs::client::PendingCall<io::Sleep, Self::Env>;
         fn walk(
             &mut self,
             _dx: i32,
@@ -707,11 +713,14 @@ pub mod inheritance {
     pub struct InheritanceImpl;
     impl sails_rs::client::Identifiable for InheritanceImpl {
         const INTERFACE_ID: sails_rs::InterfaceId =
-            sails_rs::InterfaceId::from_bytes_8([115, 82, 93, 40, 155, 52, 201, 174]);
+            sails_rs::InterfaceId::from_bytes_8([171, 7, 219, 239, 16, 255, 7, 84]);
     }
     impl<E: sails_rs::client::GearEnv> Inheritance for sails_rs::client::Service<InheritanceImpl, E> {
         type Env = E;
         fn make_sound(&mut self) -> sails_rs::client::PendingCall<io::MakeSound, Self::Env> {
+            self.pending_call(())
+        }
+        fn sleep(&mut self) -> sails_rs::client::PendingCall<io::Sleep, Self::Env> {
             self.pending_call(())
         }
         fn walk(
@@ -741,8 +750,9 @@ pub mod inheritance {
     pub mod io {
         use super::*;
         sails_rs::io_struct_impl!(MakeSound () -> String, 0, <super::InheritanceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(Walk (_dx: i32, _dy: i32) -> (), 1, <super::InheritanceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(AvgWeight () -> u32, 2, <super::InheritanceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Sleep () -> String, 1, <super::InheritanceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Walk (_dx: i32, _dy: i32) -> (), 2, <super::InheritanceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(AvgWeight () -> u32, 3, <super::InheritanceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(feature = "with_mocks")]
@@ -750,7 +760,7 @@ pub mod inheritance {
     pub mod mockall {
         use super::*;
         use sails_rs::mockall::*;
-        mock! { pub Inheritance {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl inheritance::Inheritance for Inheritance { type Env = sails_rs::client::GstdEnv; fn make_sound (&mut self, ) -> sails_rs::client::PendingCall<inheritance::io::MakeSound, sails_rs::client::GstdEnv>;fn walk (&mut self, _dx: i32, _dy: i32) -> sails_rs::client::PendingCall<inheritance::io::Walk, sails_rs::client::GstdEnv>;fn avg_weight (&self, ) -> sails_rs::client::PendingCall<inheritance::io::AvgWeight, sails_rs::client::GstdEnv>;fn mammal_service (&self, ) -> sails_rs::client::Service<super::mammal_service::MammalServiceImpl, sails_rs::client::GstdEnv>;fn walker_service (&self, ) -> sails_rs::client::Service<super::walker_service::WalkerServiceImpl, sails_rs::client::GstdEnv>; } }
+        mock! { pub Inheritance {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl inheritance::Inheritance for Inheritance { type Env = sails_rs::client::GstdEnv; fn make_sound (&mut self, ) -> sails_rs::client::PendingCall<inheritance::io::MakeSound, sails_rs::client::GstdEnv>;fn sleep (&mut self, ) -> sails_rs::client::PendingCall<inheritance::io::Sleep, sails_rs::client::GstdEnv>;fn walk (&mut self, _dx: i32, _dy: i32) -> sails_rs::client::PendingCall<inheritance::io::Walk, sails_rs::client::GstdEnv>;fn avg_weight (&self, ) -> sails_rs::client::PendingCall<inheritance::io::AvgWeight, sails_rs::client::GstdEnv>;fn mammal_service (&self, ) -> sails_rs::client::Service<super::mammal_service::MammalServiceImpl, sails_rs::client::GstdEnv>;fn walker_service (&self, ) -> sails_rs::client::Service<super::walker_service::WalkerServiceImpl, sails_rs::client::GstdEnv>; } }
     }
 }
 
@@ -772,7 +782,7 @@ pub mod chain {
     pub struct ChainImpl;
     impl sails_rs::client::Identifiable for ChainImpl {
         const INTERFACE_ID: sails_rs::InterfaceId =
-            sails_rs::InterfaceId::from_bytes_8([136, 2, 251, 53, 247, 60, 253, 246]);
+            sails_rs::InterfaceId::from_bytes_8([61, 247, 246, 242, 63, 95, 98, 247]);
     }
     impl<E: sails_rs::client::GearEnv> Chain for sails_rs::client::Service<ChainImpl, E> {
         type Env = E;

@@ -25,9 +25,10 @@ service Counter@0x579d6daba41b7d82 {
     }
 }
 
-service MammalService@0xff6b93e1961026fe {
+service MammalService@0x95a175a97407b2e3 {
     functions {
         MakeSound() -> String;
+        Sleep() -> String;
         @query
         AvgWeight() -> u32;
     }
@@ -47,9 +48,9 @@ service WalkerService@0xee1536b55170bf0a {
     }
 }
 
-service Dog@0x18666e67a21917a1 {
+service Dog@0xde076b3c0cde3a4f {
     extends {
-        MammalService@0xff6b93e1961026fe,
+        MammalService@0x95a175a97407b2e3,
         WalkerService@0xee1536b55170bf0a,
     }
     events {
@@ -142,22 +143,23 @@ service Chaos@0xf0c8c80dfabf72d5 {
     }
 }
 
-service Inheritance@0x73525d289b34c9ae {
+service Inheritance@0xab07dbef10ff0754 {
     extends {
-        MammalService@0xff6b93e1961026fe,
+        MammalService@0x95a175a97407b2e3,
         WalkerService@0xee1536b55170bf0a,
     }
     functions {
         MakeSound() -> String;
+        Sleep() -> String;
         Walk(_dx: i32, _dy: i32);
         @query
         AvgWeight() -> u32;
     }
 }
 
-service Chain@0x8802fb35f73cfdf6 {
+service Chain@0x3df7f6f23f5f62f7 {
     extends {
-        Inheritance@0x73525d289b34c9ae,
+        Inheritance@0xab07dbef10ff0754,
     }
     functions {
         MakeSound() -> String;
@@ -177,12 +179,12 @@ program DemoClient {
     services {
         PingPong@0x6d0eb40dde4038f7,
         Counter@0x579d6daba41b7d82,
-        Dog@0x18666e67a21917a1,
+        Dog@0xde076b3c0cde3a4f,
         References@0x8a0f8abe176d75b9,
         ThisThat@0x381e13fdd02d675f,
         ValueFee@0x41c1080b4e1e8dc5,
         Chaos@0xf0c8c80dfabf72d5,
-        Inheritance@0x73525d289b34c9ae,
-        Chain@0x8802fb35f73cfdf6,
+        Inheritance@0xab07dbef10ff0754,
+        Chain@0x3df7f6f23f5f62f7,
     }
 }

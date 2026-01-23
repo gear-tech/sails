@@ -323,3 +323,28 @@ fn works_with_export() {
 
     insta::assert_snapshot!(result);
 }
+
+#[test]
+fn works_with_overrides() {
+    let args = quote! {
+        extends = BaseService
+    };
+    let input = quote! {
+        impl InheritedService {
+            #[export(overrides = BaseService)]
+            pub fn foo(&self) -> u32 {
+                200
+            }
+
+            #[export(overrides = BaseService, entry_id = 1)]
+            pub fn bar(&self) -> u32 {
+                300
+            }
+        }
+    };
+
+    let result = gservice(args, input).to_string();
+    let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
+
+    insta::assert_snapshot!(result);
+}

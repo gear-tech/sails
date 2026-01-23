@@ -69,7 +69,6 @@ struct ServiceBuilder<'a> {
     route_idx_ident: Ident,
     inner_ident: Ident,
     meta_module_ident: Ident,
-    methods_module_ident: Ident,
 }
 
 struct DispatchParams<'a> {
@@ -99,9 +98,6 @@ impl<'a> ServiceBuilder<'a> {
         let inner_ident = Ident::new("inner", Span::call_site());
         let meta_module_name = format!("{}_meta", service_ident.to_string().to_case(Case::Snake));
         let meta_module_ident = Ident::new(&meta_module_name, Span::call_site());
-        let methods_module_name =
-            format!("{}_methods", service_ident.to_string().to_case(Case::Snake));
-        let methods_module_ident = Ident::new(&methods_module_name, Span::call_site());
 
         let base_types = service_args.base_types();
 
@@ -118,7 +114,6 @@ impl<'a> ServiceBuilder<'a> {
             route_idx_ident,
             inner_ident,
             meta_module_ident,
-            methods_module_ident,
         }
     }
 
@@ -162,7 +157,6 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     }
 
     let meta_module = service_builder.meta_module();
-    let methods_module = service_builder.methods_module();
 
     let exposure_struct = service_builder.exposure_struct();
     let exposure_impl = service_builder.exposure_impl();
@@ -179,8 +173,6 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         #service_trait_impl
 
         #meta_module
-
-        #methods_module
 
         #service_signature_impl
     )

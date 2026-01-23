@@ -1,0 +1,5 @@
+error[E0080]: evaluation panicked: Override signature mismatch for method `WrongName`
+  --> tests/ui/gservice_fails_override_wrong_name_correct_id.rs:21:1
+   |
+21 | #[service(extends = BaseService)]
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ evaluation of `inherited_service_meta::_` failed here

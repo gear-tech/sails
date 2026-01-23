@@ -55,6 +55,9 @@ impl ServiceBuilder<'_> {
         };
 
         let interface_id_computation = self.generate_interface_id();
+        let methods_meta = self.generate_methods_meta();
+
+        let override_validations = self.generate_override_validations();
 
         quote! {
             impl #generics #sails_path::meta::Identifiable for super:: #service_type_path #service_type_constraints {
@@ -68,36 +71,13 @@ impl ServiceBuilder<'_> {
                 const BASE_SERVICES: &'static [#sails_path::meta::BaseServiceMeta] = &[
                     #( #base_services_meta ),*
                 ];
+                const METHODS: &'static [#sails_path::meta::MethodMetadata] = &[
+                    #( #methods_meta ),*
+                ];
                 const ASYNC: bool = #service_meta_asyncness ;
             }
-        }
-    }
 
-    pub(super) fn methods_module(&self) -> TokenStream {
-        let sails_path = self.sails_path;
-        let service_type_path = self.type_path;
-        let path_wo_lifetimes = shared::remove_lifetimes(&service_type_path.path);
-        let methods_module_ident = &self.methods_module_ident;
-
-        let method_markers = self.service_handlers.iter().map(|handler| {
-            let method_name = Ident::new(&handler.route.to_case(Case::Pascal), Span::call_site());
-            let entry_id = handler.entry_id;
-            quote! {
-                pub struct #method_name;
-                impl #sails_path::meta::Identifiable for #method_name {
-                    const INTERFACE_ID: #sails_path::meta::InterfaceId = <super:: #path_wo_lifetimes as #sails_path::meta::Identifiable>::INTERFACE_ID;
-                }
-                impl #sails_path::meta::MethodMeta for #method_name {
-                    const ENTRY_ID: u16 = #entry_id;
-                }
-            }
-        });
-
-        quote! {
-            pub mod #methods_module_ident {
-                use super::*;
-                #( #method_markers )*
-            }
+            #override_validations
         }
     }
 
@@ -165,27 +145,9 @@ impl ServiceBuilder<'_> {
             .into_iter()
             .chain(queries)
             .map(|handler| {
-                let fn_type = if handler.is_query() { quote! { query }  } else { quote! { command } };
-                let fn_name = Ident::new(&handler.route, Span::call_site());
-
-                let arg_types = handler.params().map(|(_, ty)| ty);
-
-                // Generate RES_HASH - check if result type is Result<T, E>
-                let result_type = handler.result_type_with_static_lifetime();
-                let result_tokens = if handler.unwrap_result
-                    && let Type::Path(ref tp) = result_type
-                    && let Some((ok_ty, err_ty)) = shared::extract_result_types(tp) {
-                    // Result type: RES_HASH = b"res" || T::HASH || b"throws" || E::HASH
-                    quote!( -> #ok_ty | #err_ty )
-                } else {
-                    // Other types: RES_HASH = b"res" || REFLECT_HASH
-                    quote!( -> #result_type )
-                };
-
-                // FN_HASH = hash(bytes(FN_TYPE) || bytes(FN_NAME) || ARGS_REFLECT_HASH || RES_HASH)
-                // RES_HASH = (b"res" || REFLECT_HASH) | (b"res" || T_REFLECT_HASH || bytes("throws") || E_REFLECT_HASH)
+                let fn_hash = self.generate_fn_hash(handler);
                 quote! {
-                    final_hash = final_hash.update(& #sails_path::hash_fn!( #fn_type #fn_name ( #( #arg_types ),* ) #result_tokens ));
+                    final_hash = final_hash.update(& #fn_hash);
                 }
             })
             .collect();
@@ -226,5 +188,97 @@ impl ServiceBuilder<'_> {
                 #sails_path::meta::InterfaceId::from_bytes_32(hash)
             }
         }
+    }
+
+    fn generate_methods_meta(&self) -> Vec<TokenStream> {
+        let sails_path = self.sails_path;
+        self.service_handlers
+            .iter()
+            .map(|handler| {
+                let name = &handler.route;
+                let entry_id = handler.entry_id;
+                let fn_hash = self.generate_fn_hash(handler);
+                let is_async = handler.is_async();
+
+                quote! {
+                    #sails_path::meta::MethodMetadata {
+                        name: #name,
+                        entry_id: #entry_id,
+                        hash: #fn_hash,
+                        is_async: #is_async,
+                    }
+                }
+            })
+            .collect()
+    }
+
+    fn generate_fn_hash(&self, handler: &FnBuilder) -> TokenStream {
+        let sails_path = self.sails_path;
+        let fn_type = if handler.is_query() {
+            quote! { query }
+        } else {
+            quote! { command }
+        };
+        let fn_name = Ident::new(&handler.route, Span::call_site());
+        let arg_types = handler.params().map(|(_, ty)| ty);
+
+        let result_type = handler.result_type_with_static_lifetime();
+        let result_tokens = if handler.unwrap_result
+            && let Type::Path(ref tp) = result_type
+            && let Some((ok_ty, err_ty)) = shared::extract_result_types(tp)
+        {
+            // Result type: RES_HASH = b"res" || T::HASH || b"throws" || E::HASH
+            quote!( -> #ok_ty | #err_ty )
+        } else {
+            // Other types: RES_HASH = b"res" || REFLECT_HASH
+            quote!( -> #result_type )
+        };
+
+        // FN_HASH = hash(bytes(FN_TYPE) || bytes(FN_NAME) || ARGS_REFLECT_HASH || RES_HASH)
+        // RES_HASH = (b"res" || REFLECT_HASH) | (b"res" || T_REFLECT_HASH || bytes("throws") || E_REFLECT_HASH)
+        quote! {
+            #sails_path::hash_fn!( #fn_type #fn_name ( #( #arg_types ),* ) #result_tokens )
+        }
+    }
+
+    fn generate_override_validations(&self) -> TokenStream {
+        let sails_path = self.sails_path;
+        let validations = self.service_handlers.iter().filter_map(|handler| {
+            handler.overrides.as_ref().map(|base_path| {
+                let name = &handler.route;
+                let fn_hash = self.generate_fn_hash(handler);
+                let entry_id_arg = if let Some(id) = handler.override_entry_id {
+                    quote! { Some(#id) }
+                } else {
+                    quote! { None }
+                };
+
+                let base_path_wo_lifetimes = shared::remove_lifetimes(base_path);
+                let is_async = handler.is_async();
+
+                quote! {
+                    const _: () = {
+                        let base_methods = <super::#base_path_wo_lifetimes as #sails_path::meta::ServiceMeta>::METHODS;
+
+                        if let Some(method) = #sails_path::meta::find_method_data(base_methods, #name, #entry_id_arg) {
+                            if !#sails_path::meta::bytes32_eq(&method.hash, &#fn_hash) {
+                                core::panic!(concat!("Override signature mismatch for method `", #name, "`"));
+                            }
+                            if method.is_async != #is_async {
+                                if method.is_async {
+                                    core::panic!(concat!("Method `", #name, "` is async in the base service but sync in the override"));
+                                } else {
+                                    core::panic!(concat!("Method `", #name, "` is sync in the base service but async in the override"));
+                                }
+                            }
+                        } else {
+                            core::panic!(concat!("Method `", #name, "` not found in base service"));
+                        }
+                    };
+                }
+            })
+        });
+
+        quote! { #( #validations )* }
     }
 }

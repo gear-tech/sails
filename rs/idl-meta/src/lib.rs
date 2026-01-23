@@ -166,6 +166,15 @@ impl BaseServiceMeta {
     }
 }
 
+/// Metadata for a service method.
+#[derive(Debug)]
+pub struct MethodMetadata {
+    pub name: &'static str,
+    pub entry_id: u16,
+    pub hash: [u8; 32],
+    pub is_async: bool,
+}
+
 pub trait ServiceMeta: Identifiable {
     type CommandsMeta: StaticTypeInfo;
     type QueriesMeta: StaticTypeInfo;
@@ -174,6 +183,7 @@ pub trait ServiceMeta: Identifiable {
     const BASE_SERVICES: &'static [BaseServiceMeta];
     /// The order of base services here is lexicographical by their names
     // const BASE_SERVICES_IDS: &'static [AnyServiceIds];
+    const METHODS: &'static [MethodMetadata];
     const ASYNC: bool;
 
     fn commands() -> MetaType {
@@ -327,6 +337,54 @@ pub const fn service_has_interface_id(
         }
         false
     }
+}
+
+pub const fn str_eq(a: &str, b: &str) -> bool {
+    let a_bytes = a.as_bytes();
+    let b_bytes = b.as_bytes();
+    if a_bytes.len() != b_bytes.len() {
+        return false;
+    }
+    let mut i = 0;
+    while i < a_bytes.len() {
+        if a_bytes[i] != b_bytes[i] {
+            return false;
+        }
+        i += 1;
+    }
+    true
+}
+
+pub const fn bytes32_eq(a: &[u8; 32], b: &[u8; 32]) -> bool {
+    let mut i = 0;
+    while i < 32 {
+        if a[i] != b[i] {
+            return false;
+        }
+        i += 1;
+    }
+    true
+}
+
+pub const fn find_method_data(
+    methods: &'static [MethodMetadata],
+    name: &str,
+    entry_id: Option<u16>,
+) -> Option<&'static MethodMetadata> {
+    let mut i = 0;
+    while i < methods.len() {
+        let m = &methods[i];
+        let found = if let Some(id) = entry_id {
+            m.entry_id == id
+        } else {
+            str_eq(m.name, name)
+        };
+        if found {
+            return Some(m);
+        }
+        i += 1;
+    }
+    None
 }
 
 #[cfg(test)]

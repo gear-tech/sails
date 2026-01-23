@@ -246,6 +246,18 @@ mod some_service_meta {
         type QueriesMeta = QueriesMeta;
         type EventsMeta = EventsMeta;
         const BASE_SERVICES: &'static [sails_rename::meta::BaseServiceMeta] = &[];
+        const METHODS: &'static [sails_rename::meta::MethodMetadata] = &[
+            sails_rename::meta::MethodMetadata {
+                name: "DoThis",
+                entry_id: 0u16,
+                hash: sails_rename::hash_fn!(command DoThis(u32, String) -> u32),
+            },
+            sails_rename::meta::MethodMetadata {
+                name: "This",
+                entry_id: 1u16,
+                hash: sails_rename::hash_fn!(query This(bool) -> bool),
+            },
+        ];
         const ASYNC: bool = true;
     }
     #[derive(sails_rename::Decode, sails_rename::TypeInfo)]
@@ -293,23 +305,6 @@ mod some_service_meta {
     #[scale_info(crate = sails_rename::scale_info)]
     pub enum NoEvents {}
     pub type EventsMeta = NoEvents;
-}
-pub mod some_service_methods {
-    use super::*;
-    pub struct DoThis;
-    impl sails_rename::meta::Identifiable for DoThis {
-        const INTERFACE_ID: sails_rename::meta::InterfaceId = <super::SomeService as sails_rename::meta::Identifiable>::INTERFACE_ID;
-    }
-    impl sails_rename::meta::MethodMeta for DoThis {
-        const ENTRY_ID: u16 = 0u16;
-    }
-    pub struct This;
-    impl sails_rename::meta::Identifiable for This {
-        const INTERFACE_ID: sails_rename::meta::InterfaceId = <super::SomeService as sails_rename::meta::Identifiable>::INTERFACE_ID;
-    }
-    impl sails_rename::meta::MethodMeta for This {
-        const ENTRY_ID: u16 = 1u16;
-    }
 }
 impl sails_rename::solidity::ServiceSignature for SomeService {
     const METHODS: &'static [sails_rename::solidity::MethodExpo] = &[

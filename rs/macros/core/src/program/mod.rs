@@ -192,13 +192,8 @@ impl ProgramBuilder {
 
                 invocation_export.export = true;
 
-                let fn_builder = FnBuilder::new(
-                    invocation_export,
-                    entry_id,
-                    fn_item,
-                    self.sails_path(),
-                    None,
-                );
+                let fn_builder =
+                    FnBuilder::new(invocation_export, entry_id, fn_item, self.sails_path());
 
                 let original_service_ctor_fn = fn_builder.original_service_ctor_fn();
                 let wrapping_service_ctor_fn =
