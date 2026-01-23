@@ -327,11 +327,13 @@ mod extended_with_lifetime_meta {
                 name: "ExtendedName",
                 entry_id: 0u16,
                 hash: sails_rs::hash_fn!(query ExtendedName() -> String),
+                is_async: false,
             },
             sails_rs::meta::MethodMetadata {
                 name: "Name",
                 entry_id: 1u16,
                 hash: sails_rs::hash_fn!(query Name() -> String),
+                is_async: false,
             },
         ];
         const ASYNC: bool = <super::BaseWithLifetime as sails_rs::meta::ServiceMeta>::ASYNC;

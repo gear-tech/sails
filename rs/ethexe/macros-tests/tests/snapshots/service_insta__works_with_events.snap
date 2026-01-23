@@ -253,11 +253,13 @@ mod my_service_with_events_meta {
                 name: "DoThis",
                 entry_id: 0u16,
                 hash: sails_rs::hash_fn!(command DoThis() -> u32),
+                is_async: false,
             },
             sails_rs::meta::MethodMetadata {
                 name: "This",
                 entry_id: 1u16,
                 hash: sails_rs::hash_fn!(query This() -> bool),
+                is_async: false,
             },
         ];
         const ASYNC: bool = false;

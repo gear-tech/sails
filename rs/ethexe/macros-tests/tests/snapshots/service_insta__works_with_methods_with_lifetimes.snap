@@ -405,26 +405,31 @@ mod reference_service_meta {
                 name: "AddByte",
                 entry_id: 0u16,
                 hash: sails_rs::hash_fn!(command AddByte(u8) -> & 'static [u8]),
+                is_async: false,
             },
             sails_rs::meta::MethodMetadata {
                 name: "Incr",
                 entry_id: 1u16,
                 hash: sails_rs::hash_fn!(command Incr() -> & 'static ReferenceCount),
+                is_async: false,
             },
             sails_rs::meta::MethodMetadata {
                 name: "Baked",
                 entry_id: 2u16,
                 hash: sails_rs::hash_fn!(query Baked() -> & 'static str),
+                is_async: false,
             },
             sails_rs::meta::MethodMetadata {
                 name: "FirstByte",
                 entry_id: 3u16,
                 hash: sails_rs::hash_fn!(query FirstByte() -> Option < & 'static u8 >),
+                is_async: true,
             },
             sails_rs::meta::MethodMetadata {
                 name: "LastByte",
                 entry_id: 4u16,
                 hash: sails_rs::hash_fn!(query LastByte() -> Option < & 'static u8 >),
+                is_async: true,
             },
         ];
         const ASYNC: bool = true;

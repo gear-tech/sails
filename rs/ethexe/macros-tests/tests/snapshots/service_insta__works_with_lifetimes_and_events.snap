@@ -228,6 +228,7 @@ mod my_generic_events_service_meta {
                 name: "DoThis",
                 entry_id: 0u16,
                 hash: sails_rs::hash_fn!(command DoThis() -> u32),
+                is_async: false,
             },
         ];
         const ASYNC: bool = false;
