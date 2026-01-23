@@ -134,16 +134,9 @@ impl ServiceBuilder<'_> {
     fn generate_interface_id(&self) -> TokenStream {
         let sails_path = self.sails_path;
 
-        // Sort handlers by name for deterministic ordering
-        let (mut commands, mut queries): (Vec<_>, Vec<_>) =
-            self.service_handlers.iter().partition(|h| !h.is_query());
-
-        commands.sort_by_key(|h| h.route.to_lowercase());
-        queries.sort_by_key(|h| h.route.to_lowercase());
-
-        let fn_hash_computations: Vec<_> = commands
-            .into_iter()
-            .chain(queries)
+        let fn_hash_computations: Vec<_> = self
+            .service_handlers
+            .iter()
             .map(|handler| {
                 let fn_hash = self.generate_fn_hash(handler);
                 quote! {

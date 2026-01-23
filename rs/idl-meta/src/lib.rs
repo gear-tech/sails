@@ -371,14 +371,17 @@ pub const fn find_method_data(
     name: &str,
     entry_id: Option<u16>,
 ) -> Option<&'static MethodMetadata> {
+    if let Some(id) = entry_id {
+        let i = id as usize;
+        if i < methods.len() {
+            return Some(&methods[i]);
+        }
+        return None;
+    }
     let mut i = 0;
     while i < methods.len() {
         let m = &methods[i];
-        let found = match entry_id {
-            Some(id) => m.entry_id == id,
-            None => str_eq(m.name, name),
-        };
-        if found {
+        if str_eq(m.name, name) {
             return Some(m);
         }
         i += 1;
