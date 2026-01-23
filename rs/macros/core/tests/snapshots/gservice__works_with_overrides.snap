@@ -141,18 +141,14 @@ impl InheritedServiceExposure<InheritedService> {
             }
             if interface_id
                 == <BaseService as sails_rs::meta::Identifiable>::INTERFACE_ID
-                && {
-                    let base_methods = <BaseService as sails_rs::meta::ServiceMeta>::METHODS;
-                    if let Some(method) = sails_rs::meta::find_method_data(
-                        base_methods,
-                        "Foo",
-                        None,
-                    ) {
-                        entry_id == method.entry_id
-                    } else {
-                        false
+                && entry_id
+                    == {
+                        const ID: u16 = sails_rs::meta::find_id(
+                            <BaseService as sails_rs::meta::ServiceMeta>::METHODS,
+                            "Foo",
+                        );
+                        ID
                     }
-                }
             {
                 let request: inherited_service_meta::__FooParams = sails_rs::scale_codec::Decode::decode(
                         &mut input,

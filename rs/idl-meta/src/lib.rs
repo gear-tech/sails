@@ -374,10 +374,9 @@ pub const fn find_method_data(
     let mut i = 0;
     while i < methods.len() {
         let m = &methods[i];
-        let found = if let Some(id) = entry_id {
-            m.entry_id == id
-        } else {
-            str_eq(m.name, name)
+        let found = match entry_id {
+            Some(id) => m.entry_id == id,
+            None => str_eq(m.name, name),
         };
         if found {
             return Some(m);
@@ -385,6 +384,17 @@ pub const fn find_method_data(
         i += 1;
     }
     None
+}
+
+pub const fn find_id(methods: &'static [MethodMetadata], name: &str) -> u16 {
+    let mut i = 0;
+    while i < methods.len() {
+        if str_eq(methods[i].name, name) {
+            return methods[i].entry_id;
+        }
+        i += 1;
+    }
+    0
 }
 
 #[cfg(test)]

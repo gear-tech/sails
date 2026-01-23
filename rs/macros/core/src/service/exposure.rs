@@ -131,13 +131,12 @@ impl ServiceBuilder<'_> {
         } else {
             let name = &handler.route;
             quote! {
-                {
-                    let base_methods = <#base_path_wo_lifetimes as #sails_path::meta::ServiceMeta>::METHODS;
-                    if let Some(method) = #sails_path::meta::find_method_data(base_methods, #name, None) {
-                        entry_id == method.entry_id
-                    } else {
-                        false
-                    }
+                entry_id == {
+                    const ID: u16 = #sails_path::meta::find_id(
+                        <#base_path_wo_lifetimes as #sails_path::meta::ServiceMeta>::METHODS,
+                        #name,
+                    );
+                    ID
                 }
             }
         };
