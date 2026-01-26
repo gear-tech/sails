@@ -4,7 +4,6 @@ import type {
   IFuncParam,
   FunctionKind,
   IIdlDoc,
-  InterfaceId,
   IProgramUnit,
   IServiceEvent,
   IServiceExpo,
@@ -20,6 +19,7 @@ import type {
   ICtorFunc,
   IEnumVariant,
 } from "./idl-v2-types";
+import { InterfaceId } from "./interface_id";
 
 const mapArray = <T, U>(items: T[] | undefined, map: (item: T) => U): U[] | undefined =>
   items?.map(map);
@@ -60,7 +60,7 @@ export class ServiceIdent implements IServiceIdent {
 
   constructor(data: IServiceIdent) {
     this.name = data.name;
-    this.interface_id = data.interface_id;
+    this.interface_id = data.interface_id ? InterfaceId.from(data.interface_id) : undefined;
   }
 }
 
@@ -273,10 +273,12 @@ const normalizeCtorFunc = (data: ICtorFunc): ICtorFunc => ({
 
 const normalizeServiceIdent = (data: IServiceIdent): IServiceIdent => ({
   ...data,
+  interface_id: data.interface_id ? InterfaceId.from(data.interface_id) : undefined,
 });
 
 const normalizeServiceExpo = (data: IServiceExpo): IServiceExpo => ({
   ...normalizeDocAnnotated(data),
+  interface_id: data.interface_id ? InterfaceId.from(data.interface_id) : undefined,
 });
 
 const normalizeServiceFunc = (data: IServiceFunc): IServiceFunc => ({
@@ -286,6 +288,7 @@ const normalizeServiceFunc = (data: IServiceFunc): IServiceFunc => ({
 
 const normalizeServiceUnit = (data: IServiceUnit): IServiceUnit => ({
   ...normalizeDocAnnotated(data),
+  interface_id: data.interface_id ? InterfaceId.from(data.interface_id) : undefined,
   extends: (data.extends ?? []).map(normalizeServiceIdent),
   funcs: (data.funcs ?? []).map(normalizeServiceFunc),
   events: (data.events ?? []).map(normalizeEnumVariant),

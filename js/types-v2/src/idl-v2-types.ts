@@ -4,7 +4,17 @@ export interface IDocAnnotated {
 }
 
 export type AnnotationEntry = [string, string | null];
-export type InterfaceId = string;
+export type InterfaceIdInput =
+  | string
+  | Uint8Array
+  | ArrayLike<number>
+  | number
+  | bigint
+  | IInterfaceId;
+
+export interface IInterfaceId {
+  bytes: Uint8Array;
+}
 
 export interface IIdlDoc {
   globals?: AnnotationEntry[];
@@ -21,7 +31,7 @@ export interface IProgramUnit extends IDocAnnotated {
 
 export interface IServiceIdent {
   name: string;
-  interface_id?: InterfaceId;
+  interface_id?: InterfaceIdInput;
 }
 
 export interface IServiceExpo extends IServiceIdent, IDocAnnotated {
