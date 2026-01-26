@@ -702,3 +702,45 @@ async fn validator_range_check_works() {
     let res = validator_client.validate_range(150, 0, 100).await.unwrap();
     assert_eq!(res, Err(ValidationError::TooBig));
 }
+
+#[tokio::test]
+async fn validator_nonzero_works() {
+    use demo_client::validator::Validator as _;
+    let (env, code_id, _gas_limit) = create_env();
+    let demo_program = env
+        .deploy(code_id, vec![])
+        .new(Some(42), None)
+        .await
+        .unwrap();
+
+    let validator_client = demo_program.validator();
+
+    // Success case (Ok(()))
+    let res = validator_client.validate_nonzero(10).await.unwrap();
+    assert_eq!(res, Ok(()));
+
+    // Error case (Err(String))
+    let res = validator_client.validate_nonzero(0).await.unwrap();
+    assert_eq!(res, Err("Value is zero".to_string()));
+}
+
+#[tokio::test]
+async fn validator_even_works() {
+    use demo_client::validator::Validator as _;
+    let (env, code_id, _gas_limit) = create_env();
+    let demo_program = env
+        .deploy(code_id, vec![])
+        .new(Some(42), None)
+        .await
+        .unwrap();
+
+    let validator_client = demo_program.validator();
+
+    // Success case
+    let res = validator_client.validate_even(10).await.unwrap();
+    assert_eq!(res, Ok(10));
+
+    // Error case (Err(()))
+    let res = validator_client.validate_even(7).await.unwrap();
+    assert_eq!(res, Err(()));
+}

@@ -24,4 +24,18 @@ impl Validator {
             Ok(value)
         }
     }
+
+    #[export]
+    pub fn validate_nonzero(&self, value: u32) -> Result<(), String> {
+        if value == 0 {
+            Err("Value is zero".to_string())
+        } else {
+            Ok(())
+        }
+    }
+
+    #[export]
+    pub fn validate_even(&self, value: u32) -> Result<u32, ()> {
+        if value % 2 != 0 { Err(()) } else { Ok(value) }
+    }
 }

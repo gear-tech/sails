@@ -693,6 +693,14 @@ pub mod validator {
     }
     pub trait Validator {
         type Env: sails_rs::client::GearEnv;
+        fn validate_even(
+            &self,
+            value: u32,
+        ) -> sails_rs::client::PendingCall<io::ValidateEven, Self::Env>;
+        fn validate_nonzero(
+            &self,
+            value: u32,
+        ) -> sails_rs::client::PendingCall<io::ValidateNonzero, Self::Env>;
         fn validate_range(
             &self,
             value: u32,
@@ -703,10 +711,22 @@ pub mod validator {
     pub struct ValidatorImpl;
     impl sails_rs::client::Identifiable for ValidatorImpl {
         const INTERFACE_ID: sails_rs::InterfaceId =
-            sails_rs::InterfaceId::from_bytes_8([171, 254, 151, 234, 183, 123, 41, 25]);
+            sails_rs::InterfaceId::from_bytes_8([31, 113, 116, 232, 162, 47, 166, 249]);
     }
     impl<E: sails_rs::client::GearEnv> Validator for sails_rs::client::Service<ValidatorImpl, E> {
         type Env = E;
+        fn validate_even(
+            &self,
+            value: u32,
+        ) -> sails_rs::client::PendingCall<io::ValidateEven, Self::Env> {
+            self.pending_call((value,))
+        }
+        fn validate_nonzero(
+            &self,
+            value: u32,
+        ) -> sails_rs::client::PendingCall<io::ValidateNonzero, Self::Env> {
+            self.pending_call((value,))
+        }
         fn validate_range(
             &self,
             value: u32,
@@ -719,7 +739,9 @@ pub mod validator {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(ValidateRange (value: u32, min: u32, max: u32) -> super::Result<u32, super::ValidationError>, 0, <super::ValidatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws u32, super::ValidationError);
+        sails_rs::io_struct_impl!(ValidateEven (value: u32) -> super::Result<u32, ()>, 0, <super::ValidatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws u32, ());
+        sails_rs::io_struct_impl!(ValidateNonzero (value: u32) -> super::Result<(), String>, 1, <super::ValidatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws (), String);
+        sails_rs::io_struct_impl!(ValidateRange (value: u32, min: u32, max: u32) -> super::Result<u32, super::ValidationError>, 2, <super::ValidatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws u32, super::ValidationError);
     }
 
     #[cfg(feature = "with_mocks")]
@@ -727,6 +749,6 @@ pub mod validator {
     pub mod mockall {
         use super::*;
         use sails_rs::mockall::*;
-        mock! { pub Validator {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl validator::Validator for Validator { type Env = sails_rs::client::GstdEnv; fn validate_range (&self, value: u32, min: u32, max: u32) -> sails_rs::client::PendingCall<validator::io::ValidateRange, sails_rs::client::GstdEnv>; } }
+        mock! { pub Validator {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl validator::Validator for Validator { type Env = sails_rs::client::GstdEnv; fn validate_even (&self, value: u32) -> sails_rs::client::PendingCall<validator::io::ValidateEven, sails_rs::client::GstdEnv>;fn validate_nonzero (&self, value: u32) -> sails_rs::client::PendingCall<validator::io::ValidateNonzero, sails_rs::client::GstdEnv>;fn validate_range (&self, value: u32, min: u32, max: u32) -> sails_rs::client::PendingCall<validator::io::ValidateRange, sails_rs::client::GstdEnv>; } }
     }
 }

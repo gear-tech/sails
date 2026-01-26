@@ -291,11 +291,7 @@ impl<'a> ServiceBuilder<'a> {
                             .get(throws_type_id)
                             .cloned()
                             .ok_or(Error::TypeIdIsUnknown(throws_type_id))?;
-                        if throws == TypeDecl::Primitive(PrimitiveType::Void) {
-                            None
-                        } else {
-                            Some(throws)
-                        }
+                        Some(throws)
                     } else {
                         None
                     };
@@ -365,11 +361,7 @@ impl<'a> ServiceBuilder<'a> {
                             .get(throws_type_id)
                             .cloned()
                             .ok_or(Error::TypeIdIsUnknown(throws_type_id))?;
-                        if throws == TypeDecl::Primitive(PrimitiveType::Void) {
-                            None
-                        } else {
-                            Some(throws)
-                        }
+                        Some(throws)
                     } else {
                         None
                     };

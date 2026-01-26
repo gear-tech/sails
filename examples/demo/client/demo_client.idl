@@ -142,8 +142,12 @@ service Chaos@0xf0c8c80dfabf72d5 {
     }
 }
 
-service Validator@0xabfe97eab77b2919 {
+service Validator@0x1f7174e8a22fa6f9 {
     functions {
+        @query
+        ValidateEven(value: u32) -> u32 throws ();
+        @query
+        ValidateNonzero(value: u32) throws String;
         @query
         ValidateRange(value: u32, min: u32, max: u32) -> u32 throws ValidationError;
     }
@@ -170,6 +174,6 @@ program DemoClient {
         ThisThat@0x445bed6efbe8e6dd,
         ValueFee@0x41c1080b4e1e8dc5,
         Chaos@0xf0c8c80dfabf72d5,
-        Validator@0xabfe97eab77b2919,
+        Validator@0x1f7174e8a22fa6f9,
     }
 }
