@@ -40,16 +40,4 @@ impl ChaosService {
     pub fn reply_hook_counter(&self) -> u32 {
         unsafe { REPLY_HOOK_COUNTER }
     }
-
-    #[export(unwrap_result)]
-    pub fn check_range(&self, value: u32, min: u32, max: u32) -> Result<u32, String> {
-        if value >= min && value <= max {
-            Ok(value)
-        } else {
-            Err(format!(
-                "Value {} is out of range [{}, {}]",
-                value, min, max
-            ))
-        }
-    }
 }

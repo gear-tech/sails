@@ -213,6 +213,7 @@ impl FnBuilder<'_> {
             .iter()
             .filter(|attr| attr.path().is_ident("doc"));
         let params_struct_ident = &self.params_struct_ident;
+        let result_type = self.result_type_with_static_lifetime();
 
         let payable_doc = if cfg!(feature = "ethexe") {
             self.payable.then(|| quote!(#[doc = " #[payable]"]))
@@ -242,7 +243,6 @@ impl FnBuilder<'_> {
                 #handler_route_ident(#params_struct_ident, #ok_ty, #err_ty)
             )
         } else {
-            let result_type = self.result_type_with_static_lifetime();
             quote!(
                 #( #handler_docs_attrs )*
                 #payable_doc

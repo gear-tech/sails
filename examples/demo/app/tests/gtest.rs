@@ -682,8 +682,8 @@ async fn chaos_panic_does_not_affect_other_services() {
 }
 
 #[tokio::test]
-async fn chaos_check_range_works() {
-    use demo_client::chaos::Chaos as _;
+async fn validator_range_check_works() {
+    use demo_client::validator::{ValidationError, Validator as _};
 
     let (env, code_id, _gas_limit) = create_env();
     let demo_program = env
@@ -692,13 +692,13 @@ async fn chaos_check_range_works() {
         .await
         .unwrap();
 
-    let chaos_client = demo_program.chaos();
+    let validator_client = demo_program.validator();
 
     // Success case
-    let res = chaos_client.check_range(10, 0, 100).await.unwrap();
+    let res = validator_client.validate_range(10, 0, 100).await.unwrap();
     assert_eq!(res, Ok(10));
 
     // Error case (throws)
-    let res = chaos_client.check_range(150, 0, 100).await.unwrap();
-    assert_eq!(res, Err("Value 150 is out of range [0, 100]".to_string()));
+    let res = validator_client.validate_range(150, 0, 100).await.unwrap();
+    assert_eq!(res, Err(ValidationError::TooBig));
 }

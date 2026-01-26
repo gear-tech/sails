@@ -208,8 +208,10 @@ impl<'ast> Visitor<'ast> for ServiceGenerator<'ast> {
 
         let params_with_types_super = &fn_args_with_types_path(&func.params, "super");
         let entry_id = self.entry_ids.get(func.name.as_str()).copied().unwrap_or(0);
-        let throws_token: rust::Tokens = if func.throws.is_some() {
-            quote!(, throws)
+        let throws_token: rust::Tokens = if let Some(throws_type) = &func.throws {
+            let ok_type = generate_type_decl_with_path(&func.output, "super");
+            let err_type = generate_type_decl_with_path(throws_type, "super");
+            quote!(, throws $ok_type, $err_type)
         } else {
             quote!()
         };

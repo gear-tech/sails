@@ -5,7 +5,7 @@ use futures::{
     Stream,
     channel::{mpsc, oneshot},
 };
-use gear_core_errors::{ErrorReplyReason, SimpleExecutionError};
+pub use gear_core_errors::{ErrorReplyReason, SimpleExecutionError};
 use hashbrown::HashMap;
 use std::rc::Rc;
 use tokio_stream::StreamExt;
@@ -331,7 +331,7 @@ impl<T: ServiceCall> Future for PendingCall<T, GtestEnv> {
         // Poll reply receiver
         match ready!(reply_receiver.poll(cx)) {
             Ok(res) => match res {
-                Ok(payload) => match T::decode_reply_with_status(self.route_idx, payload, false) {
+                Ok(payload) => match T::decode_reply_with_header(self.route_idx, payload) {
                     Ok(reply) => Poll::Ready(Ok(reply)),
                     Err(err) => Poll::Ready(Err(TestError::ScaleCodecError(err).into())),
                 },
@@ -340,7 +340,7 @@ impl<T: ServiceCall> Future for PendingCall<T, GtestEnv> {
                         reason,
                         ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic)
                     ) {
-                        match T::decode_reply_with_status(self.route_idx, &payload, true) {
+                        match T::decode_error_with_header(self.route_idx, &payload) {
                             Ok(reply) => Poll::Ready(Ok(reply)),
                             Err(_) => Poll::Ready(Err(GtestError::ReplyHasError(reason, payload))),
                         }

@@ -211,21 +211,10 @@ const _: () = {
             match output {
                 // ok reply
                 Ok(payload) => {
-                    let res = T::decode_reply_with_status(self.route_idx, payload, false)
+                    let res = T::decode_reply_with_header(self.route_idx, payload)
                         .map_err(Error::Decode)?;
                     Poll::Ready(Ok(res))
                 }
-                // error reply
-                Err(gstd::errors::Error::ErrorReply(
-                    error_payload,
-                    ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic),
-                )) => match T::decode_reply_with_status(self.route_idx, &error_payload.0, true) {
-                    Ok(res) => Poll::Ready(Ok(res)),
-                    Err(_) => Poll::Ready(Err(gstd::errors::Error::ErrorReply(
-                        error_payload,
-                        ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic),
-                    ))),
-                },
                 // reply with ProgramExited
                 Err(gstd::errors::Error::ErrorReply(
                     error_payload,
@@ -269,6 +258,17 @@ const _: () = {
                         .into()))
                     }
                 }
+                // error reply
+                Err(gstd::errors::Error::ErrorReply(
+                    error_payload,
+                    ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic),
+                )) => match T::decode_error_with_header(self.route_idx, &error_payload.0) {
+                    Ok(res) => Poll::Ready(Ok(res)),
+                    Err(_) => Poll::Ready(Err(gstd::errors::Error::ErrorReply(
+                        error_payload,
+                        ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic),
+                    ))),
+                },
                 // error reply
                 Err(err) => Poll::Ready(Err(err)),
             }

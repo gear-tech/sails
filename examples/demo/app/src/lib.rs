@@ -10,6 +10,7 @@ mod mammal;
 mod ping;
 mod references;
 mod this_that;
+mod validator;
 mod value_fee;
 
 // Dog data is stored as a global variable. However, it has exactly the same lifetime
@@ -96,6 +97,10 @@ impl DemoProgram {
 
     pub fn chaos(&self) -> chaos::ChaosService {
         chaos::ChaosService
+    }
+
+    pub fn validator(&self) -> validator::Validator {
+        validator::Validator::default()
     }
 }
 

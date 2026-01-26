@@ -221,14 +221,13 @@ const _: () = {
         }
 
         pub fn panic(data: &[u8]) -> ! {
-            let mut message = format!("Program panicked with data: {:?}", data);
-            if data.len() >= 16 && &data[0..2] == b"GM" {
+            if data.starts_with(b"GM") && data.len() >= 16 {
                 let mut payload = &data[16..];
                 if let Ok(s) = <String as parity_scale_codec::Decode>::decode(&mut payload) {
-                    message.push_str(&format!(" ('{}')", s));
+                    panic!("{}", s);
                 }
             }
-            panic!("{}", message);
+            panic!("{:?}", data);
         }
     }
 };

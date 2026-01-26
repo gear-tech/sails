@@ -17,6 +17,7 @@ impl DemoClientProgram {
     pub const ROUTE_ID_THIS_THAT: u8 = 5;
     pub const ROUTE_ID_VALUE_FEE: u8 = 6;
     pub const ROUTE_ID_CHAOS: u8 = 7;
+    pub const ROUTE_ID_VALIDATOR: u8 = 8;
 }
 impl sails_rs::client::Program for DemoClientProgram {}
 pub trait DemoClient {
@@ -28,6 +29,7 @@ pub trait DemoClient {
     fn this_that(&self) -> sails_rs::client::Service<this_that::ThisThatImpl, Self::Env>;
     fn value_fee(&self) -> sails_rs::client::Service<value_fee::ValueFeeImpl, Self::Env>;
     fn chaos(&self) -> sails_rs::client::Service<chaos::ChaosImpl, Self::Env>;
+    fn validator(&self) -> sails_rs::client::Service<validator::ValidatorImpl, Self::Env>;
 }
 impl<E: sails_rs::client::GearEnv> DemoClient for sails_rs::client::Actor<DemoClientProgram, E> {
     type Env = E;
@@ -51,6 +53,9 @@ impl<E: sails_rs::client::GearEnv> DemoClient for sails_rs::client::Actor<DemoCl
     }
     fn chaos(&self) -> sails_rs::client::Service<chaos::ChaosImpl, Self::Env> {
         self.service(DemoClientProgram::ROUTE_ID_CHAOS)
+    }
+    fn validator(&self) -> sails_rs::client::Service<validator::ValidatorImpl, Self::Env> {
+        self.service(DemoClientProgram::ROUTE_ID_VALIDATOR)
     }
 }
 pub trait DemoClientCtors {
@@ -634,12 +639,6 @@ pub mod chaos {
     use super::*;
     pub trait Chaos {
         type Env: sails_rs::client::GearEnv;
-        fn check_range(
-            &self,
-            value: u32,
-            min: u32,
-            max: u32,
-        ) -> sails_rs::client::PendingCall<io::CheckRange, Self::Env>;
         fn panic_after_wait(&self) -> sails_rs::client::PendingCall<io::PanicAfterWait, Self::Env>;
         fn reply_hook_counter(
             &self,
@@ -649,18 +648,10 @@ pub mod chaos {
     pub struct ChaosImpl;
     impl sails_rs::client::Identifiable for ChaosImpl {
         const INTERFACE_ID: sails_rs::InterfaceId =
-            sails_rs::InterfaceId::from_bytes_8([87, 225, 238, 0, 40, 117, 53, 124]);
+            sails_rs::InterfaceId::from_bytes_8([240, 200, 200, 13, 250, 191, 114, 213]);
     }
     impl<E: sails_rs::client::GearEnv> Chaos for sails_rs::client::Service<ChaosImpl, E> {
         type Env = E;
-        fn check_range(
-            &self,
-            value: u32,
-            min: u32,
-            max: u32,
-        ) -> sails_rs::client::PendingCall<io::CheckRange, Self::Env> {
-            self.pending_call((value, min, max))
-        }
         fn panic_after_wait(&self) -> sails_rs::client::PendingCall<io::PanicAfterWait, Self::Env> {
             self.pending_call(())
         }
@@ -676,10 +667,9 @@ pub mod chaos {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(CheckRange (value: u32, min: u32, max: u32) -> super::Result<u32, String>, 0, <super::ChaosImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws);
-        sails_rs::io_struct_impl!(PanicAfterWait () -> (), 1, <super::ChaosImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(ReplyHookCounter () -> u32, 2, <super::ChaosImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(TimeoutWait () -> (), 3, <super::ChaosImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(PanicAfterWait () -> (), 0, <super::ChaosImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(ReplyHookCounter () -> u32, 1, <super::ChaosImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(TimeoutWait () -> (), 2, <super::ChaosImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(feature = "with_mocks")]
@@ -687,6 +677,56 @@ pub mod chaos {
     pub mod mockall {
         use super::*;
         use sails_rs::mockall::*;
-        mock! { pub Chaos {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl chaos::Chaos for Chaos { type Env = sails_rs::client::GstdEnv; fn check_range (&self, value: u32, min: u32, max: u32) -> sails_rs::client::PendingCall<chaos::io::CheckRange, sails_rs::client::GstdEnv>;fn panic_after_wait (&self, ) -> sails_rs::client::PendingCall<chaos::io::PanicAfterWait, sails_rs::client::GstdEnv>;fn reply_hook_counter (&self, ) -> sails_rs::client::PendingCall<chaos::io::ReplyHookCounter, sails_rs::client::GstdEnv>;fn timeout_wait (&self, ) -> sails_rs::client::PendingCall<chaos::io::TimeoutWait, sails_rs::client::GstdEnv>; } }
+        mock! { pub Chaos {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl chaos::Chaos for Chaos { type Env = sails_rs::client::GstdEnv; fn panic_after_wait (&self, ) -> sails_rs::client::PendingCall<chaos::io::PanicAfterWait, sails_rs::client::GstdEnv>;fn reply_hook_counter (&self, ) -> sails_rs::client::PendingCall<chaos::io::ReplyHookCounter, sails_rs::client::GstdEnv>;fn timeout_wait (&self, ) -> sails_rs::client::PendingCall<chaos::io::TimeoutWait, sails_rs::client::GstdEnv>; } }
+    }
+}
+
+pub mod validator {
+    use super::*;
+    #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
+    #[codec(crate = sails_rs::scale_codec)]
+    #[scale_info(crate = sails_rs::scale_info)]
+    #[reflect_hash(crate = sails_rs)]
+    pub enum ValidationError {
+        TooSmall,
+        TooBig,
+    }
+    pub trait Validator {
+        type Env: sails_rs::client::GearEnv;
+        fn validate_range(
+            &self,
+            value: u32,
+            min: u32,
+            max: u32,
+        ) -> sails_rs::client::PendingCall<io::ValidateRange, Self::Env>;
+    }
+    pub struct ValidatorImpl;
+    impl sails_rs::client::Identifiable for ValidatorImpl {
+        const INTERFACE_ID: sails_rs::InterfaceId =
+            sails_rs::InterfaceId::from_bytes_8([171, 254, 151, 234, 183, 123, 41, 25]);
+    }
+    impl<E: sails_rs::client::GearEnv> Validator for sails_rs::client::Service<ValidatorImpl, E> {
+        type Env = E;
+        fn validate_range(
+            &self,
+            value: u32,
+            min: u32,
+            max: u32,
+        ) -> sails_rs::client::PendingCall<io::ValidateRange, Self::Env> {
+            self.pending_call((value, min, max))
+        }
+    }
+
+    pub mod io {
+        use super::*;
+        sails_rs::io_struct_impl!(ValidateRange (value: u32, min: u32, max: u32) -> super::Result<u32, super::ValidationError>, 0, <super::ValidatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws u32, super::ValidationError);
+    }
+
+    #[cfg(feature = "with_mocks")]
+    #[cfg(not(target_arch = "wasm32"))]
+    pub mod mockall {
+        use super::*;
+        use sails_rs::mockall::*;
+        mock! { pub Validator {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl validator::Validator for Validator { type Env = sails_rs::client::GstdEnv; fn validate_range (&self, value: u32, min: u32, max: u32) -> sails_rs::client::PendingCall<validator::io::ValidateRange, sails_rs::client::GstdEnv>; } }
     }
 }
