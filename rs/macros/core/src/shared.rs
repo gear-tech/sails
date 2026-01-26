@@ -151,8 +151,15 @@ pub(crate) fn discover_invocation_targets<'a>(
                         duplicate
                     );
                 }
-                let fn_builder =
-                    FnBuilder::new(route, entry_id, export, fn_item, unwrap_result, sails_path);
+                let is_result = extract_result_type_from_path(&result_type(&fn_item.sig)).is_some();
+                let fn_builder = FnBuilder::new(
+                    route,
+                    entry_id,
+                    export,
+                    fn_item,
+                    unwrap_result || is_result,
+                    sails_path,
+                );
                 #[cfg(feature = "ethexe")]
                 let fn_builder = fn_builder.payable(payable);
                 return Some(fn_builder);

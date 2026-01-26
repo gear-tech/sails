@@ -544,6 +544,9 @@ macro_rules! io_struct_impl {
                 payload: impl AsRef<[u8]>,
             ) -> Result<Self::Reply, $crate::scale_codec::Error> {
                 let mut value = payload.as_ref();
+                if value.is_empty() && Self::is_empty_tuple::<$ok_ty>() {
+                    return Ok(Ok($crate::scale_codec::Decode::decode(&mut value)?));
+                }
                 Self::validate_header(route_idx, &mut value)?;
                 let ok: $ok_ty = $crate::scale_codec::Decode::decode(&mut value)?;
                 Ok(Ok(ok))

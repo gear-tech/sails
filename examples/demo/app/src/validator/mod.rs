@@ -14,7 +14,7 @@ pub enum ValidationError {
 
 #[service]
 impl Validator {
-    #[export(unwrap_result)]
+    #[export]
     pub fn validate_range(&self, value: u32, min: u32, max: u32) -> Result<u32, ValidationError> {
         if value < min {
             Err(ValidationError::TooSmall)
