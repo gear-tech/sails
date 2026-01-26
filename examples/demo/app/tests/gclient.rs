@@ -290,6 +290,31 @@ async fn value_fee_works() {
     );
 }
 
+#[tokio::test]
+#[ignore = "requires run gear node on GEAR_PATH"]
+async fn validator_range_check_works() {
+    use demo_client::validator::{ValidationError, Validator as _};
+
+    let (env, demo_code_id, gas_limit, ..) = spin_up_node_with_demo_code().await;
+
+    let demo_program = env
+        .deploy::<DemoClientProgram>(demo_code_id, vec![])
+        .new(Some(42), None)
+        .with_gas_limit(gas_limit)
+        .await
+        .unwrap();
+
+    let validator_client = demo_program.validator();
+
+    // Success case
+    let res = validator_client.validate_range(10, 0, 100).await.unwrap();
+    assert_eq!(res, Ok(10));
+
+    // Error case (throws)
+    let res = validator_client.validate_range(150, 0, 100).await.unwrap();
+    assert_eq!(res, Err(ValidationError::TooBig));
+}
+
 async fn spin_up_node_with_demo_code() -> (GclientEnv, CodeId, GasUnit, GearApi) {
     let gear_path = option_env!("GEAR_PATH");
     if gear_path.is_none() {

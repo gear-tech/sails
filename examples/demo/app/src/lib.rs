@@ -100,7 +100,7 @@ impl DemoProgram {
     }
 
     pub fn validator(&self) -> validator::Validator {
-        validator::Validator::default()
+        validator::Validator
     }
 }
 
