@@ -21,13 +21,11 @@ for MyGenericEventsServiceExposure<T> {
         if !T::ASYNC {
             return Some(false);
         }
-        if interface_id == <T as sails_rs::meta::Identifiable>::INTERFACE_ID {
-            match entry_id {
-                0u16 => Some(false),
-                _ => None,
+        match (interface_id, entry_id) {
+            (id, 0u16) if id == <T as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+                Some(false)
             }
-        } else {
-            None
+            _ => None,
         }
     }
 }
@@ -62,36 +60,32 @@ where
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
         use sails_rs::gstd::{InvocationIo, CommandReply};
-        if interface_id
-            == <self::MyGenericEventsService<
-                '_,
-                '_,
-                T,
-            > as sails_rs::meta::Identifiable>::INTERFACE_ID
-        {
-            match entry_id {
-                0u16 => {
-                    let request: my_generic_events_service_meta::__DoThisParams = sails_rs::scale_codec::Decode::decode(
-                            &mut input,
-                        )
-                        .expect("Failed to decode params");
-                    let result = self.do_this();
-                    let value = 0u128;
-                    if !sails_rs::gstd::is_empty_tuple::<u32>() {
-                        <my_generic_events_service_meta::__DoThisParams as sails_rs::gstd::InvocationIo>::with_optimized_encode_with_id(
-                            interface_id,
-                            entry_id,
-                            &result,
-                            self.route_idx,
-                            |encoded_result| result_handler(encoded_result, value),
-                        );
-                    }
-                    return Some(());
+        match (interface_id, entry_id) {
+            (
+                id,
+                0u16,
+            ) if id
+                == <self::MyGenericEventsService<
+                    '_,
+                    '_,
+                    T,
+                > as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+                let request: my_generic_events_service_meta::__DoThisParams = sails_rs::scale_codec::Decode::decode(
+                        &mut input,
+                    )
+                    .expect("Failed to decode params");
+                let result = self.do_this();
+                let value = 0u128;
+                if !sails_rs::gstd::is_empty_tuple::<u32>() {
+                    <my_generic_events_service_meta::__DoThisParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                        &result,
+                        self.route_idx,
+                        |encoded_result| result_handler(encoded_result, value),
+                    );
                 }
-                _ => None,
+                return Some(());
             }
-        } else {
-            None
+            _ => None,
         }
     }
     pub async fn try_handle_async(
@@ -102,18 +96,8 @@ where
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
         use sails_rs::gstd::{InvocationIo, CommandReply};
-        if interface_id
-            == <self::MyGenericEventsService<
-                '_,
-                '_,
-                T,
-            > as sails_rs::meta::Identifiable>::INTERFACE_ID
-        {
-            match entry_id {
-                _ => None,
-            }
-        } else {
-            None
+        match (interface_id, entry_id) {
+            _ => None,
         }
     }
     pub fn try_handle_solidity(
@@ -123,43 +107,39 @@ where
         input: &[u8],
     ) -> Option<(sails_rs::Vec<u8>, u128, bool)> {
         use sails_rs::gstd::CommandReply;
-        if interface_id
-            == <self::MyGenericEventsService<
-                '_,
-                '_,
-                T,
-            > as sails_rs::meta::Identifiable>::INTERFACE_ID
-        {
-            match entry_id {
-                0u16 => {
-                    let (__encode_reply,): (bool,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
-                            input,
-                        )
-                        .ok()?;
-                    #[cfg(target_arch = "wasm32")]
-                    if sails_rs::gstd::msg::value() > 0 {
-                        core::panic!("'do_this' accepts no value");
-                    }
-                    let result = self.do_this();
-                    let value = 0u128;
-                    let output = if __encode_reply {
-                        let message_id = sails_rs::alloy_primitives::B256::new(
-                            sails_rs::gstd::Syscall::message_id().into_bytes(),
-                        );
-                        sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(
-                            &(message_id, result),
-                        )
-                    } else {
-                        sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(
-                            &(result,),
-                        )
-                    };
-                    return Some((output, value, __encode_reply));
+        match (interface_id, entry_id) {
+            (
+                id,
+                0u16,
+            ) if id
+                == <self::MyGenericEventsService<
+                    '_,
+                    '_,
+                    T,
+                > as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+                let (__encode_reply,): (bool,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
+                        input,
+                    )
+                    .ok()?;
+                #[cfg(target_arch = "wasm32")]
+                if sails_rs::gstd::msg::value() > 0 {
+                    core::panic!("'do_this' accepts no value");
                 }
-                _ => None,
+                let result = self.do_this();
+                let value = 0u128;
+                let output = if __encode_reply {
+                    let message_id = sails_rs::alloy_primitives::B256::new(
+                        sails_rs::gstd::Syscall::message_id().into_bytes(),
+                    );
+                    sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(
+                        &(message_id, result),
+                    )
+                } else {
+                    sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(&(result,))
+                };
+                return Some((output, value, __encode_reply));
             }
-        } else {
-            None
+            _ => None,
         }
     }
     pub async fn try_handle_solidity_async(
@@ -169,18 +149,8 @@ where
         input: &[u8],
     ) -> Option<(sails_rs::Vec<u8>, u128, bool)> {
         use sails_rs::gstd::CommandReply;
-        if interface_id
-            == <self::MyGenericEventsService<
-                '_,
-                '_,
-                T,
-            > as sails_rs::meta::Identifiable>::INTERFACE_ID
-        {
-            match entry_id {
-                _ => None,
-            }
-        } else {
-            None
+        match (interface_id, entry_id) {
+            _ => None,
         }
     }
     pub fn emit_event(&self, event: MyEvents) -> sails_rs::errors::Result<()> {

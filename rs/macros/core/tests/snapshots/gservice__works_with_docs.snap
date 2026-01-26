@@ -21,14 +21,14 @@ for SomeServiceExposure<T> {
         if !T::ASYNC {
             return Some(false);
         }
-        if interface_id == <T as sails_rs::meta::Identifiable>::INTERFACE_ID {
-            match entry_id {
-                0u16 => Some(true),
-                1u16 => Some(false),
-                _ => None,
+        match (interface_id, entry_id) {
+            (id, 0u16) if id == <T as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+                Some(true)
             }
-        } else {
-            None
+            (id, 1u16) if id == <T as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+                Some(false)
+            }
+            _ => None,
         }
     }
 }
@@ -63,32 +63,28 @@ impl SomeServiceExposure<SomeService> {
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
         use sails_rs::gstd::{InvocationIo, CommandReply};
-        if interface_id
-            == <self::SomeService as sails_rs::meta::Identifiable>::INTERFACE_ID
-        {
-            match entry_id {
-                1u16 => {
-                    let request: some_service_meta::__ThisParams = sails_rs::scale_codec::Decode::decode(
-                            &mut input,
-                        )
-                        .expect("Failed to decode params");
-                    let result = self.this(request.p1);
-                    let value = 0u128;
-                    if !sails_rs::gstd::is_empty_tuple::<bool>() {
-                        <some_service_meta::__ThisParams as sails_rs::gstd::InvocationIo>::with_optimized_encode_with_id(
-                            interface_id,
-                            entry_id,
-                            &result,
-                            self.route_idx,
-                            |encoded_result| result_handler(encoded_result, value),
-                        );
-                    }
-                    return Some(());
+        match (interface_id, entry_id) {
+            (
+                id,
+                1u16,
+            ) if id
+                == <self::SomeService as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+                let request: some_service_meta::__ThisParams = sails_rs::scale_codec::Decode::decode(
+                        &mut input,
+                    )
+                    .expect("Failed to decode params");
+                let result = self.this(request.p1);
+                let value = 0u128;
+                if !sails_rs::gstd::is_empty_tuple::<bool>() {
+                    <some_service_meta::__ThisParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                        &result,
+                        self.route_idx,
+                        |encoded_result| result_handler(encoded_result, value),
+                    );
                 }
-                _ => None,
+                return Some(());
             }
-        } else {
-            None
+            _ => None,
         }
     }
     pub async fn try_handle_async(
@@ -99,32 +95,28 @@ impl SomeServiceExposure<SomeService> {
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
         use sails_rs::gstd::{InvocationIo, CommandReply};
-        if interface_id
-            == <self::SomeService as sails_rs::meta::Identifiable>::INTERFACE_ID
-        {
-            match entry_id {
-                0u16 => {
-                    let request: some_service_meta::__DoThisParams = sails_rs::scale_codec::Decode::decode(
-                            &mut input,
-                        )
-                        .expect("Failed to decode params");
-                    let result = self.do_this(request.p1, request.p2).await;
-                    let value = 0u128;
-                    if !sails_rs::gstd::is_empty_tuple::<u32>() {
-                        <some_service_meta::__DoThisParams as sails_rs::gstd::InvocationIo>::with_optimized_encode_with_id(
-                            interface_id,
-                            entry_id,
-                            &result,
-                            self.route_idx,
-                            |encoded_result| result_handler(encoded_result, value),
-                        );
-                    }
-                    return Some(());
+        match (interface_id, entry_id) {
+            (
+                id,
+                0u16,
+            ) if id
+                == <self::SomeService as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+                let request: some_service_meta::__DoThisParams = sails_rs::scale_codec::Decode::decode(
+                        &mut input,
+                    )
+                    .expect("Failed to decode params");
+                let result = self.do_this(request.p1, request.p2).await;
+                let value = 0u128;
+                if !sails_rs::gstd::is_empty_tuple::<u32>() {
+                    <some_service_meta::__DoThisParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                        &result,
+                        self.route_idx,
+                        |encoded_result| result_handler(encoded_result, value),
+                    );
                 }
-                _ => None,
+                return Some(());
             }
-        } else {
-            None
+            _ => None,
         }
     }
 }

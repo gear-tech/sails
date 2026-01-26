@@ -93,12 +93,20 @@ impl ServiceBuilder<'_> {
         let invocation_params_structs = self.service_handlers.iter().map(|fn_builder| {
             fn_builder.params_struct(self.type_path, scale_codec_path, scale_info_path)
         });
-        let commands_meta_variants = self.service_handlers.iter().filter_map(|fn_builder| {
-            (!fn_builder.is_query()).then_some(fn_builder.handler_meta_variant())
-        });
-        let queries_meta_variants = self.service_handlers.iter().filter_map(|fn_builder| {
-            (fn_builder.is_query()).then_some(fn_builder.handler_meta_variant())
-        });
+        let commands_meta_variants = self
+            .service_handlers
+            .iter()
+            .filter(|h| h.overrides.is_none())
+            .filter_map(|fn_builder| {
+                (!fn_builder.is_query()).then_some(fn_builder.handler_meta_variant())
+            });
+        let queries_meta_variants = self
+            .service_handlers
+            .iter()
+            .filter(|h| h.overrides.is_none())
+            .filter_map(|fn_builder| {
+                (fn_builder.is_query()).then_some(fn_builder.handler_meta_variant())
+            });
 
         let meta_trait_impl = self.meta_trait_impl();
 
@@ -137,6 +145,7 @@ impl ServiceBuilder<'_> {
         let fn_hash_computations: Vec<_> = self
             .service_handlers
             .iter()
+            .filter(|h| h.overrides.is_none())
             .map(|handler| {
                 let fn_hash = self.generate_fn_hash(handler);
                 quote! {
@@ -187,6 +196,7 @@ impl ServiceBuilder<'_> {
         let sails_path = self.sails_path;
         self.service_handlers
             .iter()
+            .filter(|h| h.overrides.is_none())
             .map(|handler| {
                 let name = &handler.route;
                 let entry_id = handler.entry_id;
@@ -247,7 +257,6 @@ impl ServiceBuilder<'_> {
                 };
 
                 let base_path_wo_lifetimes = shared::remove_lifetimes(base_path);
-                let is_async = handler.is_async();
 
                 quote! {
                     const _: () = {
@@ -256,13 +265,6 @@ impl ServiceBuilder<'_> {
                         if let Some(method) = #sails_path::meta::find_method_data(base_methods, #name, #entry_id_arg) {
                             if !#sails_path::meta::bytes32_eq(&method.hash, &#fn_hash) {
                                 core::panic!(concat!("Override signature mismatch for method `", #name, "`"));
-                            }
-                            if method.is_async != #is_async {
-                                if method.is_async {
-                                    core::panic!(concat!("Method `", #name, "` is async in the base service but sync in the override"));
-                                } else {
-                                    core::panic!(concat!("Method `", #name, "` is sync in the base service but async in the override"));
-                                }
                             }
                         } else {
                             core::panic!(concat!("Method `", #name, "` not found in base service"));

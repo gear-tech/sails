@@ -1281,6 +1281,7 @@ pub mod my_complex_service {
     }
 }
 
+#[allow(unused_imports)]
 pub mod rmrk_catalog {
     use super::*;
     pub trait RmrkCatalog {
@@ -1295,9 +1296,5 @@ pub mod rmrk_catalog {
         for my_crate::sails::client::Service<RmrkCatalogImpl, E>
     {
         type Env = E;
-    }
-
-    pub mod io {
-        use super::*;
     }
 }

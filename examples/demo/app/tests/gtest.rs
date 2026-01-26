@@ -685,44 +685,48 @@ async fn chaos_panic_does_not_affect_other_services() {
 async fn inheritance_redefine_works() {
     use demo_client::chain::Chain as _;
     use demo_client::inheritance::Inheritance as _;
+    use demo_client::mammal_service::MammalService as _;
     use demo_client::walker_service::WalkerService as _;
 
     // Arrange
     let (env, code_id, _gas_limit) = create_env();
     let demo_program = env.deploy(code_id, vec![]).default().await.unwrap();
 
-    let mut inheritance_client = demo_program.inheritance();
-    let mut chain_client = demo_program.chain();
+    let inheritance_client = demo_program.inheritance();
+    let chain_client = demo_program.chain();
 
-    // Act & Assert
-
-    // 1. Check InheritanceService (Composite)
-    // Non-overridden method from Walker (Isolation check)
-    let pos = inheritance_client
-        .walker_service()
-        .position()
+    // Redefined make_sound (Mammal Sync -> Inheritance Async)
+    let sound = inheritance_client
+        .mammal_service()
+        .make_sound()
         .await
         .unwrap();
-    assert_eq!(pos, (0, 0)); // Initial position from dog_data()
+    assert_eq!(sound, "Inherited Sound (Async)");
 
-    let sleep_msg = inheritance_client.sleep().await.unwrap();
-    assert_eq!(sleep_msg, "Awake!");
+    // Redefined avg_weight (Mammal Query -> Inheritance Query)
+    let weight = inheritance_client
+        .mammal_service()
+        .avg_weight()
+        .await
+        .unwrap();
+    assert_eq!(weight, 1000);
 
     // 2. Check ChainService
     // Redefined make_sound (from Inheritance) -> "Chain Sound"
-    let chain_sound = chain_client.make_sound().await.unwrap();
+    let chain_sound = chain_client
+        .inheritance()
+        .mammal_service()
+        .make_sound()
+        .await
+        .unwrap();
     assert_eq!(chain_sound, "Chain Sound");
-    let chain_sound_base = chain_client.inheritance().make_sound().await.unwrap();
-    assert_eq!(chain_sound_base, "Chain Sound");
 
-    // Redefined position (from original Walker via parent) -> (99, 99)
-    let pos = chain_client.position().await.unwrap();
-    assert_eq!(pos, (99, 99));
-    let pos_base = chain_client
+    // Redefined position (from original Walker via parent)
+    let pos = chain_client
         .inheritance()
         .walker_service()
         .position()
         .await
         .unwrap();
-    assert_eq!(pos_base, (99, 99));
+    assert_eq!(pos, (99, 99));
 }

@@ -7,7 +7,7 @@ use crate::{
 use args::ServiceArgs;
 use convert_case::{Case, Casing};
 use proc_macro_error::abort;
-use proc_macro2::{Literal, Span, TokenStream};
+use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::{Generics, Ident, ItemImpl, Path, Type, TypePath, Visibility, WhereClause};
 
@@ -244,8 +244,37 @@ impl FnBuilder<'_> {
         let sails_path = self.sails_path;
         let params_struct_ident = &self.params_struct_ident;
         let params_struct_members = self.params().map(|(ident, ty)| quote!(#ident: #ty));
-        let entry_id = &self.entry_id;
-        let path_wo_lifetimes = shared::remove_lifetimes(&service_path.path);
+
+        let (interface_id_computation, entry_id_computation) = if let Some(base_path) =
+            &self.overrides
+        {
+            let base_path_wo_lifetimes = shared::remove_lifetimes(base_path);
+            let name = &self.route;
+            let entry_id_check = if let Some(id) = self.override_entry_id {
+                quote! { #id }
+            } else {
+                quote! {
+                    {
+                        const ID: u16 = #sails_path::meta::find_id(
+                            <super::#base_path_wo_lifetimes as #sails_path::meta::ServiceMeta>::METHODS,
+                            #name,
+                        );
+                        ID
+                    }
+                }
+            };
+            (
+                quote! { <super::#base_path_wo_lifetimes as #sails_path::meta::Identifiable>::INTERFACE_ID },
+                entry_id_check,
+            )
+        } else {
+            let entry_id = &self.entry_id;
+            let path_wo_lifetimes = shared::remove_lifetimes(&service_path.path);
+            (
+                quote! { <super:: #path_wo_lifetimes as #sails_path::meta::Identifiable>::INTERFACE_ID },
+                quote! { #entry_id },
+            )
+        };
 
         quote!(
             #[derive(#sails_path::Decode, #sails_path::TypeInfo)]
@@ -256,11 +285,11 @@ impl FnBuilder<'_> {
             }
 
             impl #sails_path::meta::Identifiable for #params_struct_ident {
-                const INTERFACE_ID: #sails_path::meta::InterfaceId = <super:: #path_wo_lifetimes as #sails_path::meta::Identifiable>::INTERFACE_ID;
+                const INTERFACE_ID: #sails_path::meta::InterfaceId = #interface_id_computation;
             }
 
             impl #sails_path::meta::MethodMeta for #params_struct_ident {
-                const ENTRY_ID: u16 = #entry_id;
+                const ENTRY_ID: u16 = #entry_id_computation;
             }
 
             impl #sails_path::gstd::InvocationIo for #params_struct_ident {

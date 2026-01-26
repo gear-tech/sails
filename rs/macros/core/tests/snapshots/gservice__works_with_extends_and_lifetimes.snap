@@ -21,23 +21,24 @@ for ExtendedLifetimeExposure<T> {
         if !T::ASYNC {
             return Some(false);
         }
-        if interface_id == <T as sails_rs::meta::Identifiable>::INTERFACE_ID {
-            match entry_id {
-                0u16 => Some(false),
-                1u16 => Some(false),
-                _ => None,
+        match (interface_id, entry_id) {
+            (id, 0u16) if id == <T as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+                Some(false)
             }
-        } else {
-            if sails_rs::meta::service_has_interface_id(
-                &T::BASE_SERVICES[0],
-                interface_id,
-            ) {
+            (id, 1u16) if id == <T as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+                Some(false)
+            }
+            (
+                id,
+                eid,
+            ) if id
+                == <base::BaseLifetime as sails_rs::meta::Identifiable>::INTERFACE_ID => {
                 return <<base::BaseLifetime as sails_rs::gstd::services::Service>::Exposure as sails_rs::gstd::services::Exposure>::check_asyncness(
-                    interface_id,
-                    entry_id,
+                    id,
+                    eid,
                 );
             }
-            None
+            _ => None,
         }
     }
 }
@@ -76,55 +77,56 @@ impl<'a> ExtendedLifetimeExposure<ExtendedLifetime<'a>> {
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
         use sails_rs::gstd::{InvocationIo, CommandReply};
-        if interface_id
-            == <self::ExtendedLifetime<'a> as sails_rs::meta::Identifiable>::INTERFACE_ID
-        {
-            match entry_id {
-                0u16 => {
-                    let request: extended_lifetime_meta::__ExtendedNameParams = sails_rs::scale_codec::Decode::decode(
-                            &mut input,
-                        )
-                        .expect("Failed to decode params");
-                    let result = self.extended_name();
-                    let value = 0u128;
-                    if !sails_rs::gstd::is_empty_tuple::<String>() {
-                        <extended_lifetime_meta::__ExtendedNameParams as sails_rs::gstd::InvocationIo>::with_optimized_encode_with_id(
-                            interface_id,
-                            entry_id,
-                            &result,
-                            self.route_idx,
-                            |encoded_result| result_handler(encoded_result, value),
-                        );
-                    }
-                    return Some(());
-                }
-                1u16 => {
-                    let request: extended_lifetime_meta::__NameParams = sails_rs::scale_codec::Decode::decode(
-                            &mut input,
-                        )
-                        .expect("Failed to decode params");
-                    let result = self.name();
-                    let value = 0u128;
-                    if !sails_rs::gstd::is_empty_tuple::<String>() {
-                        <extended_lifetime_meta::__NameParams as sails_rs::gstd::InvocationIo>::with_optimized_encode_with_id(
-                            interface_id,
-                            entry_id,
-                            &result,
-                            self.route_idx,
-                            |encoded_result| result_handler(encoded_result, value),
-                        );
-                    }
-                    return Some(());
-                }
-                _ => None,
-            }
-        } else {
-            if sails_rs::meta::service_has_interface_id(
-                &<self::ExtendedLifetime<
+        match (interface_id, entry_id) {
+            (
+                id,
+                0u16,
+            ) if id
+                == <self::ExtendedLifetime<
                     'a,
-                > as sails_rs::meta::ServiceMeta>::BASE_SERVICES[0],
-                interface_id,
-            ) {
+                > as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+                let request: extended_lifetime_meta::__ExtendedNameParams = sails_rs::scale_codec::Decode::decode(
+                        &mut input,
+                    )
+                    .expect("Failed to decode params");
+                let result = self.extended_name();
+                let value = 0u128;
+                if !sails_rs::gstd::is_empty_tuple::<String>() {
+                    <extended_lifetime_meta::__ExtendedNameParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                        &result,
+                        self.route_idx,
+                        |encoded_result| result_handler(encoded_result, value),
+                    );
+                }
+                return Some(());
+            }
+            (
+                id,
+                1u16,
+            ) if id
+                == <self::ExtendedLifetime<
+                    'a,
+                > as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+                let request: extended_lifetime_meta::__NameParams = sails_rs::scale_codec::Decode::decode(
+                        &mut input,
+                    )
+                    .expect("Failed to decode params");
+                let result = self.name();
+                let value = 0u128;
+                if !sails_rs::gstd::is_empty_tuple::<String>() {
+                    <extended_lifetime_meta::__NameParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                        &result,
+                        self.route_idx,
+                        |encoded_result| result_handler(encoded_result, value),
+                    );
+                }
+                return Some(());
+            }
+            (
+                id,
+                eid,
+            ) if id
+                == <base::BaseLifetime as sails_rs::meta::Identifiable>::INTERFACE_ID => {
                 let base_service: base::BaseLifetime<'a> = self.inner.into();
                 return sails_rs::gstd::services::Service::expose(
                         base_service,
@@ -132,7 +134,7 @@ impl<'a> ExtendedLifetimeExposure<ExtendedLifetime<'a>> {
                     )
                     .try_handle(interface_id, entry_id, input, result_handler);
             }
-            None
+            _ => None,
         }
     }
     pub async fn try_handle_async(
@@ -143,19 +145,12 @@ impl<'a> ExtendedLifetimeExposure<ExtendedLifetime<'a>> {
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
         use sails_rs::gstd::{InvocationIo, CommandReply};
-        if interface_id
-            == <self::ExtendedLifetime<'a> as sails_rs::meta::Identifiable>::INTERFACE_ID
-        {
-            match entry_id {
-                _ => None,
-            }
-        } else {
-            if sails_rs::meta::service_has_interface_id(
-                &<self::ExtendedLifetime<
-                    'a,
-                > as sails_rs::meta::ServiceMeta>::BASE_SERVICES[0],
-                interface_id,
-            ) {
+        match (interface_id, entry_id) {
+            (
+                id,
+                eid,
+            ) if id
+                == <base::BaseLifetime as sails_rs::meta::Identifiable>::INTERFACE_ID => {
                 let base_service: base::BaseLifetime<'a> = self.inner.into();
                 return sails_rs::gstd::services::Service::expose(
                         base_service,
@@ -164,7 +159,7 @@ impl<'a> ExtendedLifetimeExposure<ExtendedLifetime<'a>> {
                     .try_handle_async(interface_id, entry_id, input, result_handler)
                     .await;
             }
-            None
+            _ => None,
         }
     }
 }
