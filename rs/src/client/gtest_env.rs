@@ -295,12 +295,16 @@ impl<T: ServiceCall> PendingCall<T, GtestEnv> {
 
     pub fn query(mut self) -> Result<T::Reply, GtestError> {
         let (payload, params) = self.take_encoded_args_and_params();
-        // Calculate reply
-        let reply_bytes = self.env.query(self.destination, payload, params)?;
-
-        // Decode reply
-        T::decode_reply_with_header(self.route_idx, reply_bytes)
-            .map_err(|err| TestError::ScaleCodecError(err).into())
+        match self.env.query(self.destination, payload, params) {
+            Ok(payload) => T::decode_reply_with_header(self.route_idx, payload)
+                .map_err(|err| TestError::ScaleCodecError(err).into()),
+            Err(GtestError::ReplyHasError(
+                ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic),
+                payload,
+            )) => T::decode_error_with_header(self.route_idx, &payload)
+                .map_err(|err| TestError::ScaleCodecError(err).into()),
+            Err(err) => Err(err),
+        }
     }
 }
 
