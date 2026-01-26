@@ -23,9 +23,4 @@ impl MammalService {
     pub fn avg_weight(&self) -> u32 {
         self.avg_weight
     }
-
-    #[export]
-    pub async fn sleep(&mut self) -> String {
-        "Zzz...".to_string()
-    }
 }
