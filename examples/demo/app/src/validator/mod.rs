@@ -36,6 +36,10 @@ impl Validator {
 
     #[export]
     pub fn validate_even(&self, value: u32) -> Result<u32, ()> {
-        if value % 2 != 0 { Err(()) } else { Ok(value) }
+        if !value.is_multiple_of(2) {
+            Err(())
+        } else {
+            Ok(value)
+        }
     }
 }
