@@ -1,4 +1,4 @@
-import type { InterfaceIdInput, IInterfaceId } from "./idl-v2-types";
+import type { InterfaceIdInput, IInterfaceId } from "sails-js-types-v2";
 
 const HEX_CHUNK_RE = /^[0-9a-fA-F]{2}$/;
 

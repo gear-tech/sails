@@ -1,5 +1,6 @@
 import wasmParserBytes from './wasm-bytes.js';
-import { IIdlDoc, fromJson } from 'sails-js-types-v2';
+import { IIdlDoc } from 'sails-js-types-v2';
+import { fromJson } from './idl-v2-impls.js';
 
 const WASM_PAGE_SIZE = 0x1_00_00;
 
@@ -29,11 +30,11 @@ export class SailsIdlParser {
   }
 
   private async _decompressWasm() {
-    if (!wasmParserBytes) {
-      throw new Error(
-        'Missing embedded WASM bytes. Run the build to generate wasm-bytes.js or provide parser.wasm next to the bundle.',
-      );
-    }
+    // if (!wasmParserBytes) {
+    //   throw new Error(
+    //     'Missing embedded WASM bytes. Run the build to generate wasm-bytes.js or provide parser.wasm next to the bundle.',
+    //   );
+    // }
     const binaryStr = atob(wasmParserBytes);
 
     const binaryBase64 = new Uint8Array(binaryStr.length);

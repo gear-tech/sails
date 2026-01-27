@@ -25,7 +25,7 @@
     ".": {
       "import": "./lib/index.js",
       "require": "./lib/cjs/index.cjs",
-      "types": "./index.d.ts"
+      "types": "./lib/index.d.ts"
     }
   },
   "scripts": {
@@ -40,7 +40,9 @@
     "@polkadot/util": "^13.5.1"
   },
   "optionalDependencies": {
-    "sails-js-types": "workspace:*"
+    "sails-js-types": "workspace:*",
+    "sails-js-types-v2": "workspace:*",
+    "sails-js-parser-v2": "workspace:*"
   },
   "dependencies": {
     "sails-js-util": "workspace:*"

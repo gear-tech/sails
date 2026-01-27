@@ -18,7 +18,8 @@ import type {
   ITypeStruct,
   ICtorFunc,
   IEnumVariant,
-} from "./idl-v2-types";
+} from "sails-js-types-v2";
+
 import { InterfaceId } from "./interface_id";
 
 const mapArray = <T, U>(items: T[] | undefined, map: (item: T) => U): U[] | undefined =>

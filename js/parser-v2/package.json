@@ -10,7 +10,7 @@
     ".": {
       "require": "./lib/cjs/index.cjs",
       "import": "./lib/index.js",
-      "types": "./index.d.ts"
+      "types": "./lib/index.d.ts"
     }
   },
   "files": [
@@ -39,13 +39,5 @@
   },
   "dependencies": {
     "sails-js-types-v2": "workspace:*"
-  },
-  "devDependencies": {
-    "@types/node": "^24.10.1",
-    "jest": "^30.2.0",
-    "rollup-plugin-typescript2": "^0.36.0",
-    "sails-js-types-v2": "workspace:*",
-    "tslib": "^2.8.1",
-    "typescript": "^5.9.3"
   }
 }

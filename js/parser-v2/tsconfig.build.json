@@ -2,10 +2,6 @@
   "extends": "../tsconfig.json",
   "compilerOptions": {
     "declaration": true,
-    "baseUrl": ".",
-    "paths": {
-      "sails-js-types-v2": ["../types-v2/src/index.ts"]
-    }
   },
   "include": ["src"]
 }
