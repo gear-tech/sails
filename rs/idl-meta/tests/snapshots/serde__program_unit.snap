@@ -7,6 +7,7 @@ expression: serialized
   "ctors": [
     {
       "name": "Create",
+      "entry_id": 0,
       "params": [
         {
           "name": "counter",
@@ -41,6 +42,7 @@ expression: serialized
     },
     {
       "name": "Default",
+      "entry_id": 1,
       "params": [],
       "docs": [
         "Another program constructor",

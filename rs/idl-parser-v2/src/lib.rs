@@ -348,6 +348,7 @@ fn parse_func(p: Pair<Rule>) -> Result<ServiceFunc> {
     let output = output.unwrap_or(TypeDecl::Primitive(PrimitiveType::Void));
     Ok(ServiceFunc {
         name,
+        entry_id: 0, // Set in `ServiceUnit::normalize`
         params,
         output,
         throws,
@@ -420,6 +421,7 @@ fn parse_ctor_func(p: Pair<Rule>) -> Result<CtorFunc> {
     }
     Ok(CtorFunc {
         name,
+        entry_id: 0, // Set in `ProgramUnit::normalize`
         params,
         docs,
         annotations,
@@ -482,14 +484,16 @@ fn parse_program(p: Pair<Rule>) -> Result<ProgramUnit> {
             }
         }
     }
-    Ok(ProgramUnit {
+    let mut unit = ProgramUnit {
         name,
         ctors,
         services,
         types,
         docs,
         annotations,
-    })
+    };
+    unit.normalize();
+    Ok(unit)
 }
 
 // ------------------------------ Helpers --------------------------------------
@@ -636,6 +640,7 @@ mod tests {
             func,
             ServiceFunc {
                 name: "ColorPoint".to_string(),
+                entry_id: 0,
                 params: vec![
                     FuncParam {
                         name: "point".to_string(),

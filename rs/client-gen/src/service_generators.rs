@@ -121,10 +121,6 @@ impl<'ast> Visitor<'ast> for ServiceGenerator<'ast> {
         commands.sort_by_key(|f| f.name.to_lowercase());
         queries.sort_by_key(|f| f.name.to_lowercase());
 
-        for (entry_id, func) in commands.into_iter().chain(queries.into_iter()).enumerate() {
-            self.entry_ids.insert(func.name.as_str(), entry_id as u16);
-        }
-
         for (idx, event) in service.events.iter().enumerate() {
             self.entry_ids.insert(event.name.as_str(), idx as u16);
         }
@@ -207,7 +203,7 @@ impl<'ast> Visitor<'ast> for ServiceGenerator<'ast> {
         };
 
         let params_with_types_super = &fn_args_with_types_path(&func.params, "super");
-        let entry_id = self.entry_ids.get(func.name.as_str()).copied().unwrap_or(0);
+        let entry_id = func.entry_id;
 
         quote_in! { self.io_tokens =>
             $(self.sails_path)::io_struct_impl!($fn_name ($params_with_types_super) -> $output_type_decl_code, $entry_id, <super::$(self.service_name)Impl as $(self.sails_path)::client::Identifiable>::INTERFACE_ID);

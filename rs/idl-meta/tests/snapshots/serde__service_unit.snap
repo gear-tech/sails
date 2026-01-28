@@ -7,6 +7,7 @@ expression: serialized
   "funcs": [
     {
       "name": "DoThis",
+      "entry_id": 0,
       "params": [
         {
           "name": "p1",

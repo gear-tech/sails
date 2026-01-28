@@ -86,6 +86,17 @@ pub struct ProgramUnit {
     pub annotations: Vec<(String, Option<String>)>,
 }
 
+impl ProgramUnit {
+    /// Stabilize ordering for deterministic output and comparisons.
+    pub fn normalize(&mut self) {
+        self.ctors.sort_by_key(|f| f.name.to_lowercase());
+        self.ctors
+            .iter_mut()
+            .enumerate()
+            .for_each(|(idx, func)| func.entry_id = idx as u16);
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct ServiceIdent {
@@ -171,6 +182,7 @@ pub struct ServiceExpo {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct CtorFunc {
     pub name: String,
+    pub entry_id: u16,
     #[cfg_attr(feature = "serde", serde(default))]
     pub params: Vec<FuncParam>,
     #[cfg_attr(
@@ -240,6 +252,10 @@ impl ServiceUnit {
     pub fn normalize(&mut self) {
         self.events.sort_by_key(|e| e.name.to_lowercase());
         self.funcs.sort_by_key(|f| (f.kind, f.name.to_lowercase()));
+        self.funcs
+            .iter_mut()
+            .enumerate()
+            .for_each(|(idx, func)| func.entry_id = idx as u16);
         self.extends.sort_by_key(|e| e.name.to_lowercase());
     }
 }
@@ -255,6 +271,7 @@ impl ServiceUnit {
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct ServiceFunc {
     pub name: String,
+    pub entry_id: u16,
     #[cfg_attr(feature = "serde", serde(default))]
     pub params: Vec<FuncParam>,
     pub output: TypeDecl,

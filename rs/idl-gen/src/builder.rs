@@ -61,6 +61,7 @@ impl ProgramBuilder {
                             .collect::<Result<Vec<_>>>()?;
                         Ok(CtorFunc {
                             name: c.name.to_string(),
+                            entry_id: 0,
                             params,
                             docs: c.docs.iter().map(|s| s.to_string()).collect(),
                             annotations: vec![],
@@ -121,14 +122,16 @@ impl ProgramBuilder {
             })
             .collect();
 
-        Ok(ProgramUnit {
+        let mut unit = ProgramUnit {
             name,
             ctors,
             services: expos?,
             types,
             docs: vec![],
             annotations: vec![],
-        })
+        };
+        unit.normalize();
+        Ok(unit)
     }
 }
 
@@ -314,6 +317,7 @@ impl<'a> ServiceBuilder<'a> {
                             .collect::<Result<Vec<_>>>()?;
                         Ok(ServiceFunc {
                             name: c.name.to_string(),
+                            entry_id: 0, // Set in `ServiceUnit::normalize`
                             params,
                             output,
                             throws,
@@ -380,6 +384,7 @@ impl<'a> ServiceBuilder<'a> {
                             .collect::<Result<Vec<_>>>()?;
                         Ok(ServiceFunc {
                             name: c.name.to_string(),
+                            entry_id: 0, // Set in `ServiceUnit::normalize`
                             params,
                             output,
                             throws,
@@ -615,6 +620,7 @@ mod tests {
             meta.ctors,
             vec![CtorFunc {
                 name: "Ctor".to_string(),
+                entry_id: 0,
                 params: vec![FuncParam {
                     name: "initial_value".to_string(),
                     type_decl: Primitive(PrimitiveType::U32)

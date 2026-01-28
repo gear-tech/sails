@@ -22,6 +22,7 @@ expression: serialized
     "ctors": [
       {
         "name": "Create",
+        "entry_id": 0,
         "params": [
           {
             "name": "counter",
@@ -56,6 +57,7 @@ expression: serialized
       },
       {
         "name": "Default",
+        "entry_id": 1,
         "params": [],
         "docs": [
           "Another program constructor",
@@ -130,6 +132,7 @@ expression: serialized
       "funcs": [
         {
           "name": "Add",
+          "entry_id": 0,
           "params": [
             {
               "name": "value",
@@ -144,6 +147,7 @@ expression: serialized
         },
         {
           "name": "Sub",
+          "entry_id": 1,
           "params": [
             {
               "name": "value",
@@ -158,6 +162,7 @@ expression: serialized
         },
         {
           "name": "Value",
+          "entry_id": 2,
           "params": [],
           "output": "u32",
           "kind": "query",
@@ -202,6 +207,7 @@ expression: serialized
       "funcs": [
         {
           "name": "DoThis",
+          "entry_id": 0,
           "params": [
             {
               "name": "p1",

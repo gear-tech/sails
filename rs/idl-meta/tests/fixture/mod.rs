@@ -131,6 +131,7 @@ pub fn counter_service() -> ServiceUnit {
         funcs: vec![
             ServiceFunc {
                 name: "Add".to_string(),
+                entry_id: 0,
                 params: vec![FuncParam {
                     name: "value".to_string(),
                     type_decl: Primitive(U32),
@@ -143,6 +144,7 @@ pub fn counter_service() -> ServiceUnit {
             },
             ServiceFunc {
                 name: "Sub".to_string(),
+                entry_id: 1,
                 params: vec![FuncParam {
                     name: "value".to_string(),
                     type_decl: Primitive(U32),
@@ -155,6 +157,7 @@ pub fn counter_service() -> ServiceUnit {
             },
             ServiceFunc {
                 name: "Value".to_string(),
+                entry_id: 2,
                 params: vec![],
                 output: Primitive(U32),
                 throws: None,
@@ -200,6 +203,7 @@ pub fn counter_service() -> ServiceUnit {
 pub fn service_func() -> ServiceFunc {
     ServiceFunc {
         name: "DoThis".to_string(),
+        entry_id: 0,
         params: vec![
             FuncParam {
                 name: "p1".to_string(),
@@ -376,6 +380,7 @@ pub fn this_that_service() -> ServiceUnit {
 pub fn ctor_func() -> CtorFunc {
     CtorFunc {
         name: "Create".to_string(),
+        entry_id: 0,
         params: vec![
             FuncParam {
                 name: "counter".to_string(),
@@ -401,6 +406,7 @@ pub fn program_unit() -> ProgramUnit {
             ctor_func(),
             CtorFunc {
                 name: "Default".to_string(),
+                entry_id: 1,
                 params: vec![],
                 docs: vec![
                     "Another program constructor".to_string(),

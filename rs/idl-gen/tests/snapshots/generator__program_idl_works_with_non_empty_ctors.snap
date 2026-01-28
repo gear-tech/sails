@@ -91,11 +91,11 @@ service Test@0xd42ae9a4dc1efdf0 {
 
 program TestProgramWithNonEmptyCtorsMeta {
     constructors {
-        /// This is New constructor
-        New();
         /// This is FromStr constructor
         /// with second line
         FromStr(p1: String);
+        /// This is New constructor
+        New();
     }
     services {
         Test@0xd42ae9a4dc1efdf0,
