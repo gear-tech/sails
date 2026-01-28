@@ -5,4 +5,4 @@ export { throwOnErrorReply } from './utils.js';
 export { ZERO_ADDRESS } from './consts.js';
 export * from './primitives/index.js';
 export { Sails } from './sails.js';
-export * from './transaction-builder-v2.js';
+export { SailsProgram, SailsService } from './sails-v2.js';

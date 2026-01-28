@@ -44,36 +44,36 @@ const tryReadMagic = (bytes: Uint8Array, offset: number): number => {
 export class SailsMessageHeader {
   public readonly version: number;
   public readonly hlen: number;
-  public readonly interfaceId: InterfaceId;
-  public readonly routeId: number;
-  public readonly entryId: number;
+  public readonly interface_id: InterfaceId;
+  public readonly route_idx: number;
+  public readonly entry_id: number;
 
   private constructor(
     version: number,
     hlen: number,
-    interfaceId: InterfaceId,
-    routeId: number,
-    entryId: number
+    interface_id: InterfaceId,
+    route_idx: number,
+    entry_id: number
   ) {
     this.version = ensureVersion(version);
     this.hlen = ensureHeaderLength(hlen);
-    this.interfaceId = interfaceId;
-    this.routeId = routeId;
-    this.entryId = entryId;
+    this.interface_id = interface_id;
+    this.route_idx = route_idx;
+    this.entry_id = entry_id;
   }
 
   public static new(
     version: number,
     hlen: number,
-    interfaceId: InterfaceId,
-    routeId: number,
-    entryId: number
+    interface_id: InterfaceId,
+    route_idx: number,
+    entry_id: number
   ): SailsMessageHeader {
-    return new SailsMessageHeader(version, hlen, interfaceId, routeId, entryId);
+    return new SailsMessageHeader(version, hlen, interface_id, route_idx, entry_id);
   }
 
-  public static v1(interfaceId: InterfaceId, entryId: number, routeId: number): SailsMessageHeader {
-    return new SailsMessageHeader(1, MINIMAL_HLEN, interfaceId, routeId, entryId);
+  public static v1(interface_id: InterfaceId, entry_id: number, route_idx: number): SailsMessageHeader {
+    return new SailsMessageHeader(1, MINIMAL_HLEN, interface_id, route_idx, entry_id);
   }
 
   public toBytes(): Uint8Array {
@@ -86,15 +86,15 @@ export class SailsMessageHeader {
     offset += 1;
     bytes[offset] = this.hlen;
     offset += 1;
-    bytes.set(this.interfaceId.asBytes(), offset);
+    bytes.set(this.interface_id.asBytes(), offset);
     offset += 8;
 
-    const entry = this.entryId & 0xffff;
+    const entry = this.entry_id & 0xffff;
     bytes[offset] = entry & 0xff;
     bytes[offset + 1] = (entry >> 8) & 0xff;
     offset += 2;
 
-    bytes[offset] = this.routeId & 0xff;
+    bytes[offset] = this.route_idx & 0xff;
     bytes[offset + 1] = 0;
 
     return bytes;
@@ -151,10 +151,10 @@ export class SailsMessageHeader {
     let hasRoute = false;
 
     for (const [id, programRouteId] of interfaces) {
-      if (equalBytes(id.asBytes(), this.interfaceId.asBytes())) {
+      if (equalBytes(id.asBytes(), this.interface_id.asBytes())) {
         sameInterfaceIds += 1;
         if (!hasRoute) {
-          hasRoute = this.routeId === programRouteId;
+          hasRoute = this.route_idx === programRouteId;
         }
       }
     }
@@ -162,14 +162,14 @@ export class SailsMessageHeader {
     if (sameInterfaceIds === 0) {
       throw new RangeError("No matching interface ID found");
     }
-    if (this.routeId === 0 && sameInterfaceIds > 1) {
+    if (this.route_idx === 0 && sameInterfaceIds > 1) {
       throw new RangeError("Can't infer the interface by route id 0, many instances");
     }
-    if (!hasRoute && this.routeId !== 0) {
+    if (!hasRoute && this.route_idx !== 0) {
       throw new RangeError("No matching route ID found for the interface ID");
     }
 
-    return new MatchedInterface(this.interfaceId, this.routeId, this.entryId);
+    return new MatchedInterface(this.interface_id, this.route_idx, this.entry_id);
   }
 }
 

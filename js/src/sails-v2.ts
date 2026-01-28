@@ -1,20 +1,18 @@
 import { GearApi, HexString, UserMessageSent } from '@gear-js/api';
 import { TypeRegistry } from '@polkadot/types/create';
 import { u8aToHex } from '@polkadot/util';
-import { TypeDecl, IIdlParser, IIdlDoc, IServiceUnit } from 'sails-js-types-v2';
+import type { TypeDecl, IIdlParser, IIdlDoc, IServiceUnit, IFuncParam, IServiceEvent } from 'sails-js-types-v2';
 import { SailsMessageHeader, InterfaceId } from 'sails-js-parser-v2';
 
-import { getFnNamePrefix, getServiceNamePrefix } from './prefix.js';
 import { TransactionBuilder } from './transaction-builder-v2.js';
-import { getScaleCodecDef } from 'sails-js-util';
+import { getScaleCodecDef, getScaleCodecTypeDef, getFieldsDef } from './type-resolver-v2.js';
 import { ZERO_ADDRESS } from './consts.js';
-import { QueryBuilder } from './query-builder.js';
+import { QueryBuilder } from './query-builder-v2.js';
 
-
-interface SailsService {
+interface ISailsService {
   readonly functions: Record<string, SailsServiceFunc>;
   readonly queries: Record<string, SailsServiceQuery>;
-  readonly events: Record<string, SailsServiceEvent>;
+  readonly events: Record<string, ISailsServiceEvent>;
 }
 
 interface ISailsFuncArg {
@@ -47,11 +45,11 @@ type SailsServiceQuery = ISailsServiceFuncParams & (<T = any>(...args: unknown[]
 
 type SailsServiceFunc = ISailsServiceFuncParams & (<T = any>(...args: unknown[]) => TransactionBuilder<T>);
 
-interface SailsServiceEvent {
+interface ISailsServiceEvent {
   /** ### Event type */
   readonly type: any;
   /** ###  */
-  readonly typeDef: TypeDecl;
+  readonly typeDef: IServiceEvent;
   /** ### Check if event is of this type */
   readonly is: (event: UserMessageSent) => boolean;
   /** ### Decode event payload */
@@ -79,7 +77,19 @@ interface ISailsCtorFuncParams {
   readonly docs?: string;
 }
 
-export class Sails {
+const _getParamsForTxBuilder = (params: ISailsFuncArg[]) => {
+  if (params.length === 0) return null;
+  if (params.length === 1) return params[0].type;
+  return `(${params.map((p) => p.type).join(', ')})`;
+}
+
+const _getArgsForTxBuilder = (args: any[], params: ISailsFuncArg[]) => {
+  if (params.length === 0) return null;
+  if (params.length === 1) return args[0];
+  return args.slice(0, params.length);
+}
+
+export class SailsProgram {
   private _parser: IIdlParser;
   private _doc: IIdlDoc;
   private _scaleTypes: Record<string, any>;
@@ -126,309 +136,327 @@ export class Sails {
   private generateScaleCodeTypes() {
     const scaleTypes: Record<string, any> = {};
 
-    // TODO
-    // for (const type of this._doc.types) {
-    //   scaleTypes[type.name] = getScaleCodecDef(type.def);
-    // }
+    for (const type of this._doc.program.types) {
+      scaleTypes[type.name] = getScaleCodecTypeDef(type);
+    }
 
-    // this._registry = new TypeRegistry();
-    // this._registry.setKnownTypes({ types: scaleTypes });
-    // this._registry.register(scaleTypes);
+    this._registry = new TypeRegistry();
+    this._registry.setKnownTypes({ types: scaleTypes });
+    this._registry.register(scaleTypes);
 
     this._scaleTypes = scaleTypes;
   }
 
-    /** #### Scale code types from the parsed IDL */
-    get scaleCodecTypes() {
-      if (!this._doc) {
-        throw new Error('IDL not parsed');
-      }
-
-      return this._scaleTypes;
+  /** #### Scale code types from the parsed IDL */
+  get scaleCodecTypes() {
+    if (!this._doc) {
+      throw new Error('IDL not parsed');
     }
 
-    /** #### Registry with registered types from the parsed IDL */
-    get registry() {
-      if (!this._doc) {
-        throw new Error('IDL not parsed');
-      }
+    return this._scaleTypes;
+  }
 
-      return this._registry;
+  /** #### Registry with registered types from the parsed IDL */
+  get registry() {
+    if (!this._doc) {
+      throw new Error('IDL not parsed');
     }
 
-  //   private _getParamsForTxBuilder(params: ISailsFuncArg[]) {
-  //     if (params.length === 0) return null;
-  //     if (params.length === 1) return params[0].type;
-  //     return `(${params.map((p) => p.type).join(', ')})`;
-  //   }
+    return this._registry;
+  }
 
-  //   private _getArgsForTxBuilder(args: any[], params: ISailsFuncArg[]) {
-  //     if (params.length === 0) return null;
-  //     if (params.length === 1) return args[0];
-  //     return args.slice(0, params.length);
-  //   }
+  /** #### Services with functions and events from the parsed IDL */
+  get services(): Record<string, SailsService> {
+    if (!this._doc) {
+      throw new Error('IDL is not parsed');
+    }
 
-  //   private _getFunctions(service: IServiceUnit): {
-  //     funcs: Record<string, SailsServiceFunc>;
-  //     queries: Record<string, SailsServiceQuery>;
-  //   } {
-  //     const funcs: Record<string, SailsServiceFunc> = {};
-  //     const queries: Record<string, SailsServiceQuery> = {};
+    const services = {};
 
-  //     for (const func of service.funcs) {
-  //       const params: ISailsFuncArg[] = func.params.map((p) => ({
-  //         name: p.name,
-  //         type: getScaleCodecDef(p.type),
-  //         typeDef: p.type,
-  //       }));
-  //       const returnType = getScaleCodecDef(func.output);
-  //       if (func.isQuery) {
-  //         queries[func.name] = (<T = any>(...args: unknown[]): QueryBuilder<T> => {
-  //           if (!this._api) {
-  //             throw new Error('API is not set. Use .setApi method to set API instance');
-  //           }
-  //           if (!this._programId) {
-  //             throw new Error('Program ID is not set. Use .setProgramId method to set program ID');
-  //           }
+    for (const service of this._doc.services) {
+      services[service.name] = new SailsService(service, this._api, this.programId);
+    }
 
-  //           return new QueryBuilder<T>(
-  //             this._api,
-  //             this.registry,
-  //             this._programId,
-  //             service.name,
-  //             func.name,
-  //             this._getArgsForTxBuilder(args, params),
-  //             this._getParamsForTxBuilder(params),
-  //             returnType,
-  //           );
-  //         }) as SailsServiceQuery;
-  //       } else {
-  //         funcs[func.name] = (<T = any>(...args: unknown[]): TransactionBuilder<T> => {
-  //           if (!this._api) {
-  //             throw new Error('API is not set. Use .setApi method to set API instance');
-  //           }
-  //           if (!this._programId) {
-  //             throw new Error('Program ID is not set. Use .setProgramId method to set program ID');
-  //           }
-  //           const header = SailsMessageHeader.v1(InterfaceId.from(service.interface_id), func.entry_id, 0);
-  //           return new TransactionBuilder(
-  //             this._api,
-  //             this.registry,
-  //             'send_message',
-  //             header,
-  //             this._getArgsForTxBuilder(args, params),
-  //             this._getParamsForTxBuilder(params),
-  //             returnType,
-  //             this._programId,
-  //           );
-  //         }) as SailsServiceFunc;
-  //       }
+    return services;
+  }
 
-  //       Object.assign(func.isQuery ? queries[func.name] : funcs[func.name], {
-  //         args: params,
-  //         returnType,
-  //         returnTypeDef: func.def,
-  //         docs: func.docs,
-  //         encodePayload: (...args: unknown[]): HexString => {
-  //           if (args.length !== args.length) {
-  //             throw new Error(`Expected ${params.length} arguments, but got ${args.length}`);
-  //           }
+  /** #### Constructor functions with arguments from the parsed IDL */
+  get ctors() {
+    if (!this._doc) {
+      throw new Error('IDL not parsed');
+    }
 
-  //           const payload = this.registry.createType(`(String, String, ${params.map((p) => p.type).join(', ')})`, [
-  //             service.name,
-  //             func.name,
-  //             ...args,
-  //           ]);
+    const program = this._doc.program;
 
-  //           return payload.toHex();
-  //         },
-  //         decodePayload: <T = any>(bytes: HexString) => {
-  //           const payload = this.registry.createType(`(String, String, ${params.map((p) => p.type).join(', ')})`, bytes);
-  //           const result = {} as Record<string, any>;
-  //           for (const [i, param] of params.entries()) {
-  //             result[param.name] = payload[i + 2].toJSON();
-  //           }
-  //           return result as T;
-  //         },
-  //         decodeResult: <T = any>(result: HexString) => {
-  //           const payload = this.registry.createType(`(String, String, ${returnType})`, result);
-  //           return payload[2].toJSON() as T;
-  //         },
-  //       });
-  //     }
+    if (!program) {
+      return null;
+    }
 
-  //     return { funcs, queries };
-  //   }
+    const funcs: Record<string, ISailsCtorFuncParams> = {};
 
-  //   private _getEvents(service: IServiceUnit): Record<string, SailsServiceEvent> {
-  //     const events: Record<string, SailsServiceEvent> = {};
+    for (const [entry_id, func] of program.ctors.entries()) {
+      const header = SailsMessageHeader.v1(InterfaceId.zero(), entry_id, 0);
+      const params = func.params.map((p: IFuncParam) => ({ name: p.name, type: getScaleCodecDef(p.type), typeDef: p.type }));
+      funcs[func.name] = {
+        args: params,
+        encodePayload: (...args): HexString => {
+          if (args.length !== params.length) {
+            throw new Error(`Expected ${params.length} arguments, but got ${args.length}`);
+          }
 
-  //     for (const event of service.events) {
-  //       const t = event.def ? getScaleCodecDef(event.def) : 'Null';
-  //       const typeStr = event.def ? getScaleCodecDef(event.def, true) : 'Null';
-  //       events[event.name] = {
-  //         type: t,
-  //         typeDef: event.def,
-  //         docs: event.docs,
-  //         is: ({ data: { message } }: UserMessageSent) => {
-  //           if (!message.destination.eq(ZERO_ADDRESS)) {
-  //             return false;
-  //           }
+          if (params.length === 0) {
+            return u8aToHex(header.toBytes());
+          }
 
-  //           if (getServiceNamePrefix(message.payload.toHex()) !== service.name) {
-  //             return false;
-  //           }
+          const payload = this.registry.createType(`([u8; 16], ${params.map((p) => p.type).join(', ')})`, [
+            header.toBytes(),
+            ...args,
+          ]);
 
-  //           if (getFnNamePrefix(message.payload.toHex()) !== event.name) {
-  //             return false;
-  //           }
+          return payload.toHex();
+        },
+        decodePayload: <T = any>(bytes: Uint8Array | string) => {
+          const payload = this.registry.createType(`([u8; 16], ${params.map((p) => p.type).join(', ')})`, bytes);
+          const result = {} as Record<string, any>;
+          for (const [i, param] of params.entries()) {
+            result[param.name] = payload[i + 1].toJSON();
+          }
+          return result as T;
+        },
+        fromCode: (code: Uint8Array | Buffer, ...args: unknown[]) => {
+          if (!this._api) {
+            throw new Error('API is not set. Use .setApi method to set API instance');
+          }
 
-  //           return true;
-  //         },
-  //         decode: (payload: HexString) => {
-  //           const data = this.registry.createType(`(String, String, ${typeStr})`, payload);
-  //           return data[2].toJSON();
-  //         },
-  //         subscribe: <T = any>(cb: (eventData: T) => void | Promise<void>): Promise<() => void> => {
-  //           if (!this._api) {
-  //             throw new Error('API is not set. Use .setApi method to set API instance');
-  //           }
+          const builder = new TransactionBuilder(
+            this._api,
+            this.registry,
+            'upload_program',
+            header,
+            _getArgsForTxBuilder(args, params),
+            _getParamsForTxBuilder(params),
+            'String',
+            code,
+          );
 
-  //           if (!this._programId) {
-  //             throw new Error('Program ID is not set. Use .setProgramId method to set program ID');
-  //           }
+          this._programId = builder.programId;
+          return builder;
+        },
+        fromCodeId: (codeId: HexString, ...args: unknown[]) => {
+          if (!this._api) {
+            throw new Error('API is not set. Use .setApi method to set API instance');
+          }
 
-  //           return this._api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {
-  //             if (!message.source.eq(this._programId)) return;
-  //             if (!message.destination.eq(ZERO_ADDRESS)) return;
-  //             const payload = message.payload.toHex();
+          const builder = new TransactionBuilder(
+            this._api,
+            this.registry,
+            'create_program',
+            header,
+            _getArgsForTxBuilder(args, params),
+            _getParamsForTxBuilder(params),
+            'String',
+            codeId,
+          );
 
-  //             if (getServiceNamePrefix(payload) === service.name && getFnNamePrefix(payload) === event.name) {
-  //               cb(this.registry.createType(`(String, String, ${typeStr})`, message.payload)[2].toJSON() as T);
-  //             }
-  //           });
-  //         },
-  //       };
-  //     }
+          this._programId = builder.programId;
+          return builder;
+        },
+        docs: func.docs ? func.docs.join('\n') : undefined,
+      };
+    }
 
-  //     return events;
-  //   }
+    return funcs;
+  }
 
-  //   /** #### Services with functions and events from the parsed IDL */
-  //   get services(): Record<string, SailsService> {
-  //     if (!this._doc) {
-  //       throw new Error('IDL is not parsed');
-  //     }
+  /** #### Parsed IDL */
+  get program() {
+    if (!this._doc) {
+      throw new Error('IDL is not parsed');
+    }
 
-  //     const services = {};
+    return this._doc.program;
+  }
+}
 
-  //     for (const service of this._doc.services) {
-  //       const { funcs, queries } = this._getFunctions(service);
-  //       services[service.name] = {
-  //         functions: funcs,
-  //         queries,
-  //         events: this._getEvents(service),
-  //       };
-  //     }
+export class SailsService implements ISailsService {
+  functions: Record<string, SailsServiceFunc>;
+  queries: Record<string, SailsServiceQuery>;
+  events: Record<string, ISailsServiceEvent>;
 
-  //     return services;
-  //   }
+  private _service: IServiceUnit;
+  private _scaleTypes: Record<string, any>;
+  private _registry: TypeRegistry;
+  private _api?: GearApi;
+  private _programId?: HexString;
 
-  //   /** #### Constructor functions with arguments from the parsed IDL */
-  //   get ctors() {
-  //     if (!this._doc) {
-  //       throw new Error('IDL not parsed');
-  //     }
+  constructor(service: IServiceUnit, api?: GearApi, programId?: HexString) {
+    this._service = service;
+    this._api = api;
+    this._programId = programId;
 
-  //     const ctor = this._doc.ctor;
+    this._registry = new TypeRegistry();
+    this._registerTypes(service);
+    this.events = this._getEvents(service);
+    const { funcs, queries } = this._getFunctions(service);
+    this.functions = funcs;
+    this.queries = queries;
+  }
 
-  //     if (!ctor) {
-  //       return null;
-  //     }
+  private _registerTypes(service: IServiceUnit) {
+    const scaleTypes: Record<string, any> = {};
 
-  //     const funcs: Record<string, ISailsCtorFuncParams> = {};
+    for (const type of service.types) {
+      scaleTypes[type.name] = getScaleCodecTypeDef(type);
+    }
 
-  //     for (const func of ctor.funcs) {
-  //       const params = func.params.map((p) => ({ name: p.name, type: getScaleCodecDef(p.def), typeDef: p.def }));
-  //       funcs[func.name] = {
-  //         args: params,
-  //         encodePayload: (...args): HexString => {
-  //           if (args.length !== args.length) {
-  //             throw new Error(`Expected ${params.length} arguments, but got ${args.length}`);
-  //           }
+    this._registry.setKnownTypes({ types: scaleTypes });
+    this._registry.register(scaleTypes);
+    this._scaleTypes = scaleTypes;
+  }
 
-  //           if (params.length === 0) {
-  //             return u8aToHex(this.registry.createType('String', func.name).toU8a());
-  //           }
+  private _getFunctions(service: IServiceUnit): {
+    funcs: Record<string, SailsServiceFunc>;
+    queries: Record<string, SailsServiceQuery>;
+  } {
+    const funcs: Record<string, SailsServiceFunc> = {};
+    const queries: Record<string, SailsServiceQuery> = {};
 
-  //           const payload = this.registry.createType(`(String, ${params.map((p) => p.type).join(', ')})`, [
-  //             func.name,
-  //             ...args,
-  //           ]);
+    for (const [entry_id, func] of service.funcs.entries()) {
+      const header = SailsMessageHeader.v1(InterfaceId.from(service.interface_id), entry_id, 0); // TODO: get `route_idx`
+      const params: ISailsFuncArg[] = func.params.map((p: IFuncParam) => ({
+        name: p.name,
+        type: getScaleCodecDef(p.type),
+        typeDef: p.type,
+      }));
+      const returnType = getScaleCodecDef(func.output);
+      if (func.kind == "query") {
+        queries[func.name] = (<T = any>(...args: unknown[]): QueryBuilder<T> => {
+          if (!this._api) {
+            throw new Error('API is not set. Use .setApi method to set API instance');
+          }
+          if (!this._programId) {
+            throw new Error('Program ID is not set. Use .setProgramId method to set program ID');
+          }
 
-  //           return payload.toHex();
-  //         },
-  //         decodePayload: <T = any>(bytes: Uint8Array | string) => {
-  //           const payload = this.registry.createType(`(String, ${params.map((p) => p.type).join(', ')})`, bytes);
-  //           const result = {} as Record<string, any>;
-  //           for (const [i, param] of params.entries()) {
-  //             result[param.name] = payload[i + 1].toJSON();
-  //           }
-  //           return result as T;
-  //         },
-  //         fromCode: (code: Uint8Array | Buffer, ...args: unknown[]) => {
-  //           if (!this._api) {
-  //             throw new Error('API is not set. Use .setApi method to set API instance');
-  //           }
+          return new QueryBuilder<T>(
+            this._api,
+            this._registry,
+            this._programId,
+            header,
+            _getArgsForTxBuilder(args, params),
+            _getParamsForTxBuilder(params),
+            returnType,
+          );
+        }) as SailsServiceQuery;
+      } else {
+        funcs[func.name] = (<T = any>(...args: unknown[]): TransactionBuilder<T> => {
+          if (!this._api) {
+            throw new Error('API is not set. Use .setApi method to set API instance');
+          }
+          if (!this._programId) {
+            throw new Error('Program ID is not set. Use .setProgramId method to set program ID');
+          }
+          return new TransactionBuilder(
+            this._api,
+            this._registry,
+            'send_message',
+            header,
+            _getArgsForTxBuilder(args, params),
+            _getParamsForTxBuilder(params),
+            returnType,
+            this._programId,
+          );
+        }) as SailsServiceFunc;
+      }
 
-  //           const builder = new TransactionBuilder(
-  //             this._api,
-  //             this.registry,
-  //             'upload_program',
-  //             undefined,
-  //             func.name,
-  //             this._getArgsForTxBuilder(args, params),
-  //             this._getParamsForTxBuilder(params),
-  //             'String',
-  //             code,
-  //           );
+      Object.assign(func.kind == "query" ? queries[func.name] : funcs[func.name], {
+        args: params,
+        returnType,
+        returnTypeDef: func.output,
+        docs: func.docs ? func.docs.join('\n') : undefined,
+        encodePayload: (...args: unknown[]): HexString => {
+          if (args.length !== params.length) {
+            throw new Error(`Expected ${params.length} arguments, but got ${args.length}`);
+          }
 
-  //           this._programId = builder.programId;
-  //           return builder;
-  //         },
-  //         fromCodeId: (codeId: HexString, ...args: unknown[]) => {
-  //           if (!this._api) {
-  //             throw new Error('API is not set. Use .setApi method to set API instance');
-  //           }
+          const payload = this._registry.createType(`([u8; 16], ${params.map((p) => p.type).join(', ')})`, [
+            header.toBytes(),
+            ...args,
+          ]);
 
-  //           const builder = new TransactionBuilder(
-  //             this._api,
-  //             this.registry,
-  //             'create_program',
-  //             undefined,
-  //             func.name,
-  //             this._getArgsForTxBuilder(args, params),
-  //             this._getParamsForTxBuilder(params),
-  //             'String',
-  //             codeId,
-  //           );
+          return payload.toHex();
+        },
+        decodePayload: <T = any>(bytes: HexString) => {
+          const payload = this._registry.createType(`([u8; 16], ${params.map((p) => p.type).join(', ')})`, bytes);
+          const result = {} as Record<string, any>;
+          for (const [i, param] of params.entries()) {
+            result[param.name] = payload[i + 1].toJSON();
+          }
+          return result as T;
+        },
+        decodeResult: <T = any>(result: HexString) => {
+          const payload = this._registry.createType(`([u8; 16], ${returnType})`, result);
+          return payload[1].toJSON() as T;
+        },
+      });
+    }
 
-  //           this._programId = builder.programId;
-  //           return builder;
-  //         },
-  //         docs: func.docs,
-  //       };
-  //     }
+    return { funcs, queries };
+  }
 
-  //     return funcs;
-  //   }
+  private _getEvents(service: IServiceUnit): Record<string, ISailsServiceEvent> {
+    const events: Record<string, ISailsServiceEvent> = {};
 
-  //   /** #### Parsed IDL */
-  //   get program() {
-  //     if (!this._doc) {
-  //       throw new Error('IDL is not parsed');
-  //     }
+    var entry_id = 0;
+    for (const event of service.events) {
+      const t = event.fields ? getFieldsDef(event.fields) : 'Null';
+      const typeStr = event.fields ? getFieldsDef(event.fields, true) : 'Null';
+      events[event.name] = {
+        type: t,
+        typeDef: event,
+        docs: event.docs ? event.docs.join('\n') : undefined,
+        is: ({ data: { message } }: UserMessageSent) => {
+          if (!message.destination.eq(ZERO_ADDRESS)) {
+            return false;
+          }
 
-  //     return this._doc;
-  //   }
+          const { header, offset } = SailsMessageHeader.tryReadBytes(message.payload);
+          if (header.interface_id !== service.interface_id) {
+            return false;
+          }
+          if (header.entry_id !== entry_id) {
+            return false;
+          }
+
+          return true;
+        },
+        decode: (payload: HexString) => {
+          const data = this._registry.createType(`([u8; 16], ${typeStr})`, payload);
+          return data[1].toJSON();
+        },
+        subscribe: <T = any>(cb: (eventData: T) => void | Promise<void>): Promise<() => void> => {
+          if (!this._api) {
+            throw new Error('API is not set. Use .setApi method to set API instance');
+          }
+
+          if (!this._programId) {
+            throw new Error('Program ID is not set. Use .setProgramId method to set program ID');
+          }
+
+          return this._api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {
+            if (!message.source.eq(this._programId)) return;
+            if (!message.destination.eq(ZERO_ADDRESS)) return;
+
+            const { header, offset } = SailsMessageHeader.tryReadBytes(message.payload);
+            if (header.interface_id === service.interface_id && header.entry_id === entry_id) {
+              cb(this._registry.createType(`([u8; 16], ${typeStr})`, message.payload)[1].toJSON() as T);
+            }
+          });
+        },
+      };
+      entry_id += 1;
+    }
+
+    return events;
+  }
 }
