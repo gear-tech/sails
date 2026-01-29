@@ -686,34 +686,29 @@ async fn validator_range_check_works() {
     use demo_client::validator::{ValidationError, Validator as _};
 
     let (env, code_id, _gas_limit) = create_env();
-    let demo_program = env
-        .deploy(code_id, vec![])
-        .new(Some(42), None)
-        .await
-        .unwrap();
+    let demo_program = env.deploy(code_id, vec![]).default().await.unwrap();
 
-    let validator_client = demo_program.validator();
+    let mut validator_client = demo_program.validator();
 
     // Success case
     let res = validator_client.validate_range(10, 0, 100).await.unwrap();
     assert_eq!(res, Ok(10));
+    assert_eq!(validator_client.total_errors().await.unwrap(), 0);
 
     // Error case (throws)
     let res = validator_client.validate_range(150, 0, 100).await.unwrap();
     assert_eq!(res, Err(ValidationError::TooBig));
+
+    assert_eq!(validator_client.total_errors().await.unwrap(), 0);
 }
 
 #[tokio::test]
 async fn validator_nonzero_works() {
     use demo_client::validator::Validator as _;
     let (env, code_id, _gas_limit) = create_env();
-    let demo_program = env
-        .deploy(code_id, vec![])
-        .new(Some(42), None)
-        .await
-        .unwrap();
+    let demo_program = env.deploy(code_id, vec![]).default().await.unwrap();
 
-    let validator_client = demo_program.validator();
+    let mut validator_client = demo_program.validator();
 
     // Success case (Ok(()))
     let res = validator_client.validate_nonzero(10).await.unwrap();
@@ -722,17 +717,14 @@ async fn validator_nonzero_works() {
     // Error case (Err(String))
     let res = validator_client.validate_nonzero(0).await.unwrap();
     assert_eq!(res, Err("Value is zero".to_string()));
+    assert_eq!(validator_client.total_errors().await.unwrap(), 0);
 }
 
 #[tokio::test]
 async fn validator_even_works() {
     use demo_client::validator::Validator as _;
     let (env, code_id, _gas_limit) = create_env();
-    let demo_program = env
-        .deploy(code_id, vec![])
-        .new(Some(42), None)
-        .await
-        .unwrap();
+    let demo_program = env.deploy(code_id, vec![]).default().await.unwrap();
 
     let validator_client = demo_program.validator();
 
@@ -750,13 +742,9 @@ async fn validator_range_check_query_works() {
     use demo_client::validator::{ValidationError, Validator as _};
 
     let (env, code_id, _gas_limit) = create_env();
-    let demo_program = env
-        .deploy(code_id, vec![])
-        .new(Some(42), None)
-        .await
-        .unwrap();
+    let demo_program = env.deploy(code_id, vec![]).default().await.unwrap();
 
-    let validator_client = demo_program.validator();
+    let mut validator_client = demo_program.validator();
 
     let res = validator_client
         .validate_range(150, 0, 100)

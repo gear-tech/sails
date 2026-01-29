@@ -27,6 +27,8 @@ members = [
     "examples/event-routes",
     "examples/event-routes/app",
     "examples/ping-pong-stack",
+    "examples/inspector/app",
+    "examples/inspector/client",
     "rs",
     "rs/cli",
     "rs/client-gen",

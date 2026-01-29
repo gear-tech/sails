@@ -1,0 +1,21 @@
+[package]
+name = "inspector-app"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+sails-rs.workspace = true
+demo-client = { path = "../../demo/client" }
+
+[build-dependencies]
+sails-rs = { workspace = true, features = ["wasm-builder"] }
+
+[dev-dependencies]
+demo = { path = "../../demo/app" }
+inspector-client = { path = "../client" }
+sails-rs = { workspace = true, features = ["gtest", "gclient"] }
+tokio = { workspace = true, features = ["rt", "macros"] }

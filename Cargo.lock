@@ -4505,6 +4505,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "inspector-app"
+version = "0.10.2"
+dependencies = [
+ "demo",
+ "demo-client",
+ "inspector-client",
+ "sails-rs",
+ "tokio",
+]
+
+[[package]]
+name = "inspector-client"
+version = "0.10.2"
+dependencies = [
+ "inspector-app",
+ "sails-rs",
+]
+
+[[package]]
 name = "insta"
 version = "1.44.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"

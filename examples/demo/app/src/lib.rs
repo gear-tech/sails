@@ -31,6 +31,7 @@ pub struct DemoProgram {
     // Counter data has the same lifetime as the program itself, i.e. it will
     // live as long as the program is available on the network.
     counter_data: RefCell<counter::CounterData>,
+    validator_data: RefCell<validator::ValidatorData>,
     ref_data: u8,
 }
 
@@ -47,6 +48,7 @@ impl DemoProgram {
         }
         Self {
             counter_data: RefCell::new(counter::CounterData::new(Default::default())),
+            validator_data: RefCell::new(validator::ValidatorData::new()),
             ref_data: 42,
         }
     }
@@ -63,6 +65,7 @@ impl DemoProgram {
         }
         Ok(Self {
             counter_data: RefCell::new(counter::CounterData::new(counter.unwrap_or_default())),
+            validator_data: RefCell::new(validator::ValidatorData::new()),
             ref_data: 42,
         })
     }
@@ -99,8 +102,8 @@ impl DemoProgram {
         chaos::ChaosService
     }
 
-    pub fn validator(&self) -> validator::Validator {
-        validator::Validator
+    pub fn validator(&self) -> validator::Validator<'_> {
+        validator::Validator::new(&self.validator_data)
     }
 }
 

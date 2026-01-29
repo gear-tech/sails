@@ -1,0 +1,32 @@
+
+!@sails: 0.10.2
+
+service Inspector@0x0c35d69634051dd3 {
+    functions {
+        /// Proxy call to validator.validate_nonzero(0)
+        TestNonzeroPanic() throws String;
+        /// Proxy call to validator.validate_range(20, 5, 15)
+        TestRangePanic() -> u32 throws ValidationError;
+        /// Proxy call to validator.validate_even(7)
+        @query
+        TestEvenPanic() -> u32 throws ();
+        /// Proxy call to validator.total_errors()
+        @query
+        TestTotalErrors() -> u32;
+    }
+    types {
+        enum ValidationError {
+            TooSmall,
+            TooBig,
+        }
+    }
+}
+
+program InspectorClient {
+    constructors {
+        New(target: ActorId);
+    }
+    services {
+        Inspector@0x0c35d69634051dd3,
+    }
+}
