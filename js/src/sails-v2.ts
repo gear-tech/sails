@@ -406,9 +406,9 @@ export class SailsService implements ISailsService {
 
   private _getEvents(service: IServiceUnit): Record<string, ISailsServiceEvent> {
     const events: Record<string, ISailsServiceEvent> = {};
+    const interface_id_u64: bigint = InterfaceId.from(service.interface_id).asU64();
 
-    var entry_id = 0;
-    for (const event of service.events) {
+    for (const [entry_id, event] of service.events.entries()) {
       const t = event.fields ? getFieldsDef(event.fields) : 'Null';
       const typeStr = event.fields ? getFieldsDef(event.fields, true) : 'Null';
       events[event.name] = {
@@ -421,7 +421,7 @@ export class SailsService implements ISailsService {
           }
 
           const { header, offset } = SailsMessageHeader.tryReadBytes(message.payload);
-          if (header.interface_id !== service.interface_id) {
+          if (header.interface_id.asU64() !== interface_id_u64) {
             return false;
           }
           if (header.entry_id !== entry_id) {
@@ -448,13 +448,12 @@ export class SailsService implements ISailsService {
             if (!message.destination.eq(ZERO_ADDRESS)) return;
 
             const { header, offset } = SailsMessageHeader.tryReadBytes(message.payload);
-            if (header.interface_id === service.interface_id && header.entry_id === entry_id) {
+            if (header.interface_id.asU64() === interface_id_u64 && header.entry_id === entry_id) {
               cb(this._registry.createType(`([u8; 16], ${typeStr})`, message.payload)[1].toJSON() as T);
             }
           });
         },
       };
-      entry_id += 1;
     }
 
     return events;
