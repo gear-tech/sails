@@ -108,12 +108,24 @@ impl<T: ServiceCall> PendingCall<T, GclientEnv> {
         let (payload, params) = self.take_encoded_args_and_params();
 
         // Calculate reply
-        let reply_bytes =
-            query_calculate_reply(&self.env.api, self.destination, payload, params).await?;
-
-        // Decode reply
-        T::decode_reply_with_header(self.route_idx, reply_bytes)
-            .map_err(|err| gclient::Error::Codec(err).into())
+        match query_calculate_reply(&self.env.api, self.destination, payload, params).await {
+            Ok(reply_bytes) => match T::decode_reply_with_header(self.route_idx, reply_bytes) {
+                Ok(decoded) => Ok(decoded),
+                Err(err) => Err(gclient::Error::Codec(err).into()),
+            },
+            Err(GclientError::ReplyHasError(reason, payload)) => {
+                if matches!(
+                    reason,
+                    ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic)
+                ) && let Ok(decoded) = T::decode_error_with_header(self.route_idx, &payload)
+                {
+                    Ok(decoded)
+                } else {
+                    Err(GclientError::ReplyHasError(reason, payload))
+                }
+            }
+            Err(err) => Err(err),
+        }
     }
 }
 
@@ -318,16 +330,23 @@ async fn calculate_gas_limit(
     gas_limit: Option<GasUnit>,
     value: ValueUnit,
 ) -> Result<u64, GclientError> {
-    let gas_limit = if let Some(gas_limit) = gas_limit {
-        gas_limit
-    } else {
-        // Calculate gas amount needed for handling the message
-        let gas_info = api
-            .calculate_handle_gas(None, program_id, payload.as_ref().to_vec(), value, true)
-            .await?;
-        gas_info.min_limit
-    };
-    Ok(gas_limit)
+    if let Some(gas_limit) = gas_limit {
+        return Ok(gas_limit);
+    }
+    // Calculate gas amount needed for handling the message
+    let gas_info_res = api
+        .calculate_handle_gas(None, program_id, payload.as_ref().to_vec(), value, true)
+        .await;
+
+    match gas_info_res {
+        Ok(gas_info) => Ok(gas_info.min_limit),
+        Err(err) => {
+            if let Some((reason, payload)) = try_extract_panic_from_hex(&format!("{err:?}")) {
+                return Err(GclientError::ReplyHasError(reason, payload));
+            }
+            Err(err.into())
+        }
+    }
 }
 
 async fn query_calculate_reply(
@@ -349,7 +368,7 @@ async fn query_calculate_reply(
     let origin = H256::from_slice(api.account_id().as_ref());
     let payload = payload.as_ref().to_vec();
 
-    let reply_info = api
+    let reply_info_res = api
         .calculate_reply_for_handle_at(
             Some(origin.0.into()),
             destination,
@@ -358,12 +377,22 @@ async fn query_calculate_reply(
             value,
             params.at_block.map(|at| at.0.into()),
         )
-        .await?;
+        .await;
 
-    match reply_info.code {
-        ReplyCode::Success(_) => Ok(reply_info.payload),
-        ReplyCode::Error(reason) => Err(GclientError::ReplyHasError(reason, reply_info.payload)),
-        ReplyCode::Unsupported => Err(GclientError::ReplyIsMissing),
+    match reply_info_res {
+        Ok(reply_info) => match reply_info.code {
+            ReplyCode::Success(_) => Ok(reply_info.payload),
+            ReplyCode::Error(reason) => {
+                Err(GclientError::ReplyHasError(reason, reply_info.payload))
+            }
+            ReplyCode::Unsupported => Err(GclientError::ReplyIsMissing),
+        },
+        Err(err) => {
+            if let Some((reason, payload)) = try_extract_panic_from_hex(&format!("{err:?}")) {
+                return Err(GclientError::ReplyHasError(reason, payload));
+            }
+            Err(err.into())
+        }
     }
 }
 
@@ -416,4 +445,23 @@ async fn get_events_from_block(
         )
         .await?;
     Ok(vec)
+}
+
+fn try_extract_panic_from_hex(err_str: &str) -> Option<(ErrorReplyReason, Vec<u8>)> {
+    err_str
+        .split_once("Panic occurred: 0x")
+        .and_then(|(_, rest)| {
+            let hex = rest
+                .chars()
+                .take_while(|c| c.is_ascii_hexdigit())
+                .collect::<String>();
+            hex::decode(hex).ok()
+        })
+        .filter(|p| p.starts_with(b"GM"))
+        .map(|p| {
+            (
+                ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic),
+                p,
+            )
+        })
 }

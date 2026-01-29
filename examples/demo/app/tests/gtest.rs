@@ -703,6 +703,22 @@ async fn validator_range_check_works() {
 }
 
 #[tokio::test]
+async fn validator_range_check_query_works() {
+    use demo_client::validator::{ValidationError, Validator as _};
+
+    let (env, code_id, _gas_limit) = create_env();
+    let demo_program = env.deploy(code_id, vec![]).default().await.unwrap();
+
+    let mut validator_client = demo_program.validator();
+
+    let res = validator_client
+        .validate_range(150, 0, 100)
+        .query()
+        .unwrap();
+    assert_eq!(res, Err(ValidationError::TooBig));
+}
+
+#[tokio::test]
 async fn validator_nonzero_works() {
     use demo_client::validator::Validator as _;
     let (env, code_id, _gas_limit) = create_env();
@@ -735,20 +751,4 @@ async fn validator_even_works() {
     // Error case (Err(()))
     let res = validator_client.validate_even(7).await.unwrap();
     assert_eq!(res, Err(()));
-}
-
-#[tokio::test]
-async fn validator_range_check_query_works() {
-    use demo_client::validator::{ValidationError, Validator as _};
-
-    let (env, code_id, _gas_limit) = create_env();
-    let demo_program = env.deploy(code_id, vec![]).default().await.unwrap();
-
-    let mut validator_client = demo_program.validator();
-
-    let res = validator_client
-        .validate_range(150, 0, 100)
-        .query()
-        .unwrap();
-    assert_eq!(res, Err(ValidationError::TooBig));
 }
