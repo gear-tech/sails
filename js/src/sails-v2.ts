@@ -1,7 +1,16 @@
 import { GearApi, HexString, UserMessageSent } from '@gear-js/api';
 import { TypeRegistry } from '@polkadot/types/create';
 import { u8aToHex } from '@polkadot/util';
-import type { TypeDecl, IIdlParser, IIdlDoc, IServiceUnit, IFuncParam, IServiceEvent } from 'sails-js-types-v2';
+import type {
+  TypeDecl,
+  IIdlParser,
+  IIdlDoc,
+  IServiceExpo,
+  IServiceIdent,
+  IServiceUnit,
+  IFuncParam,
+  IServiceEvent,
+} from 'sails-js-types-v2';
 import { SailsMessageHeader, InterfaceId } from 'sails-js-parser-v2';
 
 import { TransactionBuilder } from './transaction-builder-v2.js';
@@ -13,6 +22,8 @@ interface ISailsService {
   readonly functions: Record<string, SailsServiceFunc>;
   readonly queries: Record<string, SailsServiceQuery>;
   readonly events: Record<string, ISailsServiceEvent>;
+  readonly extends: Record<string, SailsService>;
+  readonly routeIdx: number;
 }
 
 interface ISailsFuncArg {
@@ -96,6 +107,8 @@ export class SailsProgram {
   private _registry: TypeRegistry;
   private _api?: GearApi;
   private _programId?: HexString;
+  private _services: Map<bigint, IServiceUnit> = new Map();
+  private _resolveServiceUnit: (ident: IServiceIdent) => IServiceUnit | undefined;
 
   constructor(parser?: IIdlParser) {
     this._parser = parser;
@@ -130,7 +143,29 @@ export class SailsProgram {
     }
     this._doc = this._parser.parse(idl);
     this.generateScaleCodeTypes();
+    this._services = this._initServices();
+    this._resolveServiceUnit = (ident: IServiceIdent) => {
+      if (!ident.interface_id) {
+        throw new Error(`Service "${ident.name}" is missing interface_id in IDL`);
+      }
+      const interfaceId = InterfaceId.from(ident.interface_id).asU64();
+      return this._services.get(interfaceId);
+    };
     return this;
+  }
+
+  private _initServices(): Map<bigint, IServiceUnit> {
+    const services = new Map<bigint, IServiceUnit>();
+    for (const service of this._doc.services ?? []) {
+      if (!service.interface_id) {
+        throw new Error(`Service "${service.name}" is missing interface_id in IDL`);
+      }
+
+      const interfaceId = InterfaceId.from(service.interface_id).asU64();
+      services.set(interfaceId, service);
+    }
+
+    return services;
   }
 
   private generateScaleCodeTypes() {
@@ -171,12 +206,20 @@ export class SailsProgram {
       throw new Error('IDL is not parsed');
     }
 
-    const services = {};
+    const services: Record<string, SailsService> = {};
+    const program = this._doc.program;
 
-    for (const service of this._doc.services) {
-      services[service.name] = new SailsService(service, this._api, this.programId);
+    if (!program?.services?.length || !this._resolveServiceUnit) {
+      return services;
     }
 
+    for (const expo of program.services as IServiceExpo[]) {
+      const serviceUnit = this._resolveServiceUnit(expo);
+      if (!serviceUnit) {
+        throw new Error(`Service definition for "${expo.name}" not found in IDL`);
+      }
+      services[expo.name] = new SailsService(serviceUnit, this._api, this._programId, expo.route_idx, this._resolveServiceUnit);
+    }
     return services;
   }
 
@@ -282,17 +325,27 @@ export class SailsService implements ISailsService {
   functions: Record<string, SailsServiceFunc>;
   queries: Record<string, SailsServiceQuery>;
   events: Record<string, ISailsServiceEvent>;
+  routeIdx: number;
 
   private _service: IServiceUnit;
   private _scaleTypes: Record<string, any>;
   private _registry: TypeRegistry;
   private _api?: GearApi;
   private _programId?: HexString;
+  private _resolveServiceUnit?: (ident: IServiceIdent) => IServiceUnit | undefined;
 
-  constructor(service: IServiceUnit, api?: GearApi, programId?: HexString) {
+  constructor(
+    service: IServiceUnit,
+    api?: GearApi,
+    programId?: HexString,
+    routeIdx = 0,
+    resolveServiceUnit?: (ident: IServiceIdent) => IServiceUnit | undefined,
+  ) {
     this._service = service;
     this._api = api;
     this._programId = programId;
+    this.routeIdx = routeIdx;
+    this._resolveServiceUnit = resolveServiceUnit;
 
     this._registry = new TypeRegistry();
     this._registerTypes(service);
@@ -300,6 +353,14 @@ export class SailsService implements ISailsService {
     const { funcs, queries } = this._getFunctions(service);
     this.functions = funcs;
     this.queries = queries;
+  }
+
+  withRouteIdx(routeIdx: number): SailsService {
+    if (routeIdx === this.routeIdx) {
+      return this;
+    }
+
+    return new SailsService(this._service, this._api, this._programId, routeIdx, this._resolveServiceUnit);
   }
 
   private _registerTypes(service: IServiceUnit) {
@@ -322,7 +383,7 @@ export class SailsService implements ISailsService {
     const queries: Record<string, SailsServiceQuery> = {};
 
     for (const [entry_id, func] of service.funcs.entries()) {
-      const header = SailsMessageHeader.v1(InterfaceId.from(service.interface_id), entry_id, 0); // TODO: get `route_idx`
+      const header = SailsMessageHeader.v1(InterfaceId.from(service.interface_id), entry_id, this.routeIdx);
       const params: ISailsFuncArg[] = func.params.map((p: IFuncParam) => ({
         name: p.name,
         type: getScaleCodecDef(p.type),
@@ -448,7 +509,10 @@ export class SailsService implements ISailsService {
             if (!message.destination.eq(ZERO_ADDRESS)) return;
 
             const { header, offset } = SailsMessageHeader.tryReadBytes(message.payload);
-            if (header.interface_id.asU64() === interface_id_u64 && header.entry_id === entry_id) {
+            if (
+              header.interface_id.asU64() === interface_id_u64 &&
+              header.entry_id === entry_id
+            ) {
               cb(this._registry.createType(`([u8; 16], ${typeStr})`, message.payload)[1].toJSON() as T);
             }
           });
@@ -457,5 +521,30 @@ export class SailsService implements ISailsService {
     }
 
     return events;
+  }
+
+  get extends(): Record<string, SailsService> {
+    const extended: Record<string, SailsService> = {};
+
+    if (!this._service?.extends?.length || !this._resolveServiceUnit) {
+      return extended;
+    }
+
+    for (const ident of this._service.extends as IServiceIdent[]) {
+      const serviceUnit = this._resolveServiceUnit(ident);
+      if (!serviceUnit) {
+        throw new Error(`Service definition for "${ident.name}" not found in IDL`);
+      }
+
+      extended[ident.name] = new SailsService(
+        serviceUnit,
+        this._api,
+        this._programId,
+        this.routeIdx,
+        this._resolveServiceUnit,
+      );
+    }
+
+    return extended;
   }
 }

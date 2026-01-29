@@ -135,7 +135,7 @@ describe('Sails with Parser v2 - Message Sending', () => {
   });
 
   test('send Dog service walk message', async () => {
-    const transaction = await program.services.Dog.functions.Walk(2, 3).withAccount(alice).calculateGas();
+    const transaction = await program.services.Dog.extends.WalkerService.functions.Walk(2, 3).withAccount(alice).calculateGas();
 
     const { msgId, blockHash, response } = await transaction.signAndSend();
 
@@ -202,12 +202,12 @@ describe('Sails with Parser v2 - Queries', () => {
   });
 
   test('query Dog position', async () => {
-    const result = await program.services.Dog.queries.Position().call();
+    const result = await program.services.Dog.extends.WalkerService.queries.Position().call();
     expect(result).toEqual([7, 11]); // [5, 8] from constructor + [2, 3] from walk
   });
 
   test('query Dog avgWeight', async () => {
-    const result = await program.services.Dog.queries.AvgWeight().call();
+    const result = await program.services.Dog.extends.MammalService.queries.AvgWeight().call();
     expect(typeof result).toBe('number');
   });
 
@@ -288,12 +288,12 @@ describe('Sails with Parser v2 - Events', () => {
   test('subscribe to Dog Walked event', async () => {
     let walkedEventData: { from: [number, number]; to: [number, number] } | undefined;
 
-    const unsubscribe = await program.services.Dog.events.Walked.subscribe((data) => {
+    const unsubscribe = await program.services.Dog.extends.WalkerService.events.Walked.subscribe((data) => {
       walkedEventData = data;
     });
 
     // Send a message that should trigger the event
-    const transaction = await program.services.Dog.functions.Walk(-1, 2).withAccount(alice).calculateGas();
+    const transaction = await program.services.Dog.extends.WalkerService.functions.Walk(-1, 2).withAccount(alice).calculateGas();
 
     const { response } = await transaction.signAndSend();
     const result = await response();
