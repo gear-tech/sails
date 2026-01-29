@@ -144,11 +144,9 @@ impl<T: ServiceCall> Future for PendingCall<T, GclientEnv> {
                 if matches!(
                     reason,
                     ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic)
-                ) {
-                    match T::decode_error_with_header(self.route_idx, &payload) {
-                        Ok(decoded) => Poll::Ready(Ok(decoded)),
-                        Err(_) => Poll::Ready(Err(GclientError::ReplyHasError(reason, payload))),
-                    }
+                ) && let Ok(decoded) = T::decode_error_with_header(self.route_idx, &payload)
+                {
+                    Poll::Ready(Ok(decoded))
                 } else {
                     Poll::Ready(Err(GclientError::ReplyHasError(reason, payload)))
                 }

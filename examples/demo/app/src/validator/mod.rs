@@ -1,5 +1,6 @@
 use sails_rs::{cell::RefCell, prelude::*};
 
+#[derive(Default)]
 pub struct ValidatorData {
     pub total_errors: u32,
 }

@@ -297,12 +297,17 @@ impl<T: ServiceCall> PendingCall<T, GtestEnv> {
         let (payload, params) = self.take_encoded_args_and_params();
         match self.env.query(self.destination, payload, params) {
             Ok(payload) => T::decode_reply_with_header(self.route_idx, payload)
-                .map_err(|err| TestError::ScaleCodecError(err).into()),
-            Err(GtestError::ReplyHasError(
-                ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic),
-                payload,
-            )) => T::decode_error_with_header(self.route_idx, &payload)
-                .map_err(|err| TestError::ScaleCodecError(err).into()),
+                .map_err(|e| TestError::ScaleCodecError(e).into()),
+            Err(GtestError::ReplyHasError(reason, payload)) => {
+                if matches!(
+                    reason,
+                    ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic)
+                ) && let Ok(decoded) = T::decode_error_with_header(self.route_idx, &payload)
+                {
+                    return Ok(decoded);
+                }
+                Err(GtestError::ReplyHasError(reason, payload))
+            }
             Err(err) => Err(err),
         }
     }
@@ -337,20 +342,17 @@ impl<T: ServiceCall> Future for PendingCall<T, GtestEnv> {
             Ok(res) => match res {
                 Ok(payload) => match T::decode_reply_with_header(self.route_idx, payload) {
                     Ok(reply) => Poll::Ready(Ok(reply)),
-                    Err(err) => Poll::Ready(Err(TestError::ScaleCodecError(err).into())),
+                    Err(e) => Poll::Ready(Err(TestError::ScaleCodecError(e).into())),
                 },
                 Err(GtestError::ReplyHasError(reason, payload)) => {
                     if matches!(
                         reason,
                         ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic)
-                    ) {
-                        match T::decode_error_with_header(self.route_idx, &payload) {
-                            Ok(reply) => Poll::Ready(Ok(reply)),
-                            Err(_) => Poll::Ready(Err(GtestError::ReplyHasError(reason, payload))),
-                        }
-                    } else {
-                        Poll::Ready(Err(GtestError::ReplyHasError(reason, payload)))
+                    ) && let Ok(reply) = T::decode_error_with_header(self.route_idx, &payload)
+                    {
+                        return Poll::Ready(Ok(reply));
                     }
+                    Poll::Ready(Err(GtestError::ReplyHasError(reason, payload)))
                 }
                 Err(err) => Poll::Ready(Err(err)),
             },
