@@ -16,15 +16,7 @@ export class InterfaceId implements IInterfaceId {
     return new InterfaceId(new Uint8Array(8));
   }
 
-  public static fromBytes32(bytes: ArrayLike<number>): InterfaceId {
-    if (bytes.length < 32) {
-      throw new RangeError(`expected 32 bytes, got ${bytes.length}`);
-    }
-
-    return InterfaceId.fromBytes8(Array.from(bytes).slice(0, 8));
-  }
-
-  public static fromBytes8(bytes: ArrayLike<number>): InterfaceId {
+  public static fromBytes(bytes: ArrayLike<number>): InterfaceId {
     if (bytes.length < 8) {
       throw new RangeError(`expected 8 bytes, got ${bytes.length}`);
     }
@@ -38,14 +30,14 @@ export class InterfaceId implements IInterfaceId {
 
   public static fromU64(value: bigint | number): InterfaceId {
     const big = typeof value === "number" ? BigInt(value) : value;
-    if (big < 0n || big > 0xffff_ffff_ffff_ffffn) {
+    if (big < 0n || big > 0xFF_FF_FF_FF_FF_FF_FF_FFn) {
       throw new RangeError("u64 value out of range");
     }
 
     const out = new Uint8Array(8);
     let temp = big;
     for (let i = 7; i >= 0; i -= 1) {
-      out[i] = Number(temp & 0xffn);
+      out[i] = Number(temp & 0xFFn);
       temp >>= 8n;
     }
     return new InterfaceId(out);
@@ -97,12 +89,12 @@ export class InterfaceId implements IInterfaceId {
       return InterfaceId.fromU64(input);
     }
     if (input instanceof Uint8Array) {
-      return InterfaceId.fromBytes8(input);
+      return InterfaceId.fromBytes(input);
     }
     if (InterfaceId.isInterfaceIdLike(input)) {
-      return InterfaceId.fromBytes8(input.bytes);
+      return InterfaceId.fromBytes(input.bytes);
     }
-    return InterfaceId.fromBytes8(input);
+    return InterfaceId.fromBytes(input);
   }
 
   public asBytes(): Uint8Array {

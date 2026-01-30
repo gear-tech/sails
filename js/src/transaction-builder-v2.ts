@@ -17,30 +17,7 @@ import type { SailsMessageHeader } from 'sails-js-parser-v2';
 
 import { ZERO_ADDRESS } from './consts.js';
 import { throwOnErrorReply as commonThrowOnErrorReply } from './utils.js';
-
-export interface IMethodReturnType<T> {
-  /**
-   * ## The id of the sent message.
-   */
-  msgId: HexString;
-  /**
-   * ## The blockhash of the block that contains the transaction.
-   */
-  blockHash: HexString;
-  /**
-   * ## The transaction hash.
-   */
-  txHash: HexString;
-  /**
-   * ## A promise that resolves when the block with the transaction is finalized.
-   */
-  isFinalized: Promise<boolean>;
-  /**
-   * ## A promise that resolves into the response from the program.
-   * @param rawResult (optional) If true, the response will be the raw bytes of the function result, otherwise it will be decoded.
-   */
-  response: <Raw extends boolean = false>(rawResult?: Raw) => Promise<Raw extends true ? HexString : T>;
-}
+import { IMethodReturnType } from './transaction-builder.js'
 
 export class TransactionBuilder<ResponseType> {
   private _account: string | IKeyringPair;
@@ -330,7 +307,7 @@ export class TransactionBuilder<ResponseType> {
    * @param payload - Raw bytes from the reply message
    * @returns Decoded payload
    */
-  public decodePayload(payload: Uint8Array | HexString): ResponseType {
+  public decodePayload(payload: Uint8Array): ResponseType {
     const method = getPayloadMethod(this._responseType);
     const noPrefixPayload = payload.slice(this._prefixByteLength);
     const type = this._registry.createType<any>(this._responseType, noPrefixPayload);

@@ -20,10 +20,10 @@ import type {
   IEnumVariant,
 } from "sails-js-types-v2";
 
-import { InterfaceId } from "./interface_id";
+import { InterfaceId } from "./interface-id";
 
 const mapArray = <T, U>(items: T[] | undefined, map: (item: T) => U): U[] | undefined =>
-  items?.map(map);
+  items?.map((item: T) => map(item));
 
 export class IdlDoc implements IIdlDoc {
   public readonly globals?: AnnotationEntry[];
@@ -155,7 +155,7 @@ export class TypeStruct implements ITypeStruct {
     this.name = data.name;
     this.type_params = mapArray(data.type_params, (param) => new TypeParameter(param));
     this.kind = "struct";
-    this.fields = data.fields.map((field) => new StructField(field));
+    this.fields = data.fields.map((field: IStructField) => new StructField(field));
     this.docs = data.docs;
     this.annotations = data.annotations;
   }
@@ -173,7 +173,7 @@ export class TypeEnum implements ITypeEnum {
     this.name = data.name;
     this.type_params = mapArray(data.type_params, (param) => new TypeParameter(param));
     this.kind = "enum";
-    this.variants = data.variants.map((variant) => new EnumVariant(variant));
+    this.variants = data.variants.map((variant: IEnumVariant) => new EnumVariant(variant));
     this.docs = data.docs;
     this.annotations = data.annotations;
   }
@@ -211,7 +211,7 @@ export class EnumVariant implements IEnumVariant {
 
   constructor(data: IEnumVariant) {
     this.name = data.name;
-    this.fields = data.fields.map((field) => new StructField(field));
+    this.fields = data.fields.map((field: IStructField) => new StructField(field));
     this.docs = data.docs;
     this.annotations = data.annotations;
   }
@@ -237,7 +237,7 @@ const normalizeStructField = (data: IStructField): IStructField => ({
 
 const normalizeEnumVariant = (data: IEnumVariant): IEnumVariant => ({
   ...normalizeDocAnnotated(data),
-  fields: (data.fields ?? []).map(normalizeStructField),
+  fields: (data.fields ?? []).map((data: IStructField) => normalizeStructField(data)),
 });
 
 const normalizeType = (data: Type): Type => {
@@ -251,7 +251,7 @@ const normalizeType = (data: Type): Type => {
       ...base,
       kind: "struct",
       type_params: typeParams,
-      fields: (data.fields ?? []).map(normalizeStructField),
+      fields: (data.fields ?? []).map((data: IStructField) => normalizeStructField(data)),
     };
   }
 
@@ -259,7 +259,7 @@ const normalizeType = (data: Type): Type => {
     ...base,
     kind: "enum",
     type_params: typeParams,
-    variants: (data.variants ?? []).map(normalizeEnumVariant),
+    variants: (data.variants ?? []).map((data: IEnumVariant) => normalizeEnumVariant(data)),
   };
 };
 
@@ -269,7 +269,7 @@ const normalizeFuncParam = (data: IFuncParam): IFuncParam => ({
 
 const normalizeCtorFunc = (data: ICtorFunc): ICtorFunc => ({
   ...normalizeDocAnnotated(data),
-  params: (data.params ?? []).map(normalizeFuncParam),
+  params: (data.params ?? []).map((data: IFuncParam) => normalizeFuncParam(data)),
 });
 
 const normalizeServiceIdent = (data: IServiceIdent): IServiceIdent => ({
@@ -284,28 +284,28 @@ const normalizeServiceExpo = (data: IServiceExpo): IServiceExpo => ({
 
 const normalizeServiceFunc = (data: IServiceFunc): IServiceFunc => ({
   ...normalizeDocAnnotated(data),
-  params: (data.params ?? []).map(normalizeFuncParam),
+  params: (data.params ?? []).map((data: IFuncParam) => normalizeFuncParam(data)),
 });
 
 const normalizeServiceUnit = (data: IServiceUnit): IServiceUnit => ({
   ...normalizeDocAnnotated(data),
   interface_id: data.interface_id ? InterfaceId.from(data.interface_id) : undefined,
-  extends: (data.extends ?? []).map(normalizeServiceIdent),
-  funcs: (data.funcs ?? []).map(normalizeServiceFunc),
-  events: (data.events ?? []).map(normalizeEnumVariant),
-  types: (data.types ?? []).map(normalizeType),
+  extends: (data.extends ?? []).map((data: IServiceIdent) => normalizeServiceIdent(data)),
+  funcs: (data.funcs ?? []).map((data: IServiceFunc) => normalizeServiceFunc(data)),
+  events: (data.events ?? []).map((data: IEnumVariant) => normalizeEnumVariant(data)),
+  types: (data.types ?? []).map((data: Type) => normalizeType(data)),
 });
 
 const normalizeProgramUnit = (data: IProgramUnit): IProgramUnit => ({
   ...normalizeDocAnnotated(data),
-  ctors: (data.ctors ?? []).map(normalizeCtorFunc),
-  services: (data.services ?? []).map(normalizeServiceExpo),
-  types: (data.types ?? []).map(normalizeType),
+  ctors: (data.ctors ?? []).map((data: ICtorFunc) => normalizeCtorFunc(data)),
+  services: (data.services ?? []).map((data: IServiceExpo) => normalizeServiceExpo(data)),
+  types: (data.types ?? []).map((data: Type) => normalizeType(data)),
 });
 
 export const fromJson = (data: IIdlDoc): IdlDoc =>
   new IdlDoc({
     globals: data.globals ?? [],
     program: data.program ? normalizeProgramUnit(data.program) : undefined,
-    services: (data.services ?? []).map(normalizeServiceUnit),
+    services: (data.services ?? []).map((data: IServiceUnit) => normalizeServiceUnit(data)),
   });

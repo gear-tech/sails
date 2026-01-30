@@ -53,7 +53,7 @@ export const getScaleCodecDef = (type: TypeDecl, stringify = false) => {
 
 export const getScaleCodecTypeDef = (type: Type, stringify = false) => {
   if (type.kind === "struct") {
-    return getFieldsDef(type.fields, stringify);
+    return getStructDef(type.fields, stringify);
   }
   if (type.kind === "enum") {
     let isNesting = false;
@@ -68,14 +68,14 @@ export const getScaleCodecTypeDef = (type: Type, stringify = false) => {
     }
     const result = {};
     for (const variant of type.variants) {
-      result[variant.name] = getFieldsDef(variant.fields);
+      result[variant.name] = getStructDef(variant.fields);
     }
     return { _enum: result };
   }
   throw new Error('Unknown type :: ' + JSON.stringify(type));
 };
 
-export const getFieldsDef = (fields: { name?: string; type: TypeDecl }[], stringify = false) => {
+export const getStructDef = (fields: { name?: string; type: TypeDecl }[], stringify = false): object | string => {
   if (fields.length === 0) return "Null";
   let isTuple = true;
   for (const field of fields) {

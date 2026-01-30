@@ -4,8 +4,8 @@ import { TypeRegistry } from '@polkadot/types';
 import { getPayloadMethod } from 'sails-js-util';
 import type { SailsMessageHeader } from 'sails-js-parser-v2';
 
-import { stringToU8aWithPrefix, throwOnErrorReply } from './utils';
-import { ZERO_ADDRESS } from './consts';
+import { throwOnErrorReply } from './utils.js';
+import { ZERO_ADDRESS } from './consts.js';
 
 export class QueryBuilder<ResultType = unknown> {
   private _prefixByteLength: number;
@@ -98,9 +98,9 @@ export class QueryBuilder<ResultType = unknown> {
 
     throwOnErrorReply(result.code, result.payload.toU8a(), this._api.specVersion, this._registry);
 
-    const repsponseWOPrefix = result.payload.slice(this._prefixByteLength);
+    const responseWOPrefix = result.payload.slice(this._prefixByteLength);
 
-    const responseDecoded = this._registry.createType<any>(this._responseType, repsponseWOPrefix);
+    const responseDecoded = this._registry.createType<any>(this._responseType, responseWOPrefix);
 
     return responseDecoded[getPayloadMethod(this._responseType)]() as ResultType;
   }

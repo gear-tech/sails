@@ -1,6 +1,6 @@
 import { GearApi, HexString, UserMessageSent } from '@gear-js/api';
 import { TypeRegistry } from '@polkadot/types/create';
-import { u8aToHex } from '@polkadot/util';
+import { u8aConcat, u8aToHex } from '@polkadot/util';
 import type {
   TypeDecl,
   IIdlParser,
@@ -14,7 +14,7 @@ import type {
 import { SailsMessageHeader, InterfaceId } from 'sails-js-parser-v2';
 
 import { TransactionBuilder } from './transaction-builder-v2.js';
-import { getScaleCodecDef, getScaleCodecTypeDef, getFieldsDef } from './type-resolver-v2.js';
+import { getScaleCodecDef, getScaleCodecTypeDef, getStructDef } from './type-resolver-v2.js';
 import { ZERO_ADDRESS } from './consts.js';
 import { QueryBuilder } from './query-builder-v2.js';
 
@@ -440,6 +440,10 @@ export class SailsService implements ISailsService {
             throw new Error(`Expected ${params.length} arguments, but got ${args.length}`);
           }
 
+          if (params.length === 0) {
+            return u8aToHex(header.toBytes());
+          }
+
           const payload = this._registry.createType(`([u8; 16], ${params.map((p) => p.type).join(', ')})`, [
             header.toBytes(),
             ...args,
@@ -470,8 +474,8 @@ export class SailsService implements ISailsService {
     const interface_id_u64: bigint = InterfaceId.from(service.interface_id).asU64();
 
     for (const [entry_id, event] of service.events.entries()) {
-      const t = event.fields ? getFieldsDef(event.fields) : 'Null';
-      const typeStr = event.fields ? getFieldsDef(event.fields, true) : 'Null';
+      const t = event.fields ? getStructDef(event.fields) : 'Null';
+      const typeStr = event.fields ? getStructDef(event.fields, true) : 'Null';
       events[event.name] = {
         type: t,
         typeDef: event,
@@ -481,15 +485,11 @@ export class SailsService implements ISailsService {
             return false;
           }
 
-          const { header, offset } = SailsMessageHeader.tryReadBytes(message.payload);
-          if (header.interface_id.asU64() !== interface_id_u64) {
-            return false;
+          const { ok, header } = SailsMessageHeader.tryFromBytes(message.payload);
+          if (ok && header.interface_id.asU64() === interface_id_u64 && header.entry_id === entry_id) {
+            return true;
           }
-          if (header.entry_id !== entry_id) {
-            return false;
-          }
-
-          return true;
+          return false;
         },
         decode: (payload: HexString) => {
           const data = this._registry.createType(`([u8; 16], ${typeStr})`, payload);
@@ -508,12 +508,15 @@ export class SailsService implements ISailsService {
             if (!message.source.eq(this._programId)) return;
             if (!message.destination.eq(ZERO_ADDRESS)) return;
 
-            const { header, offset } = SailsMessageHeader.tryReadBytes(message.payload);
+            const { ok, header } = SailsMessageHeader.tryFromBytes(message.payload);
             if (
+              ok &&
               header.interface_id.asU64() === interface_id_u64 &&
               header.entry_id === entry_id
             ) {
               cb(this._registry.createType(`([u8; 16], ${typeStr})`, message.payload)[1].toJSON() as T);
+              // const payload: Uint8Array = message.payload.slice(header.hlen);
+              // cb(this._registry.createType(`${typeStr}`, payload).toJSON() as T);
             }
           });
         },

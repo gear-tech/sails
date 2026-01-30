@@ -35,13 +35,9 @@ export class SailsIdlParser {
     //     'Missing embedded WASM bytes. Run the build to generate wasm-bytes.js or provide parser.wasm next to the bundle.',
     //   );
     // }
-    const binaryStr = atob(wasmParserBytes);
+    const binaryBuf = Buffer.from(wasmParserBytes, 'base64') ;
 
-    const binaryBase64 = new Uint8Array(binaryStr.length);
-
-    for (let i = 0; i < binaryStr.length; i++) {
-      binaryBase64[i] = binaryStr.codePointAt(i);
-    }
+    const binaryBase64 = new Uint8Array(binaryBuf);
 
     const ds = new DecompressionStream('gzip');
     const decompressed = new Response(binaryBase64).body.pipeThrough<Uint8Array>(ds);
@@ -80,7 +76,7 @@ export class SailsIdlParser {
     for (let i = 0; i < this._numberOfGrownPages * WASM_PAGE_SIZE; i++) {
       new Uint8Array(this._memory.buffer)[i + this._idlPtr] = 0;
     }
-    this._idlLen = null;
+    this._idlLen = 0;
   }
 
   private readCString(ptr: number): string {

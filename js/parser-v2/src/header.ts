@@ -1,15 +1,15 @@
-import { InterfaceId } from "./interface_id";
+import { InterfaceId } from "./interface-id";
 
 export const HIGHEST_SUPPORTED_VERSION = 1;
-export const MAGIC_BYTES = new Uint8Array([0x47, 0x4d]);
+export const MAGIC_BYTES = new Uint8Array([0x47, 0x4D]);
 export const MINIMAL_HLEN = 16;
 
 const equalBytes = (a: Uint8Array, b: Uint8Array): boolean => {
   if (a.length !== b.length) {
     return false;
   }
-  for (let i = 0; i < a.length; i += 1) {
-    if (a[i] !== b[i]) {
+  for (const [i, element] of a.entries()) {
+    if (element !== b[i]) {
       return false;
     }
   }
@@ -89,12 +89,12 @@ export class SailsMessageHeader {
     bytes.set(this.interface_id.asBytes(), offset);
     offset += 8;
 
-    const entry = this.entry_id & 0xffff;
-    bytes[offset] = entry & 0xff;
-    bytes[offset + 1] = (entry >> 8) & 0xff;
+    const entry = this.entry_id & 0xFF_FF;
+    bytes[offset] = entry & 0xFF;
+    bytes[offset + 1] = (entry >> 8) & 0xFF;
     offset += 2;
 
-    bytes[offset] = this.route_idx & 0xff;
+    bytes[offset] = this.route_idx & 0xFF;
     bytes[offset + 1] = 0;
 
     return bytes;
@@ -142,49 +142,12 @@ export class SailsMessageHeader {
     };
   }
 
-  public static tryFromBytes(bytes: Uint8Array): SailsMessageHeader {
-    return SailsMessageHeader.tryReadBytes(bytes, 0).header;
-  }
-
-  public tryMatchInterfaces(interfaces: Array<[InterfaceId, number]>): MatchedInterface {
-    let sameInterfaceIds = 0;
-    let hasRoute = false;
-
-    for (const [id, programRouteId] of interfaces) {
-      if (equalBytes(id.asBytes(), this.interface_id.asBytes())) {
-        sameInterfaceIds += 1;
-        if (!hasRoute) {
-          hasRoute = this.route_idx === programRouteId;
-        }
-      }
+  public static tryFromBytes(bytes: Uint8Array): { ok: boolean, header: SailsMessageHeader | undefined } {
+    try {
+      const header = SailsMessageHeader.tryReadBytes(bytes, 0).header;
+      return { ok: true, header: header }
+    } catch {
+      return { ok: false, header: undefined }
     }
-
-    if (sameInterfaceIds === 0) {
-      throw new RangeError("No matching interface ID found");
-    }
-    if (this.route_idx === 0 && sameInterfaceIds > 1) {
-      throw new RangeError("Can't infer the interface by route id 0, many instances");
-    }
-    if (!hasRoute && this.route_idx !== 0) {
-      throw new RangeError("No matching route ID found for the interface ID");
-    }
-
-    return new MatchedInterface(this.interface_id, this.route_idx, this.entry_id);
-  }
-}
-
-export class MatchedInterface {
-  public readonly interfaceId: InterfaceId;
-  public readonly routeId: number;
-  public readonly entryId: number;
-
-  public constructor(interfaceId: InterfaceId, routeId: number, entryId: number) {
-    this.interfaceId = interfaceId;
-    this.routeId = routeId;
-    this.entryId = entryId;
-  }
-
-  public intoInner(): [InterfaceId, number, number] {
-    return [this.interfaceId, this.routeId, this.entryId];
   }
 }
