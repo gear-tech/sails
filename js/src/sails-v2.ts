@@ -1,9 +1,7 @@
 import { GearApi, HexString, UserMessageSent } from '@gear-js/api';
-import { TypeRegistry } from '@polkadot/types/create';
-import { u8aConcat, u8aToHex } from '@polkadot/util';
+import { u8aToHex } from '@polkadot/util';
 import type {
   TypeDecl,
-  IIdlParser,
   IIdlDoc,
   IServiceExpo,
   IServiceIdent,
@@ -14,7 +12,7 @@ import type {
 import { SailsMessageHeader, InterfaceId } from 'sails-js-parser-v2';
 
 import { TransactionBuilder } from './transaction-builder-v2.js';
-import { getScaleCodecDef, getScaleCodecTypeDef, getStructDef } from './type-resolver-v2.js';
+import { TypeResolver } from './type-resolver-v2.js';
 import { ZERO_ADDRESS } from './consts.js';
 import { QueryBuilder } from './query-builder-v2.js';
 
@@ -101,17 +99,33 @@ const _getArgsForTxBuilder = (args: any[], params: ISailsFuncArg[]) => {
 }
 
 export class SailsProgram {
-  private _parser: IIdlParser;
   private _doc: IIdlDoc;
-  private _scaleTypes: Record<string, any>;
-  private _registry: TypeRegistry;
+  private _typeResolver: TypeResolver;
   private _api?: GearApi;
   private _programId?: HexString;
   private _services: Map<bigint, IServiceUnit> = new Map();
   private _resolveServiceUnit: (ident: IServiceIdent) => IServiceUnit | undefined;
 
-  constructor(parser?: IIdlParser) {
-    this._parser = parser;
+
+  /**
+   * ### Crate program from parser IDL document
+   * @param doc parser and normalized IDL document
+   */
+  constructor(doc: IIdlDoc) {
+    this._doc = doc;
+    if (this._doc.program) {
+      this._typeResolver = new TypeResolver(this._doc.program.types);
+    }
+
+    // this.generateScaleCodeTypes();
+    this._services = this._initServices();
+    this._resolveServiceUnit = (ident: IServiceIdent) => {
+      if (!ident.interface_id) {
+        throw new Error(`Service "${ident.name}" is missing interface_id in IDL`);
+      }
+      const interfaceId = InterfaceId.from(ident.interface_id).asU64();
+      return this._services.get(interfaceId);
+    };
   }
 
   /** ### Set api to use for transactions */
@@ -131,29 +145,6 @@ export class SailsProgram {
     return this._programId;
   }
 
-  /**
-   * ### Parse IDL from string
-   * @param idl - IDL string
-   */
-  parseIdl(idl: string) {
-    if (!this._parser) {
-      throw new Error(
-        'Parser not set. Use sails-js-parser package to initialize the parser and pass it to the Sails constructor.',
-      );
-    }
-    this._doc = this._parser.parse(idl);
-    this.generateScaleCodeTypes();
-    this._services = this._initServices();
-    this._resolveServiceUnit = (ident: IServiceIdent) => {
-      if (!ident.interface_id) {
-        throw new Error(`Service "${ident.name}" is missing interface_id in IDL`);
-      }
-      const interfaceId = InterfaceId.from(ident.interface_id).asU64();
-      return this._services.get(interfaceId);
-    };
-    return this;
-  }
-
   private _initServices(): Map<bigint, IServiceUnit> {
     const services = new Map<bigint, IServiceUnit>();
     for (const service of this._doc.services ?? []) {
@@ -168,44 +159,26 @@ export class SailsProgram {
     return services;
   }
 
-  private generateScaleCodeTypes() {
-    const scaleTypes: Record<string, any> = {};
-
-    for (const type of this._doc.program.types) {
-      scaleTypes[type.name] = getScaleCodecTypeDef(type);
-    }
-
-    this._registry = new TypeRegistry();
-    this._registry.setKnownTypes({ types: scaleTypes });
-    this._registry.register(scaleTypes);
-
-    this._scaleTypes = scaleTypes;
-  }
-
-  /** #### Scale code types from the parsed IDL */
-  get scaleCodecTypes() {
-    if (!this._doc) {
-      throw new Error('IDL not parsed');
-    }
-
-    return this._scaleTypes;
-  }
-
   /** #### Registry with registered types from the parsed IDL */
   get registry() {
-    if (!this._doc) {
-      throw new Error('IDL not parsed');
+    if (!this._doc.program) {
+      throw new Error('Program not exists');
     }
 
-    return this._registry;
+    return this._typeResolver.registry;
+  }
+
+  /** #### TypeResolver with registered types from the parsed IDL */
+  get typeResolver() {
+    if (!this._doc.program) {
+      throw new Error('Program not exists');
+    }
+
+    return this._typeResolver;
   }
 
   /** #### Services with functions and events from the parsed IDL */
   get services(): Record<string, SailsService> {
-    if (!this._doc) {
-      throw new Error('IDL is not parsed');
-    }
-
     const services: Record<string, SailsService> = {};
     const program = this._doc.program;
 
@@ -224,22 +197,17 @@ export class SailsProgram {
   }
 
   /** #### Constructor functions with arguments from the parsed IDL */
-  get ctors() {
-    if (!this._doc) {
-      throw new Error('IDL not parsed');
-    }
-
-    const program = this._doc.program;
-
-    if (!program) {
+  get ctors(): Record<string, ISailsCtorFuncParams> | null {
+    if (!this._doc.program) {
       return null;
     }
 
+    const program = this._doc.program;
     const funcs: Record<string, ISailsCtorFuncParams> = {};
 
     for (const [entry_id, func] of program.ctors.entries()) {
       const header = SailsMessageHeader.v1(InterfaceId.zero(), entry_id, 0);
-      const params = func.params.map((p: IFuncParam) => ({ name: p.name, type: getScaleCodecDef(p.type), typeDef: p.type }));
+      const params = func.params.map((p: IFuncParam) => ({ name: p.name, type: this._typeResolver.getTypeDeclString(p.type), typeDef: p.type }));
       funcs[func.name] = {
         args: params,
         encodePayload: (...args): HexString => {
@@ -328,8 +296,7 @@ export class SailsService implements ISailsService {
   routeIdx: number;
 
   private _service: IServiceUnit;
-  private _scaleTypes: Record<string, any>;
-  private _registry: TypeRegistry;
+  private _typeResolver: TypeResolver;
   private _api?: GearApi;
   private _programId?: HexString;
   private _resolveServiceUnit?: (ident: IServiceIdent) => IServiceUnit | undefined;
@@ -346,9 +313,8 @@ export class SailsService implements ISailsService {
     this._programId = programId;
     this.routeIdx = routeIdx;
     this._resolveServiceUnit = resolveServiceUnit;
+    this._typeResolver = new TypeResolver(service.types);
 
-    this._registry = new TypeRegistry();
-    this._registerTypes(service);
     this.events = this._getEvents(service);
     const { funcs, queries } = this._getFunctions(service);
     this.functions = funcs;
@@ -363,16 +329,12 @@ export class SailsService implements ISailsService {
     return new SailsService(this._service, this._api, this._programId, routeIdx, this._resolveServiceUnit);
   }
 
-  private _registerTypes(service: IServiceUnit) {
-    const scaleTypes: Record<string, any> = {};
-
-    for (const type of service.types) {
-      scaleTypes[type.name] = getScaleCodecTypeDef(type);
+  /** #### Registry with registered types from the ServiceUnit */
+  get registry() {
+    if (!this._service) {
+      throw new Error('Service not set');
     }
-
-    this._registry.setKnownTypes({ types: scaleTypes });
-    this._registry.register(scaleTypes);
-    this._scaleTypes = scaleTypes;
+    return this._typeResolver.registry;
   }
 
   private _getFunctions(service: IServiceUnit): {
@@ -386,10 +348,10 @@ export class SailsService implements ISailsService {
       const header = SailsMessageHeader.v1(InterfaceId.from(service.interface_id), entry_id, this.routeIdx);
       const params: ISailsFuncArg[] = func.params.map((p: IFuncParam) => ({
         name: p.name,
-        type: getScaleCodecDef(p.type),
+        type: this._typeResolver.getTypeDeclString(p.type),
         typeDef: p.type,
       }));
-      const returnType = getScaleCodecDef(func.output);
+      const returnType = this._typeResolver.getTypeDeclString(func.output);
       if (func.kind == "query") {
         queries[func.name] = (<T = any>(...args: unknown[]): QueryBuilder<T> => {
           if (!this._api) {
@@ -401,7 +363,7 @@ export class SailsService implements ISailsService {
 
           return new QueryBuilder<T>(
             this._api,
-            this._registry,
+            this.registry,
             this._programId,
             header,
             _getArgsForTxBuilder(args, params),
@@ -419,7 +381,7 @@ export class SailsService implements ISailsService {
           }
           return new TransactionBuilder(
             this._api,
-            this._registry,
+            this.registry,
             'send_message',
             header,
             _getArgsForTxBuilder(args, params),
@@ -444,7 +406,7 @@ export class SailsService implements ISailsService {
             return u8aToHex(header.toBytes());
           }
 
-          const payload = this._registry.createType(`([u8; 16], ${params.map((p) => p.type).join(', ')})`, [
+          const payload = this.registry.createType(`([u8; 16], ${params.map((p) => p.type).join(', ')})`, [
             header.toBytes(),
             ...args,
           ]);
@@ -452,7 +414,7 @@ export class SailsService implements ISailsService {
           return payload.toHex();
         },
         decodePayload: <T = any>(bytes: HexString) => {
-          const payload = this._registry.createType(`([u8; 16], ${params.map((p) => p.type).join(', ')})`, bytes);
+          const payload = this.registry.createType(`([u8; 16], ${params.map((p) => p.type).join(', ')})`, bytes);
           const result = {} as Record<string, any>;
           for (const [i, param] of params.entries()) {
             result[param.name] = payload[i + 1].toJSON();
@@ -460,7 +422,7 @@ export class SailsService implements ISailsService {
           return result as T;
         },
         decodeResult: <T = any>(result: HexString) => {
-          const payload = this._registry.createType(`([u8; 16], ${returnType})`, result);
+          const payload = this.registry.createType(`([u8; 16], ${returnType})`, result);
           return payload[1].toJSON() as T;
         },
       });
@@ -474,8 +436,8 @@ export class SailsService implements ISailsService {
     const interface_id_u64: bigint = InterfaceId.from(service.interface_id).asU64();
 
     for (const [entry_id, event] of service.events.entries()) {
-      const t = event.fields ? getStructDef(event.fields) : 'Null';
-      const typeStr = event.fields ? getStructDef(event.fields, true) : 'Null';
+      const t = event.fields?.length ? this._typeResolver.getStructDef(event.fields) : 'Null';
+      const typeStr = event.fields?.length ? this._typeResolver.getStructDef(event.fields, {}, true) : 'Null';
       events[event.name] = {
         type: t,
         typeDef: event,
@@ -492,7 +454,7 @@ export class SailsService implements ISailsService {
           return false;
         },
         decode: (payload: HexString) => {
-          const data = this._registry.createType(`([u8; 16], ${typeStr})`, payload);
+          const data = this.registry.createType(`([u8; 16], ${typeStr})`, payload);
           return data[1].toJSON();
         },
         subscribe: <T = any>(cb: (eventData: T) => void | Promise<void>): Promise<() => void> => {
@@ -514,7 +476,7 @@ export class SailsService implements ISailsService {
               header.interface_id.asU64() === interface_id_u64 &&
               header.entry_id === entry_id
             ) {
-              cb(this._registry.createType(`([u8; 16], ${typeStr})`, message.payload)[1].toJSON() as T);
+              cb(this.registry.createType(`([u8; 16], ${typeStr})`, message.payload)[1].toJSON() as T);
               // const payload: Uint8Array = message.payload.slice(header.hlen);
               // cb(this._registry.createType(`${typeStr}`, payload).toJSON() as T);
             }

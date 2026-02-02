@@ -29,14 +29,16 @@ beforeAll(async () => {
   code = readFileSync(DEMO_WASM_PATH);
   codeId = generateCodeHash(code);
 
-  // Initialize Sails with parser
+  // Initialize Sails parser
   const parser = new SailsIdlParser();
   await parser.init();
-  program = new SailsProgram(parser);
 
   // Parse IDL
   const idlString = readFileSync(DEMO_IDL_PATH, 'utf8');
-  program.parseIdl(idlString);
+  const doc = parser.parse(idlString)
+
+  // Create Sails Program from parsed IDL doc
+  program = new SailsProgram(doc);
   program.setApi(api);
 });
 
