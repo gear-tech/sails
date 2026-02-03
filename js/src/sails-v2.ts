@@ -477,8 +477,6 @@ export class SailsService implements ISailsService {
               header.entry_id === entry_id
             ) {
               cb(this.registry.createType(`([u8; 16], ${typeStr})`, message.payload)[1].toJSON() as T);
-              // const payload: Uint8Array = message.payload.slice(header.hlen);
-              // cb(this._registry.createType(`${typeStr}`, payload).toJSON() as T);
             }
           });
         },

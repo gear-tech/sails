@@ -86,7 +86,7 @@ export class SailsMessageHeader {
     offset += 1;
     bytes[offset] = this.hlen;
     offset += 1;
-    bytes.set(this.interface_id.asBytes(), offset);
+    bytes.set(this.interface_id.bytes, offset);
     offset += 8;
 
     const entry = this.entry_id & 0xFF_FF;
