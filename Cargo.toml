@@ -108,8 +108,8 @@ proc-macro2 = { version = "1", default-features = false }
 rustdoc-types = "=0.56.0"
 quote = "1.0"
 scale-info = { version = "2.11", default-features = false }
-serde = "1.0"
-serde-json = { package = "serde_json", version = "1.0" }
+serde = { version = "1.0", default-features = false }
+serde-json = { package = "serde_json", version = "1.0", default-features = false }
 spin = { version = "0.9", default-features = false, features = ["spin_mutex"] }
 syn = "2.0"
 thiserror = { version = "2.0", default-features = false }

@@ -7102,6 +7102,8 @@ dependencies = [
  "parity-scale-codec",
  "sails-reflect-hash",
  "scale-info",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

@@ -1,3 +1,5 @@
+use core::num::NonZeroU8;
+
 use crate::{InterfaceId, Vec};
 use parity_scale_codec::{Decode, Encode, Error, Input, Output};
 
@@ -5,7 +7,7 @@ use parity_scale_codec::{Decode, Encode, Error, Input, Output};
 pub const HIGHEST_SUPPORTED_VERSION: u8 = 1;
 
 /// Sails protocol magic bytes.
-/// Bytes stand for "GM" utf-8 string.
+/// Bytes stand for the UTF-8 string `GM`.
 pub const MAGIC_BYTES: [u8; 2] = [0x47, 0x4D];
 
 /// Minimal Sails message header length in bytes.
@@ -13,7 +15,7 @@ pub const MINIMAL_HLEN: u8 = 16;
 
 /// Sails message header.
 ///
-/// The header is a feature of an IDLv2. It gives opportunity for on-top of blockchain
+/// The header is a feature of an IDLv2. It gives opportunity for on top of blockchain
 /// services to trace sails messages and programs.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SailsMessageHeader {
@@ -135,45 +137,45 @@ impl SailsMessageHeader {
     }
 
     /// Tries to match the header's interface ID and route ID against a list of known interfaces in the program.
+    ///
+    /// If the header has route_id == 0 and exactly one interface ID match exists, the returned
+    /// MatchedInterface uses the program's route_id for that interface.
     pub fn try_match_interfaces(
         self,
         interfaces: &[(InterfaceId, u8)],
     ) -> Result<MatchedInterface, &'static str> {
         let Self {
             interface_id,
-            route_id: message_route_id,
+            route_id,
             entry_id,
             ..
         } = self;
 
-        let (same_interface_ids, has_route) = interfaces
-            .iter()
-            .filter_map(|(id, r_id)| (*id == interface_id).then_some(*r_id))
-            .fold((0, false), |(count, found), program_route_id| {
-                let new_count = count + 1;
+        let message_route = NonZeroU8::new(route_id);
+        let mut resolved_route = None;
 
-                let new_found = if !found {
-                    message_route_id == program_route_id
-                } else {
-                    found
-                };
-
-                (new_count, new_found)
-            });
-
-        if same_interface_ids == 0 {
-            Err("No matching interface ID found")
-        } else if message_route_id == 0 && same_interface_ids > 1 {
-            Err("Can't infer the interface by route id 0, many instances")
-        } else if !has_route && message_route_id != 0 {
-            // In case of route_id == 0, the has_route is always false
-            Err("No matching route ID found for the interface ID")
-        } else {
-            Ok(MatchedInterface {
+        for (_, program_route_id) in interfaces.iter().filter(|(id, _)| *id == interface_id) {
+            let program_route_id = match NonZeroU8::new(*program_route_id) {
+                Some(route) => route,
+                None => return Err("Interfaces must not contain route ID `0`"),
+            };
+            // match by `interface_id` and `route_id`
+            if message_route.is_some_and(|id| id == program_route_id) {
+                resolved_route = Some(program_route_id);
+                break;
+            }
+            // match by `interface_id` and set first `route_id`
+            if message_route.is_none() && resolved_route.replace(program_route_id).is_some() {
+                return Err("Can't infer the interface by route ID `0`, many instances");
+            }
+        }
+        match resolved_route {
+            Some(route) => Ok(MatchedInterface {
                 interface_id,
                 entry_id,
-                route_id: message_route_id,
-            })
+                route_id: route.get(),
+            }),
+            None => Err("No matching interface and route ID found"),
         }
     }
 }
@@ -669,8 +671,30 @@ mod tests {
         let result = header.try_match_interfaces(&interfaces).unwrap();
         let (iid, rid, eid) = result.into_inner();
         assert_eq!(iid, InterfaceId([9, 8, 7, 6, 5, 4, 3, 2]));
-        assert_eq!(rid, 0);
+        assert_eq!(rid, 42);
         assert_eq!(eid, 200);
+    }
+
+    #[test]
+    fn match_interfaces_route_zero_resolves_to_program_route() {
+        let header = SailsMessageHeader {
+            version: Version::new(1).unwrap(),
+            hlen: HeaderLength::new(16).unwrap(),
+            interface_id: InterfaceId([7, 7, 7, 7, 7, 7, 7, 7]),
+            route_id: 0,
+            entry_id: 300,
+        };
+
+        let interfaces = [
+            (InterfaceId([1, 2, 3, 4, 5, 6, 7, 8]), 10),
+            (InterfaceId([7, 7, 7, 7, 7, 7, 7, 7]), 99),
+        ];
+
+        let result = header.try_match_interfaces(&interfaces).unwrap();
+        let (iid, rid, eid) = result.into_inner();
+        assert_eq!(iid, InterfaceId([7, 7, 7, 7, 7, 7, 7, 7]));
+        assert_eq!(rid, 99);
+        assert_eq!(eid, 300);
     }
 
     #[test]
@@ -687,7 +711,10 @@ mod tests {
         let result = header.try_match_interfaces(&interfaces);
 
         assert!(result.is_err());
-        assert_eq!(result.unwrap_err(), "No matching interface ID found");
+        assert_eq!(
+            result.unwrap_err(),
+            "No matching interface and route ID found"
+        );
     }
 
     #[test]
@@ -709,7 +736,7 @@ mod tests {
         assert!(result.is_err());
         assert_eq!(
             result.unwrap_err(),
-            "Can't infer the interface by route id 0, many instances"
+            "Can't infer the interface by route ID `0`, many instances"
         );
     }
 
@@ -729,7 +756,7 @@ mod tests {
         assert!(result.is_err());
         assert_eq!(
             result.unwrap_err(),
-            "No matching route ID found for the interface ID"
+            "No matching interface and route ID found"
         );
     }
 }
