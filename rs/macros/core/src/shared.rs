@@ -289,6 +289,9 @@ pub(crate) fn extract_result_type_from_path(ty: &Type) -> Option<&Type> {
 /// Extract both `T` and `E` types from `Result<T, E>`
 pub(crate) fn extract_result_types(tp: &TypePath) -> Option<(&Type, &Type)> {
     if let Some(last) = tp.path.segments.last() {
+        // TODO: This currently only recognizes the literal name "Result" and exactly 2 generic arguments.
+        // It fails to see through aliases like `type MyResult<T> = Result<T, Error>`, leading
+        // to interface_id mismatches if idl-gen is smarter than this macro.
         if last.ident != "Result" {
             return None;
         }

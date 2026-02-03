@@ -56,6 +56,13 @@ impl InspectorProgram {
         Self { target }
     }
 
+    pub fn new_with_result(target: ActorId) -> Result<Self, String> {
+        if target.is_zero() {
+            return Err("Target program cannot be zero".to_string());
+        }
+        Ok(Self { target })
+    }
+
     pub fn inspector(&self) -> InspectorService {
         InspectorService::new(self.target)
     }

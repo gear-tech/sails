@@ -90,7 +90,7 @@ impl<E: sails_rs::client::GearEnv> DemoClientCtors
 pub mod io {
     use super::*;
     sails_rs::io_struct_impl!(Default () -> (), 0);
-    sails_rs::io_struct_impl!(New (counter: super::Option<u32, >, dog_position: super::Option<(i32, i32, ), >) -> (), 1);
+    sails_rs::io_struct_impl!(New (counter: super::Option<u32, >, dog_position: super::Option<(i32, i32, ), >) -> (), 1, throws (), String);
 }
 
 pub mod ping_pong {

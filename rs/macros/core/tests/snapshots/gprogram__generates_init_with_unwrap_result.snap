@@ -26,6 +26,15 @@ mod meta_in_program {
         pub(super) p1: u32,
         pub(super) p2: String,
     }
+    impl sails_rs::meta::Identifiable for __NewParams {
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = sails_rs::meta::InterfaceId::zero();
+    }
+    impl sails_rs::meta::MethodMeta for __NewParams {
+        const ENTRY_ID: u16 = 0u16;
+    }
+    impl sails_rs::gstd::InvocationIo for __NewParams {
+        type Params = Self;
+    }
     #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
@@ -33,11 +42,20 @@ mod meta_in_program {
         pub(super) p2: String,
         pub(super) p1: u32,
     }
+    impl sails_rs::meta::Identifiable for __New2Params {
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = sails_rs::meta::InterfaceId::zero();
+    }
+    impl sails_rs::meta::MethodMeta for __New2Params {
+        const ENTRY_ID: u16 = 1u16;
+    }
+    impl sails_rs::gstd::InvocationIo for __New2Params {
+        type Params = Self;
+    }
     #[derive(sails_rs::TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum ConstructorsMeta {
-        New(__NewParams),
-        New2(__New2Params),
+        New(__NewParams, String),
+        New2(__New2Params, String),
     }
 }
 #[cfg(target_arch = "wasm32")]
@@ -65,7 +83,19 @@ pub mod wasm {
                             input,
                         ));
                     gstd::message_loop(async move {
-                        let program = MyProgram::new(p1, p2).await.unwrap();
+                        let program = match MyProgram::new(p1, p2).await {
+                            Ok(v) => v,
+                            Err(e) => {
+                                let encoded = <meta_in_program::__NewParams as sails_rs::gstd::InvocationIo>::with_optimized_encode_with_id(
+                                    <meta_in_program::__NewParams as sails_rs::meta::Identifiable>::INTERFACE_ID,
+                                    <meta_in_program::__NewParams as sails_rs::meta::MethodMeta>::ENTRY_ID,
+                                    &e,
+                                    0,
+                                    |encoded| encoded.to_vec(),
+                                );
+                                sails_rs::gstd::Syscall::panic(&encoded)
+                            }
+                        };
                         unsafe {
                             PROGRAM = Some(program);
                         }
@@ -77,7 +107,19 @@ pub mod wasm {
                             "Unknown request",
                             input,
                         ));
-                    let program = MyProgram::new2(p2, p1).unwrap();
+                    let program = match MyProgram::new2(p2, p1) {
+                        Ok(v) => v,
+                        Err(e) => {
+                            let encoded = <meta_in_program::__New2Params as sails_rs::gstd::InvocationIo>::with_optimized_encode_with_id(
+                                <meta_in_program::__New2Params as sails_rs::meta::Identifiable>::INTERFACE_ID,
+                                <meta_in_program::__New2Params as sails_rs::meta::MethodMeta>::ENTRY_ID,
+                                &e,
+                                0,
+                                |encoded| encoded.to_vec(),
+                            );
+                            sails_rs::gstd::Syscall::panic(&encoded)
+                        }
+                    };
                     unsafe {
                         PROGRAM = Some(program);
                     }

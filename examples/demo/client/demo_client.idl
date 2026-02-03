@@ -164,7 +164,7 @@ program DemoClient {
         /// Program constructor (called once at the very beginning of the program lifetime)
         Default();
         /// Another program constructor (called once at the very beginning of the program lifetime)
-        New(counter: Option<u32>, dog_position: Option<(i32, i32)>);
+        New(counter: Option<u32>, dog_position: Option<(i32, i32)>) throws String;
     }
     services {
         PingPong@0x21bd9a9aa51da264,

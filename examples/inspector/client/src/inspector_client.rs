@@ -26,6 +26,10 @@ pub trait InspectorClientCtors {
         self,
         target: ActorId,
     ) -> sails_rs::client::PendingCtor<InspectorClientProgram, io::New, Self::Env>;
+    fn new_with_result(
+        self,
+        target: ActorId,
+    ) -> sails_rs::client::PendingCtor<InspectorClientProgram, io::NewWithResult, Self::Env>;
 }
 impl<E: sails_rs::client::GearEnv> InspectorClientCtors
     for sails_rs::client::Deployment<InspectorClientProgram, E>
@@ -37,11 +41,18 @@ impl<E: sails_rs::client::GearEnv> InspectorClientCtors
     ) -> sails_rs::client::PendingCtor<InspectorClientProgram, io::New, Self::Env> {
         self.pending_ctor((target,))
     }
+    fn new_with_result(
+        self,
+        target: ActorId,
+    ) -> sails_rs::client::PendingCtor<InspectorClientProgram, io::NewWithResult, Self::Env> {
+        self.pending_ctor((target,))
+    }
 }
 
 pub mod io {
     use super::*;
     sails_rs::io_struct_impl!(New (target: ActorId) -> (), 0);
+    sails_rs::io_struct_impl!(NewWithResult (target: ActorId) -> (), 1, throws (), String);
 }
 
 pub mod inspector {

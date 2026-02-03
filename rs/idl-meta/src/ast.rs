@@ -118,6 +118,7 @@ pub struct ServiceExpo {
 pub struct CtorFunc {
     pub name: String,
     pub params: Vec<FuncParam>,
+    pub throws: Option<TypeDecl>,
     pub docs: Vec<String>,
     pub annotations: Vec<(String, Option<String>)>,
 }

@@ -3,7 +3,7 @@ use inspector_client::{
     InspectorClient, InspectorClientCtors, InspectorClientProgram,
     inspector::{Inspector as _, ValidationError},
 };
-use sails_rs::client::*;
+use sails_rs::{ActorId, client::*};
 
 const ACTOR_ID: u64 = 42;
 
@@ -46,4 +46,26 @@ async fn test_cross_contract_panic_handling() {
 
     let total = inspector.test_total_errors().await.unwrap();
     assert_eq!(total, 0);
+}
+
+#[tokio::test]
+async fn test_failing_constructor_handling() {
+    let system = sails_rs::gtest::System::new();
+    system.init_logger();
+    system.mint_to(ACTOR_ID, 100_000_000_000_000);
+
+    let inspector_code_id = system.submit_code(inspector_app::WASM_BINARY);
+    let env = GtestEnv::new(system, ACTOR_ID.into());
+
+    // Try to deploy with zero address - should fail with our error string
+    let inspector_factory = env.deploy::<InspectorClientProgram>(inspector_code_id, vec![1]);
+    let res = inspector_factory
+        .new_with_result(ActorId::zero())
+        .await
+        .unwrap();
+
+    match res {
+        Err(e) => assert_eq!(e, "Target program cannot be zero"),
+        Ok(_) => panic!("Constructor should have failed"),
+    }
 }

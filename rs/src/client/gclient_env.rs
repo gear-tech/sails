@@ -3,6 +3,7 @@ use ::gclient::gear::runtime_types::pallet_gear_voucher::internal::VoucherId;
 use ::gclient::{EventListener, EventProcessor as _, GearApi};
 use core::task::ready;
 use futures::{Stream, StreamExt, stream};
+pub use gear_core_errors::{ErrorReplyReason, SimpleExecutionError};
 
 #[derive(Debug, thiserror::Error)]
 pub enum GclientError {
@@ -168,8 +169,8 @@ impl<T: ServiceCall> Future for PendingCall<T, GclientEnv> {
     }
 }
 
-impl<A, T: ServiceCall> Future for PendingCtor<A, T, GclientEnv> {
-    type Output = Result<Actor<A, GclientEnv>, <GclientEnv as GearEnv>::Error>;
+impl<A: 'static, T: CtorCall> Future for PendingCtor<A, T, GclientEnv> {
+    type Output = Result<T::Output<A, GclientEnv>, GclientError>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         if self.state.is_none() {
@@ -194,9 +195,18 @@ impl<A, T: ServiceCall> Future for PendingCtor<A, T, GclientEnv> {
             .unwrap_or_else(|| panic!("{PENDING_CTOR_INVALID_STATE}"));
         // Poll message future
         match ready!(message_future.poll(cx)) {
-            Ok((program_id, _)) => {
-                // Do not decode payload here
-                Poll::Ready(Ok(Actor::new(this.env.clone(), program_id)))
+            Ok((program_id, _payload)) => {
+                Poll::Ready(Ok(T::construct(this.env.clone(), Some(program_id), Ok(()))))
+            }
+            Err(GclientError::ReplyHasError(reason, payload)) => {
+                if matches!(
+                    reason,
+                    ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic)
+                ) && let Ok(biz_err) = T::decode_error(&payload)
+                {
+                    return Poll::Ready(Ok(T::construct(this.env.clone(), None, Err(biz_err))));
+                }
+                Poll::Ready(Err(GclientError::ReplyHasError(reason, payload)))
             }
             Err(err) => Poll::Ready(Err(err)),
         }
@@ -385,6 +395,7 @@ async fn query_calculate_reply(
         ReplyCode::Unsupported => Err(GclientError::ReplyIsMissing),
     }
 }
+
 async fn wait_for_reply(
     listener: &mut EventListener,
     message_id: MessageId,

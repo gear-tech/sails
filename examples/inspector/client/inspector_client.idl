@@ -25,6 +25,7 @@ service Inspector@0x0c35d69634051dd3 {
 program InspectorClient {
     constructors {
         New(target: ActorId);
+        NewWithResult(target: ActorId) throws String;
     }
     services {
         Inspector@0x0c35d69634051dd3,

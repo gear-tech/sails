@@ -25,6 +25,7 @@ async fn counter_add_works() {
         .new(Some(42), None)
         .with_gas_limit(gas_limit)
         .await
+        .unwrap()
         .unwrap();
 
     let initial_balance = gear_api.free_balance(admin_id).await.unwrap();
@@ -69,6 +70,7 @@ async fn counter_sub_works() {
         .new(Some(42), None)
         .with_gas_limit(gas_limit)
         .await
+        .unwrap()
         .unwrap();
 
     let mut counter_client = demo_program.counter();
@@ -172,6 +174,7 @@ async fn counter_query_works() {
         .new(Some(42), None)
         .with_gas_limit(gas_limit)
         .await
+        .unwrap()
         .unwrap();
 
     let counter_client = demo_program.counter();
@@ -199,6 +202,7 @@ async fn counter_query_with_message_works() {
         .new(Some(42), None)
         .with_gas_limit(gas_limit)
         .await
+        .unwrap()
         .unwrap();
 
     let counter_client = demo_program.counter();
@@ -226,6 +230,7 @@ async fn counter_query_not_enough_gas() {
         .new(Some(42), None)
         .with_gas_limit(gas_limit)
         .await
+        .unwrap()
         .unwrap();
 
     let counter_client = demo_program.counter();
@@ -260,6 +265,7 @@ async fn value_fee_works() {
         .deploy::<DemoClientProgram>(demo_code_id, vec![])
         .new(Some(42), None)
         .await
+        .unwrap()
         .unwrap();
 
     let initial_balance = gear_api.free_balance(admin_id).await.unwrap();

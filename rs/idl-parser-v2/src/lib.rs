@@ -411,16 +411,28 @@ fn parse_ctor_func(p: Pair<Rule>) -> Result<CtorFunc> {
     let (docs, annotations) = parse_docs_and_annotations(&mut it)?;
     let name = expect_rule(&mut it, Rule::Ident)?.as_str().to_string();
     let mut params = Vec::new();
+    let mut throws = None;
     for part in it {
-        if part.as_rule() == Rule::Params {
-            for p in part.into_inner().filter(|x| x.as_rule() == Rule::Param) {
-                params.push(parse_param(p)?);
+        match part.as_rule() {
+            Rule::Params => {
+                for p in part.into_inner().filter(|x| x.as_rule() == Rule::Param) {
+                    params.push(parse_param(p)?);
+                }
             }
+            Rule::Throws => {
+                throws = Some(parse_type_decl(
+                    part.into_inner()
+                        .next()
+                        .ok_or(Error::Rule("expected TypeDecl".to_string()))?,
+                )?)
+            }
+            _ => {}
         }
     }
     Ok(CtorFunc {
         name,
         params,
+        throws,
         docs,
         annotations,
     })

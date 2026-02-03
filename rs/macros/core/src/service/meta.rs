@@ -147,6 +147,9 @@ impl ServiceBuilder<'_> {
                 let static_result_type =
                     shared::replace_any_lifetime_with_static(original_result_type);
 
+                // TODO: We only use 'flat' hashing (with | separator) if unwrap_result is true.
+                // This is to stay in sync with idl-gen which only uses 'throws' if metadata has 3 fields.
+                // If we want truly unified throws, we need a hashing scheme that is independent of syntactic unfolding.
                 let result_tokens = if handler.unwrap_result
                     && let Type::Path(ref tp) = static_result_type
                     && let Some((ok_ty, err_ty)) = shared::extract_result_types(tp)

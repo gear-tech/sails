@@ -63,7 +63,7 @@ Throws   = { "throws" ~ TypeDecl }
 // ---------- Program ----------
 ProgramDecl       = { DocsAndAnnotations? ~ "program" ~ Ident ~ "{" ~ (ConstructorsBlock | ServicesBlock | TypesBlock)* ~ "}" }
 ConstructorsBlock = { "constructors" ~ "{" ~ CtorDecl* ~ "}" }
-CtorDecl          = { DocsAndAnnotations? ~ Ident ~ "(" ~ Params? ~ ")" ~ ";"? }
+CtorDecl          = { DocsAndAnnotations? ~ Ident ~ "(" ~ Params? ~ ")" ~ Throws? ~ ";"? }
 ServicesBlock     = { "services" ~ "{" ~ (ServiceExpo ~ ","?)* ~ "}" }
 ServiceExpo       = { DocsAndAnnotations? ~ ServiceIdent ~ (":" ~ Ident)? }
 
