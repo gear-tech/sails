@@ -318,7 +318,7 @@ async fn validator_range_check_works() {
 #[ignore = "requires run gear node on GEAR_PATH"]
 async fn validator_range_check_query_works() {
     use demo_client::validator::{ValidationError, Validator as _};
-    let (env, demo_code_id, _, ..) = spin_up_node_with_demo_code().await;
+    let (env, demo_code_id, ..) = spin_up_node_with_demo_code().await;
 
     let demo_program = env
         .deploy::<DemoClientProgram>(demo_code_id, vec![])
@@ -337,7 +337,7 @@ async fn validator_range_check_query_works() {
 #[ignore = "requires run gear node on GEAR_PATH"]
 async fn validator_nonzero_works() {
     use demo_client::validator::Validator as _;
-    let (env, demo_code_id, _, ..) = spin_up_node_with_demo_code().await;
+    let (env, demo_code_id, ..) = spin_up_node_with_demo_code().await;
 
     let demo_program = env
         .deploy::<DemoClientProgram>(demo_code_id, vec![])
