@@ -368,7 +368,7 @@ async fn query_calculate_reply(
     let origin = H256::from_slice(api.account_id().as_ref());
     let payload = payload.as_ref().to_vec();
 
-    let reply_info_res = api
+    let reply_info = api
         .calculate_reply_for_handle_at(
             Some(origin.0.into()),
             destination,
@@ -377,25 +377,14 @@ async fn query_calculate_reply(
             value,
             params.at_block.map(|at| at.0.into()),
         )
-        .await;
+        .await?;
 
-    match reply_info_res {
-        Ok(reply_info) => match reply_info.code {
-            ReplyCode::Success(_) => Ok(reply_info.payload),
-            ReplyCode::Error(reason) => {
-                Err(GclientError::ReplyHasError(reason, reply_info.payload))
-            }
-            ReplyCode::Unsupported => Err(GclientError::ReplyIsMissing),
-        },
-        Err(err) => {
-            if let Some((reason, payload)) = try_extract_panic_from_hex(&format!("{err:?}")) {
-                return Err(GclientError::ReplyHasError(reason, payload));
-            }
-            Err(err.into())
-        }
+    match reply_info.code {
+        ReplyCode::Success(_) => Ok(reply_info.payload),
+        ReplyCode::Error(reason) => Err(GclientError::ReplyHasError(reason, reply_info.payload)),
+        ReplyCode::Unsupported => Err(GclientError::ReplyIsMissing),
     }
 }
-
 async fn wait_for_reply(
     listener: &mut EventListener,
     message_id: MessageId,
