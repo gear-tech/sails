@@ -178,7 +178,7 @@ export class TransactionBuilder<ResponseType> {
           this._tx.args[4] as u128,
           allowOtherPanics,
         );
-
+        gasArgPosition = 3;
         break;
       }
       case 'createProgram': {

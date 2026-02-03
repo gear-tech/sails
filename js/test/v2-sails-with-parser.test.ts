@@ -3,9 +3,10 @@ import { KeyringPair } from '@polkadot/keyring/types';
 import { waitReady } from '@polkadot/wasm-crypto';
 import { Keyring } from '@polkadot/api';
 import { readFileSync } from 'node:fs';
+import { SailsIdlParser } from 'sails-js-parser-v2';
 
 import { SailsProgram, H256, NonZeroU32, NonZeroU8, ZERO_ADDRESS } from '..';
-import { SailsIdlParser } from 'sails-js-parser-v2';
+
 
 let api: GearApi;
 let alice: KeyringPair;

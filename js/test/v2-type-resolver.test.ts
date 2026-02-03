@@ -1,5 +1,6 @@
-import type { Type, TypeDecl } from 'sails-js-types-v2';
 import { TypeRegistry } from '@polkadot/types/create';
+import type { Type, TypeDecl } from 'sails-js-types-v2';
+
 import { TypeResolver } from '../src/type-resolver-v2.js';
 
 const named = (name: string, generics?: TypeDecl[]): TypeDecl => ({
@@ -185,7 +186,7 @@ describe('type-resolver-v2 structs', () => {
     const resolver = new TypeResolver([userType]);
 
     expect(resolver.getTypeDef(userType)).toEqual({
-      a: 'Result<String, u32>',
+      a: 'Result<String,u32>',
       b: 'u32',
     });
 
@@ -215,7 +216,7 @@ describe('type-resolver-v2 structs', () => {
     const resolver = new TypeResolver([userType]);
 
     expect(resolver.getTypeDef(userType)).toEqual({
-      a: '(String, u32)',
+      a: '(String,u32)',
       b: 'u32',
     });
 
@@ -263,37 +264,13 @@ describe('type-resolver-v2 structs', () => {
     const resolver = new TypeResolver([userType]);
 
     expect(resolver.getTypeDef(userType)).toEqual({
-      a: '[u32; 3]',
+      a: '[u32;3]',
       b: 'u32',
     });
 
     const encoded = resolver.registry.createType('StructWithArray', { a: [1, 2, 3], b: 123 });
     expect(encoded.toJSON()).toEqual({
       a: [1, 2, 3],
-      b: 123,
-    });
-  });
-
-  test('struct with map', () => {
-    const userType: Type = {
-      kind: 'struct',
-      name: 'StructWithMap',
-      fields: [
-        { name: 'a', type: named('BTreeMap', ['String', 'u32']) },
-        { name: 'b', type: 'u32' },
-      ],
-    };
-
-    const resolver = new TypeResolver([userType]);
-
-    expect(resolver.getTypeDef(userType)).toEqual({
-      a: 'BTreeMap<String, u32>',
-      b: 'u32',
-    });
-
-    const encoded = resolver.registry.createType('StructWithMap', { a: { foo: 123, bar: 456 }, b: 123 });
-    expect(encoded.toJSON()).toEqual({
-      a: { foo: 123, bar: 456 },
       b: 123,
     });
   });

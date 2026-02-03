@@ -1,4 +1,5 @@
 import { SailsIdlParser } from 'sails-js-parser-v2';
+
 import { SailsProgram } from '..';
 
 let parser: SailsIdlParser;
@@ -258,7 +259,7 @@ describe('type-resolver-v2 generics', () => {
         types {
           struct Tuple<T>(T, Option<T>);
 
-          struct Array<U>([U; 32]);
+          struct Array<U>([U; 4]);
 
           enum GenericEnum<T, U> {
             One,
@@ -276,8 +277,61 @@ describe('type-resolver-v2 generics', () => {
         }
       }
     `;
-    const program = new SailsProgram(parser.parse(text));
+    const idlDoc = parser.parse(text);
+    const program = new SailsProgram(idlDoc);
     expect(program.ctors).toBeDefined();
 
+    const tupleU8 = [7, null];
+    const tupleU8Alt = [8, 9];
+    const arrayTupleU8 = Array.from({ length: 4 }, (_, i) => [i, null]);
+
+    expect(program.registry.createType('GenericEnum<u8,String>', 'One').toJSON()).toEqual({ one: null });
+    expect(program.registry.createType('GenericEnum<u8,String>', { Two: 7 }).toJSON()).toEqual({ two: 7 });
+    expect(
+      program.registry.createType('GenericEnum<u8,String>', { Three: { p1: 7, p2: 'hello' } }).toJSON(),
+    ).toEqual({ three: { p1: 7, p2: 'hello' } });
+
+    expect(program.registry.createType('GenericEnum<Option<u8>,String>', 'One').toJSON()).toEqual({ one: null });
+    expect(program.registry.createType('GenericEnum<Option<u8>,String>', { Two: 7 }).toJSON()).toEqual({ two: 7 });
+    expect(
+      program.registry
+        .createType('GenericEnum<Option<u8>,String>', { Three: { p1: null, p2: 'hello' } })
+        .toJSON(),
+    ).toEqual({ three: { p1: null, p2: 'hello' } });
+
+    expect(program.registry.createType('GenericEnum<Tuple<u8>,Array<String>>', 'One').toJSON()).toEqual({
+      one: null,
+    });
+    expect(program.registry.createType('GenericEnum<Tuple<u8>,Array<String>>', { Two: tupleU8 }).toJSON()).toEqual({
+      two: tupleU8,
+    });
+    expect(
+      program.registry
+        .createType('GenericEnum<Tuple<u8>,Array<String>>', { Three: { p1: tupleU8Alt, p2: null } })
+        .toJSON(),
+    ).toEqual({ three: { p1: tupleU8Alt, p2: null } });
+
+    expect(
+      program.registry.createType('GenericEnum<Array<Tuple<u8>>,Tuple<Array<String>>>', 'One').toJSON(),
+    ).toEqual({ one: null });
+    expect(
+      program.registry
+        .createType('GenericEnum<Array<Tuple<u8>>,Tuple<Array<String>>>', { Two: arrayTupleU8 })
+        .toJSON(),
+    ).toEqual({ two: arrayTupleU8 });
+    expect(
+      program.registry
+        .createType('GenericEnum<Array<Tuple<u8>>,Tuple<Array<String>>>', {
+          Three: { p1: arrayTupleU8, p2: null },
+        })
+        .toJSON(),
+    ).toEqual({ three: { p1: arrayTupleU8, p2: null } });
+    expect(
+      program.registry
+        .createType('GenericEnum<Array<Tuple<u8>>,Tuple<Array<String>>>', {
+          Three: { p1: arrayTupleU8, p2: [['a', 'b', 'c', 'd'], null] },
+        })
+        .toJSON(),
+    ).toEqual({ three: { p1: arrayTupleU8, p2: [['a', 'b', 'c', 'd'], null] } });
   });
 });
