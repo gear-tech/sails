@@ -8,6 +8,9 @@ import typescript from 'rollup-plugin-typescript2';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 function getBase64Parser() {
+  // TODO: Run before
+  // cargo build -p sails-idl-parser-wasm --target=wasm32-unknown-unknown --release
+  // wasm-opt -O4 -o ./js/parser-v2/parser.wasm ./target/wasm32-unknown-unknown/release/sails_idl_parser_wasm.wasm
   const parserPath = resolve(__dirname, 'parser.wasm');
   const parserBytes = readFileSync(parserPath);
   const compressedBytes = gzipSync(parserBytes);

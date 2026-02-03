@@ -53,7 +53,7 @@
     "build": "pnpm --stream --reporter=append-only -r build",
     "pack": "pnpm --filter sails-js --filter \"sails-js-*\" -r pack --out js/%s.tgz",
     "bump:version": "bash ./js/scripts/bump-versions.sh",
-    "test": "pnpm --filter sails-js --filter sails-js-cli test",
+    "test": "pnpm --filter sails-js test",
     "test:js": "pnpm --filter sails-js test",
     "test:cli": "pnpm --filter sails-js-cli test",
     "publish": "pnpm -r publish --access public",

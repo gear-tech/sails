@@ -97,10 +97,6 @@ export class InterfaceId implements IInterfaceId {
     return InterfaceId.fromBytes(input);
   }
 
-  public asBytes(): Uint8Array {
-    return this.bytes.slice();
-  }
-
   public from(input: InterfaceIdInput): InterfaceId {
     return InterfaceId.from(input);
   }
