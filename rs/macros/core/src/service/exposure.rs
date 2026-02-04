@@ -371,14 +371,14 @@ impl ServiceBuilder<'_> {
                 } else {
                     let name = &fn_builder.route;
                     match_arms.push(quote! {
-                                (id, eid) if id == #base_id && eid == {
-                                    const ID: u16 = #sails_path::meta::find_id(
-                                        <#base_path_wo_lifetimes as #sails_path::meta::ServiceMeta>::METHODS,
-                                        #name,
-                                    );
-                                    ID
-                                } => Some(#is_async),
-                            });
+                        (id, eid) if id == #base_id && eid == {
+                            const ID: u16 = #sails_path::meta::find_id(
+                                <#base_path_wo_lifetimes as #sails_path::meta::ServiceMeta>::METHODS,
+                                #name,
+                            );
+                            ID
+                        } => Some(#is_async),
+                    });
                 }
             }
         }
