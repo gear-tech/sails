@@ -335,8 +335,12 @@ impl<'a> FnBuilder<'a> {
         } = ie;
         let signature = &impl_fn.sig;
         let ident = &signature.ident;
-        let route_pascal = ident.to_string().to_case(Case::Pascal);
-        let params_struct_ident = Ident::new(&format!("__{route_pascal}Params"), Span::call_site());
+        let params_struct_ident = if overrides.is_some() {
+            let ident_pascal = ident.to_string().to_case(Case::Pascal);
+            Ident::new(&format!("__{ident_pascal}Params"), Span::call_site())
+        } else {
+            Ident::new(&format!("__{route}Params"), Span::call_site())
+        };
         let (params_idents, params_types): (Vec<_>, Vec<_>) = extract_params(signature).unzip();
         let result_type = unwrap_result_type(signature, unwrap_result);
 
