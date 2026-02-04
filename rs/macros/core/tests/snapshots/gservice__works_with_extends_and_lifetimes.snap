@@ -31,8 +31,10 @@ for ExtendedLifetimeExposure<T> {
             (
                 id,
                 eid,
-            ) if id
-                == <base::BaseLifetime as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+            ) if sails_rs::meta::service_has_interface_id(
+                &T::BASE_SERVICES[0usize],
+                id,
+            ) => {
                 return <<base::BaseLifetime as sails_rs::gstd::services::Service>::Exposure as sails_rs::gstd::services::Exposure>::check_asyncness(
                     id,
                     eid,
@@ -125,8 +127,12 @@ impl<'a> ExtendedLifetimeExposure<ExtendedLifetime<'a>> {
             (
                 id,
                 eid,
-            ) if id
-                == <base::BaseLifetime as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+            ) if sails_rs::meta::service_has_interface_id(
+                &<self::ExtendedLifetime<
+                    'a,
+                > as sails_rs::meta::ServiceMeta>::BASE_SERVICES[0usize],
+                id,
+            ) => {
                 let base_service: base::BaseLifetime<'a> = self.inner.into();
                 return sails_rs::gstd::services::Service::expose(
                         base_service,
@@ -149,8 +155,12 @@ impl<'a> ExtendedLifetimeExposure<ExtendedLifetime<'a>> {
             (
                 id,
                 eid,
-            ) if id
-                == <base::BaseLifetime as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+            ) if sails_rs::meta::service_has_interface_id(
+                &<self::ExtendedLifetime<
+                    'a,
+                > as sails_rs::meta::ServiceMeta>::BASE_SERVICES[0usize],
+                id,
+            ) => {
                 let base_service: base::BaseLifetime<'a> = self.inner.into();
                 return sails_rs::gstd::services::Service::expose(
                         base_service,

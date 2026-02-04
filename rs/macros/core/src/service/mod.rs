@@ -193,6 +193,7 @@ fn discover_service_handlers<'a>(
     // service funcs ordered by (fn_type, name)
     vec.sort_by_key(|f| (f.is_query(), f.route.to_lowercase()));
     vec.iter_mut()
+        .filter(|f| f.overrides.is_none())
         .enumerate()
         .for_each(|(idx, f)| f.entry_id = idx as u16);
     vec

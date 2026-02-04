@@ -22,10 +22,10 @@ for InheritedServiceExposure<T> {
             return Some(false);
         }
         match (interface_id, entry_id) {
-            (
-                id,
-                1u16,
-            ) if id == <BaseService as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+            (id, 0u16) if id == <T as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+                Some(false)
+            }
+            (id, 1u16) if id == <T as sails_rs::meta::Identifiable>::INTERFACE_ID => {
                 Some(false)
             }
             (
@@ -74,13 +74,17 @@ impl Into<BaseService> for InheritedServiceExposure<InheritedService> {
     }
 }
 impl InheritedServiceExposure<InheritedService> {
+    #[export]
+    pub fn own_first(&self) -> u32 {
+        1
+    }
     #[export(overrides = BaseService)]
     pub fn foo(&self) -> u32 {
         200
     }
-    #[export(overrides = BaseService, entry_id = 1)]
-    pub fn bar(&self) -> u32 {
-        300
+    #[export]
+    pub fn own_second(&self) -> u32 {
+        2
     }
     pub fn try_handle(
         mut self,
@@ -91,25 +95,6 @@ impl InheritedServiceExposure<InheritedService> {
     ) -> Option<()> {
         use sails_rs::gstd::{InvocationIo, CommandReply};
         match (interface_id, entry_id) {
-            (
-                id,
-                1u16,
-            ) if id == <BaseService as sails_rs::meta::Identifiable>::INTERFACE_ID => {
-                let request: inherited_service_meta::__BarParams = sails_rs::scale_codec::Decode::decode(
-                        &mut input,
-                    )
-                    .expect("Failed to decode params");
-                let result = self.bar();
-                let value = 0u128;
-                if !sails_rs::gstd::is_empty_tuple::<u32>() {
-                    <inherited_service_meta::__BarParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
-                        &result,
-                        self.route_idx,
-                        |encoded_result| result_handler(encoded_result, value),
-                    );
-                }
-                return Some(());
-            }
             (
                 id,
                 eid,
@@ -130,6 +115,46 @@ impl InheritedServiceExposure<InheritedService> {
                 let value = 0u128;
                 if !sails_rs::gstd::is_empty_tuple::<u32>() {
                     <inherited_service_meta::__FooParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                        &result,
+                        self.route_idx,
+                        |encoded_result| result_handler(encoded_result, value),
+                    );
+                }
+                return Some(());
+            }
+            (
+                id,
+                0u16,
+            ) if id
+                == <self::InheritedService as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+                let request: inherited_service_meta::__OwnFirstParams = sails_rs::scale_codec::Decode::decode(
+                        &mut input,
+                    )
+                    .expect("Failed to decode params");
+                let result = self.own_first();
+                let value = 0u128;
+                if !sails_rs::gstd::is_empty_tuple::<u32>() {
+                    <inherited_service_meta::__OwnFirstParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                        &result,
+                        self.route_idx,
+                        |encoded_result| result_handler(encoded_result, value),
+                    );
+                }
+                return Some(());
+            }
+            (
+                id,
+                1u16,
+            ) if id
+                == <self::InheritedService as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+                let request: inherited_service_meta::__OwnSecondParams = sails_rs::scale_codec::Decode::decode(
+                        &mut input,
+                    )
+                    .expect("Failed to decode params");
+                let result = self.own_second();
+                let value = 0u128;
+                if !sails_rs::gstd::is_empty_tuple::<u32>() {
+                    <inherited_service_meta::__OwnSecondParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
                         &result,
                         self.route_idx,
                         |encoded_result| result_handler(encoded_result, value),
@@ -196,6 +221,9 @@ mod inherited_service_meta {
     impl sails_rs::meta::Identifiable for super::InheritedService {
         const INTERFACE_ID: sails_rs::meta::InterfaceId = {
             let mut final_hash = sails_rs::keccak_const::Keccak256::new();
+            final_hash = final_hash.update(&sails_rs::hash_fn!(query OwnFirst() -> u32));
+            final_hash = final_hash
+                .update(&sails_rs::hash_fn!(query OwnSecond() -> u32));
             final_hash = final_hash
                 .update(
                     &<super::BaseService as sails_rs::meta::Identifiable>::INTERFACE_ID.0,
@@ -211,28 +239,22 @@ mod inherited_service_meta {
         const BASE_SERVICES: &'static [sails_rs::meta::BaseServiceMeta] = &[
             sails_rs::meta::BaseServiceMeta::new::<super::BaseService>("BaseService"),
         ];
-        const METHODS: &'static [sails_rs::meta::MethodMetadata] = &[];
+        const METHODS: &'static [sails_rs::meta::MethodMetadata] = &[
+            sails_rs::meta::MethodMetadata {
+                name: "OwnFirst",
+                entry_id: 0u16,
+                hash: sails_rs::hash_fn!(query OwnFirst() -> u32),
+                is_async: false,
+            },
+            sails_rs::meta::MethodMetadata {
+                name: "OwnSecond",
+                entry_id: 1u16,
+                hash: sails_rs::hash_fn!(query OwnSecond() -> u32),
+                is_async: false,
+            },
+        ];
         const ASYNC: bool = <super::BaseService as sails_rs::meta::ServiceMeta>::ASYNC;
     }
-    const _: () = {
-        let base_methods = <super::BaseService as sails_rs::meta::ServiceMeta>::METHODS;
-        if let Some(method) = sails_rs::meta::find_method_data(
-            base_methods,
-            "Bar",
-            Some(1u16),
-        ) {
-            if !sails_rs::meta::bytes32_eq(
-                &method.hash,
-                &sails_rs::hash_fn!(query Bar() -> u32),
-            ) {
-                core::panic!(
-                    concat!("Override signature mismatch for method `", "Bar", "`")
-                );
-            }
-        } else {
-            core::panic!(concat!("Method `", "Bar", "` not found in base service"));
-        }
-    };
     const _: () = {
         let base_methods = <super::BaseService as sails_rs::meta::ServiceMeta>::METHODS;
         if let Some(method) = sails_rs::meta::find_method_data(
@@ -255,19 +277,6 @@ mod inherited_service_meta {
     #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
-    pub struct __BarParams {}
-    impl sails_rs::meta::Identifiable for __BarParams {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::BaseService as sails_rs::meta::Identifiable>::INTERFACE_ID;
-    }
-    impl sails_rs::meta::MethodMeta for __BarParams {
-        const ENTRY_ID: u16 = 1u16;
-    }
-    impl sails_rs::gstd::InvocationIo for __BarParams {
-        type Params = Self;
-    }
-    #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
-    #[codec(crate = sails_rs::scale_codec)]
-    #[scale_info(crate = sails_rs::scale_info)]
     pub struct __FooParams {}
     impl sails_rs::meta::Identifiable for __FooParams {
         const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::BaseService as sails_rs::meta::Identifiable>::INTERFACE_ID;
@@ -284,12 +293,41 @@ mod inherited_service_meta {
     impl sails_rs::gstd::InvocationIo for __FooParams {
         type Params = Self;
     }
+    #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
+    #[codec(crate = sails_rs::scale_codec)]
+    #[scale_info(crate = sails_rs::scale_info)]
+    pub struct __OwnFirstParams {}
+    impl sails_rs::meta::Identifiable for __OwnFirstParams {
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::InheritedService as sails_rs::meta::Identifiable>::INTERFACE_ID;
+    }
+    impl sails_rs::meta::MethodMeta for __OwnFirstParams {
+        const ENTRY_ID: u16 = 0u16;
+    }
+    impl sails_rs::gstd::InvocationIo for __OwnFirstParams {
+        type Params = Self;
+    }
+    #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
+    #[codec(crate = sails_rs::scale_codec)]
+    #[scale_info(crate = sails_rs::scale_info)]
+    pub struct __OwnSecondParams {}
+    impl sails_rs::meta::Identifiable for __OwnSecondParams {
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::InheritedService as sails_rs::meta::Identifiable>::INTERFACE_ID;
+    }
+    impl sails_rs::meta::MethodMeta for __OwnSecondParams {
+        const ENTRY_ID: u16 = 1u16;
+    }
+    impl sails_rs::gstd::InvocationIo for __OwnSecondParams {
+        type Params = Self;
+    }
     #[derive(sails_rs::TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum CommandsMeta {}
     #[derive(sails_rs::TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
-    pub enum QueriesMeta {}
+    pub enum QueriesMeta {
+        OwnFirst(__OwnFirstParams, u32),
+        OwnSecond(__OwnSecondParams, u32),
+    }
     #[derive(sails_rs::TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum NoEvents {}

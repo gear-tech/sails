@@ -186,11 +186,10 @@ impl ServiceBuilder<'_> {
         }
 
         // 3. Base service delegation
-        let base_delegations = self.base_types.iter().map(|base_type| {
-            let path_wo_lifetimes = shared::remove_lifetimes(base_type);
+        let base_delegations = self.base_types.iter().enumerate().map(|(idx, base_type)| {
             let base_call = base_call_gen(quote!(base_service), &await_token, method_name_ident);
             quote! {
-                (id, eid) if id == <#path_wo_lifetimes as #sails_path::meta::Identifiable>::INTERFACE_ID => {
+                (id, eid) if #sails_path::meta::service_has_interface_id(&<#metadata_type as #sails_path::meta::ServiceMeta>::BASE_SERVICES[#idx], id) => {
                     let base_service: #base_type = self.#inner_ident.into();
                     return #base_call;
                 }
@@ -383,10 +382,10 @@ impl ServiceBuilder<'_> {
             }
         }
         // 3. Base service delegation
-        let base_delegations = self.base_types.iter().map(|base_type| {
+        let base_delegations = self.base_types.iter().enumerate().map(|(idx, base_type)| {
             let path_wo_lifetimes = shared::remove_lifetimes(base_type);
             quote! {
-                (id, eid) if id == <#path_wo_lifetimes as #sails_path::meta::Identifiable>::INTERFACE_ID => {
+                (id, eid) if #sails_path::meta::service_has_interface_id(&T::BASE_SERVICES[#idx], id) => {
                     return <<#path_wo_lifetimes as #sails_path::gstd::services::Service>::Exposure as #sails_path::gstd::services::Exposure>::check_asyncness(id, eid);
                 }
             }

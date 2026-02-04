@@ -54,4 +54,10 @@ impl DogService {
         self.emit_event(DogEvents::Barked).unwrap();
         "Woof! Woof!"
     }
+
+    #[export(overrides = MammalService, entry_id = 0, route = "MakeSound")]
+    pub fn mammal_make_sound(&mut self) -> &'static str {
+        self.emit_event(DogEvents::Barked).unwrap();
+        "Woof! Woof! (from Mammal override)"
+    }
 }

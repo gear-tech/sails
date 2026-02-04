@@ -28,8 +28,10 @@ for SomeServiceExposure<T> {
             (
                 id,
                 eid,
-            ) if id
-                == <ExtendedService1 as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+            ) if sails_rs::meta::service_has_interface_id(
+                &T::BASE_SERVICES[0usize],
+                id,
+            ) => {
                 return <<ExtendedService1 as sails_rs::gstd::services::Service>::Exposure as sails_rs::gstd::services::Exposure>::check_asyncness(
                     id,
                     eid,
@@ -38,8 +40,10 @@ for SomeServiceExposure<T> {
             (
                 id,
                 eid,
-            ) if id
-                == <ExtendedService2 as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+            ) if sails_rs::meta::service_has_interface_id(
+                &T::BASE_SERVICES[1usize],
+                id,
+            ) => {
                 return <<ExtendedService2 as sails_rs::gstd::services::Service>::Exposure as sails_rs::gstd::services::Exposure>::check_asyncness(
                     id,
                     eid,
@@ -109,8 +113,10 @@ impl SomeServiceExposure<SomeService> {
             (
                 id,
                 eid,
-            ) if id
-                == <ExtendedService1 as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+            ) if sails_rs::meta::service_has_interface_id(
+                &<self::SomeService as sails_rs::meta::ServiceMeta>::BASE_SERVICES[0usize],
+                id,
+            ) => {
                 let base_service: ExtendedService1 = self.inner.into();
                 return sails_rs::gstd::services::Service::expose(
                         base_service,
@@ -121,8 +127,10 @@ impl SomeServiceExposure<SomeService> {
             (
                 id,
                 eid,
-            ) if id
-                == <ExtendedService2 as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+            ) if sails_rs::meta::service_has_interface_id(
+                &<self::SomeService as sails_rs::meta::ServiceMeta>::BASE_SERVICES[1usize],
+                id,
+            ) => {
                 let base_service: ExtendedService2 = self.inner.into();
                 return sails_rs::gstd::services::Service::expose(
                         base_service,
@@ -145,8 +153,10 @@ impl SomeServiceExposure<SomeService> {
             (
                 id,
                 eid,
-            ) if id
-                == <ExtendedService1 as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+            ) if sails_rs::meta::service_has_interface_id(
+                &<self::SomeService as sails_rs::meta::ServiceMeta>::BASE_SERVICES[0usize],
+                id,
+            ) => {
                 let base_service: ExtendedService1 = self.inner.into();
                 return sails_rs::gstd::services::Service::expose(
                         base_service,
@@ -158,8 +168,10 @@ impl SomeServiceExposure<SomeService> {
             (
                 id,
                 eid,
-            ) if id
-                == <ExtendedService2 as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+            ) if sails_rs::meta::service_has_interface_id(
+                &<self::SomeService as sails_rs::meta::ServiceMeta>::BASE_SERVICES[1usize],
+                id,
+            ) => {
                 let base_service: ExtendedService2 = self.inner.into();
                 return sails_rs::gstd::services::Service::expose(
                         base_service,
@@ -209,8 +221,10 @@ impl SomeServiceExposure<SomeService> {
             (
                 id,
                 eid,
-            ) if id
-                == <ExtendedService1 as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+            ) if sails_rs::meta::service_has_interface_id(
+                &<self::SomeService as sails_rs::meta::ServiceMeta>::BASE_SERVICES[0usize],
+                id,
+            ) => {
                 let base_service: ExtendedService1 = self.inner.into();
                 return sails_rs::gstd::services::Service::expose(
                         base_service,
@@ -221,8 +235,10 @@ impl SomeServiceExposure<SomeService> {
             (
                 id,
                 eid,
-            ) if id
-                == <ExtendedService2 as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+            ) if sails_rs::meta::service_has_interface_id(
+                &<self::SomeService as sails_rs::meta::ServiceMeta>::BASE_SERVICES[1usize],
+                id,
+            ) => {
                 let base_service: ExtendedService2 = self.inner.into();
                 return sails_rs::gstd::services::Service::expose(
                         base_service,
@@ -244,8 +260,10 @@ impl SomeServiceExposure<SomeService> {
             (
                 id,
                 eid,
-            ) if id
-                == <ExtendedService1 as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+            ) if sails_rs::meta::service_has_interface_id(
+                &<self::SomeService as sails_rs::meta::ServiceMeta>::BASE_SERVICES[0usize],
+                id,
+            ) => {
                 let base_service: ExtendedService1 = self.inner.into();
                 return sails_rs::gstd::services::Service::expose(
                         base_service,
@@ -257,8 +275,10 @@ impl SomeServiceExposure<SomeService> {
             (
                 id,
                 eid,
-            ) if id
-                == <ExtendedService2 as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+            ) if sails_rs::meta::service_has_interface_id(
+                &<self::SomeService as sails_rs::meta::ServiceMeta>::BASE_SERVICES[1usize],
+                id,
+            ) => {
                 let base_service: ExtendedService2 = self.inner.into();
                 return sails_rs::gstd::services::Service::expose(
                         base_service,

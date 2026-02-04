@@ -684,49 +684,30 @@ async fn chaos_panic_does_not_affect_other_services() {
 #[tokio::test]
 async fn inheritance_redefine_works() {
     use demo_client::chain::Chain as _;
-    use demo_client::inheritance::Inheritance as _;
+    use demo_client::dog::Dog as _;
     use demo_client::mammal_service::MammalService as _;
-    use demo_client::walker_service::WalkerService as _;
 
     // Arrange
     let (env, code_id, _gas_limit) = create_env();
     let demo_program = env.deploy(code_id, vec![]).default().await.unwrap();
 
-    let inheritance_client = demo_program.inheritance();
-    let chain_client = demo_program.chain();
+    let mut chain_client = demo_program.chain();
 
-    // Redefined make_sound (Mammal Sync -> Inheritance Async)
-    let sound = inheritance_client
+    // 1. Own method of ChainService
+    let chain_sound = chain_client.make_sound().await.unwrap();
+    assert_eq!(chain_sound, "Chain Woof!");
+
+    // 2. Shadowed (but accessible) method from DogService
+    let dog_sound = chain_client.dog().make_sound().await.unwrap();
+    assert_eq!(dog_sound, "Woof! Woof!");
+
+    // 3. Override check: Calling MammalService::MakeSound on DogService
+    // It should hit our 'mammal_make_sound' implementation.
+    let mammal_sound = chain_client
+        .dog()
         .mammal_service()
         .make_sound()
         .await
         .unwrap();
-    assert_eq!(sound, "Inherited Sound (Async)");
-
-    // Redefined avg_weight (Mammal Query -> Inheritance Query)
-    let weight = inheritance_client
-        .mammal_service()
-        .avg_weight()
-        .await
-        .unwrap();
-    assert_eq!(weight, 1000);
-
-    // 2. Check ChainService
-    // Redefined make_sound (from Inheritance) -> "Chain Sound"
-    let chain_sound = chain_client
-        .inheritance()
-        .mammal_service()
-        .make_sound()
-        .await
-        .unwrap();
-    assert_eq!(chain_sound, "Chain Sound");
-
-    // Redefined position (from original Walker via parent)
-    let pos = chain_client
-        .inheritance()
-        .walker_service()
-        .position()
-        .await
-        .unwrap();
-    assert_eq!(pos, (99, 99));
+    assert_eq!(mammal_sound, "Woof! Woof! (from Mammal override)");
 }

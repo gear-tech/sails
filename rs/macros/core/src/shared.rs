@@ -142,8 +142,11 @@ pub(crate) fn discover_invocation_targets<'a>(
                 let ie = invocation_export_or_default(fn_item);
                 // `entry_id` in order of appearance
                 let entry_id = routes.len() as u16;
-                if let Some(duplicate) =
-                    routes.insert(ie.route.clone(), fn_item.sig.ident.to_string())
+                // If this is an override, it doesn't conflict with own service routes
+                // because it belongs to a different Interface ID.
+                if ie.overrides.is_none()
+                    && let Some(duplicate) =
+                        routes.insert(ie.route.clone(), fn_item.sig.ident.to_string())
                 {
                     abort!(
                         ie.span,
@@ -332,7 +335,8 @@ impl<'a> FnBuilder<'a> {
         } = ie;
         let signature = &impl_fn.sig;
         let ident = &signature.ident;
-        let params_struct_ident = Ident::new(&format!("__{route}Params"), Span::call_site());
+        let route_pascal = ident.to_string().to_case(Case::Pascal);
+        let params_struct_ident = Ident::new(&format!("__{route_pascal}Params"), Span::call_site());
         let (params_idents, params_types): (Vec<_>, Vec<_>) = extract_params(signature).unzip();
         let result_type = unwrap_result_type(signature, unwrap_result);
 

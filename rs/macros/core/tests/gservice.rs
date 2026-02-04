@@ -325,6 +325,30 @@ fn works_with_export() {
 }
 
 #[test]
+fn works_with_mixed_methods() {
+    let args = quote! {
+        extends = BaseService
+    };
+    let input = quote! {
+        impl InheritedService {
+            #[export]
+            pub fn own_first(&self) -> u32 { 1 } // Should be entry_id 0
+
+            #[export(overrides = BaseService)]
+            pub fn foo(&self) -> u32 { 200 } // Override, no entry_id in this service
+
+            #[export]
+            pub fn own_second(&self) -> u32 { 2 } // Should be entry_id 1
+        }
+    };
+
+    let result = gservice(args, input).to_string();
+    let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
+
+    insta::assert_snapshot!(result);
+}
+
+#[test]
 fn works_with_overrides() {
     let args = quote! {
         extends = BaseService

@@ -102,14 +102,14 @@ impl SomeServiceExposure<SomeService> {
                 0u16,
             ) if id
                 == <self::SomeService as sails_rs::meta::Identifiable>::INTERFACE_ID => {
-                let request: some_service_meta::__DoSomethingParams = sails_rs::scale_codec::Decode::decode(
+                let request: some_service_meta::__DoThisParams = sails_rs::scale_codec::Decode::decode(
                         &mut input,
                     )
                     .expect("Failed to decode params");
                 let result = self.do_this(request.p1, request.p2).await.unwrap();
                 let value = 0u128;
                 if !sails_rs::gstd::is_empty_tuple::<(u32, String)>() {
-                    <some_service_meta::__DoSomethingParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                    <some_service_meta::__DoThisParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
                         &result,
                         self.route_idx,
                         |encoded_result| result_handler(encoded_result, value),
@@ -173,17 +173,17 @@ mod some_service_meta {
     #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
-    pub struct __DoSomethingParams {
+    pub struct __DoThisParams {
         pub(super) p1: u32,
         pub(super) p2: String,
     }
-    impl sails_rs::meta::Identifiable for __DoSomethingParams {
+    impl sails_rs::meta::Identifiable for __DoThisParams {
         const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::SomeService as sails_rs::meta::Identifiable>::INTERFACE_ID;
     }
-    impl sails_rs::meta::MethodMeta for __DoSomethingParams {
+    impl sails_rs::meta::MethodMeta for __DoThisParams {
         const ENTRY_ID: u16 = 0u16;
     }
-    impl sails_rs::gstd::InvocationIo for __DoSomethingParams {
+    impl sails_rs::gstd::InvocationIo for __DoThisParams {
         type Params = Self;
     }
     #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
@@ -204,7 +204,7 @@ mod some_service_meta {
     #[derive(sails_rs::TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum CommandsMeta {
-        DoSomething(__DoSomethingParams, (u32, String)),
+        DoSomething(__DoThisParams, (u32, String)),
     }
     #[derive(sails_rs::TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]

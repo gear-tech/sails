@@ -142,16 +142,12 @@ service Chaos@0xf0c8c80dfabf72d5 {
     }
 }
 
-service Inheritance@0xf1d296057dbe255b {
+service Chain@0xd422c66e6021e0f9 {
     extends {
-        MammalService@0xff6b93e1961026fe,
-        WalkerService@0xee1536b55170bf0a,
+        Dog@0x18666e67a21917a1,
     }
-}
-
-service Chain@0xefbfcf88972cd5be {
-    extends {
-        Inheritance@0xf1d296057dbe255b,
+    functions {
+        MakeSound() -> String;
     }
 }
 
@@ -170,7 +166,6 @@ program DemoClient {
         ThisThat@0x381e13fdd02d675f,
         ValueFee@0x41c1080b4e1e8dc5,
         Chaos@0xf0c8c80dfabf72d5,
-        Inheritance@0xf1d296057dbe255b,
-        Chain@0xefbfcf88972cd5be,
+        Chain@0xd422c66e6021e0f9,
     }
 }
