@@ -18,9 +18,9 @@ import type {
   ITypeStruct,
   ICtorFunc,
   IEnumVariant,
-} from "sails-js-types-v2";
+} from 'sails-js-types-v2';
 
-import { InterfaceId } from "./interface-id";
+import { InterfaceId } from './interface-id';
 
 const mapArray = <T, U>(items: T[] | undefined, map: (item: T) => U): U[] | undefined =>
   items?.map((item: T) => map(item));
@@ -146,7 +146,7 @@ export class FuncParam implements IFuncParam {
 export class TypeStruct implements ITypeStruct {
   public readonly name: string;
   public readonly type_params?: TypeParameter[];
-  public readonly kind: "struct";
+  public readonly kind: 'struct';
   public readonly fields: StructField[];
   public readonly docs?: string[];
   public readonly annotations?: AnnotationEntry[];
@@ -154,7 +154,7 @@ export class TypeStruct implements ITypeStruct {
   constructor(data: ITypeStruct) {
     this.name = data.name;
     this.type_params = mapArray(data.type_params, (param) => new TypeParameter(param));
-    this.kind = "struct";
+    this.kind = 'struct';
     this.fields = data.fields.map((field: IStructField) => new StructField(field));
     this.docs = data.docs;
     this.annotations = data.annotations;
@@ -164,7 +164,7 @@ export class TypeStruct implements ITypeStruct {
 export class TypeEnum implements ITypeEnum {
   public readonly name: string;
   public readonly type_params?: TypeParameter[];
-  public readonly kind: "enum";
+  public readonly kind: 'enum';
   public readonly variants: EnumVariant[];
   public readonly docs?: string[];
   public readonly annotations?: AnnotationEntry[];
@@ -172,7 +172,7 @@ export class TypeEnum implements ITypeEnum {
   constructor(data: ITypeEnum) {
     this.name = data.name;
     this.type_params = mapArray(data.type_params, (param) => new TypeParameter(param));
-    this.kind = "enum";
+    this.kind = 'enum';
     this.variants = data.variants.map((variant: IEnumVariant) => new EnumVariant(variant));
     this.docs = data.docs;
     this.annotations = data.annotations;
@@ -218,7 +218,7 @@ export class EnumVariant implements IEnumVariant {
 }
 
 export const createType = (type: Type): Type => {
-  if (type.kind === "struct") {
+  if (type.kind === 'struct') {
     return new TypeStruct(type);
   }
 
@@ -231,9 +231,7 @@ const normalizeDocAnnotated = <T extends IDocAnnotated>(data: T): T => ({
   annotations: data.annotations ?? [],
 });
 
-const normalizeStructField = (data: IStructField): IStructField => ({
-  ...normalizeDocAnnotated(data),
-});
+const normalizeStructField = (data: IStructField): IStructField => normalizeDocAnnotated(data);
 
 const normalizeEnumVariant = (data: IEnumVariant): IEnumVariant => ({
   ...normalizeDocAnnotated(data),
@@ -242,14 +240,12 @@ const normalizeEnumVariant = (data: IEnumVariant): IEnumVariant => ({
 
 const normalizeType = (data: Type): Type => {
   const base = normalizeDocAnnotated(data);
-  const typeParams = (data.type_params ?? []).map((param) => ({
-    ...param,
-  }));
+  const typeParams = data.type_params ?? [];
 
-  if (data.kind === "struct") {
+  if (data.kind === 'struct') {
     return {
       ...base,
-      kind: "struct",
+      kind: 'struct',
       type_params: typeParams,
       fields: (data.fields ?? []).map((data: IStructField) => normalizeStructField(data)),
     };
@@ -257,15 +253,14 @@ const normalizeType = (data: Type): Type => {
 
   return {
     ...base,
-    kind: "enum",
+    kind: 'enum',
     type_params: typeParams,
     variants: (data.variants ?? []).map((data: IEnumVariant) => normalizeEnumVariant(data)),
   };
 };
 
-const normalizeFuncParam = (data: IFuncParam): IFuncParam => ({
-  ...data,
-});
+/// Do nothig, leave it for the future-proof
+const normalizeFuncParam = (data: IFuncParam): IFuncParam => data;
 
 const normalizeCtorFunc = (data: ICtorFunc): ICtorFunc => ({
   ...normalizeDocAnnotated(data),

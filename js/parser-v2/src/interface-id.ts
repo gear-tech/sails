@@ -1,4 +1,4 @@
-import type { InterfaceIdInput, IInterfaceId } from "sails-js-types-v2";
+import type { InterfaceIdInput, IInterfaceId } from 'sails-js-types-v2';
 
 const HEX_CHUNK_RE = /^[0-9a-fA-F]{2}$/;
 
@@ -29,9 +29,9 @@ export class InterfaceId implements IInterfaceId {
   }
 
   public static fromU64(value: bigint | number): InterfaceId {
-    const big = typeof value === "number" ? BigInt(value) : value;
+    const big = typeof value === 'number' ? BigInt(value) : value;
     if (big < 0n || big > 0xFF_FF_FF_FF_FF_FF_FF_FFn) {
-      throw new RangeError("u64 value out of range");
+      throw new RangeError('u64 value out of range');
     }
 
     const out = new Uint8Array(8);
@@ -45,7 +45,7 @@ export class InterfaceId implements IInterfaceId {
 
   public static fromString(value: string): InterfaceId {
     let hex = value.trim();
-    if (hex.startsWith("0x") || hex.startsWith("0X")) {
+    if (hex.startsWith('0x') || hex.startsWith('0X')) {
       hex = hex.slice(2);
     }
 
@@ -67,7 +67,7 @@ export class InterfaceId implements IInterfaceId {
 
   public static tryReadBytes(bytes: Uint8Array, offset = 0): { id: InterfaceId; offset: number } {
     if (bytes.length - offset < 8) {
-      throw new RangeError("Insufficient bytes for interface ID");
+      throw new RangeError('Insufficient bytes for interface ID');
     }
 
     const slice = bytes.slice(offset, offset + 8);
@@ -82,10 +82,10 @@ export class InterfaceId implements IInterfaceId {
     if (input instanceof InterfaceId) {
       return input;
     }
-    if (typeof input === "string") {
+    if (typeof input === 'string') {
       return InterfaceId.fromString(input);
     }
-    if (typeof input === "number" || typeof input === "bigint") {
+    if (typeof input === 'number' || typeof input === 'bigint') {
       return InterfaceId.fromU64(input);
     }
     if (input instanceof Uint8Array) {
@@ -110,9 +110,9 @@ export class InterfaceId implements IInterfaceId {
   }
 
   public toString(): string {
-    let out = "0x";
+    let out = '0x';
     for (const byte of this.bytes) {
-      out += byte.toString(16).padStart(2, "0");
+      out += byte.toString(16).padStart(2, '0');
     }
     return out;
   }
@@ -122,11 +122,6 @@ export class InterfaceId implements IInterfaceId {
   }
 
   private static isInterfaceIdLike(value: InterfaceIdInput): value is IInterfaceId {
-    return (
-      typeof value === "object" &&
-      value !== null &&
-      "bytes" in value &&
-      value.bytes instanceof Uint8Array
-    );
+    return typeof value === 'object' && value !== null && 'bytes' in value && value.bytes instanceof Uint8Array;
   }
 }

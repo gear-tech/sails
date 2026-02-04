@@ -2,7 +2,7 @@ import { GearApi, HexString, decodeAddress, generateCodeHash } from '@gear-js/ap
 import { KeyringPair } from '@polkadot/keyring/types';
 import { waitReady } from '@polkadot/wasm-crypto';
 import { Keyring } from '@polkadot/api';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { SailsIdlParser } from 'sails-js-parser-v2';
 
 import { SailsProgram, H256, NonZeroU32, NonZeroU8, ZERO_ADDRESS } from '..';
@@ -27,6 +27,10 @@ beforeAll(async () => {
   alice = keyring.addFromUri('//Alice');
   charlie = keyring.addFromUri('//Charlie');
   charlieRaw = decodeAddress(charlie.address);
+
+  if (!existsSync(DEMO_WASM_PATH)) {
+    throw new Error(`Build demo project\ncargo build -p demo --release\n`);
+  }
   code = readFileSync(DEMO_WASM_PATH);
   codeId = generateCodeHash(code);
 

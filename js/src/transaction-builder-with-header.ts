@@ -17,9 +17,9 @@ import type { SailsMessageHeader } from 'sails-js-parser-v2';
 
 import { ZERO_ADDRESS } from './consts.js';
 import { throwOnErrorReply as commonThrowOnErrorReply } from './utils.js';
-import { IMethodReturnType } from './transaction-builder.js'
+import { IMethodReturnType } from './transaction-builder.js';
 
-export class TransactionBuilder<ResponseType> {
+export class TransactionBuilderWithHeader<ResponseType> {
   private _account: string | IKeyringPair;
   private _signerOptions: Partial<SignerOptions>;
   private _tx: SubmittableExtrinsic<'promise', ISubmittableResult>;
@@ -73,7 +73,6 @@ export class TransactionBuilder<ResponseType> {
     _programIdOrCodeOrCodeId: HexString | Uint8Array | ArrayBufferLike,
     private _onProgramCreated?: (programId: HexString) => void | Promise<void>,
   ) {
-
     const encodedHeader = header.toBytes();
     const data = payloadType === null ? new Uint8Array() : this._registry.createType<any>(payloadType, payload).toU8a();
 

@@ -9,7 +9,7 @@ import type { TypeDecl, Type, IStructField } from 'sails-js-types-v2';
  *   but keeps known generic wrappers (`Option<>`, `Vec<>`, `Result<>`) in generic form,
  *   e.g. `field: Option<Vec<MyTypeOfOptionOfu32>>`.
  */
-export type NameKind = "generic" | "field" | "canonical";
+export type NameKind = 'generic' | 'field' | 'canonical';
 
 export class TypeResolver {
   registry: TypeRegistry;
@@ -42,71 +42,69 @@ export class TypeResolver {
    * For `nameKind: "field"`, known generic wrappers keep the generic syntax
    * (`Option<>`, `Vec<>`, `Result<>`) while their inner types are rendered canonically.
    */
-  getTypeDeclString(type: TypeDecl, generics: Record<string, TypeDecl> = {}, nameKind: NameKind = "generic"): string {
-    if (typeof type === "string") {
-      if (type === "()") return "Null";
-      if (type === "bool") return "bool";
-      if (type === "char") return "char";
-      if (type === "String") return "String";
-      if (type === "i8") return "i8";
-      if (type === "i16") return "i16";
-      if (type === "i32") return "i32";
-      if (type === "i64") return "i64";
-      if (type === "i128") return "i128";
-      if (type === "u8") return "u8";
-      if (type === "u16") return "u16";
-      if (type === "u32") return "u32";
-      if (type === "u64") return "u64";
-      if (type === "u128") return "u128";
-      if (type === "ActorId" || type === "CodeId" || type === "MessageId") {
-        if (nameKind === "canonical") {
+  getTypeDeclString(type: TypeDecl, generics: Record<string, TypeDecl> = {}, nameKind: NameKind = 'generic'): string {
+    if (typeof type === 'string') {
+      if (type === '()') return 'Null';
+      if (type === 'bool') return 'bool';
+      if (type === 'char') return 'char';
+      if (type === 'String') return 'String';
+      if (type === 'i8') return 'i8';
+      if (type === 'i16') return 'i16';
+      if (type === 'i32') return 'i32';
+      if (type === 'i64') return 'i64';
+      if (type === 'i128') return 'i128';
+      if (type === 'u8') return 'u8';
+      if (type === 'u16') return 'u16';
+      if (type === 'u32') return 'u32';
+      if (type === 'u64') return 'u64';
+      if (type === 'u128') return 'u128';
+      if (type === 'ActorId' || type === 'CodeId' || type === 'MessageId') {
+        if (nameKind === 'canonical') {
           return type as string;
         }
-        return "[u8;32]";
+        return '[u8;32]';
       }
-      if (type === "H256") return "H256";
-      if (type === "H160") return "H160";
-      if (type === "U256") return "U256";
+      if (type === 'H256') return 'H256';
+      if (type === 'H160') return 'H160';
+      if (type === 'U256') return 'U256';
     }
-    if (type.kind === "slice") {
-      if (nameKind === "canonical") {
+    if (type.kind === 'slice') {
+      if (nameKind === 'canonical') {
         return `VecOf${this.getTypeDeclString(type.item, generics, nameKind)}`;
       }
       return `Vec<${this.getTypeDeclString(type.item, generics, nameKind)}>`;
     }
-    if (type.kind === "array") {
-      if (nameKind === "canonical") {
+    if (type.kind === 'array') {
+      if (nameKind === 'canonical') {
         return `ArrayOf${this.getTypeDeclString(type.item, generics, nameKind)}Len${type.len}`;
       }
       return `[${this.getTypeDeclString(type.item, generics, nameKind)};${type.len}]`;
     }
-    if (type.kind === "tuple") {
-      if (nameKind === "canonical") {
-        return `TupleOf${type.types
-          .map((t: TypeDecl) => this.getTypeDeclString(t, generics, nameKind))
-          .join("And")}`;
+    if (type.kind === 'tuple') {
+      if (nameKind === 'canonical') {
+        return `TupleOf${type.types.map((t: TypeDecl) => this.getTypeDeclString(t, generics, nameKind)).join('And')}`;
       }
-      return `(${type.types.map((t: TypeDecl) => this.getTypeDeclString(t, generics, nameKind)).join(",")})`;
+      return `(${type.types.map((t: TypeDecl) => this.getTypeDeclString(t, generics, nameKind)).join(',')})`;
     }
-    if (type.kind === "named") {
-      if (type.name === "Option") {
-        if (nameKind === "canonical") {
+    if (type.kind === 'named') {
+      if (type.name === 'Option') {
+        if (nameKind === 'canonical') {
           return `OptionOf${this.getTypeDeclString(type.generics[0], generics, nameKind)}`;
         }
         return `Option<${this.getTypeDeclString(type.generics[0], generics, nameKind)}>`;
       }
-      if (type.name === "Result") {
-        if (nameKind === "canonical") {
+      if (type.name === 'Result') {
+        if (nameKind === 'canonical') {
           return `ResultOk${this.getTypeDeclString(type.generics[0], generics, nameKind)}Err${this.getTypeDeclString(type.generics[1], generics, nameKind)}`;
         }
         return `Result<${this.getTypeDeclString(type.generics[0], generics, nameKind)},${this.getTypeDeclString(type.generics[1], generics, nameKind)}>`;
       }
-      if (type.name === "NonZeroU8") return "u8";
-      if (type.name === "NonZeroU16") return "u16";
-      if (type.name === "NonZeroU32") return "u32";
-      if (type.name === "NonZeroU64") return "u64";
-      if (type.name === "NonZeroU128") return "u128";
-      if (type.name === "NonZeroU256") return "U256";
+      if (type.name === 'NonZeroU8') return 'u8';
+      if (type.name === 'NonZeroU16') return 'u16';
+      if (type.name === 'NonZeroU32') return 'u32';
+      if (type.name === 'NonZeroU64') return 'u64';
+      if (type.name === 'NonZeroU128') return 'u128';
+      if (type.name === 'NonZeroU256') return 'U256';
       if (type.generics?.length) {
         const userType = this._userTypes[type.name];
         if (!userType) {
@@ -117,12 +115,12 @@ export class TypeResolver {
         }
         // genericName with resolved generics, i.e. `MyType<String,Option<u8>>`
         const genericName = `${type.name}<${type.generics
-          .map((t: TypeDecl) => this.getTypeDeclString(t, generics, "generic"))
-          .join(",")}>`;
+          .map((t: TypeDecl) => this.getTypeDeclString(t, generics, 'generic'))
+          .join(',')}>`;
         // canonicalName with resolved generics, i.e. `MyTypeOfStringOptionOfu8>`
         const canonicalName = `${type.name}Of${type.generics
-          .map((t: TypeDecl) => this.getTypeDeclString(t, generics, "canonical"))
-          .join("")}`;
+          .map((t: TypeDecl) => this.getTypeDeclString(t, generics, 'canonical'))
+          .join('')}`;
         if (!this.registry.hasType(canonicalName)) {
           // type param to generic map, i.e, { "T": "String", "U": { "kind": "named", "name": "Option", "generics": ["u32"]} }
           const generics_map: Record<string, TypeDecl> = {};
@@ -137,10 +135,10 @@ export class TypeResolver {
           // which is treated like canonical to avoid <, >, and , in field type strings.
           // To ensure both references resolve to the same underlying definition,
           // the code registers the same typeDef under both genericName and canonicalName.
-          const scaleTypes: Record<string, any> = { [genericName]: typeDef, [canonicalName]: typeDef, };
+          const scaleTypes: Record<string, any> = { [genericName]: typeDef, [canonicalName]: typeDef };
           this.registry.register(scaleTypes);
         }
-        return nameKind == "generic" ? genericName : canonicalName;
+        return nameKind == 'generic' ? genericName : canonicalName;
       }
       // Generic param
       const generic = generics[type.name];
@@ -152,13 +150,13 @@ export class TypeResolver {
       return type.name;
     }
     throw new Error('Unknown type :: ' + JSON.stringify(type));
-  };
+  }
 
   getTypeDef(type: Type, generics: Record<string, TypeDecl> = {}): object | string {
-    if (type.kind === "struct") {
+    if (type.kind === 'struct') {
       return this.getStructDef(type.fields, generics);
     }
-    if (type.kind === "enum") {
+    if (type.kind === 'enum') {
       let isNesting = false;
       for (const variant of type.variants) {
         if (variant.fields.length > 0) {
@@ -176,10 +174,14 @@ export class TypeResolver {
       return { _enum: result };
     }
     throw new Error('Unknown type :: ' + JSON.stringify(type));
-  };
+  }
 
-  getStructDef(fields: { name?: string; type: TypeDecl }[], generics: Record<string, TypeDecl> = {}, stringify = false): object | string {
-    if (fields.length === 0) return "Null";
+  getStructDef(
+    fields: { name?: string; type: TypeDecl }[],
+    generics: Record<string, TypeDecl> = {},
+    stringify = false,
+  ): object | string {
+    if (fields.length === 0) return 'Null';
     let isTuple = true;
     for (const field of fields) {
       if (field.name) {
@@ -189,14 +191,14 @@ export class TypeResolver {
     }
     if (isTuple) {
       if (fields.length === 1) {
-        return this.getTypeDeclString(fields[0].type, generics, "field");
+        return this.getTypeDeclString(fields[0].type, generics, 'field');
       }
-      return `(${fields.map((f: IStructField) => this.getTypeDeclString(f.type, generics, "field")).join(",")})`;
+      return `(${fields.map((f: IStructField) => this.getTypeDeclString(f.type, generics, 'field')).join(',')})`;
     }
     const result = {};
     for (const field of fields) {
-      result[field.name] = this.getTypeDeclString(field.type, generics, "field");
+      result[field.name] = this.getTypeDeclString(field.type, generics, 'field');
     }
     return stringify ? JSON.stringify(result) : result;
-  };
+  }
 }

@@ -11,10 +11,10 @@ import type {
 } from 'sails-js-types-v2';
 import { SailsMessageHeader, InterfaceId } from 'sails-js-parser-v2';
 
-import { TransactionBuilder } from './transaction-builder-v2.js';
+import { QueryBuilderWithHeader } from './query-builder-with-header.js';
+import { TransactionBuilderWithHeader } from './transaction-builder-with-header.js';
 import { TypeResolver } from './type-resolver-v2.js';
 import { ZERO_ADDRESS } from './consts.js';
-import { QueryBuilder } from './query-builder-v2.js';
 
 interface ISailsService {
   readonly functions: Record<string, SailsServiceFunc>;
@@ -50,9 +50,9 @@ interface ISailsServiceFuncParams {
   readonly docs?: string;
 }
 
-type SailsServiceQuery = ISailsServiceFuncParams & (<T = any>(...args: unknown[]) => QueryBuilder<T>);
+type SailsServiceQuery = ISailsServiceFuncParams & (<T = any>(...args: unknown[]) => QueryBuilderWithHeader<T>);
 
-type SailsServiceFunc = ISailsServiceFuncParams & (<T = any>(...args: unknown[]) => TransactionBuilder<T>);
+type SailsServiceFunc = ISailsServiceFuncParams & (<T = any>(...args: unknown[]) => TransactionBuilderWithHeader<T>);
 
 interface ISailsServiceEvent {
   /** ### Event type */
@@ -79,9 +79,9 @@ interface ISailsCtorFuncParams {
   /** ### Decode payload from hex string */
   readonly decodePayload: <T = any>(bytes: HexString) => T;
   /** ### Create transaction builder from code */
-  readonly fromCode: (code: Uint8Array | Buffer, ...args: unknown[]) => TransactionBuilder<any>;
+  readonly fromCode: (code: Uint8Array | Buffer, ...args: unknown[]) => TransactionBuilderWithHeader<any>;
   /** ### Create transaction builder from code id */
-  readonly fromCodeId: (codeId: HexString, ...args: unknown[]) => TransactionBuilder<any>;
+  readonly fromCodeId: (codeId: HexString, ...args: unknown[]) => TransactionBuilderWithHeader<any>;
   /** ### Docs from the IDL file */
   readonly docs?: string;
 }
@@ -90,22 +90,27 @@ const _getParamsForTxBuilder = (params: ISailsFuncArg[]) => {
   if (params.length === 0) return null;
   if (params.length === 1) return params[0].type;
   return `(${params.map((p) => p.type).join(', ')})`;
-}
+};
 
 const _getArgsForTxBuilder = (args: any[], params: ISailsFuncArg[]) => {
   if (params.length === 0) return null;
   if (params.length === 1) return args[0];
   return args.slice(0, params.length);
-}
+};
 
 export class SailsProgram {
   private _doc: IIdlDoc;
   private _typeResolver: TypeResolver;
   private _api?: GearApi;
   private _programId?: HexString;
-  private _services: Map<bigint, IServiceUnit> = new Map();
-  private _resolveServiceUnit: (ident: IServiceIdent) => IServiceUnit | undefined;
-
+  private _services: Map<bigint, IServiceUnit>;
+  private _resolveServiceUnit = (ident: IServiceIdent): IServiceUnit | undefined => {
+    if (!ident.interface_id) {
+      throw new Error(`Service "${ident.name}" is missing interface_id in IDL`);
+    }
+    const idu64 = InterfaceId.from(ident.interface_id).asU64();
+    return this._services.get(idu64);
+  };
 
   /**
    * ### Crate program from parser IDL document
@@ -116,16 +121,7 @@ export class SailsProgram {
     if (this._doc.program) {
       this._typeResolver = new TypeResolver(this._doc.program.types);
     }
-
-    // this.generateScaleCodeTypes();
     this._services = this._initServices();
-    this._resolveServiceUnit = (ident: IServiceIdent) => {
-      if (!ident.interface_id) {
-        throw new Error(`Service "${ident.name}" is missing interface_id in IDL`);
-      }
-      const interfaceId = InterfaceId.from(ident.interface_id).asU64();
-      return this._services.get(interfaceId);
-    };
   }
 
   /** ### Set api to use for transactions */
@@ -182,7 +178,7 @@ export class SailsProgram {
     const services: Record<string, SailsService> = {};
     const program = this._doc.program;
 
-    if (!program?.services?.length || !this._resolveServiceUnit) {
+    if (!program?.services?.length) {
       return services;
     }
 
@@ -191,7 +187,13 @@ export class SailsProgram {
       if (!serviceUnit) {
         throw new Error(`Service definition for "${expo.name}" not found in IDL`);
       }
-      services[expo.name] = new SailsService(serviceUnit, this._api, this._programId, expo.route_idx, this._resolveServiceUnit);
+      services[expo.name] = new SailsService(
+        serviceUnit,
+        this._api,
+        this._programId,
+        expo.route_idx,
+        this._resolveServiceUnit,
+      );
     }
     return services;
   }
@@ -207,7 +209,11 @@ export class SailsProgram {
 
     for (const [entry_id, func] of program.ctors.entries()) {
       const header = SailsMessageHeader.v1(InterfaceId.zero(), entry_id, 0);
-      const params = func.params.map((p: IFuncParam) => ({ name: p.name, type: this._typeResolver.getTypeDeclString(p.type), typeDef: p.type }));
+      const params = func.params.map((p: IFuncParam) => ({
+        name: p.name,
+        type: this._typeResolver.getTypeDeclString(p.type),
+        typeDef: p.type,
+      }));
       funcs[func.name] = {
         args: params,
         encodePayload: (...args): HexString => {
@@ -239,7 +245,7 @@ export class SailsProgram {
             throw new Error('API is not set. Use .setApi method to set API instance');
           }
 
-          const builder = new TransactionBuilder(
+          const builder = new TransactionBuilderWithHeader(
             this._api,
             this.registry,
             'upload_program',
@@ -258,7 +264,7 @@ export class SailsProgram {
             throw new Error('API is not set. Use .setApi method to set API instance');
           }
 
-          const builder = new TransactionBuilder(
+          const builder = new TransactionBuilderWithHeader(
             this._api,
             this.registry,
             'create_program',
@@ -290,15 +296,16 @@ export class SailsProgram {
 }
 
 export class SailsService implements ISailsService {
-  functions: Record<string, SailsServiceFunc>;
-  queries: Record<string, SailsServiceQuery>;
-  events: Record<string, ISailsServiceEvent>;
-  routeIdx: number;
+  public readonly functions: Record<string, SailsServiceFunc>;
+  public readonly queries: Record<string, SailsServiceQuery>;
+  public readonly events: Record<string, ISailsServiceEvent>;
 
+  private _programId?: HexString;
   private _service: IServiceUnit;
   private _typeResolver: TypeResolver;
   private _api?: GearApi;
-  private _programId?: HexString;
+  private _routeIdx: number;
+
   private _resolveServiceUnit?: (ident: IServiceIdent) => IServiceUnit | undefined;
 
   constructor(
@@ -311,9 +318,9 @@ export class SailsService implements ISailsService {
     this._service = service;
     this._api = api;
     this._programId = programId;
-    this.routeIdx = routeIdx;
     this._resolveServiceUnit = resolveServiceUnit;
     this._typeResolver = new TypeResolver(service.types);
+    this._routeIdx = routeIdx;
 
     this.events = this._getEvents(service);
     const { funcs, queries } = this._getFunctions(service);
@@ -321,12 +328,32 @@ export class SailsService implements ISailsService {
     this.queries = queries;
   }
 
-  withRouteIdx(routeIdx: number): SailsService {
-    if (routeIdx === this.routeIdx) {
-      return this;
-    }
+  /** ### Set api to use for transactions */
+  setApi(api: GearApi) {
+    this._api = api;
+    return this;
+  }
 
-    return new SailsService(this._service, this._api, this._programId, routeIdx, this._resolveServiceUnit);
+  /** ### Set program id to interact with */
+  setProgramId(programId: HexString) {
+    this._programId = programId;
+    return this;
+  }
+
+  /** ### Set Service route Idx */
+  setRouteIdx(routeIdx: number): SailsService {
+    this._routeIdx = routeIdx;
+    return this;
+  }
+
+  /** ### Get program id */
+  get programId() {
+    return this._programId;
+  }
+
+  /** ### Get program id */
+  get routeIdx() {
+    return this._routeIdx;
   }
 
   /** #### Registry with registered types from the ServiceUnit */
@@ -352,8 +379,8 @@ export class SailsService implements ISailsService {
         typeDef: p.type,
       }));
       const returnType = this._typeResolver.getTypeDeclString(func.output);
-      if (func.kind == "query") {
-        queries[func.name] = (<T = any>(...args: unknown[]): QueryBuilder<T> => {
+      if (func.kind == 'query') {
+        queries[func.name] = (<T = any>(...args: unknown[]): QueryBuilderWithHeader<T> => {
           if (!this._api) {
             throw new Error('API is not set. Use .setApi method to set API instance');
           }
@@ -361,7 +388,7 @@ export class SailsService implements ISailsService {
             throw new Error('Program ID is not set. Use .setProgramId method to set program ID');
           }
 
-          return new QueryBuilder<T>(
+          return new QueryBuilderWithHeader<T>(
             this._api,
             this.registry,
             this._programId,
@@ -372,14 +399,14 @@ export class SailsService implements ISailsService {
           );
         }) as SailsServiceQuery;
       } else {
-        funcs[func.name] = (<T = any>(...args: unknown[]): TransactionBuilder<T> => {
+        funcs[func.name] = (<T = any>(...args: unknown[]): TransactionBuilderWithHeader<T> => {
           if (!this._api) {
             throw new Error('API is not set. Use .setApi method to set API instance');
           }
           if (!this._programId) {
             throw new Error('Program ID is not set. Use .setProgramId method to set program ID');
           }
-          return new TransactionBuilder(
+          return new TransactionBuilderWithHeader(
             this._api,
             this.registry,
             'send_message',
@@ -392,7 +419,7 @@ export class SailsService implements ISailsService {
         }) as SailsServiceFunc;
       }
 
-      Object.assign(func.kind == "query" ? queries[func.name] : funcs[func.name], {
+      Object.assign(func.kind == 'query' ? queries[func.name] : funcs[func.name], {
         args: params,
         returnType,
         returnTypeDef: func.output,
@@ -433,9 +460,9 @@ export class SailsService implements ISailsService {
 
   private _getEvents(service: IServiceUnit): Record<string, ISailsServiceEvent> {
     const events: Record<string, ISailsServiceEvent> = {};
-    const interface_id_u64: bigint = InterfaceId.from(service.interface_id).asU64();
+    const interfaceIdu64: bigint = InterfaceId.from(service.interface_id).asU64();
 
-    for (const [entry_id, event] of service.events.entries()) {
+    for (const [entryId, event] of service.events.entries()) {
       const t = event.fields?.length ? this._typeResolver.getStructDef(event.fields) : 'Null';
       const typeStr = event.fields?.length ? this._typeResolver.getStructDef(event.fields, {}, true) : 'Null';
       events[event.name] = {
@@ -448,7 +475,7 @@ export class SailsService implements ISailsService {
           }
 
           const { ok, header } = SailsMessageHeader.tryFromBytes(message.payload);
-          if (ok && header.interface_id.asU64() === interface_id_u64 && header.entry_id === entry_id) {
+          if (ok && header.interfaceId.asU64() === interfaceIdu64 && header.entryId === entryId) {
             return true;
           }
           return false;
@@ -471,11 +498,7 @@ export class SailsService implements ISailsService {
             if (!message.destination.eq(ZERO_ADDRESS)) return;
 
             const { ok, header } = SailsMessageHeader.tryFromBytes(message.payload);
-            if (
-              ok &&
-              header.interface_id.asU64() === interface_id_u64 &&
-              header.entry_id === entry_id
-            ) {
+            if (ok && header.interfaceId.asU64() === interfaceIdu64 && header.entryId === entryId) {
               cb(this.registry.createType(`([u8; 16], ${typeStr})`, message.payload)[1].toJSON() as T);
             }
           });

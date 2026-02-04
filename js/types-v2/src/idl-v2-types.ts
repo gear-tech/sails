@@ -4,13 +4,7 @@ export interface IDocAnnotated {
 }
 
 export type AnnotationEntry = [string, string | null];
-export type InterfaceIdInput =
-  | string
-  | Uint8Array
-  | ArrayLike<number>
-  | number
-  | bigint
-  | IInterfaceId;
+export type InterfaceIdInput = string | Uint8Array | ArrayLike<number> | number | bigint | IInterfaceId;
 
 export interface IInterfaceId {
   bytes: Uint8Array;
@@ -59,7 +53,7 @@ export interface IServiceFunc extends IDocAnnotated {
   kind: FunctionKind;
 }
 
-export type FunctionKind = "command" | "query";
+export type FunctionKind = 'command' | 'query';
 
 export interface IFuncParam {
   name: string;
@@ -69,57 +63,52 @@ export interface IFuncParam {
 export type IServiceEvent = IEnumVariant;
 
 // Type declarations
-export type TypeDecl =
-  | PrimitiveType
-  | ITypeDeclSlice
-  | ITypeDeclArray
-  | ITypeDeclTuple
-  | ITypeDeclNamed;
+export type TypeDecl = PrimitiveType | ITypeDeclSlice | ITypeDeclArray | ITypeDeclTuple | ITypeDeclNamed;
 
 export interface ITypeDeclSlice {
-  kind: "slice";
+  kind: 'slice';
   item: TypeDecl;
 }
 
 export interface ITypeDeclArray {
-  kind: "array";
+  kind: 'array';
   item: TypeDecl;
   len: number;
 }
 
 export interface ITypeDeclTuple {
-  kind: "tuple";
+  kind: 'tuple';
   types: TypeDecl[];
 }
 
 export interface ITypeDeclNamed {
-  kind: "named";
+  kind: 'named';
   name: string;
   generics?: TypeDecl[];
 }
 
 // PrimitiveType is encoded as a string (no `kind` field).
 export type PrimitiveType =
-  | "()"
-  | "bool"
-  | "char"
-  | "String"
-  | "u8"
-  | "u16"
-  | "u32"
-  | "u64"
-  | "u128"
-  | "i8"
-  | "i16"
-  | "i32"
-  | "i64"
-  | "i128"
-  | "ActorId"
-  | "CodeId"
-  | "MessageId"
-  | "H160"
-  | "H256"
-  | "U256";
+  | '()'
+  | 'bool'
+  | 'char'
+  | 'String'
+  | 'u8'
+  | 'u16'
+  | 'u32'
+  | 'u64'
+  | 'u128'
+  | 'i8'
+  | 'i16'
+  | 'i32'
+  | 'i64'
+  | 'i128'
+  | 'ActorId'
+  | 'CodeId'
+  | 'MessageId'
+  | 'H160'
+  | 'H256'
+  | 'U256';
 
 export type Type = ITypeStruct | ITypeEnum;
 
@@ -129,12 +118,12 @@ export interface ITypeBase extends IDocAnnotated {
 }
 
 export interface ITypeStruct extends ITypeBase {
-  kind: "struct";
+  kind: 'struct';
   fields: IStructField[];
 }
 
 export interface ITypeEnum extends ITypeBase {
-  kind: "enum";
+  kind: 'enum';
   variants: IEnumVariant[];
 }
 

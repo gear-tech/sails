@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, rmSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, rmSync, mkdirSync, existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
@@ -8,10 +8,12 @@ import typescript from 'rollup-plugin-typescript2';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 function getBase64Parser() {
-  // TODO: Run before
-  // cargo build -p sails-idl-parser-wasm --target=wasm32-unknown-unknown --release
-  // wasm-opt -O4 -o ./js/parser-v2/parser.wasm ./target/wasm32-unknown-unknown/release/sails_idl_parser_wasm.wasm
-  const parserPath = resolve(__dirname, 'parser.wasm');
+  const parserPath = resolve(__dirname, '../../target/wasm32-unknown-unknown/release/sails_idl_parser.opt.wasm');
+  if (!existsSync(parserPath)) {
+    throw new Error(`Build sails-idl-parser-wasm project\n
+cargo build -p sails-idl-parser-wasm --target=wasm32-unknown-unknown --release\n
+wasm-opt -O4 -o ./target/wasm32-unknown-unknown/release/sails_idl_parser.opt.wasm ./target/wasm32-unknown-unknown/release/sails_idl_parser_wasm.wasm\n`);
+  }
   const parserBytes = readFileSync(parserPath);
   const compressedBytes = gzipSync(parserBytes);
   return compressedBytes.toString('base64');

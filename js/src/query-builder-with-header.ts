@@ -7,7 +7,7 @@ import type { SailsMessageHeader } from 'sails-js-parser-v2';
 import { throwOnErrorReply } from './utils.js';
 import { ZERO_ADDRESS } from './consts.js';
 
-export class QueryBuilder<ResultType = unknown> {
+export class QueryBuilderWithHeader<ResultType = unknown> {
   private _prefixByteLength: number;
   private _payload: Uint8Array;
   private _value: bigint = 0n;

@@ -8,7 +8,7 @@ interface ParserInstance extends WebAssembly.Instance {
   exports: {
     parse_idl_to_json: (idl_utf8: number, idl_len: number) => number;
     free_parse_result: (ptr: number) => void;
-  }
+  };
 }
 
 export class SailsIdlParser {
@@ -35,7 +35,7 @@ export class SailsIdlParser {
     //     'Missing embedded WASM bytes. Run the build to generate wasm-bytes.js or provide parser.wasm next to the bundle.',
     //   );
     // }
-    const binaryBuf = Buffer.from(wasmParserBytes, 'base64') ;
+    const binaryBuf = Buffer.from(wasmParserBytes, 'base64');
 
     const binaryBase64 = new Uint8Array(binaryBuf);
 
