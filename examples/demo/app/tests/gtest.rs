@@ -686,6 +686,7 @@ async fn inheritance_redefine_works() {
     use demo_client::chain::Chain as _;
     use demo_client::dog::Dog as _;
     use demo_client::mammal_service::MammalService as _;
+    use demo_client::walker_service::WalkerService as _;
 
     // Arrange
     let (env, code_id, _gas_limit) = create_env();
@@ -702,12 +703,37 @@ async fn inheritance_redefine_works() {
     assert_eq!(dog_sound, "Woof! Woof!");
 
     // 3. Override check: Calling MammalService::MakeSound on DogService
-    // It should hit our 'mammal_make_sound' implementation.
+    // 3.1. By Entry ID (mammal_make_sound)
     let mammal_sound = chain_client
         .dog()
         .mammal_service()
         .make_sound()
         .await
         .unwrap();
-    assert_eq!(mammal_sound, "Woof! Woof! (from Mammal override)");
+    assert_eq!(mammal_sound, "Chain Mammal Sound (via ID)");
+
+    // 3.2. By Function Name (avg_weight)
+    let weight = chain_client
+        .dog()
+        .mammal_service()
+        .avg_weight()
+        .await
+        .unwrap();
+    assert_eq!(weight, 99);
+
+    // 3.3. By Route (walker_walk)
+    chain_client
+        .dog()
+        .walker_service()
+        .walk(10, 10)
+        .await
+        .unwrap();
+
+    let pos = chain_client
+        .dog()
+        .walker_service()
+        .position()
+        .await
+        .unwrap();
+    assert_eq!(pos, (0, 0));
 }
