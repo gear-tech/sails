@@ -117,9 +117,9 @@ importers:
       sails-js-parser:
         specifier: workspace:*
         version: link:parser
-      sails-js-types-v2:
+      sails-js-parser-idl-v2:
         specifier: workspace:*
-        version: link:types-v2
+        version: link:parser-idl-v2
       ts-jest:
         specifier: ^29.4.5
         version: 29.4.5(@babel/core@7.28.4)(@jest/transform@30.2.0)(@jest/types@30.2.0)(babel-jest@30.2.0(@babel/core@7.28.4))(jest-util@30.2.0)(jest@30.2.0(@types/node@24.10.1)(ts-node@10.9.2(@types/node@24.10.1)(typescript@5.9.3)))(typescript@5.9.3)
@@ -130,9 +130,6 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
     optionalDependencies:
-      sails-js-parser-v2:
-        specifier: workspace:*
-        version: link:parser-v2
       sails-js-types:
         specifier: workspace:*
         version: link:types
@@ -188,15 +185,13 @@ importers:
         specifier: workspace:*
         version: link:../types
 
-  js/parser-v2:
+  js/parser-idl-v2:
     dependencies:
-      sails-js-types-v2:
+      sails-js-types:
         specifier: workspace:*
-        version: link:../types-v2
+        version: link:../types
 
   js/types: {}
-
-  js/types-v2: {}
 
   js/util:
     devDependencies:

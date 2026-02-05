@@ -5,8 +5,7 @@ packages:
   - js/types
   - js/util
   - js/example
-  - js/types-v2
-  - js/parser-v2
+  - js/parser-idl-v2
 
 ignoredBuiltDependencies:
   - unrs-resolver

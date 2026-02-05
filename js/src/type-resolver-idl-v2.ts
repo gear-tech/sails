@@ -1,5 +1,5 @@
 import { TypeRegistry } from '@polkadot/types/create';
-import type { TypeDecl, Type, IStructField } from 'sails-js-types-v2';
+import type { TypeDecl, Type, IStructField } from 'sails-js-types';
 
 /**
  * Naming strategy for rendering a `TypeDecl` as a string.

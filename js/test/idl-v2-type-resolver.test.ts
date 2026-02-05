@@ -1,7 +1,7 @@
 import { TypeRegistry } from '@polkadot/types/create';
-import type { Type, TypeDecl } from 'sails-js-types-v2';
+import type { Type, TypeDecl } from 'sails-js-types';
 
-import { TypeResolver } from '../src/type-resolver-v2.js';
+import { TypeResolver } from '../src/type-resolver-idl-v2.js';
 
 const named = (name: string, generics?: TypeDecl[]): TypeDecl => ({
   kind: 'named',

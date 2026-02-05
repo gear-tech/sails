@@ -1,5 +1,5 @@
 {
-  "name": "sails-js-parser-v2",
+  "name": "sails-js-parser-idl-v2",
   "version": "0.5.1",
   "description": "Sails-IDL v2 parser for TypeScript",
   "main": "lib/cjs/index.cjs",
@@ -25,7 +25,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/gear-tech/sails.git",
-    "directory": "js/parser"
+    "directory": "js/parser-idl-v2"
   },
   "keywords": [
     "gear",
@@ -35,9 +35,9 @@
   "scripts": {
     "prebuild": "rm -rf lib",
     "build": "rollup --config rollup.config.js",
-    "pack-build": "pnpm pack --out ../sails-js-parser-v2.tgz"
+    "pack-build": "pnpm pack --out ../sails-js-parser-idl-v2.tgz"
   },
   "dependencies": {
-    "sails-js-types-v2": "workspace:*"
+    "sails-js-types": "workspace:*"
   }
 }

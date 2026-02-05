@@ -1,4 +1,4 @@
-import { SailsIdlParser } from 'sails-js-parser-v2';
+import { SailsIdlParser } from 'sails-js-parser-idl-v2';
 
 import { SailsProgram } from '..';
 

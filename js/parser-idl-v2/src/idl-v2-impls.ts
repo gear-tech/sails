@@ -18,14 +18,14 @@ import type {
   ITypeStruct,
   ICtorFunc,
   IEnumVariant,
-} from 'sails-js-types-v2';
+} from 'sails-js-types';
 
 import { InterfaceId } from './interface-id';
 
 const mapArray = <T, U>(items: T[] | undefined, map: (item: T) => U): U[] | undefined =>
   items?.map((item: T) => map(item));
 
-export class IdlDoc implements IIdlDoc {
+class IdlDoc implements IIdlDoc {
   public readonly globals?: AnnotationEntry[];
   public readonly program?: ProgramUnit;
   public readonly services?: ServiceUnit[];
@@ -37,7 +37,7 @@ export class IdlDoc implements IIdlDoc {
   }
 }
 
-export class ProgramUnit implements IProgramUnit {
+class ProgramUnit implements IProgramUnit {
   public readonly name: string;
   public readonly ctors?: CtorFunc[];
   public readonly services?: ServiceExpo[];
@@ -55,7 +55,7 @@ export class ProgramUnit implements IProgramUnit {
   }
 }
 
-export class ServiceIdent implements IServiceIdent {
+class ServiceIdent implements IServiceIdent {
   public readonly name: string;
   public readonly interface_id?: InterfaceId;
 
@@ -65,7 +65,7 @@ export class ServiceIdent implements IServiceIdent {
   }
 }
 
-export class ServiceExpo extends ServiceIdent implements IServiceExpo {
+class ServiceExpo extends ServiceIdent implements IServiceExpo {
   public readonly route?: string;
   public readonly route_idx: number;
   public readonly docs?: string[];
@@ -80,7 +80,7 @@ export class ServiceExpo extends ServiceIdent implements IServiceExpo {
   }
 }
 
-export class CtorFunc implements ICtorFunc {
+class CtorFunc implements ICtorFunc {
   public readonly name: string;
   public readonly params?: FuncParam[];
   public readonly docs?: string[];
@@ -94,7 +94,7 @@ export class CtorFunc implements ICtorFunc {
   }
 }
 
-export class ServiceUnit extends ServiceIdent implements IServiceUnit {
+class ServiceUnit extends ServiceIdent implements IServiceUnit {
   public readonly extends?: ServiceIdent[];
   public readonly funcs?: ServiceFunc[];
   public readonly events?: IServiceEvent[];
@@ -113,7 +113,7 @@ export class ServiceUnit extends ServiceIdent implements IServiceUnit {
   }
 }
 
-export class ServiceFunc implements IServiceFunc {
+class ServiceFunc implements IServiceFunc {
   public readonly name: string;
   public readonly params?: FuncParam[];
   public readonly output: TypeDecl;
@@ -133,7 +133,7 @@ export class ServiceFunc implements IServiceFunc {
   }
 }
 
-export class FuncParam implements IFuncParam {
+class FuncParam implements IFuncParam {
   public readonly name: string;
   public readonly type: TypeDecl;
 
@@ -143,7 +143,7 @@ export class FuncParam implements IFuncParam {
   }
 }
 
-export class TypeStruct implements ITypeStruct {
+class TypeStruct implements ITypeStruct {
   public readonly name: string;
   public readonly type_params?: TypeParameter[];
   public readonly kind: 'struct';
@@ -161,7 +161,7 @@ export class TypeStruct implements ITypeStruct {
   }
 }
 
-export class TypeEnum implements ITypeEnum {
+class TypeEnum implements ITypeEnum {
   public readonly name: string;
   public readonly type_params?: TypeParameter[];
   public readonly kind: 'enum';
@@ -179,7 +179,7 @@ export class TypeEnum implements ITypeEnum {
   }
 }
 
-export class TypeParameter implements ITypeParameter {
+class TypeParameter implements ITypeParameter {
   public readonly name: string;
   public readonly ty?: TypeDecl;
 
@@ -189,7 +189,7 @@ export class TypeParameter implements ITypeParameter {
   }
 }
 
-export class StructField implements IStructField {
+class StructField implements IStructField {
   public readonly name?: string;
   public readonly type: TypeDecl;
   public readonly docs?: string[];
@@ -203,7 +203,7 @@ export class StructField implements IStructField {
   }
 }
 
-export class EnumVariant implements IEnumVariant {
+class EnumVariant implements IEnumVariant {
   public readonly name: string;
   public readonly fields: StructField[];
   public readonly docs?: string[];
@@ -217,7 +217,7 @@ export class EnumVariant implements IEnumVariant {
   }
 }
 
-export const createType = (type: Type): Type => {
+const createType = (type: Type): Type => {
   if (type.kind === 'struct') {
     return new TypeStruct(type);
   }
@@ -298,7 +298,7 @@ const normalizeProgramUnit = (data: IProgramUnit): IProgramUnit => ({
   types: (data.types ?? []).map((data: Type) => normalizeType(data)),
 });
 
-export const fromJson = (data: IIdlDoc): IdlDoc =>
+export const normalizeIdl = (data: IIdlDoc): IIdlDoc =>
   new IdlDoc({
     globals: data.globals ?? [],
     program: data.program ? normalizeProgramUnit(data.program) : undefined,

@@ -8,12 +8,12 @@ import type {
   IServiceUnit,
   IFuncParam,
   IServiceEvent,
-} from 'sails-js-types-v2';
-import { SailsMessageHeader, InterfaceId } from 'sails-js-parser-v2';
+} from 'sails-js-types';
+import { SailsMessageHeader, InterfaceId } from 'sails-js-parser-idl-v2';
 
 import { QueryBuilderWithHeader } from './query-builder-with-header.js';
 import { TransactionBuilderWithHeader } from './transaction-builder-with-header.js';
-import { TypeResolver } from './type-resolver-v2.js';
+import { TypeResolver } from './type-resolver-idl-v2.js';
 import { ZERO_ADDRESS } from './consts.js';
 
 interface ISailsService {

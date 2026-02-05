@@ -34,7 +34,8 @@ export default [
           !module.includes('polkadot') &&
           !module.includes('gear-js/api') &&
           !module.includes('commander') &&
-          !module.includes('sails-js-parser'),
+          !module.includes('sails-js-parser') &&
+          !module.includes('sails-js-parser-idl-v2'),
       }),
     ],
   },

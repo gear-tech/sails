@@ -3,7 +3,7 @@ import { KeyringPair } from '@polkadot/keyring/types';
 import { waitReady } from '@polkadot/wasm-crypto';
 import { Keyring } from '@polkadot/api';
 import { existsSync, readFileSync } from 'node:fs';
-import { SailsIdlParser } from 'sails-js-parser-v2';
+import { SailsIdlParser } from 'sails-js-parser-idl-v2';
 
 import { SailsProgram, H256, NonZeroU32, NonZeroU8, ZERO_ADDRESS } from '..';
 

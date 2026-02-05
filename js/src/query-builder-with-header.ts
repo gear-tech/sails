@@ -2,7 +2,7 @@ import { decodeAddress, GearApi, HexString } from '@gear-js/api';
 import { isHex, u8aConcat, u8aToHex } from '@polkadot/util';
 import { TypeRegistry } from '@polkadot/types';
 import { getPayloadMethod } from 'sails-js-util';
-import type { SailsMessageHeader } from 'sails-js-parser-v2';
+import type { SailsMessageHeader } from 'sails-js-parser-idl-v2';
 
 import { throwOnErrorReply } from './utils.js';
 import { ZERO_ADDRESS } from './consts.js';

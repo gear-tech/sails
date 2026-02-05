@@ -4,7 +4,7 @@ describe('parser-v2 success', () => {
     const parser = new SailsIdlParser();
     await parser.init();
 
-    const idl = await import('../test/fixture/demo.js')
+    const idl = await import('./fixture/demo.js')
     const doc = parser.parse(idl.default);
 
     expect(doc.program?.name).toBe('DemoClient');
