@@ -372,3 +372,29 @@ fn works_with_overrides() {
 
     insta::assert_snapshot!(result);
 }
+
+#[test]
+fn works_with_all_override_variants() {
+    let args = quote!();
+    let input = quote! {
+        #[service(extends = BaseService)]
+        impl InheritedService {
+            // Variant 1: By entry_id (renamed function)
+            #[export(overrides = BaseService, entry_id = 0)]
+            pub fn renamed_by_id(&self) -> u32 { 1 }
+
+            // Variant 2: By route (renamed function)
+            #[export(overrides = BaseService, route = "MethodTwo")]
+            pub fn renamed_by_route(&self) -> u32 { 2 }
+
+            // Variant 3: By name (default)
+            #[export(overrides = BaseService)]
+            pub fn method_three(&self) -> u32 { 3 }
+        }
+    };
+
+    let result = gservice(args, input).to_string();
+    let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
+
+    insta::assert_snapshot!(result);
+}

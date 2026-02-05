@@ -221,9 +221,10 @@ mod inherited_service_meta {
             "Bar",
             Some(1u16),
         ) {
+            let base_name = method.name;
             if !sails_rs::meta::bytes32_eq(
                 &method.hash,
-                &sails_rs::hash_fn!(query Bar() -> u32),
+                &sails_rs::hash_fn_raw!("query" base_name, () -> u32),
             ) {
                 core::panic!(
                     concat!("Override signature mismatch for method `", "Bar", "`")
@@ -240,9 +241,10 @@ mod inherited_service_meta {
             "Foo",
             None,
         ) {
+            let base_name = method.name;
             if !sails_rs::meta::bytes32_eq(
                 &method.hash,
-                &sails_rs::hash_fn!(query Foo() -> u32),
+                &sails_rs::hash_fn_raw!("query" base_name, () -> u32),
             ) {
                 core::panic!(
                     concat!("Override signature mismatch for method `", "Foo", "`")

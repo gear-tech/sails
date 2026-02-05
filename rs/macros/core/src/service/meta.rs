@@ -147,7 +147,7 @@ impl ServiceBuilder<'_> {
             .iter()
             .filter(|h| h.overrides.is_none())
             .map(|handler| {
-                let fn_hash = self.generate_fn_hash(handler);
+                let fn_hash = FnHashBuilder::from_handler(handler, sails_path).build();
                 quote! {
                     final_hash = final_hash.update(& #fn_hash);
                 }
@@ -200,7 +200,7 @@ impl ServiceBuilder<'_> {
             .map(|handler| {
                 let name = &handler.route;
                 let entry_id = handler.entry_id;
-                let fn_hash = self.generate_fn_hash(handler);
+                let fn_hash = FnHashBuilder::from_handler(handler, sails_path).build();
                 let is_async = handler.is_async();
 
                 quote! {
@@ -215,41 +215,11 @@ impl ServiceBuilder<'_> {
             .collect()
     }
 
-    fn generate_fn_hash(&self, handler: &FnBuilder) -> TokenStream {
-        let sails_path = self.sails_path;
-        let fn_type = if handler.is_query() {
-            quote! { query }
-        } else {
-            quote! { command }
-        };
-        let fn_name = Ident::new(&handler.route, Span::call_site());
-        let arg_types = handler.params().map(|(_, ty)| ty);
-
-        let result_type = handler.result_type_with_static_lifetime();
-        let result_tokens = if handler.unwrap_result
-            && let Type::Path(ref tp) = result_type
-            && let Some((ok_ty, err_ty)) = shared::extract_result_types(tp)
-        {
-            // Result type: RES_HASH = b"res" || T::HASH || b"throws" || E::HASH
-            quote!( -> #ok_ty | #err_ty )
-        } else {
-            // Other types: RES_HASH = b"res" || REFLECT_HASH
-            quote!( -> #result_type )
-        };
-
-        // FN_HASH = hash(bytes(FN_TYPE) || bytes(FN_NAME) || ARGS_REFLECT_HASH || RES_HASH)
-        // RES_HASH = (b"res" || REFLECT_HASH) | (b"res" || T_REFLECT_HASH || bytes("throws") || E_REFLECT_HASH)
-        quote! {
-            #sails_path::hash_fn!( #fn_type #fn_name ( #( #arg_types ),* ) #result_tokens )
-        }
-    }
-
     fn generate_override_validations(&self) -> TokenStream {
         let sails_path = self.sails_path;
         let validations = self.service_handlers.iter().filter_map(|handler| {
             handler.overrides.as_ref().map(|base_path| {
                 let name = &handler.route;
-                let fn_hash = self.generate_fn_hash(handler);
                 let entry_id_arg = if let Some(id) = handler.override_entry_id {
                     quote! { Some(#id) }
                 } else {
@@ -257,13 +227,17 @@ impl ServiceBuilder<'_> {
                 };
 
                 let base_path_wo_lifetimes = shared::remove_lifetimes(base_path);
+                let current_fn_hash = FnHashBuilder::from_handler(handler, sails_path)
+                    .with_override_name(quote!(base_name))
+                    .build();
 
                 quote! {
                     const _: () = {
                         let base_methods = <super::#base_path_wo_lifetimes as #sails_path::meta::ServiceMeta>::METHODS;
 
                         if let Some(method) = #sails_path::meta::find_method_data(base_methods, #name, #entry_id_arg) {
-                            if !#sails_path::meta::bytes32_eq(&method.hash, &#fn_hash) {
+                            let base_name = method.name;
+                            if !#sails_path::meta::bytes32_eq(&method.hash, &#current_fn_hash) {
                                 core::panic!(concat!("Override signature mismatch for method `", #name, "`"));
                             }
                         } else {
@@ -275,5 +249,72 @@ impl ServiceBuilder<'_> {
         });
 
         quote! { #( #validations )* }
+    }
+}
+
+struct FnHashBuilder<'a> {
+    sails_path: &'a Path,
+    is_query: bool,
+    route: &'a str,
+    arg_types: &'a [&'a Type],
+    result_type: Type,
+    unwrap_result: bool,
+    override_name: Option<TokenStream>,
+}
+
+impl<'a> FnHashBuilder<'a> {
+    fn from_handler(handler: &'a FnBuilder<'a>, sails_path: &'a Path) -> Self {
+        Self {
+            sails_path,
+            is_query: handler.is_query(),
+            route: &handler.route,
+            arg_types: handler.params_types(),
+            result_type: handler.result_type_with_static_lifetime(),
+            unwrap_result: handler.unwrap_result,
+            override_name: None,
+        }
+    }
+
+    fn with_override_name(mut self, name: TokenStream) -> Self {
+        self.override_name = Some(name);
+        self
+    }
+
+    fn build(self) -> TokenStream {
+        let sails_path = self.sails_path;
+
+        let arg_types = self.arg_types;
+
+        let result_tokens = if self.unwrap_result
+            && let Type::Path(ref tp) = self.result_type
+            && let Some((ok_ty, err_ty)) = shared::extract_result_types(tp)
+        {
+            // Result type: RES_HASH = b"res" || T::HASH || b"throws" || E::HASH
+            quote!( -> #ok_ty | #err_ty )
+        } else {
+            let result_type = &self.result_type;
+            // Other types: RES_HASH = b"res" || REFLECT_HASH
+            quote!( -> #result_type )
+        };
+
+        if let Some(name_expr) = self.override_name {
+            let kind = if self.is_query { "query" } else { "command" };
+            quote! {
+                #sails_path::hash_fn_raw!( #kind #name_expr, ( #( #arg_types ),* ) #result_tokens )
+            }
+        } else {
+            let kind_ident = if self.is_query {
+                quote!(query)
+            } else {
+                quote!(command)
+            };
+            let name_ident = Ident::new(self.route, Span::call_site());
+
+            // FN_HASH = hash(bytes(FN_TYPE) || bytes(FN_NAME) || ARGS_REFLECT_HASH || RES_HASH)
+            // RES_HASH = (b"res" || REFLECT_HASH) | (b"res" || T_REFLECT_HASH || bytes("throws") || E_REFLECT_HASH)
+            quote! {
+                #sails_path::hash_fn!( #kind_ident #name_ident ( #( #arg_types ),* ) #result_tokens )
+            }
+        }
     }
 }
