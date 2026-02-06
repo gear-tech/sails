@@ -1,31 +1,30 @@
 use crate::{gstd::EventEmitter, meta::InterfaceId};
 
 #[macro_export]
-macro_rules! hash_fn {
-    // accept: command ...
-    (
-        command $name:ident ( $( $ty:ty ),* $(,)? ) -> $reply:ty $(| $throws:ty )?
-    ) => {
-        $crate::hash_fn!(@impl "command" $name ( $( $ty ),* ) -> $reply $(| $throws )?)
-    };
-
-    // accept: query ...
-    (
-        query $name:ident ( $( $ty:ty ),* $(,)? ) -> $reply:ty $(| $throws:ty )?
-    ) => {
-        $crate::hash_fn!(@impl "query" $name ( $( $ty ),* ) -> $reply $(| $throws )?)
-    };
-
-    (@impl $kind:literal
-        $name:ident ( $( $ty:ty ),* ) -> $reply:ty $(| $throws:ty )?
-    ) => {{
+macro_rules! hash_fn_raw {
+    ($kind:literal $name:expr, ( $( $ty:ty ),* $(,)? ) -> $reply:ty $(| $throws:ty )?) => {{
         let mut fn_hash = $crate::keccak_const::Keccak256::new();
-        fn_hash = fn_hash.update($kind.as_bytes()).update(stringify!($name).as_bytes());
+        fn_hash = fn_hash.update($kind.as_bytes()).update($name.as_bytes());
         $( fn_hash = fn_hash.update(&<$ty as $crate::sails_reflect_hash::ReflectHash>::HASH); )*
         fn_hash = fn_hash.update(b"res").update(&<$reply as $crate::sails_reflect_hash::ReflectHash>::HASH);
         $( fn_hash = fn_hash.update(b"throws").update(&<$throws as $crate::sails_reflect_hash::ReflectHash>::HASH); )?
         fn_hash.finalize()
     }};
+}
+
+#[macro_export]
+macro_rules! hash_fn {
+    (
+        command $name:ident ( $( $ty:ty ),* $(,)? ) -> $reply:ty $(| $throws:ty )?
+    ) => {
+        $crate::hash_fn_raw!("command" stringify!($name), ( $( $ty ),* ) -> $reply $(| $throws )?)
+    };
+
+    (
+        query $name:ident ( $( $ty:ty ),* $(,)? ) -> $reply:ty $(| $throws:ty )?
+    ) => {
+        $crate::hash_fn_raw!("query" stringify!($name), ( $( $ty ),* ) -> $reply $(| $throws )?)
+    };
 }
 
 pub trait Service: Sized {

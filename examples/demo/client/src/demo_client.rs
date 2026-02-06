@@ -17,6 +17,7 @@ impl DemoClientProgram {
     pub const ROUTE_ID_THIS_THAT: u8 = 5;
     pub const ROUTE_ID_VALUE_FEE: u8 = 6;
     pub const ROUTE_ID_CHAOS: u8 = 7;
+    pub const ROUTE_ID_CHAIN: u8 = 8;
 }
 impl sails_rs::client::Program for DemoClientProgram {}
 pub trait DemoClient {
@@ -28,6 +29,7 @@ pub trait DemoClient {
     fn this_that(&self) -> sails_rs::client::Service<this_that::ThisThatImpl, Self::Env>;
     fn value_fee(&self) -> sails_rs::client::Service<value_fee::ValueFeeImpl, Self::Env>;
     fn chaos(&self) -> sails_rs::client::Service<chaos::ChaosImpl, Self::Env>;
+    fn chain(&self) -> sails_rs::client::Service<chain::ChainImpl, Self::Env>;
 }
 impl<E: sails_rs::client::GearEnv> DemoClient for sails_rs::client::Actor<DemoClientProgram, E> {
     type Env = E;
@@ -51,6 +53,9 @@ impl<E: sails_rs::client::GearEnv> DemoClient for sails_rs::client::Actor<DemoCl
     }
     fn chaos(&self) -> sails_rs::client::Service<chaos::ChaosImpl, Self::Env> {
         self.service(DemoClientProgram::ROUTE_ID_CHAOS)
+    }
+    fn chain(&self) -> sails_rs::client::Service<chain::ChainImpl, Self::Env> {
+        self.service(DemoClientProgram::ROUTE_ID_CHAIN)
     }
 }
 pub trait DemoClientCtors {
@@ -673,5 +678,41 @@ pub mod chaos {
         use super::*;
         use sails_rs::mockall::*;
         mock! { pub Chaos {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl chaos::Chaos for Chaos { type Env = sails_rs::client::GstdEnv; fn panic_after_wait (&self, ) -> sails_rs::client::PendingCall<chaos::io::PanicAfterWait, sails_rs::client::GstdEnv>;fn reply_hook_counter (&self, ) -> sails_rs::client::PendingCall<chaos::io::ReplyHookCounter, sails_rs::client::GstdEnv>;fn timeout_wait (&self, ) -> sails_rs::client::PendingCall<chaos::io::TimeoutWait, sails_rs::client::GstdEnv>; } }
+    }
+}
+
+pub mod chain {
+    use super::*;
+    pub trait Chain {
+        type Env: sails_rs::client::GearEnv;
+        fn make_sound(&mut self) -> sails_rs::client::PendingCall<io::MakeSound, Self::Env>;
+        fn dog(&self) -> sails_rs::client::Service<super::dog::DogImpl, Self::Env>;
+    }
+    pub struct ChainImpl;
+    impl sails_rs::client::Identifiable for ChainImpl {
+        const INTERFACE_ID: sails_rs::InterfaceId =
+            sails_rs::InterfaceId::from_bytes_8([212, 34, 198, 110, 96, 33, 224, 249]);
+    }
+    impl<E: sails_rs::client::GearEnv> Chain for sails_rs::client::Service<ChainImpl, E> {
+        type Env = E;
+        fn make_sound(&mut self) -> sails_rs::client::PendingCall<io::MakeSound, Self::Env> {
+            self.pending_call(())
+        }
+        fn dog(&self) -> sails_rs::client::Service<super::dog::DogImpl, Self::Env> {
+            self.base_service()
+        }
+    }
+
+    pub mod io {
+        use super::*;
+        sails_rs::io_struct_impl!(MakeSound () -> String, 0, <super::ChainImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+    }
+
+    #[cfg(feature = "with_mocks")]
+    #[cfg(not(target_arch = "wasm32"))]
+    pub mod mockall {
+        use super::*;
+        use sails_rs::mockall::*;
+        mock! { pub Chain {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl chain::Chain for Chain { type Env = sails_rs::client::GstdEnv; fn make_sound (&mut self, ) -> sails_rs::client::PendingCall<chain::io::MakeSound, sails_rs::client::GstdEnv>;fn dog (&self, ) -> sails_rs::client::Service<super::dog::DogImpl, sails_rs::client::GstdEnv>; } }
     }
 }

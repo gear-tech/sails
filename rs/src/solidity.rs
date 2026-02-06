@@ -185,7 +185,7 @@ mod tests {
     use super::*;
     use alloy_primitives::B256;
     use alloy_sol_types::{SolType, SolValue};
-    use sails_idl_meta::Identifiable;
+    use sails_idl_meta::{Identifiable, MethodMetadata};
 
     #[test]
     fn type_names() {
@@ -220,6 +220,7 @@ mod tests {
         type QueriesMeta = Empty;
         type EventsMeta = Empty;
         const BASE_SERVICES: &'static [sails_idl_meta::BaseServiceMeta] = &[];
+        const METHODS: &'static [MethodMetadata] = &[];
         const ASYNC: bool = false;
     }
 
@@ -251,6 +252,7 @@ mod tests {
         type QueriesMeta = Empty;
         type EventsMeta = Empty;
         const BASE_SERVICES: &'static [sails_idl_meta::BaseServiceMeta] = &[];
+        const METHODS: &'static [MethodMetadata] = &[];
         const ASYNC: bool = false;
     }
 

@@ -680,3 +680,60 @@ async fn chaos_panic_does_not_affect_other_services() {
     let final_value = counter_client.value().await.unwrap();
     assert_eq!(final_value, INIT_VALUE + 5);
 }
+
+#[tokio::test]
+async fn inheritance_redefine_works() {
+    use demo_client::chain::Chain as _;
+    use demo_client::dog::Dog as _;
+    use demo_client::mammal_service::MammalService as _;
+    use demo_client::walker_service::WalkerService as _;
+
+    // Arrange
+    let (env, code_id, _gas_limit) = create_env();
+    let demo_program = env.deploy(code_id, vec![]).default().await.unwrap();
+
+    let mut chain_client = demo_program.chain();
+
+    // 1. Own method of ChainService
+    let chain_sound = chain_client.make_sound().await.unwrap();
+    assert_eq!(chain_sound, "Chain Woof!");
+
+    // 2. Shadowed (but accessible) method from DogService
+    let dog_sound = chain_client.dog().make_sound().await.unwrap();
+    assert_eq!(dog_sound, "Woof! Woof!");
+
+    // 3. Override check: Calling MammalService::MakeSound on DogService
+    // 3.1. By Entry ID (mammal_make_sound)
+    let mammal_sound = chain_client
+        .dog()
+        .mammal_service()
+        .make_sound()
+        .await
+        .unwrap();
+    assert_eq!(mammal_sound, "Chain Mammal Sound (via ID)");
+
+    // 3.2. By Function Name (avg_weight)
+    let weight = chain_client
+        .dog()
+        .mammal_service()
+        .avg_weight()
+        .await
+        .unwrap();
+    assert_eq!(weight, 99);
+
+    // 3.3. By Route (walker_walk)
+    chain_client
+        .dog()
+        .walker_service()
+        .walk(10, 10)
+        .await
+        .unwrap();
+
+    let pos = chain_client
+        .dog()
+        .walker_service()
+        .position()
+        .await
+        .unwrap();
+    assert_eq!(pos, (0, 0));
+}
