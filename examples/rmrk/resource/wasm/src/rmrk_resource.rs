@@ -2,16 +2,20 @@
 #[allow(unused_imports)]
 use sails_rs::{client::*, collections::*, prelude::*};
 pub struct RmrkResourceProgram;
+
 impl RmrkResourceProgram {
     pub const ROUTE_ID_RMRK_RESOURCE: u8 = 1;
 }
+
 impl sails_rs::client::Program for RmrkResourceProgram {}
+
 pub trait RmrkResource {
     type Env: sails_rs::client::GearEnv;
     fn rmrk_resource(
         &self,
     ) -> sails_rs::client::Service<rmrk_resource::RmrkResourceImpl, Self::Env>;
 }
+
 impl<E: sails_rs::client::GearEnv> RmrkResource
     for sails_rs::client::Actor<RmrkResourceProgram, E>
 {
@@ -28,6 +32,7 @@ pub trait RmrkResourceCtors {
     #[allow(clippy::wrong_self_convention)]
     fn new(self) -> sails_rs::client::PendingCtor<RmrkResourceProgram, io::New, Self::Env>;
 }
+
 impl<E: sails_rs::client::GearEnv> RmrkResourceCtors
     for sails_rs::client::Deployment<RmrkResourceProgram, E>
 {
@@ -44,6 +49,7 @@ pub mod io {
 
 pub mod rmrk_resource {
     use super::*;
+
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
@@ -109,6 +115,7 @@ pub mod rmrk_resource {
         pub base: ActorId,
         pub parts: Vec<u32>,
     }
+
     pub trait RmrkResource {
         type Env: sails_rs::client::GearEnv;
         fn add_part_to_resource(
@@ -126,11 +133,14 @@ pub mod rmrk_resource {
             resource_id: u8,
         ) -> sails_rs::client::PendingCall<io::Resource, Self::Env>;
     }
+
     pub struct RmrkResourceImpl;
+
     impl sails_rs::client::Identifiable for RmrkResourceImpl {
         const INTERFACE_ID: sails_rs::InterfaceId =
             sails_rs::InterfaceId::from_bytes_8([215, 56, 96, 51, 70, 205, 63, 27]);
     }
+
     impl<E: sails_rs::client::GearEnv> RmrkResource for sails_rs::client::Service<RmrkResourceImpl, E> {
         type Env = E;
         fn add_part_to_resource(
@@ -174,6 +184,7 @@ pub mod rmrk_resource {
             #[codec(index = 1)]
             ResourceAdded { resource_id: u8 },
         }
+
         impl RmrkResourceEvents {
             pub fn entry_id(&self) -> u16 {
                 match self {
@@ -182,11 +193,14 @@ pub mod rmrk_resource {
                 }
             }
         }
+
         impl sails_rs::client::Event for RmrkResourceEvents {}
+
         impl sails_rs::client::Identifiable for RmrkResourceEvents {
             const INTERFACE_ID: sails_rs::InterfaceId =
                 <RmrkResourceImpl as sails_rs::client::Identifiable>::INTERFACE_ID;
         }
+
         impl sails_rs::client::ServiceWithEvents for RmrkResourceImpl {
             type Event = RmrkResourceEvents;
         }

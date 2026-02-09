@@ -30,6 +30,7 @@ members = [
     "rs",
     "rs/cli",
     "rs/client-gen",
+    "rs/client-gen-js",
     "rs/idl-gen",
     "rs/idl-meta",
     "rs/idl-parser",
@@ -83,7 +84,7 @@ clap = "4.5"
 fs2 = "0.4.3"
 convert_case = "0.7"
 futures = { version = "0.3", default-features = false }
-genco = "0.17"
+genco = "0.19"
 git-download = "0.1"
 handlebars = "4.4"
 hashbrown = "0.15"

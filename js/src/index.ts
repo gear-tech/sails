@@ -8,3 +8,4 @@ export { Sails } from './sails.js';
 export { SailsProgram, SailsService } from './sails-idl-v2.js';
 export { QueryBuilderWithHeader } from './query-builder-with-header.js';
 export { TransactionBuilderWithHeader } from './transaction-builder-with-header.js';
+export { TypeResolver } from './type-resolver-idl-v2.js';

@@ -425,6 +425,16 @@ impl TypeDecl {
             _ => None,
         }
     }
+
+    #[cfg(feature = "serde")]
+    pub fn to_json_string(&self) -> Result<String, serde_json::Error> {
+        serde_json::to_string(self)
+    }
+
+    #[cfg(feature = "serde")]
+    pub fn to_json_string_pretty(&self) -> Result<String, serde_json::Error> {
+        serde_json::to_string_pretty(self)
+    }
 }
 
 impl Display for TypeDecl {
@@ -603,6 +613,18 @@ pub struct Type {
         serde(default, skip_serializing_if = "Vec::is_empty")
     )]
     pub annotations: Vec<(String, Option<String>)>,
+}
+
+impl Type {
+    #[cfg(feature = "serde")]
+    pub fn to_json_string(&self) -> Result<String, serde_json::Error> {
+        serde_json::to_string(self)
+    }
+
+    #[cfg(feature = "serde")]
+    pub fn to_json_string_pretty(&self) -> Result<String, serde_json::Error> {
+        serde_json::to_string_pretty(self)
+    }
 }
 
 /// Generic type parameter in a type definition.
