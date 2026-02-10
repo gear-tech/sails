@@ -1,6 +1,6 @@
-import {GearApi, HexString} from "@gear-js/api";
-import {QueryBuilderWithHeader, TransactionBuilderWithHeader, TypeResolver} from '../..';
-import {InterfaceId, SailsMessageHeader} from "sails-js-parser-idl-v2";
+import { GearApi, HexString } from "@gear-js/api";
+import { QueryBuilderWithHeader, TransactionBuilderWithHeader, TypeResolver, ZERO_ADDRESS } from '../..';
+import { InterfaceId, SailsMessageHeader } from "sails-js-parser-idl-v2";
 
 export class DemoClient {
     private _typeResolver: TypeResolver;
@@ -69,7 +69,7 @@ export class DemoClient {
             "upload_program",
             SailsMessageHeader.v1(InterfaceId.zero(), 1, 0),
             [counter, dog_position],
-            this._typeResolver.getTypeDeclString({"kind":"tuple","types":[{"kind":"named","name":"Option","generics":["u32"]}, {"kind":"named","name":"Option","generics":[{"kind":"tuple","types":["i32","i32"]}]}]}),
+            this._typeResolver.getTypeDeclString({ "kind": "tuple", "types": [{ "kind": "named", "name": "Option", "generics": ["u32"] }, { "kind": "named", "name": "Option", "generics": [{ "kind": "tuple", "types": ["i32", "i32"] }] }] }),
             this._typeResolver.getTypeDeclString("String"),
             code,
         );
@@ -88,7 +88,7 @@ export class DemoClient {
             "create_program",
             SailsMessageHeader.v1(InterfaceId.zero(), 1, 0),
             [counter, dog_position],
-            this._typeResolver.getTypeDeclString({"kind":"tuple","types":[{"kind":"named","name":"Option","generics":["u32"]}, {"kind":"named","name":"Option","generics":[{"kind":"tuple","types":["i32","i32"]}]}]}),
+            this._typeResolver.getTypeDeclString({ "kind": "tuple", "types": [{ "kind": "named", "name": "Option", "generics": ["u32"] }, { "kind": "named", "name": "Option", "generics": [{ "kind": "tuple", "types": ["i32", "i32"] }] }] }),
             this._typeResolver.getTypeDeclString("String"),
             codeId,
         );
@@ -144,7 +144,7 @@ export class PingPong {
             SailsMessageHeader.v1(InterfaceId.from("0x6d0eb40dde4038f7"), 0, this._routeIdx),
             input,
             this._typeResolver.getTypeDeclString("String"),
-            this._typeResolver.getTypeDeclString({"kind":"named","name":"Result","generics":["String","String"]}),
+            this._typeResolver.getTypeDeclString({ "kind": "named", "name": "Result", "generics": ["String", "String"] }),
             this._programId,
         );
     }
@@ -210,6 +210,42 @@ export class Counter {
             this._typeResolver.getTypeDeclString("u32"),
         );
     }
+
+    /**
+ * Emitted when a new value is added to the counter
+ */
+
+    public subscribeToAddedEvent<T = number>(callback: (eventData: T) => void | Promise<void>): Promise<() => void> {
+        const interfaceIdu64 = InterfaceId.from("0x579d6daba41b7d82").asU64();
+        const typeStr = this._typeResolver.getTypeDeclString("u32");
+        return this._api.gearEvents.subscribeToGearEvent("UserMessageSent", ({ data: { message } }) => {
+            if (!message.source.eq(this._programId)) return;
+            if (!message.destination.eq(ZERO_ADDRESS)) return;
+
+            const { ok, header } = SailsMessageHeader.tryFromBytes(message.payload);
+            if (ok && header.interfaceId.asU64() === interfaceIdu64 && header.entryId === 0) {
+                callback(this.registry.createType(`([u8; 16], ${typeStr})`, message.payload)[1].toJSON() as T);
+            }
+        });
+    }
+
+    /**
+ * Emitted when a value is subtracted from the counter
+ */
+
+    public subscribeToSubtractedEvent<T = number>(callback: (eventData: T) => void | Promise<void>): Promise<() => void> {
+        const interfaceIdu64 = InterfaceId.from("0x579d6daba41b7d82").asU64();
+        const typeStr = this._typeResolver.getTypeDeclString("u32");
+        return this._api.gearEvents.subscribeToGearEvent("UserMessageSent", ({ data: { message } }) => {
+            if (!message.source.eq(this._programId)) return;
+            if (!message.destination.eq(ZERO_ADDRESS)) return;
+
+            const { ok, header } = SailsMessageHeader.tryFromBytes(message.payload);
+            if (ok && header.interfaceId.asU64() === interfaceIdu64 && header.entryId === 1) {
+                callback(this.registry.createType(`([u8; 16], ${typeStr})`, message.payload)[1].toJSON() as T);
+            }
+        });
+    }
 }
 export class MammalService {
     private _typeResolver: TypeResolver;
@@ -267,7 +303,7 @@ export class WalkerService {
             "send_message",
             SailsMessageHeader.v1(InterfaceId.from("0xee1536b55170bf0a"), 0, this._routeIdx),
             [dx, dy],
-            this._typeResolver.getTypeDeclString({"kind":"tuple","types":["i32", "i32"]}),
+            this._typeResolver.getTypeDeclString({ "kind": "tuple", "types": ["i32", "i32"] }),
             this._typeResolver.getTypeDeclString("()"),
             this._programId,
         );
@@ -281,8 +317,22 @@ export class WalkerService {
             SailsMessageHeader.v1(InterfaceId.from("0xee1536b55170bf0a"), 1, this._routeIdx),
             null,
             null,
-            this._typeResolver.getTypeDeclString({"kind":"tuple","types":["i32","i32"]}),
+            this._typeResolver.getTypeDeclString({ "kind": "tuple", "types": ["i32", "i32"] }),
         );
+    }
+
+    public subscribeToWalkedEvent<T = { $from: [number, number]; to: [number, number] }>(callback: (eventData: T) => void | Promise<void>): Promise<() => void> {
+        const interfaceIdu64 = InterfaceId.from("0xee1536b55170bf0a").asU64();
+        const typeStr = "{\"from\": \"(i32, i32)\", \"to\": \"(i32, i32)\"}";
+        return this._api.gearEvents.subscribeToGearEvent("UserMessageSent", ({ data: { message } }) => {
+            if (!message.source.eq(this._programId)) return;
+            if (!message.destination.eq(ZERO_ADDRESS)) return;
+
+            const { ok, header } = SailsMessageHeader.tryFromBytes(message.payload);
+            if (ok && header.interfaceId.asU64() === interfaceIdu64 && header.entryId === 0) {
+                callback(this.registry.createType(`([u8; 16], ${typeStr})`, message.payload)[1].toJSON() as T);
+            }
+        });
     }
 }
 export class Dog {
@@ -297,6 +347,14 @@ export class Dog {
     private get registry() {
         return this._typeResolver.registry;
     }
+    public get mammalService(): MammalService {
+        return new MammalService(this._api, this._programId, this._routeIdx);
+    }
+
+    public get walkerService(): WalkerService {
+        return new WalkerService(this._api, this._programId, this._routeIdx);
+    }
+
     public makeSound(): TransactionBuilderWithHeader<string> {
         return new TransactionBuilderWithHeader<string>(
             this._api,
@@ -309,6 +367,20 @@ export class Dog {
             this._programId,
         );
     }
+
+    public subscribeToBarkedEvent<T = null>(callback: (eventData: T) => void | Promise<void>): Promise<() => void> {
+        const interfaceIdu64 = InterfaceId.from("0x18666e67a21917a1").asU64();
+        const typeStr = "Null";
+        return this._api.gearEvents.subscribeToGearEvent("UserMessageSent", ({ data: { message } }) => {
+            if (!message.source.eq(this._programId)) return;
+            if (!message.destination.eq(ZERO_ADDRESS)) return;
+
+            const { ok, header } = SailsMessageHeader.tryFromBytes(message.payload);
+            if (ok && header.interfaceId.asU64() === interfaceIdu64 && header.entryId === 0) {
+                callback(this.registry.createType(`([u8; 16], ${typeStr})`, message.payload)[1].toJSON() as T);
+            }
+        });
+    }
 }
 export type ReferenceCount = number;
 
@@ -319,7 +391,7 @@ export class References {
         private _programId: HexString,
         private _routeIdx: number = 0,
     ) {
-        this._typeResolver = new TypeResolver([{"name":"ReferenceCount","kind":"struct","fields":[{"type":"u32"}]}]);
+        this._typeResolver = new TypeResolver([{ "name": "ReferenceCount", "kind": "struct", "fields": [{ "type": "u32" }] }]);
     }
     private get registry() {
         return this._typeResolver.registry;
@@ -345,7 +417,7 @@ export class References {
             SailsMessageHeader.v1(InterfaceId.from("0x8a0f8abe176d75b9"), 1, this._routeIdx),
             byte,
             this._typeResolver.getTypeDeclString("u8"),
-            this._typeResolver.getTypeDeclString({"kind":"slice","item":"u8"}),
+            this._typeResolver.getTypeDeclString({ "kind": "slice", "item": "u8" }),
             this._programId,
         );
     }
@@ -358,7 +430,7 @@ export class References {
             SailsMessageHeader.v1(InterfaceId.from("0x8a0f8abe176d75b9"), 2, this._routeIdx),
             $number,
             this._typeResolver.getTypeDeclString("u8"),
-            this._typeResolver.getTypeDeclString({"kind":"named","name":"Result","generics":["String","String"]}),
+            this._typeResolver.getTypeDeclString({ "kind": "named", "name": "Result", "generics": ["String", "String"] }),
             this._programId,
         );
     }
@@ -371,7 +443,7 @@ export class References {
             SailsMessageHeader.v1(InterfaceId.from("0x8a0f8abe176d75b9"), 3, this._routeIdx),
             null,
             null,
-            this._typeResolver.getTypeDeclString({"kind":"named","name":"ReferenceCount"}),
+            this._typeResolver.getTypeDeclString({ "kind": "named", "name": "ReferenceCount" }),
             this._programId,
         );
     }
@@ -384,7 +456,7 @@ export class References {
             SailsMessageHeader.v1(InterfaceId.from("0x8a0f8abe176d75b9"), 4, this._routeIdx),
             $number,
             this._typeResolver.getTypeDeclString("u8"),
-            this._typeResolver.getTypeDeclString({"kind":"named","name":"Result","generics":["()","String"]}),
+            this._typeResolver.getTypeDeclString({ "kind": "named", "name": "Result", "generics": ["()", "String"] }),
             this._programId,
         );
     }
@@ -409,7 +481,7 @@ export class References {
             SailsMessageHeader.v1(InterfaceId.from("0x8a0f8abe176d75b9"), 6, this._routeIdx),
             null,
             null,
-            this._typeResolver.getTypeDeclString({"kind":"named","name":"Option","generics":["u8"]}),
+            this._typeResolver.getTypeDeclString({ "kind": "named", "name": "Option", "generics": ["u8"] }),
         );
     }
 
@@ -421,23 +493,23 @@ export class References {
             SailsMessageHeader.v1(InterfaceId.from("0x8a0f8abe176d75b9"), 7, this._routeIdx),
             null,
             null,
-            this._typeResolver.getTypeDeclString({"kind":"named","name":"Option","generics":["String"]}),
+            this._typeResolver.getTypeDeclString({ "kind": "named", "name": "Option", "generics": ["String"] }),
         );
     }
 }
 export interface DoThatParam {
-  p1: number;
-  p2: `0x${string}`;
-  p3: ManyVariants;
+    p1: number;
+    p2: `0x${string}`;
+    p3: ManyVariants;
 }
 
 export type ManyVariants =
-  | { One: null }
-  | { Two: number }
-  | { Three: bigint | null }
-  | { Four: {a: number; b: number | null;} }
-  | { Five: [string, `0x${string}`] }
-  | { Six: [number] };
+    | { One: null }
+    | { Two: number }
+    | { Three: bigint | null }
+    | { Four: { a: number; b: number | null; } }
+    | { Five: [string, `0x${string}`] }
+    | { Six: [number] };
 
 export type ManyVariantsReply = 'One' | 'Two' | 'Three' | 'Four' | 'Five' | 'Six';
 
@@ -454,7 +526,7 @@ export class ThisThat {
         private _programId: HexString,
         private _routeIdx: number = 0,
     ) {
-        this._typeResolver = new TypeResolver([{"name":"DoThatParam","kind":"struct","fields":[{"name":"p1","type":{"kind":"named","name":"NonZeroU32"}},{"name":"p2","type":"ActorId"},{"name":"p3","type":{"kind":"named","name":"ManyVariants"}}]}, {"name":"ManyVariants","kind":"enum","variants":[{"name":"One","fields":[]},{"name":"Two","fields":[{"type":"u32"}]},{"name":"Three","fields":[{"type":{"kind":"named","name":"Option","generics":["U256"]}}]},{"name":"Four","fields":[{"name":"a","type":"u32"},{"name":"b","type":{"kind":"named","name":"Option","generics":["u16"]}}]},{"name":"Five","fields":[{"type":"String"},{"type":"H256"}]},{"name":"Six","fields":[{"type":{"kind":"tuple","types":["u32"]}}]}]}, {"name":"ManyVariantsReply","kind":"enum","variants":[{"name":"One","fields":[]},{"name":"Two","fields":[]},{"name":"Three","fields":[]},{"name":"Four","fields":[]},{"name":"Five","fields":[]},{"name":"Six","fields":[]}]}, {"name":"NonZeroU32","kind":"struct","fields":[{"type":"u32"}]}, {"name":"NonZeroU8","kind":"struct","fields":[{"type":"u8"}]}, {"name":"TupleStruct","kind":"struct","fields":[{"type":"bool"}]}]);
+        this._typeResolver = new TypeResolver([{ "name": "DoThatParam", "kind": "struct", "fields": [{ "name": "p1", "type": { "kind": "named", "name": "NonZeroU32" } }, { "name": "p2", "type": "ActorId" }, { "name": "p3", "type": { "kind": "named", "name": "ManyVariants" } }] }, { "name": "ManyVariants", "kind": "enum", "variants": [{ "name": "One", "fields": [] }, { "name": "Two", "fields": [{ "type": "u32" }] }, { "name": "Three", "fields": [{ "type": { "kind": "named", "name": "Option", "generics": ["U256"] } }] }, { "name": "Four", "fields": [{ "name": "a", "type": "u32" }, { "name": "b", "type": { "kind": "named", "name": "Option", "generics": ["u16"] } }] }, { "name": "Five", "fields": [{ "type": "String" }, { "type": "H256" }] }, { "name": "Six", "fields": [{ "type": { "kind": "tuple", "types": ["u32"] } }] }] }, { "name": "ManyVariantsReply", "kind": "enum", "variants": [{ "name": "One", "fields": [] }, { "name": "Two", "fields": [] }, { "name": "Three", "fields": [] }, { "name": "Four", "fields": [] }, { "name": "Five", "fields": [] }, { "name": "Six", "fields": [] }] }, { "name": "NonZeroU32", "kind": "struct", "fields": [{ "type": "u32" }] }, { "name": "NonZeroU8", "kind": "struct", "fields": [{ "type": "u8" }] }, { "name": "TupleStruct", "kind": "struct", "fields": [{ "type": "bool" }] }]);
     }
     private get registry() {
         return this._typeResolver.registry;
@@ -466,8 +538,8 @@ export class ThisThat {
             "send_message",
             SailsMessageHeader.v1(InterfaceId.from("0x381e13fdd02d675f"), 0, this._routeIdx),
             param,
-            this._typeResolver.getTypeDeclString({"kind":"named","name":"DoThatParam"}),
-            this._typeResolver.getTypeDeclString({"kind":"named","name":"Result","generics":[{"kind":"tuple","types":["ActorId",{"kind":"named","name":"NonZeroU32"},{"kind":"named","name":"ManyVariantsReply"}]},{"kind":"tuple","types":["String"]}]}),
+            this._typeResolver.getTypeDeclString({ "kind": "named", "name": "DoThatParam" }),
+            this._typeResolver.getTypeDeclString({ "kind": "named", "name": "Result", "generics": [{ "kind": "tuple", "types": ["ActorId", { "kind": "named", "name": "NonZeroU32" }, { "kind": "named", "name": "ManyVariantsReply" }] }, { "kind": "tuple", "types": ["String"] }] }),
             this._programId,
         );
     }
@@ -479,8 +551,8 @@ export class ThisThat {
             "send_message",
             SailsMessageHeader.v1(InterfaceId.from("0x381e13fdd02d675f"), 1, this._routeIdx),
             [p1, p2, p3, p4],
-            this._typeResolver.getTypeDeclString({"kind":"tuple","types":["u32", "String", {"kind":"tuple","types":[{"kind":"named","name":"Option","generics":["H160"]},{"kind":"named","name":"NonZeroU8"}]}, {"kind":"named","name":"TupleStruct"}]}),
-            this._typeResolver.getTypeDeclString({"kind":"tuple","types":["String","u32"]}),
+            this._typeResolver.getTypeDeclString({ "kind": "tuple", "types": ["u32", "String", { "kind": "tuple", "types": [{ "kind": "named", "name": "Option", "generics": ["H160"] }, { "kind": "named", "name": "NonZeroU8" }] }, { "kind": "named", "name": "TupleStruct" }] }),
+            this._typeResolver.getTypeDeclString({ "kind": "tuple", "types": ["String", "u32"] }),
             this._programId,
         );
     }
@@ -506,7 +578,7 @@ export class ThisThat {
             SailsMessageHeader.v1(InterfaceId.from("0x381e13fdd02d675f"), 3, this._routeIdx),
             null,
             null,
-            this._typeResolver.getTypeDeclString({"kind":"named","name":"Result","generics":["String","String"]}),
+            this._typeResolver.getTypeDeclString({ "kind": "named", "name": "Result", "generics": ["String", "String"] }),
         );
     }
 
@@ -550,6 +622,20 @@ export class ValueFee {
             this._typeResolver.getTypeDeclString("bool"),
             this._programId,
         );
+    }
+
+    public subscribeToWithheldEvent<T = bigint>(callback: (eventData: T) => void | Promise<void>): Promise<() => void> {
+        const interfaceIdu64 = InterfaceId.from("0x41c1080b4e1e8dc5").asU64();
+        const typeStr = this._typeResolver.getTypeDeclString("u128");
+        return this._api.gearEvents.subscribeToGearEvent("UserMessageSent", ({ data: { message } }) => {
+            if (!message.source.eq(this._programId)) return;
+            if (!message.destination.eq(ZERO_ADDRESS)) return;
+
+            const { ok, header } = SailsMessageHeader.tryFromBytes(message.payload);
+            if (ok && header.interfaceId.asU64() === interfaceIdu64 && header.entryId === 0) {
+                callback(this.registry.createType(`([u8; 16], ${typeStr})`, message.payload)[1].toJSON() as T);
+            }
+        });
     }
 }
 export class Chaos {

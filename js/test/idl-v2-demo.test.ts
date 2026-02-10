@@ -208,7 +208,7 @@ describe('Dog', () => {
 
     let barked: boolean;
 
-    const unsub = await (program.dog as any).subscribeToBarkedEvent(() => {
+    const unsub = await program.dog.subscribeToBarkedEvent(() => {
       barked = true;
     });
 
@@ -227,12 +227,12 @@ describe('Dog', () => {
   });
 
   test('Walk', async () => {
-    const transaction = await (program.dog as any).walk(5, 10).withAccount(alice).calculateGas();
+    const transaction = await program.dog.walkerService.walk(5, 10).withAccount(alice).calculateGas();
 
     let walkedFrom: [number, number];
     let walkedTo: [number, number];
 
-    const unsub = await (program.dog as any).subscribeToWalkedEvent((data: any) => {
+    const unsub = await program.dog.walkerService.subscribeToWalkedEvent((data: any) => {
       walkedFrom = data.from;
       walkedTo = data.to;
     });
@@ -254,7 +254,7 @@ describe('Dog', () => {
   });
 
   test('query Position', async () => {
-    const position = (program.dog as any).position();
+    const position = program.dog.walkerService.position();
 
     expect(await position.call()).toEqual([10, 15]);
   });

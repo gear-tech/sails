@@ -50,6 +50,23 @@ impl<'a> ServiceGenerator<'a> {
             .enumerate()
             .map(|(entry_id, func)| self.render_func(func, entry_id as u16, &interface_id));
 
+        let event_tokens = service
+            .events
+            .iter()
+            .enumerate()
+            .map(|(entry_id, event)| self.render_event(event, entry_id as u16, &interface_id));
+
+        let extend_tokens = service.extends.iter().map(|base| {
+            let base_class_name = base.name.clone();
+            let accessor_name = escape_ident(&to_camel(&base.name));
+
+            quote! {
+                public get $(accessor_name)(): $(&base_class_name) {
+                  return new $(&base_class_name)(this._api, this._programId, this._routeIdx);
+                }
+            }
+        });
+
         quote_in! { *tokens =>
             export class $(class_name) {
               private _typeResolver: $type_resolver;
@@ -63,7 +80,9 @@ impl<'a> ServiceGenerator<'a> {
               private get registry() {
                 return this._typeResolver.registry;
               }
+              $(for ext in extend_tokens => $ext$['\n'])
               $(for func in func_tokens => $func$['\n'])
+              $(for event in event_tokens => $event$['\n'])
             }
         };
     }
@@ -74,13 +93,7 @@ impl<'a> ServiceGenerator<'a> {
         let args = func
             .params
             .iter()
-            .map(|p| {
-                format!(
-                    "{}: {}",
-                    escape_ident(&p.name),
-                    ts_type_decl(&p.type_decl)
-                )
-            })
+            .map(|p| format!("{}: {}", escape_ident(&p.name), ts_type_decl(&p.type_decl)))
             .collect::<Vec<_>>()
             .join(", ");
 
@@ -160,4 +173,110 @@ impl<'a> ServiceGenerator<'a> {
         }
     }
 
+    fn render_event(&self, event: &ast::ServiceEvent, entry_id: u16, interface_id: &str) -> Tokens {
+        let method_name = escape_ident(&format!("subscribeTo{}Event", event.name));
+        // TODO replace with call TypeResover.getStructDef
+        let event_ts_type = self.event_ts_type(event);
+        let event_type_str_expr = self.event_type_str_expr(event);
+        let type_str = "`([u8; 16], ${typeStr})`";
+
+        let zero_address = &js::import("sails-js", "ZERO_ADDRESS");
+        let interface_id_type = &js::import("sails-js-parser-idl-v2", "InterfaceId");
+        let message_header = &js::import("sails-js-parser-idl-v2", "SailsMessageHeader");
+        let docs = doc_tokens(&event.docs);
+
+        quote! {
+            $docs
+            public $(method_name)<T = $(&event_ts_type)>(callback: (eventData: T) => void | Promise<void>): Promise<() => void> {
+              const interfaceIdu64 = $interface_id_type.from($(quoted(interface_id))).asU64();
+              const typeStr = $(event_type_str_expr);
+              return this._api.gearEvents.subscribeToGearEvent("UserMessageSent", ({ data: { message } }) => {
+                if (!message.source.eq(this._programId)) return;
+                if (!message.destination.eq($zero_address)) return;
+
+                const { ok, header } = $message_header.tryFromBytes(message.payload);
+                if (ok && header.interfaceId.asU64() === interfaceIdu64 && header.entryId === $(entry_id)) {
+                  callback(this.registry.createType($type_str, message.payload)[1].toJSON() as T);
+                }
+              });
+            }
+        }
+    }
+
+    fn event_ts_type(&self, event: &ast::ServiceEvent) -> String {
+        let fields = &event.def.fields;
+        if fields.is_empty() {
+            return "null".to_string();
+        }
+
+        if event.def.is_tuple() {
+            if fields.len() == 1 {
+                return ts_type_decl(&fields[0].type_decl);
+            }
+            return format!(
+                "[{}]",
+                fields
+                    .iter()
+                    .map(|f| ts_type_decl(&f.type_decl))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            );
+        }
+
+        format!(
+            "{{ {} }}",
+            fields
+                .iter()
+                .map(|f| format!(
+                    "{}: {}",
+                    escape_ident(f.name.as_deref().unwrap_or("field")),
+                    ts_type_decl(&f.type_decl)
+                ))
+                .collect::<Vec<_>>()
+                .join("; ")
+        )
+    }
+
+    fn event_type_str_expr(&self, event: &ast::ServiceEvent) -> String {
+        let fields = &event.def.fields;
+        if fields.is_empty() {
+            return "\"Null\"".to_string();
+        }
+
+        if event.def.is_tuple() {
+            if fields.len() == 1 {
+                return format!(
+                    "this._typeResolver.getTypeDeclString({})",
+                    serialize_type_decl(&fields[0].type_decl)
+                );
+            }
+
+            let tuple_decl = ast::TypeDecl::Tuple {
+                types: fields.iter().map(|f| f.type_decl.clone()).collect(),
+            };
+            return format!(
+                "this._typeResolver.getTypeDeclString({})",
+                serialize_type_decl(&tuple_decl)
+            );
+        }
+
+        let struct_type_str = format!(
+            "{{{}}}",
+            fields
+                .iter()
+                .map(|f| {
+                    format!(
+                        "\"{}\": \"{}\"",
+                        f.name.as_deref().unwrap_or("field"),
+                        f.type_decl
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
+        format!(
+            "\"{}\"",
+            struct_type_str.replace('\\', "\\\\").replace('"', "\\\"")
+        )
+    }
 }

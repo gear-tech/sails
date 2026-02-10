@@ -1,10 +1,9 @@
 ---
 source: rs/client-gen-js/tests/generator.rs
-assertion_line: 11
 expression: generated
 ---
 import {GearApi, HexString} from "@gear-js/api";
-import {QueryBuilderWithHeader, TransactionBuilderWithHeader, TypeResolver} from "sails-js";
+import {QueryBuilderWithHeader, TransactionBuilderWithHeader, TypeResolver, ZERO_ADDRESS} from "sails-js";
 import {InterfaceId, SailsMessageHeader} from "sails-js-parser-idl-v2";
 
 export class DemoClient {
@@ -215,6 +214,42 @@ export class Counter {
             this._typeResolver.getTypeDeclString("u32"),
         );
     }
+
+    /**
+ * Emitted when a new value is added to the counter
+ */
+
+    public subscribeToAddedEvent<T = number>(callback: (eventData: T) => void | Promise<void>): Promise<() => void> {
+        const interfaceIdu64 = InterfaceId.from("0x579d6daba41b7d82").asU64();
+        const typeStr = this._typeResolver.getTypeDeclString("u32");
+        return this._api.gearEvents.subscribeToGearEvent("UserMessageSent", ({ data: { message } }) => {
+            if (!message.source.eq(this._programId)) return;
+            if (!message.destination.eq(ZERO_ADDRESS)) return;
+
+            const { ok, header } = SailsMessageHeader.tryFromBytes(message.payload);
+            if (ok && header.interfaceId.asU64() === interfaceIdu64 && header.entryId === 0) {
+                callback(this.registry.createType(`([u8; 16], ${typeStr})`, message.payload)[1].toJSON() as T);
+            }
+        });
+    }
+
+    /**
+ * Emitted when a value is subtracted from the counter
+ */
+
+    public subscribeToSubtractedEvent<T = number>(callback: (eventData: T) => void | Promise<void>): Promise<() => void> {
+        const interfaceIdu64 = InterfaceId.from("0x579d6daba41b7d82").asU64();
+        const typeStr = this._typeResolver.getTypeDeclString("u32");
+        return this._api.gearEvents.subscribeToGearEvent("UserMessageSent", ({ data: { message } }) => {
+            if (!message.source.eq(this._programId)) return;
+            if (!message.destination.eq(ZERO_ADDRESS)) return;
+
+            const { ok, header } = SailsMessageHeader.tryFromBytes(message.payload);
+            if (ok && header.interfaceId.asU64() === interfaceIdu64 && header.entryId === 1) {
+                callback(this.registry.createType(`([u8; 16], ${typeStr})`, message.payload)[1].toJSON() as T);
+            }
+        });
+    }
 }
 export class MammalService {
     private _typeResolver: TypeResolver;
@@ -289,6 +324,20 @@ export class WalkerService {
             this._typeResolver.getTypeDeclString({"kind":"tuple","types":["i32","i32"]}),
         );
     }
+
+    public subscribeToWalkedEvent<T = { $from: [number, number]; to: [number, number] }>(callback: (eventData: T) => void | Promise<void>): Promise<() => void> {
+        const interfaceIdu64 = InterfaceId.from("0xee1536b55170bf0a").asU64();
+        const typeStr = "{\"from\": \"(i32, i32)\", \"to\": \"(i32, i32)\"}";
+        return this._api.gearEvents.subscribeToGearEvent("UserMessageSent", ({ data: { message } }) => {
+            if (!message.source.eq(this._programId)) return;
+            if (!message.destination.eq(ZERO_ADDRESS)) return;
+
+            const { ok, header } = SailsMessageHeader.tryFromBytes(message.payload);
+            if (ok && header.interfaceId.asU64() === interfaceIdu64 && header.entryId === 0) {
+                callback(this.registry.createType(`([u8; 16], ${typeStr})`, message.payload)[1].toJSON() as T);
+            }
+        });
+    }
 }
 export class Dog {
     private _typeResolver: TypeResolver;
@@ -302,6 +351,14 @@ export class Dog {
     private get registry() {
         return this._typeResolver.registry;
     }
+    public get mammalService(): MammalService {
+        return new MammalService(this._api, this._programId, this._routeIdx);
+    }
+
+    public get walkerService(): WalkerService {
+        return new WalkerService(this._api, this._programId, this._routeIdx);
+    }
+
     public makeSound(): TransactionBuilderWithHeader<string> {
         return new TransactionBuilderWithHeader<string>(
             this._api,
@@ -313,6 +370,20 @@ export class Dog {
             this._typeResolver.getTypeDeclString("String"),
             this._programId,
         );
+    }
+
+    public subscribeToBarkedEvent<T = null>(callback: (eventData: T) => void | Promise<void>): Promise<() => void> {
+        const interfaceIdu64 = InterfaceId.from("0x18666e67a21917a1").asU64();
+        const typeStr = "Null";
+        return this._api.gearEvents.subscribeToGearEvent("UserMessageSent", ({ data: { message } }) => {
+            if (!message.source.eq(this._programId)) return;
+            if (!message.destination.eq(ZERO_ADDRESS)) return;
+
+            const { ok, header } = SailsMessageHeader.tryFromBytes(message.payload);
+            if (ok && header.interfaceId.asU64() === interfaceIdu64 && header.entryId === 0) {
+                callback(this.registry.createType(`([u8; 16], ${typeStr})`, message.payload)[1].toJSON() as T);
+            }
+        });
     }
 }
 export type ReferenceCount = number;
@@ -555,6 +626,20 @@ export class ValueFee {
             this._typeResolver.getTypeDeclString("bool"),
             this._programId,
         );
+    }
+
+    public subscribeToWithheldEvent<T = bigint>(callback: (eventData: T) => void | Promise<void>): Promise<() => void> {
+        const interfaceIdu64 = InterfaceId.from("0x41c1080b4e1e8dc5").asU64();
+        const typeStr = this._typeResolver.getTypeDeclString("u128");
+        return this._api.gearEvents.subscribeToGearEvent("UserMessageSent", ({ data: { message } }) => {
+            if (!message.source.eq(this._programId)) return;
+            if (!message.destination.eq(ZERO_ADDRESS)) return;
+
+            const { ok, header } = SailsMessageHeader.tryFromBytes(message.payload);
+            if (ok && header.interfaceId.asU64() === interfaceIdu64 && header.entryId === 0) {
+                callback(this.registry.createType(`([u8; 16], ${typeStr})`, message.payload)[1].toJSON() as T);
+            }
+        });
     }
 }
 export class Chaos {
