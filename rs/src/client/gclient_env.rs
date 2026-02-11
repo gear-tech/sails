@@ -343,19 +343,15 @@ async fn calculate_gas_limit(
     if let Some(gas_limit) = gas_limit {
         return Ok(gas_limit);
     }
+    let payload = payload.as_ref().to_vec();
     // Calculate gas amount needed for handling the message
     let gas_info_res = api
-        .calculate_handle_gas(None, program_id, payload.as_ref().to_vec(), value, true)
+        .calculate_handle_gas(None, program_id, payload.clone(), value, true)
         .await;
 
     match gas_info_res {
         Ok(gas_info) => Ok(gas_info.min_limit),
-        Err(err) => {
-            if let Some((reason, payload)) = try_extract_panic_from_hex(&format!("{err:?}")) {
-                return Err(GclientError::ReplyHasError(reason, payload));
-            }
-            Err(err.into())
-        }
+        Err(err) => Err(handle_estimation_error(err, api, program_id, payload, value).await),
     }
 }
 
@@ -447,21 +443,26 @@ async fn get_events_from_block(
     Ok(vec)
 }
 
-fn try_extract_panic_from_hex(err_str: &str) -> Option<(ErrorReplyReason, Vec<u8>)> {
-    err_str
-        .split_once("Panic occurred: 0x")
-        .and_then(|(_, rest)| {
-            let hex = rest
-                .chars()
-                .take_while(|c| c.is_ascii_hexdigit())
-                .collect::<String>();
-            hex::decode(hex).ok()
-        })
-        .filter(|p| p.starts_with(b"GM"))
-        .map(|p| {
-            (
-                ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic),
-                p,
-            )
-        })
+async fn handle_estimation_error(
+    err: gclient::Error,
+    api: &GearApi,
+    program_id: ActorId,
+    payload: Vec<u8>,
+    value: u128,
+) -> GclientError {
+    if format!("{err:?}").contains("Panic occurred: 0x")
+        && let Ok(gas_limit) = api.block_gas_limit()
+    {
+        let origin: [u8; 32] = *api.account_id().as_ref();
+        let reply_info_res = api
+            .calculate_reply_for_handle(Some(origin.into()), program_id, payload, gas_limit, value)
+            .await;
+
+        if let Ok(reply_info) = reply_info_res
+            && let ReplyCode::Error(reason) = reply_info.code
+        {
+            return GclientError::ReplyHasError(reason, reply_info.payload);
+        }
+    }
+    err.into()
 }

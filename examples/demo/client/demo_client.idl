@@ -174,6 +174,8 @@ program DemoClient {
         Default();
         /// Another program constructor (called once at the very beginning of the program lifetime)
         New(counter: Option<u32>, dog_position: Option<(i32, i32)>) throws String;
+        /// A constructor that always fails if the input is 0
+        NewWithError(value: u32) throws String;
     }
     services {
         PingPong@0x21bd9a9aa51da264,

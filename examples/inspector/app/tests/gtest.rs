@@ -13,7 +13,7 @@ const DEMO_WASM_PATH: &str = "../../../target/wasm32-gear/debug/demo.opt.wasm";
 const DEMO_WASM_PATH: &str = "../../../target/wasm32-gear/release/demo.opt.wasm";
 
 #[tokio::test]
-async fn test_cross_contract_panic_handling() {
+async fn gstd_env_test_cross_contract_panic_handling() {
     let system = sails_rs::gtest::System::new();
     system.init_logger();
     system.mint_to(ACTOR_ID, 100_000_000_000_000);
@@ -49,6 +49,35 @@ async fn test_cross_contract_panic_handling() {
 }
 
 #[tokio::test]
+async fn gstd_env_test_failing_constructor_handling() {
+    let system = sails_rs::gtest::System::new();
+    system.init_logger();
+    system.mint_to(ACTOR_ID, 1_000_000_000_000_000);
+
+    let demo_code = std::fs::read(DEMO_WASM_PATH).unwrap();
+    let demo_code_id = system.submit_code(demo_code);
+    let inspector_code_id = system.submit_code(inspector_app::WASM_BINARY);
+
+    let env = GtestEnv::new(system, ACTOR_ID.into());
+
+    let inspector_factory = env.deploy::<InspectorClientProgram>(inspector_code_id, vec![1]);
+    let inspector_program = inspector_factory.new(ActorId::zero()).await.unwrap();
+
+    let inspector = inspector_program.inspector();
+
+    let res = inspector
+        .test_failing_demo_ctor(demo_code_id)
+        .with_value(100_000_000_000_000)
+        .await
+        .unwrap();
+
+    match res {
+        Err(e) => assert_eq!(e, "Constructor failed"),
+        Ok(_) => panic!("Cross-contract constructor should have failed"),
+    }
+}
+
+#[tokio::test]
 async fn test_failing_constructor_handling() {
     let system = sails_rs::gtest::System::new();
     system.init_logger();
@@ -57,7 +86,6 @@ async fn test_failing_constructor_handling() {
     let inspector_code_id = system.submit_code(inspector_app::WASM_BINARY);
     let env = GtestEnv::new(system, ACTOR_ID.into());
 
-    // Try to deploy with zero address - should fail with our error string
     let inspector_factory = env.deploy::<InspectorClientProgram>(inspector_code_id, vec![1]);
     let res = inspector_factory
         .new_with_result(ActorId::zero())

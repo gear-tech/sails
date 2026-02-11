@@ -266,12 +266,12 @@ impl<'a> FnHashBuilder<'a> {
     fn from_handler(handler: &'a FnBuilder<'a>, sails_path: &'a Path) -> Self {
         let original_result_type = shared::result_type(&handler.impl_fn.sig);
         let static_result_type = shared::replace_any_lifetime_with_static(original_result_type);
-        // We need to unwrap CommandReply but keep Result for the 'throws' logic in build()
-        let (result_type, _) = shared::extract_reply_type_with_value(&static_result_type)
-            .map_or_else(
-                || (static_result_type.clone(), false),
-                |ty| (ty.clone(), true),
-            );
+        let (result_type, _) =
+            if let Some(ty) = shared::extract_reply_type_with_value(&static_result_type) {
+                (ty.clone(), true)
+            } else {
+                (static_result_type, false)
+            };
 
         Self {
             sails_path,

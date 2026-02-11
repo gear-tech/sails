@@ -1,7 +1,7 @@
 #![no_std]
 
 use demo_client::{
-    DemoClient, DemoClientProgram,
+    DemoClient, DemoClientCtors, DemoClientProgram,
     validator::{ValidationError, Validator},
 };
 use sails_rs::{client::*, prelude::*};
@@ -43,6 +43,19 @@ impl InspectorService {
     #[export]
     pub async fn test_total_errors(&self) -> u32 {
         self.validator.total_errors().await.unwrap()
+    }
+
+    /// Try to deploy demo with error - should return Err
+    #[export]
+    pub async fn test_failing_demo_ctor(&self, demo_code_id: CodeId) -> Result<ActorId, String> {
+        use sails_rs::client::Program;
+        let demo_factory = DemoClientProgram::deploy(demo_code_id, vec![1]);
+        let res = demo_factory.new_with_error(0).await;
+        match res {
+            Ok(Ok(client)) => Ok(client.id()),
+            Ok(Err(e)) => Err(e),
+            Err(e) => Err(e.to_string()),
+        }
     }
 }
 

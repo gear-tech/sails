@@ -315,7 +315,6 @@ async fn validator_range_check_works() {
     let res = validator.validate_range(10, 0, 100).await.unwrap();
     assert_eq!(res, Ok(10));
 
-    // Panic (TooBig) - should be captured via full HEX in RPC error
     let res = validator.validate_range(150, 0, 100).await.unwrap();
     assert_eq!(res, Err(ValidationError::TooBig));
 }
@@ -334,7 +333,6 @@ async fn validator_range_check_query_works() {
 
     let mut validator = demo_program.validator();
 
-    // Query - should be captured via full HEX in the RPC error response
     let res = validator.validate_range(150, 0, 100).query().await.unwrap();
     assert_eq!(res, Err(ValidationError::TooBig));
 }
@@ -353,7 +351,6 @@ async fn validator_nonzero_works() {
 
     let mut validator = demo_program.validator();
 
-    // Panic (String) - should be captured via full HEX
     let res = validator.validate_nonzero(0).await.unwrap();
     assert_eq!(res, Err("Value is zero".to_string()));
 }
@@ -378,6 +375,25 @@ async fn validator_even_works() {
 
     let res = validator.validate_even(7).await.unwrap();
     assert_eq!(res, Err(()));
+}
+
+#[tokio::test]
+#[ignore = "requires run gear node on GEAR_PATH"]
+async fn validator_constructor_error_works() {
+    let (env, demo_code_id, gas_limit, ..) = spin_up_node_with_demo_code().await;
+
+    // Use manual gas limit to skip RPC estimation and get full error from the block
+    let res = env
+        .deploy::<DemoClientProgram>(demo_code_id, vec![1])
+        .new_with_error(0)
+        .with_gas_limit(gas_limit)
+        .await
+        .unwrap();
+
+    match res {
+        Err(e) => assert_eq!(e, "Constructor failed"),
+        Ok(_) => panic!("Constructor should have failed"),
+    }
 }
 
 async fn spin_up_node_with_demo_code() -> (GclientEnv, CodeId, GasUnit, GearApi) {

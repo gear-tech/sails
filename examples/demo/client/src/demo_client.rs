@@ -75,6 +75,11 @@ pub trait DemoClientCtors {
         counter: Option<u32>,
         dog_position: Option<(i32, i32)>,
     ) -> sails_rs::client::PendingCtor<DemoClientProgram, io::New, Self::Env>;
+    /// A constructor that always fails if the input is 0
+    fn new_with_error(
+        self,
+        value: u32,
+    ) -> sails_rs::client::PendingCtor<DemoClientProgram, io::NewWithError, Self::Env>;
 }
 impl<E: sails_rs::client::GearEnv> DemoClientCtors
     for sails_rs::client::Deployment<DemoClientProgram, E>
@@ -90,12 +95,19 @@ impl<E: sails_rs::client::GearEnv> DemoClientCtors
     ) -> sails_rs::client::PendingCtor<DemoClientProgram, io::New, Self::Env> {
         self.pending_ctor((counter, dog_position))
     }
+    fn new_with_error(
+        self,
+        value: u32,
+    ) -> sails_rs::client::PendingCtor<DemoClientProgram, io::NewWithError, Self::Env> {
+        self.pending_ctor((value,))
+    }
 }
 
 pub mod io {
     use super::*;
     sails_rs::io_struct_impl!(Default () -> (), 0);
     sails_rs::io_struct_impl!(New (counter: super::Option<u32, >, dog_position: super::Option<(i32, i32, ), >) -> (), 1, throws (), String);
+    sails_rs::io_struct_impl!(NewWithError (value: u32) -> (), 2, throws (), String);
 }
 
 pub mod ping_pong {

@@ -71,6 +71,20 @@ impl DemoProgram {
         })
     }
 
+    pub fn new_with_error(value: u32) -> Result<Self, String> {
+        if value == 0 {
+            return Err("Constructor failed".to_string());
+        }
+        unsafe {
+            DOG_DATA = Some(RefCell::new(walker::WalkerData::new(0, 0)));
+        }
+        Ok(Self {
+            counter_data: RefCell::new(counter::CounterData::new(value)),
+            validator_data: RefCell::new(validator::ValidatorData::new()),
+            ref_data: 42,
+        })
+    }
+
     // Exposing service with overriden route
     #[export(route = "ping_pong", unwrap_result)]
     pub fn ping(&self) -> Result<ping::PingService, String> {
