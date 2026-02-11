@@ -354,15 +354,7 @@ pub trait CallCodec: MethodMeta {
         payload: impl AsRef<[u8]>,
     ) -> Result<T, parity_scale_codec::Error> {
         let mut value = payload.as_ref();
-        Self::validate_header(route_idx, &mut value)?;
-        Decode::decode(&mut value)
-    }
-
-    fn validate_header(
-        route_idx: u8,
-        payload: &mut &[u8],
-    ) -> Result<(), parity_scale_codec::Error> {
-        let header = SailsMessageHeader::decode(payload)?;
+        let header = SailsMessageHeader::decode(&mut value)?;
         if header.interface_id() != Self::INTERFACE_ID {
             return Err("Invalid reply interface_id".into());
         }
@@ -372,7 +364,7 @@ pub trait CallCodec: MethodMeta {
         if header.entry_id() != Self::ENTRY_ID {
             return Err("Invalid reply entry_id".into());
         }
-        Ok(())
+        Decode::decode(&mut value)
     }
 
     fn with_optimized_encode<R>(

@@ -351,7 +351,29 @@ async fn calculate_gas_limit(
 
     match gas_info_res {
         Ok(gas_info) => Ok(gas_info.min_limit),
-        Err(err) => Err(handle_estimation_error(err, api, program_id, payload, value).await),
+        Err(err) => {
+            if format!("{err:?}").contains("Panic occurred: 0x")
+                && let Ok(gas_limit) = api.block_gas_limit()
+            {
+                let origin: [u8; 32] = *api.account_id().as_ref();
+                let reply_info_res = api
+                    .calculate_reply_for_handle(
+                        Some(origin.into()),
+                        program_id,
+                        payload,
+                        gas_limit,
+                        value,
+                    )
+                    .await;
+
+                if let Ok(reply_info) = reply_info_res
+                    && let ReplyCode::Error(reason) = reply_info.code
+                {
+                    return Err(GclientError::ReplyHasError(reason, reply_info.payload));
+                }
+            }
+            Err(err.into())
+        }
     }
 }
 
@@ -441,28 +463,4 @@ async fn get_events_from_block(
         )
         .await?;
     Ok(vec)
-}
-
-async fn handle_estimation_error(
-    err: gclient::Error,
-    api: &GearApi,
-    program_id: ActorId,
-    payload: Vec<u8>,
-    value: u128,
-) -> GclientError {
-    if format!("{err:?}").contains("Panic occurred: 0x")
-        && let Ok(gas_limit) = api.block_gas_limit()
-    {
-        let origin: [u8; 32] = *api.account_id().as_ref();
-        let reply_info_res = api
-            .calculate_reply_for_handle(Some(origin.into()), program_id, payload, gas_limit, value)
-            .await;
-
-        if let Ok(reply_info) = reply_info_res
-            && let ReplyCode::Error(reason) = reply_info.code
-        {
-            return GclientError::ReplyHasError(reason, reply_info.payload);
-        }
-    }
-    err.into()
 }
