@@ -109,10 +109,9 @@ On the method's completion, its result is encoded and returned as a response to 
 > the application's balance to the caller's one. This can be done via using a dedicated
 > type, `CommandReply<T>`.
 
-Sometimes it is convenient to have a method that returns the `Result<T, E>` type,
-but not expose it to clients. This allows using the `?` operator
-in the method body. For this purpose, you can use the `#[export]` attribute macro with
-the `unwrap_result` parameter.
+Sometimes it is convenient to have a method that returns the `Result<T, E>` type.
+Sails automatically unfolds the `Result` and treats `Err` variant as a business error (panics internally with encoded error payload).
+This allows using the `?` operator in the method body.
 
 ```rust
 #[service]
@@ -129,9 +128,8 @@ impl MyService {
         CommandReply::new(()).with_value(amount)
     }
 
-    // This is a command returning `()` or panicking
-    #[export(unwrap_result)]
-    pub fn do_something_with_unwrap_result(&mut self, amount: u64) -> Result<(), String> {
+    // This is a command returning `()` or panicking with business error
+    pub fn do_something_returning_result(&mut self, amount: u64) -> Result<(), String> {
         do_something_returning_result()?;
         Ok(())
     }

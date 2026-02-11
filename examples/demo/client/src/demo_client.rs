@@ -75,7 +75,6 @@ pub trait DemoClientCtors {
         counter: Option<u32>,
         dog_position: Option<(i32, i32)>,
     ) -> sails_rs::client::PendingCtor<DemoClientProgram, io::New, Self::Env>;
-    /// A constructor that always fails if the input is 0
     fn new_with_error(
         self,
         value: u32,

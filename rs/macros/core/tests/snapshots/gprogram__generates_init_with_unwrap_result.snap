@@ -3,11 +3,11 @@ source: rs/macros/core/tests/gprogram.rs
 expression: result
 ---
 impl MyProgram {
-    #[export(unwrap_result)]
+    #[export]
     pub async fn new(p1: u32, p2: String) -> Result<Self, String> {
         Self { p1, p2 }
     }
-    #[export(unwrap_result)]
+    #[export]
     pub fn new2(p2: String, p1: u32) -> Result<Self, String> {
         Self { p1, p2 }
     }

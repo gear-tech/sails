@@ -55,7 +55,7 @@ impl DemoProgram {
     }
 
     /// Another program constructor (called once at the very beginning of the program lifetime)
-    #[export(unwrap_result)]
+    #[export]
     pub fn new(counter: Option<u32>, dog_position: Option<(i32, i32)>) -> Result<Self, String> {
         unsafe {
             let dog_position = dog_position.unwrap_or_default();
@@ -86,7 +86,7 @@ impl DemoProgram {
     }
 
     // Exposing service with overriden route
-    #[export(route = "ping_pong", unwrap_result)]
+    #[export(route = "ping_pong")]
     pub fn ping(&self) -> Result<ping::PingService, String> {
         Ok(ping::PingService::default())
     }

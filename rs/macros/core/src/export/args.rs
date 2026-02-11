@@ -1,6 +1,6 @@
 use proc_macro_error::abort;
 use syn::{
-    Ident, LitBool, LitStr, Path, Token,
+    Ident, LitStr, Path, Token,
     parse::{Parse, ParseStream},
     punctuated::Punctuated,
 };
@@ -8,7 +8,6 @@ use syn::{
 #[derive(PartialEq, Debug, Default)]
 pub(crate) struct ExportArgs {
     route: Option<String>,
-    unwrap_result: bool,
     #[cfg(feature = "ethexe")]
     payable: bool,
     overrides: Option<Path>,
@@ -18,10 +17,6 @@ pub(crate) struct ExportArgs {
 impl ExportArgs {
     pub fn route(&self) -> Option<&str> {
         self.route.as_deref()
-    }
-
-    pub fn unwrap_result(&self) -> bool {
-        self.unwrap_result
     }
 
     #[cfg(feature = "ethexe")]
@@ -43,7 +38,6 @@ impl Parse for ExportArgs {
         let punctuated: Punctuated<ImportArg, Token![,]> = Punctuated::parse_terminated(input)?;
         let mut args = Self {
             route: None,
-            unwrap_result: false,
             #[cfg(feature = "ethexe")]
             payable: false,
             overrides: None,
@@ -53,9 +47,6 @@ impl Parse for ExportArgs {
             match arg {
                 ImportArg::Route(route) => {
                     args.route = Some(route);
-                }
-                ImportArg::UnwrapResult(unwrap_result) => {
-                    args.unwrap_result = unwrap_result;
                 }
                 #[cfg(feature = "ethexe")]
                 ImportArg::Payable => {
@@ -76,7 +67,6 @@ impl Parse for ExportArgs {
 #[derive(Debug)]
 enum ImportArg {
     Route(String),
-    UnwrapResult(bool),
     #[cfg(feature = "ethexe")]
     Payable,
     Overrides(Path),
@@ -102,14 +92,6 @@ impl Parse for ImportArg {
                     return Ok(Self::Route(route));
                 }
                 abort!(ident, "unexpected value for `route` argument: {}", input)
-            }
-            "unwrap_result" => {
-                if input.parse::<Token![=]>().is_ok()
-                    && let Ok(val) = input.parse::<LitBool>()
-                {
-                    return Ok(Self::UnwrapResult(val.value()));
-                }
-                Ok(Self::UnwrapResult(true))
             }
             #[cfg(feature = "ethexe")]
             "payable" => Ok(Self::Payable),
@@ -137,50 +119,9 @@ mod tests {
     #[test]
     fn export_parse_args() {
         // arrange
-        let input = quote!(route = "CallMe", unwrap_result);
+        let input = quote!(route = "CallMe");
         let expected = ExportArgs {
             route: Some("CallMe".to_owned()),
-            unwrap_result: true,
-            #[cfg(feature = "ethexe")]
-            payable: false,
-            overrides: None,
-            entry_id: None,
-        };
-
-        // act
-        let args = syn::parse2::<ExportArgs>(input).unwrap();
-
-        // arrange
-        assert_eq!(expected, args);
-    }
-
-    #[test]
-    fn export_parse_args_unwrap_result() {
-        // arrange
-        let input = quote!(unwrap_result);
-        let expected = ExportArgs {
-            route: None,
-            unwrap_result: true,
-            #[cfg(feature = "ethexe")]
-            payable: false,
-            overrides: None,
-            entry_id: None,
-        };
-
-        // act
-        let args = syn::parse2::<ExportArgs>(input).unwrap();
-
-        // arrange
-        assert_eq!(expected, args);
-    }
-
-    #[test]
-    fn export_parse_args_unwrap_result_eq_false() {
-        // arrange
-        let input = quote!(unwrap_result = false);
-        let expected = ExportArgs {
-            route: None,
-            unwrap_result: false,
             #[cfg(feature = "ethexe")]
             payable: false,
             overrides: None,
@@ -201,7 +142,6 @@ mod tests {
         let input = quote!(payable);
         let expected = ExportArgs {
             route: None,
-            unwrap_result: false,
             payable: true,
             overrides: None,
             entry_id: None,
@@ -221,7 +161,6 @@ mod tests {
         let expected_path: Path = syn::parse2(quote!(BaseService)).unwrap();
         let expected = ExportArgs {
             route: None,
-            unwrap_result: false,
             #[cfg(feature = "ethexe")]
             payable: false,
             overrides: Some(expected_path),
