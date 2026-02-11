@@ -2,8 +2,8 @@ use gprimitives::*;
 use meta_params::*;
 use sails_idl_gen::{program, service};
 use sails_idl_meta::{
-    AnyServiceMeta, AnyServiceMetaFn, BaseServiceMeta, Identifiable, InterfaceId, ProgramMeta,
-    ServiceMeta,
+    AnyServiceMeta, AnyServiceMetaFn, BaseServiceMeta, Identifiable, InterfaceId, MethodMetadata,
+    ProgramMeta, ServiceMeta,
 };
 use scale_info::{StaticTypeInfo, TypeInfo};
 use std::{collections::BTreeMap, result::Result as StdResult};
@@ -199,6 +199,7 @@ where
     type QueriesMeta = Q;
     type EventsMeta = E;
     const BASE_SERVICES: &'static [BaseServiceMeta] = &[];
+    const METHODS: &'static [MethodMetadata] = &[];
     const ASYNC: bool = false;
 }
 
@@ -224,6 +225,7 @@ where
     type QueriesMeta = Q;
     type EventsMeta = E;
     const BASE_SERVICES: &'static [BaseServiceMeta] = &[BaseServiceMeta::new::<B>("B")];
+    const METHODS: &'static [MethodMetadata] = &[];
     const ASYNC: bool = false;
 }
 

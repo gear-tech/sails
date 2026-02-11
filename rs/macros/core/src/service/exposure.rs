@@ -169,55 +169,69 @@ impl ServiceBuilder<'_> {
             (None, None)
         };
 
-        let mut regular_dispatches = Vec::new();
+        let mut match_arms = Vec::new();
 
         for fn_builder in &self.service_handlers {
             if is_async != fn_builder.is_async() {
                 continue;
             }
 
-            let entry_id = fn_builder.entry_id;
-            let decode_and_handle = handler_gen(fn_builder, &await_token);
+            let handler_await = fn_builder.is_async().then(|| quote!(.await));
+            let decode_and_handle = handler_gen(fn_builder, &handler_await);
 
-            regular_dispatches.push(quote! {
-                #entry_id => {
-                    #decode_and_handle
+            // 1. Own methods
+            if fn_builder.export && fn_builder.overrides.is_none() {
+                let entry_id = fn_builder.entry_id;
+                let own_id =
+                    quote! { <#metadata_type as #sails_path::meta::Identifiable>::INTERFACE_ID };
+                match_arms.push(quote! {
+                    (id, #entry_id) if id == #own_id => { #decode_and_handle }
+                });
+            }
+
+            // 2. Overrides
+            if let Some(base_path) = &fn_builder.overrides {
+                let base_path_wo_lifetimes = shared::remove_lifetimes(base_path);
+                let base_id = quote! { <#base_path_wo_lifetimes as #sails_path::meta::Identifiable>::INTERFACE_ID };
+
+                if let Some(id) = fn_builder.override_entry_id {
+                    match_arms.push(quote! {
+                        (id, #id) if id == #base_id => { #decode_and_handle }
+                    });
+                } else {
+                    let name = &fn_builder.route;
+                    match_arms.push(quote! {
+                        (id, eid) if id == #base_id && eid == {
+                            const ID: u16 = #sails_path::meta::find_id(
+                                <#base_path_wo_lifetimes as #sails_path::meta::ServiceMeta>::METHODS,
+                                #name,
+                            );
+                            ID
+                        } => { #decode_and_handle }
+                    });
                 }
-            });
+            }
         }
 
-        let base_invocation = if self.base_types.is_empty() {
-            None
-        } else {
-            let base_exposure_invocations = self.base_types.iter().enumerate().map(|(idx, base_type)| {
-                let idx_literal = Literal::usize_unsuffixed(idx);
-                let base_call = base_call_gen(quote!(base_service), &await_token, method_name_ident);
-                quote! {
-                    if #sails_path::meta::service_has_interface_id(&<#metadata_type as #sails_path::meta::ServiceMeta>::BASE_SERVICES[#idx_literal], interface_id) {
-                        let base_service: #base_type = self.#inner_ident.into();
-                        return #base_call;
-                    }
+        // 3. Base service delegation
+        let base_delegations = self.base_types.iter().enumerate().map(|(idx, base_type)| {
+            let base_call = base_call_gen(quote!(base_service), &await_token, method_name_ident);
+            quote! {
+                (id, eid) if #sails_path::meta::service_has_interface_id(&<#metadata_type as #sails_path::meta::ServiceMeta>::BASE_SERVICES[#idx], id) => {
+                    let base_service: #base_type = self.#inner_ident.into();
+                    return #base_call;
                 }
-            });
-
-            Some(quote! {
-                #( #base_exposure_invocations )*
-            })
-        };
+            }
+        });
 
         quote! {
             pub #async_kw fn #method_name_ident #method_sig {
                 #extra_imports
 
-                // Then check own methods
-                if interface_id == <#metadata_type as #sails_path::meta::Identifiable>::INTERFACE_ID {
-                    match entry_id {
-                        #( #regular_dispatches )*
-                        _ => None,
-                    }
-                } else {
-                    #base_invocation
-                    None
+                match (interface_id, entry_id) {
+                    #( #match_arms )*
+                    #( #base_delegations )*
+                    _ => None,
                 }
             }
         }
@@ -355,21 +369,52 @@ impl ServiceBuilder<'_> {
             }
         };
 
-        // Generate match arms for each handler's entry_id
-        let asyncness_checks = self.service_handlers.iter().map(|fn_builder| {
+        let mut match_arms = Vec::new();
+
+        // 1. Own methods
+        let own_id = quote! { <T as #sails_path::meta::Identifiable>::INTERFACE_ID };
+        for fn_builder in &self.service_handlers {
+            if !fn_builder.export || fn_builder.overrides.is_some() {
+                continue;
+            }
             let entry_id = fn_builder.entry_id;
             let is_async = fn_builder.is_async();
-            quote! {
-                #entry_id => Some(#is_async),
-            }
-        });
+            match_arms.push(quote! {
+                (id, #entry_id) if id == #own_id => Some(#is_async),
+            });
+        }
 
-        let base_services_asyncness_checks = self.base_types.iter().enumerate().map(|(idx, base_type)| {
+        // 2. Overrides
+        for fn_builder in &self.service_handlers {
+            if let Some(base_path) = &fn_builder.overrides {
+                let base_path_wo_lifetimes = shared::remove_lifetimes(base_path);
+                let base_id = quote! { <#base_path_wo_lifetimes as #sails_path::meta::Identifiable>::INTERFACE_ID };
+                let is_async = fn_builder.is_async();
+
+                if let Some(id) = fn_builder.override_entry_id {
+                    match_arms.push(quote! {
+                        (id, #id) if id == #base_id => Some(#is_async),
+                    });
+                } else {
+                    let name = &fn_builder.route;
+                    match_arms.push(quote! {
+                        (id, eid) if id == #base_id && eid == {
+                            const ID: u16 = #sails_path::meta::find_id(
+                                <#base_path_wo_lifetimes as #sails_path::meta::ServiceMeta>::METHODS,
+                                #name,
+                            );
+                            ID
+                        } => Some(#is_async),
+                    });
+                }
+            }
+        }
+        // 3. Base service delegation
+        let base_delegations = self.base_types.iter().enumerate().map(|(idx, base_type)| {
             let path_wo_lifetimes = shared::remove_lifetimes(base_type);
-            let idx_literal = Literal::usize_unsuffixed(idx);
             quote! {
-                if #sails_path::meta::service_has_interface_id(&T::BASE_SERVICES[#idx_literal], interface_id) {
-                    return <<#path_wo_lifetimes as #sails_path::gstd::services::Service>::Exposure as #sails_path::gstd::services::Exposure>::check_asyncness(interface_id, entry_id);
+                (id, eid) if #sails_path::meta::service_has_interface_id(&T::BASE_SERVICES[#idx], id) => {
+                    return <<#path_wo_lifetimes as #sails_path::gstd::services::Service>::Exposure as #sails_path::gstd::services::Exposure>::check_asyncness(id, eid);
                 }
             }
         });
@@ -378,14 +423,10 @@ impl ServiceBuilder<'_> {
             fn check_asyncness(interface_id: #sails_path::meta::InterfaceId, entry_id: u16) -> Option<bool> {
                 #service_asyncness_check
 
-                if interface_id == <T as #sails_path::meta::Identifiable>::INTERFACE_ID {
-                    match entry_id {
-                        #( #asyncness_checks )*
-                        _ => None,
-                    }
-                } else {
-                    #( #base_services_asyncness_checks )*
-                    None
+                match (interface_id, entry_id) {
+                    #( #match_arms )*
+                    #( #base_delegations )*
+                    _ => None,
                 }
             }
         }

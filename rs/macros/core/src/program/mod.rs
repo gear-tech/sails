@@ -166,7 +166,7 @@ impl ProgramBuilder {
             if let ImplItem::Fn(fn_item) = impl_item
                 && service_ctor_predicate(fn_item)
             {
-                let invocation_export = shared::invocation_export_or_default(fn_item);
+                let mut invocation_export = shared::invocation_export_or_default(fn_item);
                 let entry_id = routes.len() as u16;
 
                 #[cfg(feature = "ethexe")]
@@ -190,17 +190,10 @@ impl ProgramBuilder {
                     );
                 }
 
-                let fn_builder = FnBuilder::new(
-                    invocation_export.route,
-                    entry_id,
-                    true,
-                    fn_item,
-                    invocation_export.unwrap_result,
-                    self.sails_path(),
-                );
+                invocation_export.export = true;
 
-                #[cfg(feature = "ethexe")]
-                let fn_builder = fn_builder.payable(invocation_export.payable);
+                let fn_builder =
+                    FnBuilder::new(invocation_export, entry_id, fn_item, self.sails_path());
 
                 let original_service_ctor_fn = fn_builder.original_service_ctor_fn();
                 let wrapping_service_ctor_fn =
