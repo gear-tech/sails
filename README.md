@@ -535,6 +535,8 @@ transactions within different applications. This challenge is typically addresse
 a pattern called `Saga`. You can find detailed documentation about this pattern [here](https://microservices.io/patterns/data/saga.html)
 and implementation guidelines [here](https://livebook.manning.com/book/microservices-patterns/chapter-4/142).
 
+> **Note on Sails Throws (`gr_panic`):** While Sails provides automatic state rollback and token refunding via `gr_panic` when a method returns `Err`, this atomicity only applies to the **current transaction**. In the Gear Protocol, every `await` point potentially finishes the current transaction and commits its state. Therefore, if your business logic spans across multiple `await` calls to different contracts, a failure will only rollback the state since the *last* `await`. To maintain consistency across the entire chain of cross-contract calls, the **Saga pattern** is required to orchestrate manual compensations.
+
 The process of addressing this issue in applications built with `Sails` is similar, but only
 the orchestration approach can be used, as `Sails` applications cannot catch events from each
 other. Additionally, it is important to handle infrastructure errors that can arise,
