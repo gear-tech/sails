@@ -22,7 +22,7 @@ impl<'a> ServiceGenerator<'a> {
         service_expo: &ast::ServiceExpo,
         service: &ast::ServiceUnit,
     ) {
-        let class_name = format!("{}", service_expo.name.name);
+        let class_name = service_expo.name.name.to_string();
         let interface_id = service
             .name
             .interface_id
@@ -175,22 +175,21 @@ impl<'a> ServiceGenerator<'a> {
 
     fn render_event(&self, event: &ast::ServiceEvent, entry_id: u16, interface_id: &str) -> Tokens {
         let method_name = escape_ident(&format!("subscribeTo{}Event", event.name));
-        // TODO replace with call TypeResover.getStructDef
         let event_ts_type = self.event_ts_type(event);
-        let event_type_str_expr = self.event_type_str_expr(event);
         let type_str = "`([u8; 16], ${typeStr})`";
 
         let zero_address = &js::import("sails-js", "ZERO_ADDRESS");
         let interface_id_type = &js::import("sails-js-parser-idl-v2", "InterfaceId");
         let message_header = &js::import("sails-js-parser-idl-v2", "SailsMessageHeader");
+        let struct_field = &js::import("sails-js-types", "IStructField");
         let docs = doc_tokens(&event.docs);
 
         quote! {
             $docs
             public $(method_name)<T = $(&event_ts_type)>(callback: (eventData: T) => void | Promise<void>): Promise<() => void> {
               const interfaceIdu64 = $interface_id_type.from($(quoted(interface_id))).asU64();
-              const eventDef = $(event.def.to_json_string().expect("StructDef should be serializable to JSON"));
-              const typeStr = this._typeResolver.getStructDef(eventDef.fields);
+              const eventFields = $(event.def.to_json_string().expect("StructDef should be serializable to JSON")).fields as $struct_field[];
+              const typeStr = this._typeResolver.getStructDef(eventFields, {}, true);
               return this._api.gearEvents.subscribeToGearEvent("UserMessageSent", ({ data: { message } }) => {
                 if (!message.source.eq(this._programId)) return;
                 if (!message.destination.eq($zero_address)) return;
@@ -235,49 +234,6 @@ impl<'a> ServiceGenerator<'a> {
                 ))
                 .collect::<Vec<_>>()
                 .join("; ")
-        )
-    }
-
-    fn event_type_str_expr(&self, event: &ast::ServiceEvent) -> String {
-        let fields = &event.def.fields;
-        if fields.is_empty() {
-            return "\"Null\"".to_string();
-        }
-
-        if event.def.is_tuple() {
-            if fields.len() == 1 {
-                return format!(
-                    "this._typeResolver.getTypeDeclString({})",
-                    serialize_type_decl(&fields[0].type_decl)
-                );
-            }
-
-            let tuple_decl = ast::TypeDecl::Tuple {
-                types: fields.iter().map(|f| f.type_decl.clone()).collect(),
-            };
-            return format!(
-                "this._typeResolver.getTypeDeclString({})",
-                serialize_type_decl(&tuple_decl)
-            );
-        }
-
-        let struct_type_str = format!(
-            "{{{}}}",
-            fields
-                .iter()
-                .map(|f| {
-                    format!(
-                        "\"{}\": \"{}\"",
-                        f.name.as_deref().unwrap_or("field"),
-                        f.type_decl
-                    )
-                })
-                .collect::<Vec<_>>()
-                .join(", ")
-        );
-        format!(
-            "\"{}\"",
-            struct_type_str.replace('\\', "\\\\").replace('"', "\\\"")
         )
     }
 }

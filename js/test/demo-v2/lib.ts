@@ -1,6 +1,7 @@
 import { GearApi, HexString } from "@gear-js/api";
 import { QueryBuilderWithHeader, TransactionBuilderWithHeader, TypeResolver, ZERO_ADDRESS } from '../..';
 import { InterfaceId, SailsMessageHeader } from "sails-js-parser-idl-v2";
+import { IStructField } from "sails-js-types";
 
 export class DemoClient {
     private _typeResolver: TypeResolver;
@@ -217,8 +218,8 @@ export class Counter {
 
     public subscribeToAddedEvent<T = number>(callback: (eventData: T) => void | Promise<void>): Promise<() => void> {
         const interfaceIdu64 = InterfaceId.from("0x579d6daba41b7d82").asU64();
-        const eventDef = { "fields": [{ "type": "u32" }] };
-        const typeStr = this._typeResolver.getStructDef(eventDef.fields);
+        const eventFields = { "fields": [{ "type": "u32" }] }.fields as IStructField[];
+        const typeStr = this._typeResolver.getStructDef(eventFields, {}, true);
         return this._api.gearEvents.subscribeToGearEvent("UserMessageSent", ({ data: { message } }) => {
             if (!message.source.eq(this._programId)) return;
             if (!message.destination.eq(ZERO_ADDRESS)) return;
@@ -236,8 +237,8 @@ export class Counter {
 
     public subscribeToSubtractedEvent<T = number>(callback: (eventData: T) => void | Promise<void>): Promise<() => void> {
         const interfaceIdu64 = InterfaceId.from("0x579d6daba41b7d82").asU64();
-        const eventDef = { "fields": [{ "type": "u32" }] };
-        const typeStr = this._typeResolver.getStructDef(eventDef.fields);
+        const eventFields = { "fields": [{ "type": "u32" }] }.fields as IStructField[];
+        const typeStr = this._typeResolver.getStructDef(eventFields, {}, true);
         return this._api.gearEvents.subscribeToGearEvent("UserMessageSent", ({ data: { message } }) => {
             if (!message.source.eq(this._programId)) return;
             if (!message.destination.eq(ZERO_ADDRESS)) return;
@@ -325,8 +326,8 @@ export class WalkerService {
 
     public subscribeToWalkedEvent<T = { $from: [number, number]; to: [number, number] }>(callback: (eventData: T) => void | Promise<void>): Promise<() => void> {
         const interfaceIdu64 = InterfaceId.from("0xee1536b55170bf0a").asU64();
-        const eventDef = { "fields": [{ "name": "from", "type": { "kind": "tuple", "types": ["i32", "i32"] } }, { "name": "to", "type": { "kind": "tuple", "types": ["i32", "i32"] } }] };
-        const typeStr = this._typeResolver.getStructDef(eventDef.fields);
+        const eventFields = { "fields": [{ "name": "from", "type": { "kind": "tuple", "types": ["i32", "i32"] } }, { "name": "to", "type": { "kind": "tuple", "types": ["i32", "i32"] } }] }.fields as IStructField[];
+        const typeStr = this._typeResolver.getStructDef(eventFields, {}, true);
         return this._api.gearEvents.subscribeToGearEvent("UserMessageSent", ({ data: { message } }) => {
             if (!message.source.eq(this._programId)) return;
             if (!message.destination.eq(ZERO_ADDRESS)) return;
@@ -373,8 +374,8 @@ export class Dog {
 
     public subscribeToBarkedEvent<T = null>(callback: (eventData: T) => void | Promise<void>): Promise<() => void> {
         const interfaceIdu64 = InterfaceId.from("0x18666e67a21917a1").asU64();
-        const eventDef = { "fields": [] };
-        const typeStr = this._typeResolver.getStructDef(eventDef.fields);
+        const eventFields = { "fields": [] }.fields as IStructField[];
+        const typeStr = this._typeResolver.getStructDef(eventFields, {}, true);
         return this._api.gearEvents.subscribeToGearEvent("UserMessageSent", ({ data: { message } }) => {
             if (!message.source.eq(this._programId)) return;
             if (!message.destination.eq(ZERO_ADDRESS)) return;
@@ -630,8 +631,8 @@ export class ValueFee {
 
     public subscribeToWithheldEvent<T = bigint>(callback: (eventData: T) => void | Promise<void>): Promise<() => void> {
         const interfaceIdu64 = InterfaceId.from("0x41c1080b4e1e8dc5").asU64();
-        const eventDef = { "fields": [{ "type": "u128" }] };
-        const typeStr = this._typeResolver.getStructDef(eventDef.fields);
+        const eventFields = { "fields": [{ "type": "u128" }] }.fields as IStructField[];
+        const typeStr = this._typeResolver.getStructDef(eventFields, {}, true);
         return this._api.gearEvents.subscribeToGearEvent("UserMessageSent", ({ data: { message } }) => {
             if (!message.source.eq(this._programId)) return;
             if (!message.destination.eq(ZERO_ADDRESS)) return;

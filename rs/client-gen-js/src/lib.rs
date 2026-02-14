@@ -9,7 +9,9 @@ mod root_generator;
 mod service_generator;
 mod type_generator;
 
+#[derive(Default)]
 pub enum OutputLayout {
+    #[default]
     SingleFile,
     Split {
         types_file: String,
@@ -17,11 +19,6 @@ pub enum OutputLayout {
     },
 }
 
-impl Default for OutputLayout {
-    fn default() -> Self {
-        Self::SingleFile
-    }
-}
 
 pub struct IdlPath<'a>(&'a Path);
 pub struct IdlString<'a>(&'a str);
