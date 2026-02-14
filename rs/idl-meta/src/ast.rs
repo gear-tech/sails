@@ -703,6 +703,16 @@ impl StructDef {
     pub fn is_tuple(&self) -> bool {
         self.fields.iter().all(|f| f.name.is_none())
     }
+
+    #[cfg(feature = "serde")]
+    pub fn to_json_string(&self) -> Result<String, serde_json::Error> {
+        serde_json::to_string(self)
+    }
+
+    #[cfg(feature = "serde")]
+    pub fn to_json_string_pretty(&self) -> Result<String, serde_json::Error> {
+        serde_json::to_string_pretty(self)
+    }
 }
 
 /// Field of a struct or of an enum variant payload.

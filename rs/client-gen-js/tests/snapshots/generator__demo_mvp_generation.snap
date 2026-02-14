@@ -221,7 +221,8 @@ export class Counter {
 
     public subscribeToAddedEvent<T = number>(callback: (eventData: T) => void | Promise<void>): Promise<() => void> {
         const interfaceIdu64 = InterfaceId.from("0x579d6daba41b7d82").asU64();
-        const typeStr = this._typeResolver.getTypeDeclString("u32");
+        const eventDef = {"fields":[{"type":"u32"}]};
+        const typeStr = this._typeResolver.getStructDef(eventDef.fields);
         return this._api.gearEvents.subscribeToGearEvent("UserMessageSent", ({ data: { message } }) => {
             if (!message.source.eq(this._programId)) return;
             if (!message.destination.eq(ZERO_ADDRESS)) return;
@@ -239,7 +240,8 @@ export class Counter {
 
     public subscribeToSubtractedEvent<T = number>(callback: (eventData: T) => void | Promise<void>): Promise<() => void> {
         const interfaceIdu64 = InterfaceId.from("0x579d6daba41b7d82").asU64();
-        const typeStr = this._typeResolver.getTypeDeclString("u32");
+        const eventDef = {"fields":[{"type":"u32"}]};
+        const typeStr = this._typeResolver.getStructDef(eventDef.fields);
         return this._api.gearEvents.subscribeToGearEvent("UserMessageSent", ({ data: { message } }) => {
             if (!message.source.eq(this._programId)) return;
             if (!message.destination.eq(ZERO_ADDRESS)) return;
@@ -327,7 +329,8 @@ export class WalkerService {
 
     public subscribeToWalkedEvent<T = { $from: [number, number]; to: [number, number] }>(callback: (eventData: T) => void | Promise<void>): Promise<() => void> {
         const interfaceIdu64 = InterfaceId.from("0xee1536b55170bf0a").asU64();
-        const typeStr = "{\"from\": \"(i32, i32)\", \"to\": \"(i32, i32)\"}";
+        const eventDef = {"fields":[{"name":"from","type":{"kind":"tuple","types":["i32","i32"]}},{"name":"to","type":{"kind":"tuple","types":["i32","i32"]}}]};
+        const typeStr = this._typeResolver.getStructDef(eventDef.fields);
         return this._api.gearEvents.subscribeToGearEvent("UserMessageSent", ({ data: { message } }) => {
             if (!message.source.eq(this._programId)) return;
             if (!message.destination.eq(ZERO_ADDRESS)) return;
@@ -374,7 +377,8 @@ export class Dog {
 
     public subscribeToBarkedEvent<T = null>(callback: (eventData: T) => void | Promise<void>): Promise<() => void> {
         const interfaceIdu64 = InterfaceId.from("0x18666e67a21917a1").asU64();
-        const typeStr = "Null";
+        const eventDef = {"fields":[]};
+        const typeStr = this._typeResolver.getStructDef(eventDef.fields);
         return this._api.gearEvents.subscribeToGearEvent("UserMessageSent", ({ data: { message } }) => {
             if (!message.source.eq(this._programId)) return;
             if (!message.destination.eq(ZERO_ADDRESS)) return;
@@ -630,7 +634,8 @@ export class ValueFee {
 
     public subscribeToWithheldEvent<T = bigint>(callback: (eventData: T) => void | Promise<void>): Promise<() => void> {
         const interfaceIdu64 = InterfaceId.from("0x41c1080b4e1e8dc5").asU64();
-        const typeStr = this._typeResolver.getTypeDeclString("u128");
+        const eventDef = {"fields":[{"type":"u128"}]};
+        const typeStr = this._typeResolver.getStructDef(eventDef.fields);
         return this._api.gearEvents.subscribeToGearEvent("UserMessageSent", ({ data: { message } }) => {
             if (!message.source.eq(this._programId)) return;
             if (!message.destination.eq(ZERO_ADDRESS)) return;

@@ -189,7 +189,8 @@ impl<'a> ServiceGenerator<'a> {
             $docs
             public $(method_name)<T = $(&event_ts_type)>(callback: (eventData: T) => void | Promise<void>): Promise<() => void> {
               const interfaceIdu64 = $interface_id_type.from($(quoted(interface_id))).asU64();
-              const typeStr = $(event_type_str_expr);
+              const eventDef = $(event.def.to_json_string().expect("StructDef should be serializable to JSON"));
+              const typeStr = this._typeResolver.getStructDef(eventDef.fields);
               return this._api.gearEvents.subscribeToGearEvent("UserMessageSent", ({ data: { message } }) => {
                 if (!message.source.eq(this._programId)) return;
                 if (!message.destination.eq($zero_address)) return;
