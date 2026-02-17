@@ -681,3 +681,17 @@ impl TypeDef {
         }
     }
 }
+
+/// FFI-safe representation of a [crate::ast::AliasDef].
+#[repr(C)]
+pub struct AliasDef {
+    pub raw_ptr: Ptr,
+}
+
+impl AliasDef {
+    pub fn from_ast(alias_def: &ast::AliasDef, _allocations: &mut Allocations) -> Self {
+        AliasDef {
+            raw_ptr: Ptr::from(alias_def),
+        }
+    }
+}

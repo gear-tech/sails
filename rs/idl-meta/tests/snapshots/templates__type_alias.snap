@@ -1,0 +1,6 @@
+---
+source: rs/idl-meta/tests/templates.rs
+expression: idl
+---
+/// My alias docs
+alias MyAlias= u32;

@@ -43,6 +43,13 @@ fn test_events_works() {
 }
 
 #[test]
+fn test_aliases_works() {
+    let idl = include_str!("idls/aliases_works.idl");
+
+    insta::assert_snapshot!(gen_client(idl));
+}
+
+#[test]
 fn full_with_sails_path() {
     const IDL: &str = include_str!("idls/full_coverage.idl");
 

@@ -7107,6 +7107,7 @@ dependencies = [
  "pest_derive",
  "sails-idl-meta",
  "thiserror 2.0.12",
+ "xxhash-rust",
 ]
 
 [[package]]
