@@ -2,7 +2,7 @@ use sails_client_gen_js::JsClientGenerator;
 use insta::assert_snapshot;
 
 #[test]
-fn test_demo_mvp_generation() {
+fn test_demo_generation() {
     let idl = include_str!("../../../js/test/demo-v2/demo.idl");
     let generated = JsClientGenerator::from_idl(idl)
         .generate()

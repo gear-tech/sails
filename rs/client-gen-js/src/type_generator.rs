@@ -134,7 +134,7 @@ impl<'a> TypeGenerator<'a> {
         }
     }
 
-    fn ts_type_decl(&self, ty: &ast::TypeDecl) -> String {
+    pub(crate) fn ts_type_decl(&self, ty: &ast::TypeDecl) -> String {
         match ty {
             ast::TypeDecl::Primitive(p) => match p {
                 ast::PrimitiveType::Void => "null".to_string(),
@@ -234,4 +234,3 @@ fn render_type_params(params: &[ast::TypeParameter]) -> String {
         )
     }
 }
-

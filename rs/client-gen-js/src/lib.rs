@@ -2,6 +2,7 @@ use anyhow::{Context, Result, bail};
 use root_generator::RootGenerator;
 use sails_idl_parser_v2::parse_idl;
 use std::{fs, path::Path};
+use type_generator::TypeGenerator;
 
 mod naming;
 mod helpers;
@@ -78,7 +79,12 @@ impl<'a> JsClientGenerator<IdlString<'a>> {
 
     pub fn generate(self) -> Result<String> {
         let doc = parse_idl(self.idl.0).context("Failed to parse IDL")?;
-        let mut generator = RootGenerator::new();
+        let type_gen = if let Some(program) = &doc.program {
+            TypeGenerator::new(&program.types)
+        } else {
+            TypeGenerator::new(&[])
+        };
+        let mut generator = RootGenerator::new(&type_gen);
         let output = generator.generate(&doc);
 
         match self.output_layout {

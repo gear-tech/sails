@@ -1,5 +1,5 @@
 use crate::{
-    helpers::{doc_tokens, payload_type_expr, serialize_type, serialize_type_decl, ts_type_decl},
+    helpers::{doc_tokens, payload_type_expr, serialize_type, serialize_type_decl},
     naming::{escape_ident, to_camel},
     type_generator::TypeGenerator,
 };
@@ -93,18 +93,24 @@ impl<'a> ServiceGenerator<'a> {
         let args = func
             .params
             .iter()
-            .map(|p| format!("{}: {}", escape_ident(&p.name), ts_type_decl(&p.type_decl)))
+            .map(|p| {
+                format!(
+                    "{}: {}",
+                    escape_ident(&p.name),
+                    self.type_gen.ts_type_decl(&p.type_decl)
+                )
+            })
             .collect::<Vec<_>>()
             .join(", ");
 
         let return_type = if let Some(throws) = &func.throws {
             format!(
                 "{{ ok: {} }} | {{ err: {} }}",
-                ts_type_decl(&func.output),
-                ts_type_decl(throws)
+                self.type_gen.ts_type_decl(&func.output),
+                self.type_gen.ts_type_decl(throws)
             )
         } else {
-            ts_type_decl(&func.output)
+            self.type_gen.ts_type_decl(&func.output)
         };
 
         let payload_type = payload_type_expr(&func.params, "this._typeResolver");
@@ -211,13 +217,13 @@ impl<'a> ServiceGenerator<'a> {
 
         if event.def.is_tuple() {
             if fields.len() == 1 {
-                return ts_type_decl(&fields[0].type_decl);
+                return self.type_gen.ts_type_decl(&fields[0].type_decl);
             }
             return format!(
                 "[{}]",
                 fields
                     .iter()
-                    .map(|f| ts_type_decl(&f.type_decl))
+                    .map(|f| self.type_gen.ts_type_decl(&f.type_decl))
                     .collect::<Vec<_>>()
                     .join(", ")
             );
@@ -230,7 +236,7 @@ impl<'a> ServiceGenerator<'a> {
                 .map(|f| format!(
                     "{}: {}",
                     escape_ident(f.name.as_deref().unwrap_or("field")),
-                    ts_type_decl(&f.type_decl)
+                    self.type_gen.ts_type_decl(&f.type_decl)
                 ))
                 .collect::<Vec<_>>()
                 .join("; ")

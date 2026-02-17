@@ -1,5 +1,5 @@
 use crate::{
-    helpers::{doc_tokens, payload_type_expr, serialize_type, ts_type_decl},
+    helpers::{doc_tokens, payload_type_expr, serialize_type},
     naming::{escape_ident, to_camel},
     service_generator::ServiceGenerator,
     type_generator::TypeGenerator,
@@ -9,11 +9,13 @@ use js::Tokens;
 use sails_idl_parser_v2::ast;
 use std::collections::{BTreeMap, BTreeSet};
 
-pub(crate) struct RootGenerator;
+pub(crate) struct RootGenerator<'a> {
+    type_gen: &'a TypeGenerator<'a>,
+}
 
-impl RootGenerator {
-    pub(crate) fn new() -> Self {
-        Self
+impl<'a> RootGenerator<'a> {
+    pub(crate) fn new(type_gen: &'a TypeGenerator<'a>) -> Self {
+        Self { type_gen }
     }
 
     pub(crate) fn generate(&mut self, doc: &ast::IdlDoc) -> String {
@@ -32,14 +34,8 @@ impl RootGenerator {
             }
         }
 
-        let type_gen = if let Some(program) = &doc.program {
-            TypeGenerator::new(&program.types)
-        } else {
-            TypeGenerator::new(&[])
-        };
-
         if let Some(program) = &doc.program {
-            type_gen.render_all(&mut tokens, &program.types);
+            self.type_gen.render_all(&mut tokens, &program.types);
             if !program.types.is_empty() {
                 tokens.push();
             }
@@ -82,6 +78,7 @@ impl RootGenerator {
                 .enumerate()
                 .flat_map(|(entry_id, ctor)| {
                     render_ctor_methods(
+                        self.type_gen,
                         ctor,
                         entry_id as u16,
                         tx_builder,
@@ -118,7 +115,7 @@ impl RootGenerator {
         }
 
         if let Some(program) = &doc.program {
-            let service_gen = ServiceGenerator::new(&type_gen);
+            let service_gen = ServiceGenerator::new(self.type_gen);
             let mut rendered = BTreeSet::new();
             for service_expo in &program.services {
                 let Some(interface_id) = service_expo.name.interface_id else {
@@ -193,6 +190,7 @@ fn render_service_recursive<'a>(
 }
 
 fn render_ctor_methods(
+    type_gen: &TypeGenerator<'_>,
     ctor: &ast::CtorFunc,
     entry_id: u16,
     tx_builder: &js::Import,
@@ -206,15 +204,15 @@ fn render_ctor_methods(
     let args_sig = ctor
         .params
         .iter()
-        .map(|p| {
-            format!(
-                "{}: {}",
-                escape_ident(&p.name),
-                ts_type_decl(&p.type_decl)
-            )
-        })
-        .collect::<Vec<_>>()
-        .join(", ");
+                .map(|p| {
+                    format!(
+                        "{}: {}",
+                        escape_ident(&p.name),
+                        type_gen.ts_type_decl(&p.type_decl)
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join(", ");
 
     let code_arg = "code: Uint8Array | Buffer | HexString".to_string();
     let code_id_arg = "codeId: `0x${string}`".to_string();
@@ -289,4 +287,3 @@ fn render_ctor_methods(
 
     vec![from_code, from_code_id]
 }
-
