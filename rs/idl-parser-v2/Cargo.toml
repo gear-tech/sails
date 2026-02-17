@@ -14,7 +14,7 @@ crate-type = ["rlib"]
 
 [features]
 default = []
-std = ["pest/std", "pest_derive/std", "thiserror/std"]
+std = ["pest/std", "pest_derive/std", "thiserror/std", "dep:xxhash-rust"]
 
 [dependencies]
 thiserror.workspace = true
@@ -22,4 +22,4 @@ pest.workspace = true
 pest_derive.workspace = true
 sails-idl-meta = { workspace = true, features = ["ast"] }
 paste.workspace = true
-xxhash-rust = { version = "0.8.15", features = ["xxh3"] }
+xxhash-rust = { version = "0.8.15", default-features = false, features = ["xxh3"], optional = true }

@@ -7054,7 +7054,6 @@ dependencies = [
  "parity-scale-codec",
  "sails-idl-meta",
  "sails-idl-parser-v2",
- "xxhash-rust",
 ]
 
 [[package]]

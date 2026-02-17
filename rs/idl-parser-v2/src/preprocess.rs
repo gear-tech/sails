@@ -14,8 +14,6 @@ pub trait IdlLoader {
 
 /// Preprocesses the IDL source, starting from the given path,
 /// resolving `!@include` directives recursively.
-///
-/// Each file is included at most once (behavior similar to `#pragma once`).
 pub fn preprocess(path: &str, loader: &impl IdlLoader) -> Result<String, String> {
     let mut visited = BTreeSet::new();
     preprocess_recursive(path, loader, &mut visited)
@@ -68,6 +66,52 @@ fn preprocess_recursive(
     }
 
     Ok(result)
+}
+
+#[cfg(feature = "std")]
+pub mod fs {
+    use super::IdlLoader;
+    use alloc::format;
+    use alloc::string::String;
+    use std::fs;
+    use std::path::{Path, PathBuf};
+
+    pub struct FsLoader {
+        base_dir: PathBuf,
+    }
+
+    impl FsLoader {
+        pub fn new(base_dir: impl Into<PathBuf>) -> Self {
+            Self {
+                base_dir: base_dir.into(),
+            }
+        }
+    }
+
+    impl IdlLoader for FsLoader {
+        fn load(&self, path: &str) -> Result<(String, u64), String> {
+            let full_path = self.base_dir.join(path);
+
+            let content = fs::read_to_string(&full_path).map_err(|e| {
+                format!(
+                    "Failed to read include '{}' (base_dir: '{}'): {}",
+                    path,
+                    self.base_dir.display(),
+                    e
+                )
+            })?;
+
+            let hash = xxhash_rust::xxh3::xxh3_64(content.as_bytes());
+            Ok((content, hash))
+        }
+
+        fn resolve(&self, base_path: &str, include_path: &str) -> Result<String, String> {
+            let base_path = Path::new(base_path);
+            let parent = base_path.parent().unwrap_or(Path::new(""));
+            let resolved = parent.join(include_path);
+            Ok(resolved.to_string_lossy().into_owned())
+        }
+    }
 }
 
 fn calculate_brace_change(line: &str) -> i32 {

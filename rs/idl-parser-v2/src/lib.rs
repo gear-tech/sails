@@ -28,6 +28,28 @@ use pest::Parser;
 use pest::iterators::{Pair, Pairs};
 use sails_idl_meta::*;
 
+#[cfg(feature = "std")]
+/// Preprocesses an IDL from a file path, resolving all `!@include` directives into a single string.
+pub fn preprocess_idl_from_path(path: impl AsRef<std::path::Path>) -> Result<String> {
+    let path = path.as_ref();
+    let parent_dir = path.parent().unwrap_or(std::path::Path::new("."));
+    let loader = preprocess::fs::FsLoader::new(parent_dir);
+
+    let filename = path
+        .file_name()
+        .and_then(|s| s.to_str())
+        .ok_or_else(|| Error::Parse(format!("Invalid IDL path: {}", path.display())))?;
+
+    preprocess::preprocess(filename, &loader).map_err(Error::Parse)
+}
+
+#[cfg(feature = "std")]
+/// Parses an IDL from a file path, resolving all `!@include` directives.
+pub fn parse_idl_from_path(path: impl AsRef<std::path::Path>) -> Result<IdlDoc> {
+    let full_src = preprocess_idl_from_path(path)?;
+    parse_idl(&full_src)
+}
+
 type Annotation = (String, Option<String>);
 
 #[derive(pest_derive::Parser)]
