@@ -82,6 +82,11 @@ pub trait Visitor<'ast> {
         accept_enum_variant(enum_variant, self);
     }
 
+    /// Visits an alias definition, [ast::AliasDef].
+    fn visit_alias_def(&mut self, alias_def: &'ast ast::AliasDef) {
+        accept_alias_def(alias_def, self);
+    }
+
     // ----- TypeDecl variants -----
 
     /// Visits a slice type declaration, `[T]`, from [ast::TypeDecl::Slice].
@@ -273,6 +278,9 @@ pub fn accept_type_def<'ast>(
         ast::TypeDef::Enum(enum_def) => {
             visitor.visit_enum_def(enum_def);
         }
+        ast::TypeDef::Alias(alias_def) => {
+            visitor.visit_alias_def(alias_def);
+        }
     }
 }
 
@@ -315,6 +323,15 @@ pub fn accept_enum_variant<'ast>(
 ) {
     // EnumVariant contains a StructDef for its fields.
     visitor.visit_struct_def(&enum_variant.def);
+}
+
+/// Traverses the children of an [ast::AliasDef].
+/// It visits the target type of the alias.
+pub fn accept_alias_def<'ast>(
+    alias_def: &'ast ast::AliasDef,
+    visitor: &mut (impl Visitor<'ast> + ?Sized),
+) {
+    accept_type_decl(&alias_def.target, visitor);
 }
 
 #[cfg(test)]

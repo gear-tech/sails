@@ -7,6 +7,7 @@ mod ctor_generators;
 mod events_generator;
 mod helpers;
 mod mock_generator;
+mod resolution;
 mod root_generator;
 mod service_generators;
 mod type_generators;
@@ -102,7 +103,7 @@ impl<'ast> ClientGenerator<'ast, IdlPath<'ast>> {
         let client_path = self.client_path.context("client path not set")?;
         let idl_path = self.idl.0;
 
-        let idl = fs::read_to_string(idl_path)
+        let idl = resolution::resolve_idl_from_path(idl_path)
             .with_context(|| format!("Failed to open {} for reading", idl_path.display()))?;
 
         self.with_idl(&idl)
@@ -114,7 +115,7 @@ impl<'ast> ClientGenerator<'ast, IdlPath<'ast>> {
     pub fn generate_to(self, out_path: impl AsRef<Path>) -> Result<()> {
         let idl_path = self.idl.0;
 
-        let idl = fs::read_to_string(idl_path)
+        let idl = resolution::resolve_idl_from_path(idl_path)
             .with_context(|| format!("Failed to open {} for reading", idl_path.display()))?;
 
         self.with_idl(&idl)

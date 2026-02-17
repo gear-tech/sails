@@ -18,6 +18,7 @@ pub mod ffi {
     pub mod ast;
 }
 mod post_process;
+pub mod preprocess;
 pub mod visitor;
 
 // Sails IDL v2 — parser using `pest-rs`
@@ -203,14 +204,43 @@ pub fn parse_type(p: Pair<Rule>) -> Result<Type> {
     match p.as_rule() {
         Rule::StructDecl => parse_struct_type(p),
         Rule::EnumDecl => parse_enum_type(p),
-        Rule::AliasDecl => {
-            // TODO: Alias is not implemented
-            Err(Error::Validation("unimplemented AliasDecl".to_string()))
-        }
+        Rule::AliasDecl => parse_alias_decl(p),
         _ => Err(Error::Rule(
             "expected StructDecl | EnumDecl | AliasDecl".to_string(),
         )),
     }
+}
+
+fn parse_alias_decl(p: Pair<Rule>) -> Result<Type> {
+    let mut it = p.into_inner();
+    let name = expect_next(&mut it, parse_ident)?;
+    let mut type_params = Vec::new();
+    let mut target = None;
+
+    for part in it {
+        match part.as_rule() {
+            Rule::TypeParams => {
+                for i in part.into_inner().filter(|x| x.as_rule() == Rule::Ident) {
+                    let name = i.as_str().to_string();
+                    type_params.push(TypeParameter { name, ty: None });
+                }
+            }
+            Rule::Primitive | Rule::Named | Rule::Tuple | Rule::Slice | Rule::Array => {
+                target = Some(parse_type_decl(part)?);
+            }
+            _ => {}
+        }
+    }
+
+    let target = target.ok_or(Error::Rule("expected TypeDecl".to_string()))?;
+
+    Ok(Type {
+        name,
+        type_params,
+        def: TypeDef::Alias(AliasDef { target }),
+        docs: Vec::new(),
+        annotations: Vec::new(),
+    })
 }
 
 fn parse_struct_type(p: Pair<Rule>) -> Result<Type> {
@@ -713,12 +743,27 @@ mod tests {
     }
 
     #[test]
-    fn parse_alias_decl_not_supported() {
+    fn parse_alias_decl_works() {
         const SRC: &str = r#"alias AliasName = u32;"#;
 
         let mut pairs = IdlParser::parse(Rule::AliasDecl, SRC).expect("parse alias");
-        let err =
-            parse_type(pairs.next().expect("alias")).expect_err("alias should not be supported");
-        assert!(err.to_string().contains("unimplemented AliasDecl"));
+        let ty = parse_type(pairs.next().expect("alias")).expect("alias should be supported");
+        assert_eq!(ty.name, "AliasName");
+        if let TypeDef::Alias(def) = ty.def {
+            assert_eq!(def.target, TypeDecl::Primitive(PrimitiveType::U32));
+        } else {
+            panic!("Expected AliasDef");
+        }
+    }
+
+    #[test]
+    fn parse_generic_alias() {
+        const SRC: &str = r#"alias Result<T> = Result<T, String>;"#;
+        let mut pairs = IdlParser::parse(Rule::AliasDecl, SRC).expect("parse alias");
+        let ty = parse_type(pairs.next().expect("alias")).expect("parse alias type");
+
+        assert_eq!(ty.name, "Result");
+        assert_eq!(ty.type_params.len(), 1);
+        assert_eq!(ty.type_params[0].name, "T");
     }
 }

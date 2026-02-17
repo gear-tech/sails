@@ -16,6 +16,7 @@ genco.workspace = true
 parity-scale-codec.workspace = true
 sails-idl-meta = { workspace = true, features = ["ast"] }
 sails-idl-parser-v2 = { workspace = true, features = ["std"] }
+xxhash-rust = { version = "0.8.15", features = ["xxh3"] }
 
 [dev-dependencies]
 insta.workspace = true

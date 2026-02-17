@@ -73,6 +73,13 @@ impl<'ast> Visitor<'ast> for TopLevelTypeGenerator<'ast> {
                 enum_def_generator.visit_enum_def(enum_def);
                 self.tokens.extend(enum_def_generator.finalize());
             }
+            ast::TypeDef::Alias(alias_def) => {
+                let target_type_code = generate_type_decl_with_path(&alias_def.target, "");
+                quote_in! { self.tokens =>
+                    $['\r']
+                    pub type $(self.type_name) $(self.type_params_tokens.clone()) = $target_type_code;
+                };
+            }
         }
     }
 }

@@ -329,8 +329,8 @@ pub type ServiceEvent = EnumVariant;
 /// - tuples (`Tuple`),
 /// - named types (e.g. `Point<u32>`)
 ///     - container types like `Option<T>`, `Result<T, E>`
-///     - user-defined types with generics (`UserDefined`),
-///     - bare generic parameters (`T`).
+///     - user-defined named type
+///     - generic type parameter (e.g. `T`) used in type definitions.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(
     feature = "serde",
@@ -631,6 +631,7 @@ impl Display for TypeParameter {
 pub enum TypeDef {
     Struct(StructDef),
     Enum(EnumDef),
+    Alias(AliasDef),
 }
 
 /// Struct definition backing a named type or an enum variant payload.
@@ -736,6 +737,13 @@ pub struct EnumVariant {
         serde(default, skip_serializing_if = "Vec::is_empty")
     )]
     pub annotations: Vec<(String, Option<String>)>,
+}
+
+/// Alias definition backing a named alias type.
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct AliasDef {
+    pub target: TypeDecl,
 }
 
 #[cfg(feature = "serde")]

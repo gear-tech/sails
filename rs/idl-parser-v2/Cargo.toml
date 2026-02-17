@@ -22,3 +22,4 @@ pest.workspace = true
 pest_derive.workspace = true
 sails-idl-meta = { workspace = true, features = ["ast"] }
 paste.workspace = true
+xxhash-rust = { version = "0.8.15", features = ["xxh3"] }
