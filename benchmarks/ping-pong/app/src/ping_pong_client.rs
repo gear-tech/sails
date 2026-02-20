@@ -2,13 +2,16 @@
 #[allow(unused_imports)]
 use sails_rs::{client::*, collections::*, prelude::*};
 pub struct PingPongProgram;
+
 impl sails_rs::client::Program for PingPongProgram {}
+
 pub trait PingPong {
     type Env: sails_rs::client::GearEnv;
     fn ping_pong_service(
         &self,
     ) -> sails_rs::client::Service<ping_pong_service::PingPongServiceImpl, Self::Env>;
 }
+
 impl<E: sails_rs::client::GearEnv> PingPong for sails_rs::client::Actor<PingPongProgram, E> {
     type Env = E;
     fn ping_pong_service(
@@ -17,12 +20,14 @@ impl<E: sails_rs::client::GearEnv> PingPong for sails_rs::client::Actor<PingPong
         self.service(stringify!(PingPongService))
     }
 }
+
 pub trait PingPongCtors {
     type Env: sails_rs::client::GearEnv;
     fn new_for_bench(
         self,
     ) -> sails_rs::client::PendingCtor<PingPongProgram, io::NewForBench, Self::Env>;
 }
+
 impl<E: sails_rs::client::GearEnv> PingPongCtors
     for sails_rs::client::Deployment<PingPongProgram, E>
 {
@@ -41,6 +46,7 @@ pub mod io {
 
 pub mod ping_pong_service {
     use super::*;
+
     pub trait PingPongService {
         type Env: sails_rs::client::GearEnv;
         fn ping(
@@ -48,7 +54,9 @@ pub mod ping_pong_service {
             payload: PingPongPayload,
         ) -> sails_rs::client::PendingCall<io::Ping, Self::Env>;
     }
+
     pub struct PingPongServiceImpl;
+
     impl<E: sails_rs::client::GearEnv> PingPongService
         for sails_rs::client::Service<PingPongServiceImpl, E>
     {

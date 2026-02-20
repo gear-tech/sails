@@ -2,13 +2,16 @@
 #[allow(unused_imports)]
 use sails_rs::{client::*, collections::*, prelude::*};
 pub struct CounterBenchProgramProgram;
+
 impl sails_rs::client::Program for CounterBenchProgramProgram {}
+
 pub trait CounterBenchProgram {
     type Env: sails_rs::client::GearEnv;
     fn counter_bench(
         &self,
     ) -> sails_rs::client::Service<counter_bench::CounterBenchImpl, Self::Env>;
 }
+
 impl<E: sails_rs::client::GearEnv> CounterBenchProgram
     for sails_rs::client::Actor<CounterBenchProgramProgram, E>
 {
@@ -19,12 +22,14 @@ impl<E: sails_rs::client::GearEnv> CounterBenchProgram
         self.service(stringify!(CounterBench))
     }
 }
+
 pub trait CounterBenchProgramCtors {
     type Env: sails_rs::client::GearEnv;
     fn new_for_bench(
         self,
     ) -> sails_rs::client::PendingCtor<CounterBenchProgramProgram, io::NewForBench, Self::Env>;
 }
+
 impl<E: sails_rs::client::GearEnv> CounterBenchProgramCtors
     for sails_rs::client::Deployment<CounterBenchProgramProgram, E>
 {
@@ -43,12 +48,15 @@ pub mod io {
 
 pub mod counter_bench {
     use super::*;
+
     pub trait CounterBench {
         type Env: sails_rs::client::GearEnv;
         fn inc(&mut self) -> sails_rs::client::PendingCall<io::Inc, Self::Env>;
         fn inc_async(&mut self) -> sails_rs::client::PendingCall<io::IncAsync, Self::Env>;
     }
+
     pub struct CounterBenchImpl;
+
     impl<E: sails_rs::client::GearEnv> CounterBench for sails_rs::client::Service<CounterBenchImpl, E> {
         type Env = E;
         fn inc(&mut self) -> sails_rs::client::PendingCall<io::Inc, Self::Env> {

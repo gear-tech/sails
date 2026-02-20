@@ -2,13 +2,16 @@
 #[allow(unused_imports)]
 use sails_rs::{client::*, collections::*, prelude::*};
 pub struct RmrkResourceProgram;
+
 impl sails_rs::client::Program for RmrkResourceProgram {}
+
 pub trait RmrkResource {
     type Env: sails_rs::client::GearEnv;
     fn rmrk_resource(
         &self,
     ) -> sails_rs::client::Service<rmrk_resource::RmrkResourceImpl, Self::Env>;
 }
+
 impl<E: sails_rs::client::GearEnv> RmrkResource
     for sails_rs::client::Actor<RmrkResourceProgram, E>
 {
@@ -19,12 +22,14 @@ impl<E: sails_rs::client::GearEnv> RmrkResource
         self.service(stringify!(RmrkResource))
     }
 }
+
 pub trait RmrkResourceCtors {
     type Env: sails_rs::client::GearEnv;
     #[allow(clippy::new_ret_no_self)]
     #[allow(clippy::wrong_self_convention)]
     fn new(self) -> sails_rs::client::PendingCtor<RmrkResourceProgram, io::New, Self::Env>;
 }
+
 impl<E: sails_rs::client::GearEnv> RmrkResourceCtors
     for sails_rs::client::Deployment<RmrkResourceProgram, E>
 {
@@ -41,6 +46,7 @@ pub mod io {
 
 pub mod rmrk_resource {
     use super::*;
+
     pub trait RmrkResource {
         type Env: sails_rs::client::GearEnv;
         fn add_part_to_resource(
@@ -58,7 +64,9 @@ pub mod rmrk_resource {
             resource_id: u8,
         ) -> sails_rs::client::PendingCall<io::Resource, Self::Env>;
     }
+
     pub struct RmrkResourceImpl;
+
     impl<E: sails_rs::client::GearEnv> RmrkResource for sails_rs::client::Service<RmrkResourceImpl, E> {
         type Env = E;
         fn add_part_to_resource(
@@ -102,6 +110,7 @@ pub mod rmrk_resource {
         impl sails_rs::client::Event for RmrkResourceEvents {
             const EVENT_NAMES: &'static [Route] = &["ResourceAdded", "PartAdded"];
         }
+
         impl sails_rs::client::ServiceWithEvents for RmrkResourceImpl {
             type Event = RmrkResourceEvents;
         }

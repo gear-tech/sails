@@ -2,13 +2,16 @@
 #[allow(unused_imports)]
 use sails_rs::{client::*, collections::*, prelude::*};
 pub struct ComputeStressProgramProgram;
+
 impl sails_rs::client::Program for ComputeStressProgramProgram {}
+
 pub trait ComputeStressProgram {
     type Env: sails_rs::client::GearEnv;
     fn compute_stress(
         &self,
     ) -> sails_rs::client::Service<compute_stress::ComputeStressImpl, Self::Env>;
 }
+
 impl<E: sails_rs::client::GearEnv> ComputeStressProgram
     for sails_rs::client::Actor<ComputeStressProgramProgram, E>
 {
@@ -19,12 +22,14 @@ impl<E: sails_rs::client::GearEnv> ComputeStressProgram
         self.service(stringify!(ComputeStress))
     }
 }
+
 pub trait ComputeStressProgramCtors {
     type Env: sails_rs::client::GearEnv;
     fn new_for_bench(
         self,
     ) -> sails_rs::client::PendingCtor<ComputeStressProgramProgram, io::NewForBench, Self::Env>;
 }
+
 impl<E: sails_rs::client::GearEnv> ComputeStressProgramCtors
     for sails_rs::client::Deployment<ComputeStressProgramProgram, E>
 {
@@ -44,6 +49,7 @@ pub mod io {
 
 pub mod compute_stress {
     use super::*;
+
     pub trait ComputeStress {
         type Env: sails_rs::client::GearEnv;
         fn compute_stress(
@@ -51,7 +57,9 @@ pub mod compute_stress {
             n: u32,
         ) -> sails_rs::client::PendingCall<io::ComputeStress, Self::Env>;
     }
+
     pub struct ComputeStressImpl;
+
     impl<E: sails_rs::client::GearEnv> ComputeStress
         for sails_rs::client::Service<ComputeStressImpl, E>
     {

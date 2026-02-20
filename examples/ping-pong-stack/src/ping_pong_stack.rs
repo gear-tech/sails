@@ -2,13 +2,16 @@
 #[allow(unused_imports)]
 use sails_rs::{client::*, collections::*, prelude::*};
 pub struct PingPongStackProgram;
+
 impl sails_rs::client::Program for PingPongStackProgram {}
+
 pub trait PingPongStack {
     type Env: sails_rs::client::GearEnv;
     fn ping_pong_stack(
         &self,
     ) -> sails_rs::client::Service<ping_pong_stack::PingPongStackImpl, Self::Env>;
 }
+
 impl<E: sails_rs::client::GearEnv> PingPongStack
     for sails_rs::client::Actor<PingPongStackProgram, E>
 {
@@ -19,6 +22,7 @@ impl<E: sails_rs::client::GearEnv> PingPongStack
         self.service(stringify!(PingPongStack))
     }
 }
+
 pub trait PingPongStackCtors {
     type Env: sails_rs::client::GearEnv;
     fn create_ping(
@@ -29,6 +33,7 @@ pub trait PingPongStackCtors {
         self,
     ) -> sails_rs::client::PendingCtor<PingPongStackProgram, io::CreatePong, Self::Env>;
 }
+
 impl<E: sails_rs::client::GearEnv> PingPongStackCtors
     for sails_rs::client::Deployment<PingPongStackProgram, E>
 {
@@ -54,12 +59,15 @@ pub mod io {
 
 pub mod ping_pong_stack {
     use super::*;
+
     pub trait PingPongStack {
         type Env: sails_rs::client::GearEnv;
         fn start(&mut self, limit: u32) -> sails_rs::client::PendingCall<io::Start, Self::Env>;
         fn ping(&mut self, countdown: u32) -> sails_rs::client::PendingCall<io::Ping, Self::Env>;
     }
+
     pub struct PingPongStackImpl;
+
     impl<E: sails_rs::client::GearEnv> PingPongStack
         for sails_rs::client::Service<PingPongStackImpl, E>
     {
