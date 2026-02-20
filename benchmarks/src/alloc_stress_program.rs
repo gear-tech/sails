@@ -2,11 +2,14 @@
 #[allow(unused_imports)]
 use sails_rs::{client::*, collections::*, prelude::*};
 pub struct AllocStressProgramProgram;
+
 impl sails_rs::client::Program for AllocStressProgramProgram {}
+
 pub trait AllocStressProgram {
     type Env: sails_rs::client::GearEnv;
     fn alloc_stress(&self) -> sails_rs::client::Service<alloc_stress::AllocStressImpl, Self::Env>;
 }
+
 impl<E: sails_rs::client::GearEnv> AllocStressProgram
     for sails_rs::client::Actor<AllocStressProgramProgram, E>
 {
@@ -15,12 +18,14 @@ impl<E: sails_rs::client::GearEnv> AllocStressProgram
         self.service(stringify!(AllocStress))
     }
 }
+
 pub trait AllocStressProgramCtors {
     type Env: sails_rs::client::GearEnv;
     fn new_for_bench(
         self,
     ) -> sails_rs::client::PendingCtor<AllocStressProgramProgram, io::NewForBench, Self::Env>;
 }
+
 impl<E: sails_rs::client::GearEnv> AllocStressProgramCtors
     for sails_rs::client::Deployment<AllocStressProgramProgram, E>
 {
@@ -39,6 +44,7 @@ pub mod io {
 
 pub mod alloc_stress {
     use super::*;
+
     pub trait AllocStress {
         type Env: sails_rs::client::GearEnv;
         fn alloc_stress(
@@ -46,7 +52,9 @@ pub mod alloc_stress {
             n: u32,
         ) -> sails_rs::client::PendingCall<io::AllocStress, Self::Env>;
     }
+
     pub struct AllocStressImpl;
+
     impl<E: sails_rs::client::GearEnv> AllocStress for sails_rs::client::Service<AllocStressImpl, E> {
         type Env = E;
         fn alloc_stress(

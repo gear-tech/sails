@@ -1,6 +1,6 @@
 error: multiple `service` attributes on the same impl are not allowed
- --> tests/ui/gservice_fails_multiple_not_allowed_on_one_impl.rs:6:1
-  |
+  --> tests/ui/gservice_fails_multiple_not_allowed_on_one_impl.rs:6:1
+   |
  6 | / #[service]
  7 | | impl MyService {
  8 | |     #[export]
