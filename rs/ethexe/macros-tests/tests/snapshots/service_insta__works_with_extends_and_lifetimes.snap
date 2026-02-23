@@ -21,23 +21,26 @@ for ExtendedWithLifetimeExposure<T> {
         if !T::ASYNC {
             return Some(false);
         }
-        if interface_id == <T as sails_rs::meta::Identifiable>::INTERFACE_ID {
-            match entry_id {
-                0u16 => Some(false),
-                1u16 => Some(false),
-                _ => None,
+        match (interface_id, entry_id) {
+            (id, 0u16) if id == <T as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+                Some(false)
             }
-        } else {
-            if sails_rs::meta::service_has_interface_id(
-                &T::BASE_SERVICES[0],
-                interface_id,
-            ) {
+            (id, 1u16) if id == <T as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+                Some(false)
+            }
+            (
+                id,
+                eid,
+            ) if sails_rs::meta::service_has_interface_id(
+                &T::BASE_SERVICES[0usize],
+                id,
+            ) => {
                 return <<BaseWithLifetime as sails_rs::gstd::services::Service>::Exposure as sails_rs::gstd::services::Exposure>::check_asyncness(
-                    interface_id,
-                    entry_id,
+                    id,
+                    eid,
                 );
             }
-            None
+            _ => None,
         }
     }
 }
@@ -76,53 +79,60 @@ impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
         use sails_rs::gstd::{InvocationIo, CommandReply};
-        if interface_id
-            == <self::ExtendedWithLifetime<
-                'a,
-            > as sails_rs::meta::Identifiable>::INTERFACE_ID
-        {
-            match entry_id {
-                0u16 => {
-                    let request: extended_with_lifetime_meta::__ExtendedNameParams = sails_rs::scale_codec::Decode::decode(
-                            &mut input,
-                        )
-                        .expect("Failed to decode params");
-                    let result = self.extended_name();
-                    let value = 0u128;
-                    if !sails_rs::gstd::is_empty_tuple::<String>() {
-                        <extended_with_lifetime_meta::__ExtendedNameParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
-                            &result,
-                            self.route_idx,
-                            |encoded_result| result_handler(encoded_result, value),
-                        );
-                    }
-                    return Some(());
+        match (interface_id, entry_id) {
+            (
+                id,
+                0u16,
+            ) if id
+                == <self::ExtendedWithLifetime<
+                    'a,
+                > as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+                let request: extended_with_lifetime_meta::__ExtendedNameParams = sails_rs::scale_codec::Decode::decode(
+                        &mut input,
+                    )
+                    .expect("Failed to decode params");
+                let result = self.extended_name();
+                let value = 0u128;
+                if !sails_rs::gstd::is_empty_tuple::<String>() {
+                    <extended_with_lifetime_meta::__ExtendedNameParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                        &result,
+                        self.route_idx,
+                        |encoded_result| result_handler(encoded_result, value),
+                    );
                 }
-                1u16 => {
-                    let request: extended_with_lifetime_meta::__NameParams = sails_rs::scale_codec::Decode::decode(
-                            &mut input,
-                        )
-                        .expect("Failed to decode params");
-                    let result = self.name();
-                    let value = 0u128;
-                    if !sails_rs::gstd::is_empty_tuple::<String>() {
-                        <extended_with_lifetime_meta::__NameParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
-                            &result,
-                            self.route_idx,
-                            |encoded_result| result_handler(encoded_result, value),
-                        );
-                    }
-                    return Some(());
-                }
-                _ => None,
+                return Some(());
             }
-        } else {
-            if sails_rs::meta::service_has_interface_id(
+            (
+                id,
+                1u16,
+            ) if id
+                == <self::ExtendedWithLifetime<
+                    'a,
+                > as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+                let request: extended_with_lifetime_meta::__NameParams = sails_rs::scale_codec::Decode::decode(
+                        &mut input,
+                    )
+                    .expect("Failed to decode params");
+                let result = self.name();
+                let value = 0u128;
+                if !sails_rs::gstd::is_empty_tuple::<String>() {
+                    <extended_with_lifetime_meta::__NameParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                        &result,
+                        self.route_idx,
+                        |encoded_result| result_handler(encoded_result, value),
+                    );
+                }
+                return Some(());
+            }
+            (
+                id,
+                eid,
+            ) if sails_rs::meta::service_has_interface_id(
                 &<self::ExtendedWithLifetime<
                     'a,
-                > as sails_rs::meta::ServiceMeta>::BASE_SERVICES[0],
-                interface_id,
-            ) {
+                > as sails_rs::meta::ServiceMeta>::BASE_SERVICES[0usize],
+                id,
+            ) => {
                 let base_service: BaseWithLifetime<'a> = self.inner.into();
                 return sails_rs::gstd::services::Service::expose(
                         base_service,
@@ -130,7 +140,7 @@ impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
                     )
                     .try_handle(interface_id, entry_id, input, result_handler);
             }
-            None
+            _ => None,
         }
     }
     pub async fn try_handle_async(
@@ -141,21 +151,16 @@ impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
         use sails_rs::gstd::{InvocationIo, CommandReply};
-        if interface_id
-            == <self::ExtendedWithLifetime<
-                'a,
-            > as sails_rs::meta::Identifiable>::INTERFACE_ID
-        {
-            match entry_id {
-                _ => None,
-            }
-        } else {
-            if sails_rs::meta::service_has_interface_id(
+        match (interface_id, entry_id) {
+            (
+                id,
+                eid,
+            ) if sails_rs::meta::service_has_interface_id(
                 &<self::ExtendedWithLifetime<
                     'a,
-                > as sails_rs::meta::ServiceMeta>::BASE_SERVICES[0],
-                interface_id,
-            ) {
+                > as sails_rs::meta::ServiceMeta>::BASE_SERVICES[0usize],
+                id,
+            ) => {
                 let base_service: BaseWithLifetime<'a> = self.inner.into();
                 return sails_rs::gstd::services::Service::expose(
                         base_service,
@@ -164,7 +169,7 @@ impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
                     .try_handle_async(interface_id, entry_id, input, result_handler)
                     .await;
             }
-            None
+            _ => None,
         }
     }
     pub fn try_handle_solidity(
@@ -174,71 +179,74 @@ impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
         input: &[u8],
     ) -> Option<(sails_rs::Vec<u8>, u128, bool)> {
         use sails_rs::gstd::CommandReply;
-        if interface_id
-            == <self::ExtendedWithLifetime<
-                'a,
-            > as sails_rs::meta::Identifiable>::INTERFACE_ID
-        {
-            match entry_id {
-                0u16 => {
-                    let (__encode_reply,): (bool,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
-                            input,
-                        )
-                        .ok()?;
-                    #[cfg(target_arch = "wasm32")]
-                    if sails_rs::gstd::msg::value() > 0 {
-                        core::panic!("'extended_name' accepts no value");
-                    }
-                    let result = self.extended_name();
-                    let value = 0u128;
-                    let output = if __encode_reply {
-                        let message_id = sails_rs::alloy_primitives::B256::new(
-                            sails_rs::gstd::Syscall::message_id().into_bytes(),
-                        );
-                        sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(
-                            &(message_id, result),
-                        )
-                    } else {
-                        sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(
-                            &(result,),
-                        )
-                    };
-                    return Some((output, value, __encode_reply));
+        match (interface_id, entry_id) {
+            (
+                id,
+                0u16,
+            ) if id
+                == <self::ExtendedWithLifetime<
+                    'a,
+                > as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+                let (__encode_reply,): (bool,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
+                        input,
+                    )
+                    .ok()?;
+                #[cfg(target_arch = "wasm32")]
+                if sails_rs::gstd::msg::value() > 0 {
+                    core::panic!("'extended_name' accepts no value");
                 }
-                1u16 => {
-                    let (__encode_reply,): (bool,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
-                            input,
-                        )
-                        .ok()?;
-                    #[cfg(target_arch = "wasm32")]
-                    if sails_rs::gstd::msg::value() > 0 {
-                        core::panic!("'name' accepts no value");
-                    }
-                    let result = self.name();
-                    let value = 0u128;
-                    let output = if __encode_reply {
-                        let message_id = sails_rs::alloy_primitives::B256::new(
-                            sails_rs::gstd::Syscall::message_id().into_bytes(),
-                        );
-                        sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(
-                            &(message_id, result),
-                        )
-                    } else {
-                        sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(
-                            &(result,),
-                        )
-                    };
-                    return Some((output, value, __encode_reply));
-                }
-                _ => None,
+                let result = self.extended_name();
+                let value = 0u128;
+                let output = if __encode_reply {
+                    let message_id = sails_rs::alloy_primitives::B256::new(
+                        sails_rs::gstd::Syscall::message_id().into_bytes(),
+                    );
+                    sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(
+                        &(message_id, result),
+                    )
+                } else {
+                    sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(&(result,))
+                };
+                return Some((output, value, __encode_reply));
             }
-        } else {
-            if sails_rs::meta::service_has_interface_id(
+            (
+                id,
+                1u16,
+            ) if id
+                == <self::ExtendedWithLifetime<
+                    'a,
+                > as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+                let (__encode_reply,): (bool,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
+                        input,
+                    )
+                    .ok()?;
+                #[cfg(target_arch = "wasm32")]
+                if sails_rs::gstd::msg::value() > 0 {
+                    core::panic!("'name' accepts no value");
+                }
+                let result = self.name();
+                let value = 0u128;
+                let output = if __encode_reply {
+                    let message_id = sails_rs::alloy_primitives::B256::new(
+                        sails_rs::gstd::Syscall::message_id().into_bytes(),
+                    );
+                    sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(
+                        &(message_id, result),
+                    )
+                } else {
+                    sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(&(result,))
+                };
+                return Some((output, value, __encode_reply));
+            }
+            (
+                id,
+                eid,
+            ) if sails_rs::meta::service_has_interface_id(
                 &<self::ExtendedWithLifetime<
                     'a,
-                > as sails_rs::meta::ServiceMeta>::BASE_SERVICES[0],
-                interface_id,
-            ) {
+                > as sails_rs::meta::ServiceMeta>::BASE_SERVICES[0usize],
+                id,
+            ) => {
                 let base_service: BaseWithLifetime<'a> = self.inner.into();
                 return sails_rs::gstd::services::Service::expose(
                         base_service,
@@ -246,7 +254,7 @@ impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
                     )
                     .try_handle_solidity(interface_id, entry_id, input);
             }
-            None
+            _ => None,
         }
     }
     pub async fn try_handle_solidity_async(
@@ -256,21 +264,16 @@ impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
         input: &[u8],
     ) -> Option<(sails_rs::Vec<u8>, u128, bool)> {
         use sails_rs::gstd::CommandReply;
-        if interface_id
-            == <self::ExtendedWithLifetime<
-                'a,
-            > as sails_rs::meta::Identifiable>::INTERFACE_ID
-        {
-            match entry_id {
-                _ => None,
-            }
-        } else {
-            if sails_rs::meta::service_has_interface_id(
+        match (interface_id, entry_id) {
+            (
+                id,
+                eid,
+            ) if sails_rs::meta::service_has_interface_id(
                 &<self::ExtendedWithLifetime<
                     'a,
-                > as sails_rs::meta::ServiceMeta>::BASE_SERVICES[0],
-                interface_id,
-            ) {
+                > as sails_rs::meta::ServiceMeta>::BASE_SERVICES[0usize],
+                id,
+            ) => {
                 let base_service: BaseWithLifetime<'a> = self.inner.into();
                 return sails_rs::gstd::services::Service::expose(
                         base_service,
@@ -279,7 +282,7 @@ impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
                     .try_handle_solidity_async(interface_id, entry_id, input)
                     .await;
             }
-            None
+            _ => None,
         }
     }
 }
@@ -317,6 +320,20 @@ mod extended_with_lifetime_meta {
             sails_rs::meta::BaseServiceMeta::new::<
                 super::BaseWithLifetime,
             >("BaseWithLifetime"),
+        ];
+        const METHODS: &'static [sails_rs::meta::MethodMetadata] = &[
+            sails_rs::meta::MethodMetadata {
+                name: "ExtendedName",
+                entry_id: 0u16,
+                hash: sails_rs::hash_fn!(query ExtendedName() -> String),
+                is_async: false,
+            },
+            sails_rs::meta::MethodMetadata {
+                name: "Name",
+                entry_id: 1u16,
+                hash: sails_rs::hash_fn!(query Name() -> String),
+                is_async: false,
+            },
         ];
         const ASYNC: bool = <super::BaseWithLifetime as sails_rs::meta::ServiceMeta>::ASYNC;
     }

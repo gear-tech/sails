@@ -82,6 +82,8 @@ pub(crate) struct InvocationExport {
     pub export: bool,
     #[cfg(feature = "ethexe")]
     pub payable: bool,
+    pub overrides: Option<Path>,
+    pub entry_id: Option<u16>,
 }
 
 pub(crate) fn invocation_export(fn_impl: &ImplItemFn) -> Option<InvocationExport> {
@@ -102,6 +104,8 @@ pub(crate) fn invocation_export(fn_impl: &ImplItemFn) -> Option<InvocationExport
             export: true,
             #[cfg(feature = "ethexe")]
             payable,
+            overrides: args.overrides().cloned(),
+            entry_id: args.entry_id(),
         }
     })
 }
@@ -116,6 +120,8 @@ pub(crate) fn invocation_export_or_default(fn_impl: &ImplItemFn) -> InvocationEx
             export: false,
             #[cfg(feature = "ethexe")]
             payable: false,
+            overrides: None,
+            entry_id: None,
         }
     })
 }
@@ -133,28 +139,22 @@ pub(crate) fn discover_invocation_targets<'a>(
             if let ImplItem::Fn(fn_item) = item
                 && filter(fn_item)
             {
-                let InvocationExport {
-                    span,
-                    route,
-                    unwrap_result,
-                    export,
-                    #[cfg(feature = "ethexe")]
-                    payable,
-                } = invocation_export_or_default(fn_item);
+                let ie = invocation_export_or_default(fn_item);
                 // `entry_id` in order of appearance
                 let entry_id = routes.len() as u16;
-                if let Some(duplicate) = routes.insert(route.clone(), fn_item.sig.ident.to_string())
+                // If this is an override, it doesn't conflict with own service routes
+                // because it belongs to a different Interface ID.
+                if ie.overrides.is_none()
+                    && let Some(duplicate) =
+                        routes.insert(ie.route.clone(), fn_item.sig.ident.to_string())
                 {
                     abort!(
-                        span,
+                        ie.span,
                         "`export` attribute conflicts with one already assigned to '{}'",
                         duplicate
                     );
                 }
-                let fn_builder =
-                    FnBuilder::new(route, entry_id, export, fn_item, unwrap_result, sails_path);
-                #[cfg(feature = "ethexe")]
-                let fn_builder = fn_builder.payable(payable);
+                let fn_builder = FnBuilder::new(ie, entry_id, fn_item, sails_path);
                 return Some(fn_builder);
             }
             None
@@ -302,7 +302,10 @@ pub(crate) struct FnBuilder<'a> {
     pub route: String,
     pub entry_id: u16,
     pub export: bool,
+    #[cfg(feature = "ethexe")]
     pub payable: bool,
+    pub overrides: Option<Path>,
+    pub override_entry_id: Option<u16>,
     pub impl_fn: &'a ImplItemFn,
     pub ident: &'a Ident,
     pub params_struct_ident: Ident,
@@ -315,16 +318,29 @@ pub(crate) struct FnBuilder<'a> {
 
 impl<'a> FnBuilder<'a> {
     pub(crate) fn new(
-        route: String,
+        ie: InvocationExport,
         entry_id: u16,
-        export: bool,
         impl_fn: &'a ImplItemFn,
-        unwrap_result: bool,
         sails_path: &'a Path,
     ) -> Self {
+        let InvocationExport {
+            route,
+            unwrap_result,
+            export,
+            #[cfg(feature = "ethexe")]
+            payable,
+            overrides,
+            entry_id: override_entry_id,
+            ..
+        } = ie;
         let signature = &impl_fn.sig;
         let ident = &signature.ident;
-        let params_struct_ident = Ident::new(&format!("__{route}Params"), Span::call_site());
+        let params_struct_ident = if overrides.is_some() {
+            let ident_pascal = ident.to_string().to_case(Case::Pascal);
+            Ident::new(&format!("__{ident_pascal}Params"), Span::call_site())
+        } else {
+            Ident::new(&format!("__{route}Params"), Span::call_site())
+        };
         let (params_idents, params_types): (Vec<_>, Vec<_>) = extract_params(signature).unzip();
         let result_type = unwrap_result_type(signature, unwrap_result);
 
@@ -332,7 +348,10 @@ impl<'a> FnBuilder<'a> {
             route,
             entry_id,
             export,
-            payable: false,
+            #[cfg(feature = "ethexe")]
+            payable,
+            overrides,
+            override_entry_id,
             impl_fn,
             ident,
             params_struct_ident,
@@ -344,11 +363,6 @@ impl<'a> FnBuilder<'a> {
         }
     }
 
-    #[cfg(feature = "ethexe")]
-    pub(crate) fn payable(mut self, payable: bool) -> Self {
-        self.payable = payable;
-        self
-    }
     pub(crate) fn is_async(&self) -> bool {
         self.impl_fn.sig.asyncness.is_some()
     }
@@ -391,7 +405,7 @@ impl<'a> FnBuilder<'a> {
         use convert_case::{Boundary, Case, Casing};
 
         self.route
-            .with_boundaries(&[Boundary::UNDERSCORE, Boundary::LOWER_UPPER])
+            .set_boundaries(&[Boundary::Underscore, Boundary::LowerUpper])
             .to_case(Case::Camel)
     }
 

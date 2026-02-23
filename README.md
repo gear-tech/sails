@@ -364,6 +364,28 @@ impl MyServiceC {
 }
 ```
 
+#### Overriding Methods
+
+When extending services, you can override methods from the base service. Sails supports three ways to match an overriding method with a base method:
+
+1. **By Entry ID (`entry_id`)**: Allows renaming the function in the inheriting service. The name for the hash calculation will be automatically retrieved from the base service metadata.
+   ```rust
+   #[export(overrides = BaseService, entry_id = 0)]
+   pub fn new_name(&mut self) -> u32 { ... }
+   ```
+
+2. **By Explicit Route (`route`)**: Allows renaming the function by specifying the original method name in the base service via `route`.
+   ```rust
+   #[export(overrides = BaseService, route = "OriginalName")]
+   pub fn new_name(&mut self) -> u32 { ... }
+   ```
+
+3. **By Function Name (default)**: If neither `entry_id` nor `route` is specified, Sails searches for a method with the same name (in PascalCase) in the base service.
+   ```rust
+   #[export(overrides = BaseService)]
+   pub fn original_name(&mut self) -> u32 { ... }
+   ```
+
 ### Payload Encoding
 
 Sails messages use [SCALE Codec](https://github.com/paritytech/parity-scale-codec) for payload data but begin with a Sails Header v1

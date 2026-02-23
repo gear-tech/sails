@@ -142,6 +142,15 @@ service Chaos@0xf0c8c80dfabf72d5 {
     }
 }
 
+service Chain@0xd422c66e6021e0f9 {
+    extends {
+        Dog@0x18666e67a21917a1,
+    }
+    functions {
+        MakeSound() -> String;
+    }
+}
+
 program DemoClient {
     constructors {
         /// Program constructor (called once at the very beginning of the program lifetime)
@@ -157,5 +166,6 @@ program DemoClient {
         ThisThat@0x381e13fdd02d675f,
         ValueFee@0x41c1080b4e1e8dc5,
         Chaos@0xf0c8c80dfabf72d5,
+        Chain@0xd422c66e6021e0f9,
     }
 }

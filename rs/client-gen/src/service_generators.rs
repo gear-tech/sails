@@ -73,8 +73,31 @@ impl<'ast> ServiceGenerator<'ast> {
             const INTERFACE_ID: $(self.sails_path)::InterfaceId = $(self.sails_path)::InterfaceId::from_bytes_8([ $(for b in bytes join (, ) => $b) ]);
         };
 
+        let has_io = !self.io_tokens.is_empty();
+        let has_events = !self.events_tokens.is_empty();
+        let has_types = !self.types_tokens.is_empty();
+
+        let io_module = if has_io {
+            quote! {
+                $['\n']
+                pub mod io {
+                    use super::*;
+                    $(self.io_tokens)
+                }
+            }
+        } else {
+            quote!()
+        };
+
+        let allow_unused = if !has_io && !has_events && !has_types {
+            quote!(#[allow(unused_imports)])
+        } else {
+            quote!()
+        };
+
         quote! {
             $['\n']
+            $allow_unused
             pub mod $service_name_snake {
                 use super::*;
 
@@ -96,11 +119,7 @@ impl<'ast> ServiceGenerator<'ast> {
                     $(self.impl_tokens)
                 }
 
-                $['\n']
-                pub mod io {
-                    use super::*;
-                    $(self.io_tokens)
-                }
+                $io_module
 
                 $(self.events_tokens)
 

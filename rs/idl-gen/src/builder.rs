@@ -637,6 +637,7 @@ mod tests {
             type QueriesMeta = utils::NoQueries;
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [BaseServiceMeta] = &[];
+            const METHODS: &'static [MethodMetadata] = &[];
             const ASYNC: bool = false;
         }
 
@@ -793,6 +794,7 @@ mod tests {
             type QueriesMeta = BaseServiceQueries;
             type EventsMeta = BaseServiceEvents;
             const BASE_SERVICES: &'static [BaseServiceMeta] = &[];
+            const METHODS: &'static [MethodMetadata] = &[];
             const ASYNC: bool = false;
         }
 
@@ -807,6 +809,7 @@ mod tests {
             type EventsMeta = ExtendedServiceEvents;
             const BASE_SERVICES: &'static [BaseServiceMeta] =
                 &[BaseServiceMeta::new::<BaseService>("BaseService")];
+            const METHODS: &'static [MethodMetadata] = &[];
             const ASYNC: bool = false;
         }
 
@@ -917,6 +920,7 @@ mod tests {
             type QueriesMeta = BaseServiceQueries;
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [BaseServiceMeta] = &[];
+            const METHODS: &'static [MethodMetadata] = &[];
             const ASYNC: bool = false;
         }
 
@@ -931,6 +935,7 @@ mod tests {
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [BaseServiceMeta] =
                 &[BaseServiceMeta::new::<BaseService>("BaseService")];
+            const METHODS: &'static [MethodMetadata] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1015,6 +1020,7 @@ mod tests {
             type QueriesMeta = utils::NoQueries;
             type EventsMeta = BaseServiceEvents;
             const BASE_SERVICES: &'static [BaseServiceMeta] = &[];
+            const METHODS: &'static [MethodMetadata] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1029,6 +1035,7 @@ mod tests {
             type EventsMeta = ExtendedServiceEvents;
             const BASE_SERVICES: &'static [BaseServiceMeta] =
                 &[BaseServiceMeta::new::<BaseService>("BaseService")];
+            const METHODS: &'static [MethodMetadata] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1090,6 +1097,7 @@ mod tests {
             type QueriesMeta = utils::NoQueries;
             type EventsMeta = BaseServiceEvents;
             const BASE_SERVICES: &'static [BaseServiceMeta] = &[];
+            const METHODS: &'static [MethodMetadata] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1110,6 +1118,7 @@ mod tests {
             type EventsMeta = ExtendedServiceEvents;
             const BASE_SERVICES: &'static [BaseServiceMeta] =
                 &[BaseServiceMeta::new::<ServiceBase>("ServiceBase")];
+            const METHODS: &'static [MethodMetadata] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1162,6 +1171,7 @@ mod tests {
             type QueriesMeta = utils::NoQueries;
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [BaseServiceMeta] = &[];
+            const METHODS: &'static [MethodMetadata] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1175,6 +1185,7 @@ mod tests {
             type QueriesMeta = utils::NoQueries;
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [BaseServiceMeta] = &[];
+            const METHODS: &'static [MethodMetadata] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1191,6 +1202,7 @@ mod tests {
                 BaseServiceMeta::new::<ServiceA1>("ServiceA1"),
                 BaseServiceMeta::new::<ServiceA2>("ServiceA2"),
             ];
+            const METHODS: &'static [MethodMetadata] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1204,6 +1216,7 @@ mod tests {
             type QueriesMeta = utils::NoQueries;
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [BaseServiceMeta] = &[];
+            const METHODS: &'static [MethodMetadata] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1220,6 +1233,7 @@ mod tests {
                 BaseServiceMeta::new::<ServiceB1>("ServiceB1"),
                 BaseServiceMeta::new::<ServiceB2>("ServiceB2"),
             ];
+            const METHODS: &'static [MethodMetadata] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1251,6 +1265,7 @@ mod tests {
             type QueriesMeta = utils::NoQueries;
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [BaseServiceMeta] = &[];
+            const METHODS: &'static [MethodMetadata] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1265,6 +1280,7 @@ mod tests {
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [BaseServiceMeta] =
                 &[BaseServiceMeta::new::<BaseService>("BaseService")];
+            const METHODS: &'static [MethodMetadata] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1279,6 +1295,7 @@ mod tests {
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [BaseServiceMeta] =
                 &[BaseServiceMeta::new::<BaseService>("BaseService")];
+            const METHODS: &'static [MethodMetadata] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1308,6 +1325,7 @@ mod tests {
             type QueriesMeta = utils::NoQueries;
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [BaseServiceMeta] = &[];
+            const METHODS: &'static [MethodMetadata] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1322,6 +1340,7 @@ mod tests {
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [BaseServiceMeta] =
                 &[BaseServiceMeta::new::<BaseService>("BaseService")];
+            const METHODS: &'static [MethodMetadata] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1336,6 +1355,7 @@ mod tests {
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [BaseServiceMeta] =
                 &[BaseServiceMeta::new::<BaseService>("RenamedBaseService")];
+            const METHODS: &'static [MethodMetadata] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1460,6 +1480,7 @@ mod tests {
             type QueriesMeta = utils::NoQueries;
             type EventsMeta = InvalidEvents;
             const BASE_SERVICES: &'static [BaseServiceMeta] = &[];
+            const METHODS: &'static [MethodMetadata] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1492,6 +1513,7 @@ mod tests {
             type QueriesMeta = utils::NoQueries;
             type EventsMeta = EventServiceEvents;
             const BASE_SERVICES: &'static [BaseServiceMeta] = &[];
+            const METHODS: &'static [MethodMetadata] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1600,6 +1622,7 @@ mod tests {
             type QueriesMeta = utils::NoQueries;
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [BaseServiceMeta] = &[];
+            const METHODS: &'static [MethodMetadata] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1613,6 +1636,7 @@ mod tests {
             type QueriesMeta = NotVariantQueries;
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [BaseServiceMeta] = &[];
+            const METHODS: &'static [MethodMetadata] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1655,6 +1679,7 @@ mod tests {
             type QueriesMeta = utils::NoQueries;
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [BaseServiceMeta] = &[];
+            const METHODS: &'static [MethodMetadata] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1668,6 +1693,7 @@ mod tests {
             type QueriesMeta = utils::NoQueries;
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [BaseServiceMeta] = &[];
+            const METHODS: &'static [MethodMetadata] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1681,6 +1707,7 @@ mod tests {
             type QueriesMeta = BadQueries1;
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [BaseServiceMeta] = &[];
+            const METHODS: &'static [MethodMetadata] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1694,6 +1721,7 @@ mod tests {
             type QueriesMeta = BadQueries2;
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [BaseServiceMeta] = &[];
+            const METHODS: &'static [MethodMetadata] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1761,6 +1789,7 @@ mod tests {
             type QueriesMeta = utils::NoQueries;
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [BaseServiceMeta] = &[];
+            const METHODS: &'static [MethodMetadata] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1796,6 +1825,7 @@ mod tests {
             type QueriesMeta = utils::NoQueries;
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [BaseServiceMeta] = &[];
+            const METHODS: &'static [MethodMetadata] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1940,6 +1970,7 @@ mod tests {
             type QueriesMeta = utils::NoQueries;
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [BaseServiceMeta] = &[];
+            const METHODS: &'static [MethodMetadata] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1953,6 +1984,7 @@ mod tests {
             type QueriesMeta = OneFunction;
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [BaseServiceMeta] = &[];
+            const METHODS: &'static [MethodMetadata] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1966,6 +1998,7 @@ mod tests {
             type QueriesMeta = utils::NoQueries;
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [BaseServiceMeta] = &[];
+            const METHODS: &'static [MethodMetadata] = &[];
             const ASYNC: bool = false;
         }
 
@@ -2027,6 +2060,7 @@ mod tests {
             type QueriesMeta = ServiceQueries;
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [BaseServiceMeta] = &[];
+            const METHODS: &'static [MethodMetadata] = &[];
             const ASYNC: bool = false;
         }
 
@@ -2113,6 +2147,7 @@ mod tests {
             type QueriesMeta = utils::NoQueries;
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [BaseServiceMeta] = &[];
+            const METHODS: &'static [MethodMetadata] = &[];
             const ASYNC: bool = false;
         }
 
@@ -2126,6 +2161,7 @@ mod tests {
             type QueriesMeta = utils::NoQueries;
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [BaseServiceMeta] = &[];
+            const METHODS: &'static [MethodMetadata] = &[];
             const ASYNC: bool = false;
         }
 
@@ -2139,6 +2175,7 @@ mod tests {
             type QueriesMeta = CommandsWithNonUserDefinedArgs;
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [BaseServiceMeta] = &[];
+            const METHODS: &'static [MethodMetadata] = &[];
             const ASYNC: bool = false;
         }
 
@@ -2152,6 +2189,7 @@ mod tests {
             type QueriesMeta = CommandWithUserDefinedArgs;
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [BaseServiceMeta] = &[];
+            const METHODS: &'static [MethodMetadata] = &[];
             const ASYNC: bool = false;
         }
 
@@ -2165,6 +2203,7 @@ mod tests {
             type QueriesMeta = utils::NoQueries;
             type EventsMeta = EventsWithNonUserDefinedArgs;
             const BASE_SERVICES: &'static [BaseServiceMeta] = &[];
+            const METHODS: &'static [MethodMetadata] = &[];
             const ASYNC: bool = false;
         }
 
@@ -2178,6 +2217,7 @@ mod tests {
             type QueriesMeta = utils::NoQueries;
             type EventsMeta = EventsWithUserDefinedArgs;
             const BASE_SERVICES: &'static [BaseServiceMeta] = &[];
+            const METHODS: &'static [MethodMetadata] = &[];
             const ASYNC: bool = false;
         }
 
@@ -2351,6 +2391,7 @@ mod tests {
             type QueriesMeta = utils::NoQueries;
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [BaseServiceMeta] = &[];
+            const METHODS: &'static [MethodMetadata] = &[];
             const ASYNC: bool = false;
         }
 
@@ -2364,6 +2405,7 @@ mod tests {
             type QueriesMeta = utils::NoQueries;
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [BaseServiceMeta] = &[];
+            const METHODS: &'static [MethodMetadata] = &[];
             const ASYNC: bool = false;
         }
 
@@ -2457,6 +2499,7 @@ mod tests {
             type QueriesMeta = utils::NoQueries;
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [BaseServiceMeta] = &[];
+            const METHODS: &'static [MethodMetadata] = &[];
             const ASYNC: bool = false;
         }
 
@@ -2470,6 +2513,7 @@ mod tests {
             type QueriesMeta = utils::NoQueries;
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [BaseServiceMeta] = &[];
+            const METHODS: &'static [MethodMetadata] = &[];
             const ASYNC: bool = false;
         }
 
@@ -2483,6 +2527,7 @@ mod tests {
             type QueriesMeta = utils::NoQueries;
             type EventsMeta = utils::NoEvents;
             const BASE_SERVICES: &'static [BaseServiceMeta] = &[];
+            const METHODS: &'static [MethodMetadata] = &[];
             const ASYNC: bool = false;
         }
 

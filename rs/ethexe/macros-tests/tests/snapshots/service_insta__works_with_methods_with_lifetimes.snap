@@ -21,17 +21,23 @@ for ReferenceServiceExposure<T> {
         if !T::ASYNC {
             return Some(false);
         }
-        if interface_id == <T as sails_rs::meta::Identifiable>::INTERFACE_ID {
-            match entry_id {
-                0u16 => Some(false),
-                1u16 => Some(false),
-                2u16 => Some(false),
-                3u16 => Some(true),
-                4u16 => Some(true),
-                _ => None,
+        match (interface_id, entry_id) {
+            (id, 0u16) if id == <T as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+                Some(false)
             }
-        } else {
-            None
+            (id, 1u16) if id == <T as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+                Some(false)
+            }
+            (id, 2u16) if id == <T as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+                Some(false)
+            }
+            (id, 3u16) if id == <T as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+                Some(true)
+            }
+            (id, 4u16) if id == <T as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+                Some(true)
+            }
+            _ => None,
         }
     }
 }
@@ -81,62 +87,68 @@ impl ReferenceServiceExposure<ReferenceService> {
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
         use sails_rs::gstd::{InvocationIo, CommandReply};
-        if interface_id
-            == <self::ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID
-        {
-            match entry_id {
-                0u16 => {
-                    let request: reference_service_meta::__AddByteParams = sails_rs::scale_codec::Decode::decode(
-                            &mut input,
-                        )
-                        .expect("Failed to decode params");
-                    let result = self.add_byte(request.byte);
-                    let value = 0u128;
-                    if !sails_rs::gstd::is_empty_tuple::<&'static [u8]>() {
-                        <reference_service_meta::__AddByteParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
-                            &result,
-                            self.route_idx,
-                            |encoded_result| result_handler(encoded_result, value),
-                        );
-                    }
-                    return Some(());
+        match (interface_id, entry_id) {
+            (
+                id,
+                0u16,
+            ) if id
+                == <self::ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+                let request: reference_service_meta::__AddByteParams = sails_rs::scale_codec::Decode::decode(
+                        &mut input,
+                    )
+                    .expect("Failed to decode params");
+                let result = self.add_byte(request.byte);
+                let value = 0u128;
+                if !sails_rs::gstd::is_empty_tuple::<&'static [u8]>() {
+                    <reference_service_meta::__AddByteParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                        &result,
+                        self.route_idx,
+                        |encoded_result| result_handler(encoded_result, value),
+                    );
                 }
-                1u16 => {
-                    let request: reference_service_meta::__IncrParams = sails_rs::scale_codec::Decode::decode(
-                            &mut input,
-                        )
-                        .expect("Failed to decode params");
-                    let result = self.incr();
-                    let value = 0u128;
-                    if !sails_rs::gstd::is_empty_tuple::<&'static ReferenceCount>() {
-                        <reference_service_meta::__IncrParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
-                            &result,
-                            self.route_idx,
-                            |encoded_result| result_handler(encoded_result, value),
-                        );
-                    }
-                    return Some(());
-                }
-                2u16 => {
-                    let request: reference_service_meta::__BakedParams = sails_rs::scale_codec::Decode::decode(
-                            &mut input,
-                        )
-                        .expect("Failed to decode params");
-                    let result = self.baked();
-                    let value = 0u128;
-                    if !sails_rs::gstd::is_empty_tuple::<&'static str>() {
-                        <reference_service_meta::__BakedParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
-                            &result,
-                            self.route_idx,
-                            |encoded_result| result_handler(encoded_result, value),
-                        );
-                    }
-                    return Some(());
-                }
-                _ => None,
+                return Some(());
             }
-        } else {
-            None
+            (
+                id,
+                1u16,
+            ) if id
+                == <self::ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+                let request: reference_service_meta::__IncrParams = sails_rs::scale_codec::Decode::decode(
+                        &mut input,
+                    )
+                    .expect("Failed to decode params");
+                let result = self.incr();
+                let value = 0u128;
+                if !sails_rs::gstd::is_empty_tuple::<&'static ReferenceCount>() {
+                    <reference_service_meta::__IncrParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                        &result,
+                        self.route_idx,
+                        |encoded_result| result_handler(encoded_result, value),
+                    );
+                }
+                return Some(());
+            }
+            (
+                id,
+                2u16,
+            ) if id
+                == <self::ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+                let request: reference_service_meta::__BakedParams = sails_rs::scale_codec::Decode::decode(
+                        &mut input,
+                    )
+                    .expect("Failed to decode params");
+                let result = self.baked();
+                let value = 0u128;
+                if !sails_rs::gstd::is_empty_tuple::<&'static str>() {
+                    <reference_service_meta::__BakedParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                        &result,
+                        self.route_idx,
+                        |encoded_result| result_handler(encoded_result, value),
+                    );
+                }
+                return Some(());
+            }
+            _ => None,
         }
     }
     pub async fn try_handle_async(
@@ -147,46 +159,48 @@ impl ReferenceServiceExposure<ReferenceService> {
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
         use sails_rs::gstd::{InvocationIo, CommandReply};
-        if interface_id
-            == <self::ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID
-        {
-            match entry_id {
-                3u16 => {
-                    let request: reference_service_meta::__FirstByteParams = sails_rs::scale_codec::Decode::decode(
-                            &mut input,
-                        )
-                        .expect("Failed to decode params");
-                    let result = self.first_byte().await;
-                    let value = 0u128;
-                    if !sails_rs::gstd::is_empty_tuple::<Option<&'static u8>>() {
-                        <reference_service_meta::__FirstByteParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
-                            &result,
-                            self.route_idx,
-                            |encoded_result| result_handler(encoded_result, value),
-                        );
-                    }
-                    return Some(());
+        match (interface_id, entry_id) {
+            (
+                id,
+                3u16,
+            ) if id
+                == <self::ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+                let request: reference_service_meta::__FirstByteParams = sails_rs::scale_codec::Decode::decode(
+                        &mut input,
+                    )
+                    .expect("Failed to decode params");
+                let result = self.first_byte().await;
+                let value = 0u128;
+                if !sails_rs::gstd::is_empty_tuple::<Option<&'static u8>>() {
+                    <reference_service_meta::__FirstByteParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                        &result,
+                        self.route_idx,
+                        |encoded_result| result_handler(encoded_result, value),
+                    );
                 }
-                4u16 => {
-                    let request: reference_service_meta::__LastByteParams = sails_rs::scale_codec::Decode::decode(
-                            &mut input,
-                        )
-                        .expect("Failed to decode params");
-                    let result = self.last_byte().await;
-                    let value = 0u128;
-                    if !sails_rs::gstd::is_empty_tuple::<Option<&'static u8>>() {
-                        <reference_service_meta::__LastByteParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
-                            &result,
-                            self.route_idx,
-                            |encoded_result| result_handler(encoded_result, value),
-                        );
-                    }
-                    return Some(());
-                }
-                _ => None,
+                return Some(());
             }
-        } else {
-            None
+            (
+                id,
+                4u16,
+            ) if id
+                == <self::ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+                let request: reference_service_meta::__LastByteParams = sails_rs::scale_codec::Decode::decode(
+                        &mut input,
+                    )
+                    .expect("Failed to decode params");
+                let result = self.last_byte().await;
+                let value = 0u128;
+                if !sails_rs::gstd::is_empty_tuple::<Option<&'static u8>>() {
+                    <reference_service_meta::__LastByteParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                        &result,
+                        self.route_idx,
+                        |encoded_result| result_handler(encoded_result, value),
+                    );
+                }
+                return Some(());
+            }
+            _ => None,
         }
     }
     pub fn try_handle_solidity(
@@ -196,93 +210,92 @@ impl ReferenceServiceExposure<ReferenceService> {
         input: &[u8],
     ) -> Option<(sails_rs::Vec<u8>, u128, bool)> {
         use sails_rs::gstd::CommandReply;
-        if interface_id
-            == <self::ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID
-        {
-            match entry_id {
-                0u16 => {
-                    let (
-                        __encode_reply,
-                        byte,
-                    ): (
-                        bool,
-                        <<u8 as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::RustType,
-                    ) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(input)
-                        .ok()?;
-                    #[cfg(target_arch = "wasm32")]
-                    if sails_rs::gstd::msg::value() > 0 {
-                        core::panic!("'add_byte' accepts no value");
-                    }
-                    let result = self.add_byte(byte.into());
-                    let value = 0u128;
-                    let output = if __encode_reply {
-                        let message_id = sails_rs::alloy_primitives::B256::new(
-                            sails_rs::gstd::Syscall::message_id().into_bytes(),
-                        );
-                        sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(
-                            &(message_id, result),
-                        )
-                    } else {
-                        sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(
-                            &(result,),
-                        )
-                    };
-                    return Some((output, value, __encode_reply));
+        match (interface_id, entry_id) {
+            (
+                id,
+                0u16,
+            ) if id
+                == <self::ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+                let (
+                    __encode_reply,
+                    byte,
+                ): (
+                    bool,
+                    <<u8 as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::RustType,
+                ) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(input).ok()?;
+                #[cfg(target_arch = "wasm32")]
+                if sails_rs::gstd::msg::value() > 0 {
+                    core::panic!("'add_byte' accepts no value");
                 }
-                1u16 => {
-                    let (__encode_reply,): (bool,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
-                            input,
-                        )
-                        .ok()?;
-                    #[cfg(target_arch = "wasm32")]
-                    if sails_rs::gstd::msg::value() > 0 {
-                        core::panic!("'incr' accepts no value");
-                    }
-                    let result = self.incr();
-                    let value = 0u128;
-                    let output = if __encode_reply {
-                        let message_id = sails_rs::alloy_primitives::B256::new(
-                            sails_rs::gstd::Syscall::message_id().into_bytes(),
-                        );
-                        sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(
-                            &(message_id, result),
-                        )
-                    } else {
-                        sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(
-                            &(result,),
-                        )
-                    };
-                    return Some((output, value, __encode_reply));
-                }
-                2u16 => {
-                    let (__encode_reply,): (bool,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
-                            input,
-                        )
-                        .ok()?;
-                    #[cfg(target_arch = "wasm32")]
-                    if sails_rs::gstd::msg::value() > 0 {
-                        core::panic!("'baked' accepts no value");
-                    }
-                    let result = self.baked();
-                    let value = 0u128;
-                    let output = if __encode_reply {
-                        let message_id = sails_rs::alloy_primitives::B256::new(
-                            sails_rs::gstd::Syscall::message_id().into_bytes(),
-                        );
-                        sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(
-                            &(message_id, result),
-                        )
-                    } else {
-                        sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(
-                            &(result,),
-                        )
-                    };
-                    return Some((output, value, __encode_reply));
-                }
-                _ => None,
+                let result = self.add_byte(byte.into());
+                let value = 0u128;
+                let output = if __encode_reply {
+                    let message_id = sails_rs::alloy_primitives::B256::new(
+                        sails_rs::gstd::Syscall::message_id().into_bytes(),
+                    );
+                    sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(
+                        &(message_id, result),
+                    )
+                } else {
+                    sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(&(result,))
+                };
+                return Some((output, value, __encode_reply));
             }
-        } else {
-            None
+            (
+                id,
+                1u16,
+            ) if id
+                == <self::ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+                let (__encode_reply,): (bool,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
+                        input,
+                    )
+                    .ok()?;
+                #[cfg(target_arch = "wasm32")]
+                if sails_rs::gstd::msg::value() > 0 {
+                    core::panic!("'incr' accepts no value");
+                }
+                let result = self.incr();
+                let value = 0u128;
+                let output = if __encode_reply {
+                    let message_id = sails_rs::alloy_primitives::B256::new(
+                        sails_rs::gstd::Syscall::message_id().into_bytes(),
+                    );
+                    sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(
+                        &(message_id, result),
+                    )
+                } else {
+                    sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(&(result,))
+                };
+                return Some((output, value, __encode_reply));
+            }
+            (
+                id,
+                2u16,
+            ) if id
+                == <self::ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+                let (__encode_reply,): (bool,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
+                        input,
+                    )
+                    .ok()?;
+                #[cfg(target_arch = "wasm32")]
+                if sails_rs::gstd::msg::value() > 0 {
+                    core::panic!("'baked' accepts no value");
+                }
+                let result = self.baked();
+                let value = 0u128;
+                let output = if __encode_reply {
+                    let message_id = sails_rs::alloy_primitives::B256::new(
+                        sails_rs::gstd::Syscall::message_id().into_bytes(),
+                    );
+                    sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(
+                        &(message_id, result),
+                    )
+                } else {
+                    sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(&(result,))
+                };
+                return Some((output, value, __encode_reply));
+            }
+            _ => None,
         }
     }
     pub async fn try_handle_solidity_async(
@@ -292,64 +305,62 @@ impl ReferenceServiceExposure<ReferenceService> {
         input: &[u8],
     ) -> Option<(sails_rs::Vec<u8>, u128, bool)> {
         use sails_rs::gstd::CommandReply;
-        if interface_id
-            == <self::ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID
-        {
-            match entry_id {
-                3u16 => {
-                    let (__encode_reply,): (bool,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
-                            input,
-                        )
-                        .ok()?;
-                    #[cfg(target_arch = "wasm32")]
-                    if sails_rs::gstd::msg::value() > 0 {
-                        core::panic!("'first_byte' accepts no value");
-                    }
-                    let result = self.first_byte().await;
-                    let value = 0u128;
-                    let output = if __encode_reply {
-                        let message_id = sails_rs::alloy_primitives::B256::new(
-                            sails_rs::gstd::Syscall::message_id().into_bytes(),
-                        );
-                        sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(
-                            &(message_id, result),
-                        )
-                    } else {
-                        sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(
-                            &(result,),
-                        )
-                    };
-                    return Some((output, value, __encode_reply));
+        match (interface_id, entry_id) {
+            (
+                id,
+                3u16,
+            ) if id
+                == <self::ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+                let (__encode_reply,): (bool,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
+                        input,
+                    )
+                    .ok()?;
+                #[cfg(target_arch = "wasm32")]
+                if sails_rs::gstd::msg::value() > 0 {
+                    core::panic!("'first_byte' accepts no value");
                 }
-                4u16 => {
-                    let (__encode_reply,): (bool,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
-                            input,
-                        )
-                        .ok()?;
-                    #[cfg(target_arch = "wasm32")]
-                    if sails_rs::gstd::msg::value() > 0 {
-                        core::panic!("'last_byte' accepts no value");
-                    }
-                    let result = self.last_byte().await;
-                    let value = 0u128;
-                    let output = if __encode_reply {
-                        let message_id = sails_rs::alloy_primitives::B256::new(
-                            sails_rs::gstd::Syscall::message_id().into_bytes(),
-                        );
-                        sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(
-                            &(message_id, result),
-                        )
-                    } else {
-                        sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(
-                            &(result,),
-                        )
-                    };
-                    return Some((output, value, __encode_reply));
-                }
-                _ => None,
+                let result = self.first_byte().await;
+                let value = 0u128;
+                let output = if __encode_reply {
+                    let message_id = sails_rs::alloy_primitives::B256::new(
+                        sails_rs::gstd::Syscall::message_id().into_bytes(),
+                    );
+                    sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(
+                        &(message_id, result),
+                    )
+                } else {
+                    sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(&(result,))
+                };
+                return Some((output, value, __encode_reply));
             }
-        } else {
-            None
+            (
+                id,
+                4u16,
+            ) if id
+                == <self::ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+                let (__encode_reply,): (bool,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
+                        input,
+                    )
+                    .ok()?;
+                #[cfg(target_arch = "wasm32")]
+                if sails_rs::gstd::msg::value() > 0 {
+                    core::panic!("'last_byte' accepts no value");
+                }
+                let result = self.last_byte().await;
+                let value = 0u128;
+                let output = if __encode_reply {
+                    let message_id = sails_rs::alloy_primitives::B256::new(
+                        sails_rs::gstd::Syscall::message_id().into_bytes(),
+                    );
+                    sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(
+                        &(message_id, result),
+                    )
+                } else {
+                    sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(&(result,))
+                };
+                return Some((output, value, __encode_reply));
+            }
+            _ => None,
         }
     }
 }
@@ -390,6 +401,38 @@ mod reference_service_meta {
         type QueriesMeta = QueriesMeta;
         type EventsMeta = EventsMeta;
         const BASE_SERVICES: &'static [sails_rs::meta::BaseServiceMeta] = &[];
+        const METHODS: &'static [sails_rs::meta::MethodMetadata] = &[
+            sails_rs::meta::MethodMetadata {
+                name: "AddByte",
+                entry_id: 0u16,
+                hash: sails_rs::hash_fn!(command AddByte(u8) -> & 'static [u8]),
+                is_async: false,
+            },
+            sails_rs::meta::MethodMetadata {
+                name: "Incr",
+                entry_id: 1u16,
+                hash: sails_rs::hash_fn!(command Incr() -> & 'static ReferenceCount),
+                is_async: false,
+            },
+            sails_rs::meta::MethodMetadata {
+                name: "Baked",
+                entry_id: 2u16,
+                hash: sails_rs::hash_fn!(query Baked() -> & 'static str),
+                is_async: false,
+            },
+            sails_rs::meta::MethodMetadata {
+                name: "FirstByte",
+                entry_id: 3u16,
+                hash: sails_rs::hash_fn!(query FirstByte() -> Option < & 'static u8 >),
+                is_async: true,
+            },
+            sails_rs::meta::MethodMetadata {
+                name: "LastByte",
+                entry_id: 4u16,
+                hash: sails_rs::hash_fn!(query LastByte() -> Option < & 'static u8 >),
+                is_async: true,
+            },
+        ];
         const ASYNC: bool = true;
     }
     #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
