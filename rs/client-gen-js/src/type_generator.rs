@@ -1,145 +1,124 @@
-use crate::{helpers::push_doc, naming::escape_ident};
+use crate::{
+    helpers::{doc_tokens, push_doc},
+    naming::escape_ident,
+};
 use genco::prelude::*;
 use js::Tokens;
 use sails_idl_parser_v2::ast;
-use std::collections::BTreeMap;
 
-pub(crate) struct TypeGenerator<'a> {
-    type_index: BTreeMap<&'a str, &'a ast::Type>,
-}
+pub(crate) struct TypeGenerator;
 
-impl<'a> TypeGenerator<'a> {
-    pub(crate) fn new(types: &'a [ast::Type]) -> Self {
-        let mut type_index = BTreeMap::new();
-        for ty in types {
-            type_index.insert(ty.name.as_str(), ty);
-        }
-        Self { type_index }
+impl TypeGenerator {
+    pub(crate) fn new() -> Self {
+        Self
     }
 
-    pub(crate) fn render_all(&self, tokens: &mut Tokens, types: &'a [ast::Type]) {
+    pub(crate) fn render_all(&self, tokens: &mut Tokens, types: &[ast::Type]) {
         for ty in types {
             self.render_type(tokens, ty);
-            tokens.push();
         }
     }
 
-    pub(crate) fn render_type(&self, tokens: &mut Tokens, ty: &'a ast::Type) {
-        let _ = self.type_index.get(ty.name.as_str());
+    pub(crate) fn render_type(&self, tokens: &mut Tokens, ty: &ast::Type) {
+        let name = &ty.name;
+        if name == "NonZeroU8"
+            || name == "NonZeroU16"
+            || name == "NonZeroU32"
+            || name == "NonZeroU64"
+            || name == "NonZeroU128"
+            || name == "NonZeroU256"
+        {
+            return;
+        }
+
         push_doc(tokens, &ty.docs);
         match &ty.def {
-            ast::TypeDef::Struct(def) => self.render_struct(tokens, &ty.name, &ty.type_params, def),
-            ast::TypeDef::Enum(def) => self.render_enum(tokens, &ty.name, &ty.type_params, def),
+            ast::TypeDef::Struct(def) => {
+                tokens.append(self.render_struct(&ty.name, &ty.type_params, def))
+            }
+            ast::TypeDef::Enum(def) => {
+                tokens.append(self.render_enum(&ty.name, &ty.type_params, def))
+            }
         }
+        tokens.line();
     }
 
     fn render_struct(
         &self,
-        tokens: &mut Tokens,
         name: &str,
         type_params: &[ast::TypeParameter],
         def: &ast::StructDef,
-    ) {
+    ) -> Tokens {
         let generics = render_type_params(type_params);
+        let name = name.to_string();
+        let payload = self.ts_struct_def_tokens(def);
         if def.is_tuple() {
-            if def.fields.is_empty() {
-                tokens.append(format!("export type {name}{generics} = null;\n"));
-            } else if def.fields.len() == 1 {
-                let ty = self.ts_type_decl(&def.fields[0].type_decl);
-                tokens.append(format!("export type {name}{generics} = {ty};\n"));
-            } else {
-                let mut tuple = String::new();
-                tuple.push('[');
-                for (idx, field) in def.fields.iter().enumerate() {
-                    if idx > 0 {
-                        tuple.push_str(", ");
-                    }
-                    tuple.push_str(&self.ts_type_decl(&field.type_decl));
-                }
-                tuple.push(']');
-                tokens.append(format!("export type {name}{generics} = {tuple};\n"));
+            quote! {
+                export type $(name)$(generics) = $(payload);
             }
-            return;
+        } else {
+            quote! {
+                export interface $(name)$(generics) $(payload)
+            }
         }
-
-        tokens.append(format!("export interface {name}{generics} {{\n"));
-        for field in &def.fields {
-            push_doc(tokens, &field.docs);
-            let field_name = escape_ident(field.name.as_deref().unwrap_or("field"));
-            let field_ty = self.ts_type_decl(&field.type_decl);
-            tokens.append(format!("  {field_name}: {field_ty};\n"));
-        }
-        tokens.append("}\n");
     }
 
     fn render_enum(
         &self,
-        tokens: &mut Tokens,
         name: &str,
         type_params: &[ast::TypeParameter],
         def: &ast::EnumDef,
-    ) {
+    ) -> Tokens {
         let generics = render_type_params(type_params);
         let is_unit_only = def.variants.iter().all(|v| v.def.is_unit());
 
         if is_unit_only {
-            let mut union = String::new();
-            for (idx, variant) in def.variants.iter().enumerate() {
-                if idx > 0 {
-                    union.push_str(" | ");
-                }
-                union.push_str(&format!("'{}'", variant.name));
+            quote! {
+                export type $(name)$(generics) = $(for v in &def.variants join( | ) => $(quoted(&v.name)));$['\n']
             }
-            tokens.append(format!("export type {name}{generics} = {union};\n"));
-            return;
-        }
+        } else {
+            let variant_tokens = def.variants.iter().map(|variant| {
+                let docs = doc_tokens(&variant.docs);
+                let payload = self.ts_struct_def_tokens(&variant.def);
+                quote!({ $docs$(&variant.name): $payload })
+            });
 
-        tokens.append(format!("export type {name}{generics} =\n"));
-        for (idx, variant) in def.variants.iter().enumerate() {
-            push_doc(tokens, &variant.docs);
-            let payload = if variant.def.is_unit() {
-                "null".to_string()
-            } else if variant.def.is_tuple() {
-                if variant.def.fields.len() == 1 {
-                    self.ts_type_decl(&variant.def.fields[0].type_decl)
-                } else {
-                    let mut tuple = String::new();
-                    tuple.push('[');
-                    for (f_idx, field) in variant.def.fields.iter().enumerate() {
-                        if f_idx > 0 {
-                            tuple.push_str(", ");
-                        }
-                        tuple.push_str(&self.ts_type_decl(&field.type_decl));
-                    }
-                    tuple.push(']');
-                    tuple
-                }
-            } else {
-                let mut obj = String::new();
-                obj.push('{');
-                for (f_idx, field) in variant.def.fields.iter().enumerate() {
-                    if f_idx > 0 {
-                        obj.push(' ');
-                    }
-                    let field_name = escape_ident(field.name.as_deref().unwrap_or("field"));
-                    let ty = self.ts_type_decl(&field.type_decl);
-                    obj.push_str(&format!("{field_name}: {ty};"));
-                }
-                obj.push('}');
-                obj
-            };
-
-            let suffix = if idx + 1 == def.variants.len() { ";" } else { "" };
-            tokens.append(format!("  | {{ {}: {} }}{suffix}\n", variant.name, payload));
+            quote! {
+                export type $(name)$(generics) = $(for v in variant_tokens join ( | ) => $v);
+            }
         }
     }
 
-    pub(crate) fn ts_type_decl(&self, ty: &ast::TypeDecl) -> String {
+    pub(crate) fn ts_struct_def_tokens(&self, def: &ast::StructDef) -> Tokens {
+        if def.is_unit() {
+            quote! { null }
+        } else if def.is_tuple() {
+            if def.fields.len() == 1 {
+                self.ts_type_decl(&def.fields[0].type_decl)
+            } else {
+                let tuple_types = def
+                    .fields
+                    .iter()
+                    .map(|field| self.ts_type_decl(&field.type_decl));
+                quote! { [$(for ty in tuple_types join (, ) => $ty)] }
+            }
+        } else {
+            let fields = def.fields.iter().map(|field| {
+                let field_name =
+                    escape_ident(field.name.as_deref().expect("field name should be present"));
+                let field_ty = self.ts_type_decl(&field.type_decl);
+                quote! { $(field_name): $field_ty }
+            });
+            quote! { { $(for f in fields join (; ) => $f) } }
+        }
+    }
+
+    pub(crate) fn ts_type_decl(&self, ty: &ast::TypeDecl) -> Tokens {
         match ty {
             ast::TypeDecl::Primitive(p) => match p {
-                ast::PrimitiveType::Void => "null".to_string(),
-                ast::PrimitiveType::Bool => "boolean".to_string(),
-                ast::PrimitiveType::Char | ast::PrimitiveType::String => "string".to_string(),
+                ast::PrimitiveType::Void => quote! { null },
+                ast::PrimitiveType::Bool => quote! { boolean },
+                ast::PrimitiveType::Char | ast::PrimitiveType::String => quote! { string },
                 ast::PrimitiveType::I8
                 | ast::PrimitiveType::I16
                 | ast::PrimitiveType::I32
@@ -147,73 +126,79 @@ impl<'a> TypeGenerator<'a> {
                 | ast::PrimitiveType::U8
                 | ast::PrimitiveType::U16
                 | ast::PrimitiveType::U32
-                | ast::PrimitiveType::U64 => "number".to_string(),
+                | ast::PrimitiveType::U64 => quote! { number },
                 ast::PrimitiveType::I128 | ast::PrimitiveType::U128 | ast::PrimitiveType::U256 => {
-                    "bigint".to_string()
+                    quote! { bigint }
                 }
-                ast::PrimitiveType::ActorId
-                | ast::PrimitiveType::CodeId
-                | ast::PrimitiveType::MessageId
-                | ast::PrimitiveType::H160
-                | ast::PrimitiveType::H256 => "`0x${string}`".to_string(),
+                ast::PrimitiveType::ActorId => {
+                    let actor_id_token = js::import("sails-js", "ActorId");
+                    quote! { $(actor_id_token) }
+                }
+                ast::PrimitiveType::CodeId => {
+                    let code_id_token = js::import("sails-js", "CodeId");
+                    quote! { $(code_id_token) }
+                }
+                ast::PrimitiveType::MessageId => {
+                    let message_id_token = js::import("sails-js", "MessageId");
+                    quote! { $(message_id_token) }
+                }
+                ast::PrimitiveType::H160 => {
+                    let h160_token = js::import("sails-js", "H160");
+                    quote! { $(h160_token) }
+                }
+                ast::PrimitiveType::H256 => {
+                    let h256_token = js::import("sails-js", "H256");
+                    quote! { $(h256_token) }
+                }
             },
-            ast::TypeDecl::Slice { item } => format!("{}[]", self.ts_type_decl(item)),
+            ast::TypeDecl::Slice { item } => {
+                let ts_type = self.ts_type_decl(item);
+                quote! { $(ts_type)[] }
+            }
             ast::TypeDecl::Array { item, len } => {
                 if *len == 32 {
-                    "`0x${string}`".to_string()
+                    let rendered = "`0x${string}`".to_string();
+                    quote! { $(rendered) }
                 } else {
-                    format!("{}[]", self.ts_type_decl(item))
+                    let ty = self.ts_type_decl(item);
+                    quote! { $(ty)[] }
                 }
             }
             ast::TypeDecl::Tuple { types } => {
                 if types.is_empty() {
-                    "null".to_string()
+                    quote! { null }
                 } else {
-                    format!(
-                        "[{}]",
-                        types
-                            .iter()
-                            .map(|t| self.ts_type_decl(t))
-                            .collect::<Vec<_>>()
-                            .join(", ")
-                    )
+                    let tuple_types = types.iter().map(|t| self.ts_type_decl(t));
+                    quote! { [$(for ty in tuple_types join (, ) => $ty)] }
                 }
             }
             ast::TypeDecl::Named { name, generics } => {
                 if name == "Option" && generics.len() == 1 {
-                    return format!("{} | null", self.ts_type_decl(&generics[0]));
+                    let ty = self.ts_type_decl(&generics[0]);
+                    return quote!($(ty) | null);
                 }
                 if name == "Result" && generics.len() == 2 {
-                    return format!(
-                        "{{ ok: {} }} | {{ err: {} }}",
-                        self.ts_type_decl(&generics[0]),
-                        self.ts_type_decl(&generics[1])
-                    );
+                    let ok = self.ts_type_decl(&generics[0]);
+                    let err = self.ts_type_decl(&generics[1]);
+                    return quote!({ ok: $(ok) } | { err: $(err) });
                 }
 
                 if name == "NonZeroU8"
                     || name == "NonZeroU16"
                     || name == "NonZeroU32"
                     || name == "NonZeroU64"
+                    || name == "NonZeroU128"
+                    || name == "NonZeroU256"
                 {
-                    return "number".to_string();
-                }
-                if name == "NonZeroU128" || name == "NonZeroU256" {
-                    return "bigint".to_string();
+                    let import = js::import("sails-js", name);
+                    return quote! { $(import) };
                 }
 
                 if generics.is_empty() {
-                    name.clone()
+                    quote! { $(name) }
                 } else {
-                    format!(
-                        "{}<{}>",
-                        name,
-                        generics
-                            .iter()
-                            .map(|g| self.ts_type_decl(g))
-                            .collect::<Vec<_>>()
-                            .join(", ")
-                    )
+                    let generic_tokens = generics.iter().map(|g| self.ts_type_decl(g));
+                    quote! { $(name)<$(for g in generic_tokens join (, ) => $(g))> }
                 }
             }
         }

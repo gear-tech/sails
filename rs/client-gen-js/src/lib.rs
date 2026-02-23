@@ -4,8 +4,8 @@ use sails_idl_parser_v2::parse_idl;
 use std::{fs, path::Path};
 use type_generator::TypeGenerator;
 
-mod naming;
 mod helpers;
+mod naming;
 mod root_generator;
 mod service_generator;
 mod type_generator;
@@ -19,7 +19,6 @@ pub enum OutputLayout {
         client_file: String,
     },
 }
-
 
 pub struct IdlPath<'a>(&'a Path);
 pub struct IdlString<'a>(&'a str);
@@ -62,9 +61,12 @@ impl<'a> JsClientGenerator<IdlPath<'a>> {
 
     pub fn generate_to(self, out_path: impl AsRef<Path>) -> Result<()> {
         let out_path = out_path.as_ref();
-        let code = self.generate().context("failed to generate TypeScript client")?;
-        fs::write(out_path, code)
-            .with_context(|| format!("Failed to write generated client to {}", out_path.display()))?;
+        let code = self
+            .generate()
+            .context("failed to generate TypeScript client")?;
+        fs::write(out_path, code).with_context(|| {
+            format!("Failed to write generated client to {}", out_path.display())
+        })?;
         Ok(())
     }
 }
@@ -79,11 +81,7 @@ impl<'a> JsClientGenerator<IdlString<'a>> {
 
     pub fn generate(self) -> Result<String> {
         let doc = parse_idl(self.idl.0).context("Failed to parse IDL")?;
-        let type_gen = if let Some(program) = &doc.program {
-            TypeGenerator::new(&program.types)
-        } else {
-            TypeGenerator::new(&[])
-        };
+        let type_gen = TypeGenerator::new();
         let mut generator = RootGenerator::new(&type_gen);
         let output = generator.generate(&doc);
 

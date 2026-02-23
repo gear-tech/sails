@@ -1,5 +1,5 @@
-use sails_client_gen_js::JsClientGenerator;
 use insta::assert_snapshot;
+use sails_client_gen_js::JsClientGenerator;
 
 #[test]
 fn test_demo_generation() {
@@ -20,4 +20,3 @@ fn test_type_naming_parity_generation() {
 
     assert_snapshot!("type_naming_parity_generation", generated);
 }
-

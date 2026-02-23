@@ -10,11 +10,11 @@ use sails_idl_parser_v2::ast;
 use std::collections::{BTreeMap, BTreeSet};
 
 pub(crate) struct RootGenerator<'a> {
-    type_gen: &'a TypeGenerator<'a>,
+    type_gen: &'a TypeGenerator,
 }
 
 impl<'a> RootGenerator<'a> {
-    pub(crate) fn new(type_gen: &'a TypeGenerator<'a>) -> Self {
+    pub(crate) fn new(type_gen: &'a TypeGenerator) -> Self {
         Self { type_gen }
     }
 
@@ -190,7 +190,7 @@ fn render_service_recursive<'a>(
 }
 
 fn render_ctor_methods(
-    type_gen: &TypeGenerator<'_>,
+    type_gen: &TypeGenerator,
     ctor: &ast::CtorFunc,
     entry_id: u16,
     tx_builder: &js::Import,
@@ -201,30 +201,26 @@ fn render_ctor_methods(
     let from_code_name = escape_ident(&format!("{base_name}FromCode"));
     let from_code_id_name = escape_ident(&format!("{base_name}FromCodeId"));
 
-    let args_sig = ctor
+    let args_sig: Vec<_> = ctor
         .params
         .iter()
-                .map(|p| {
-                    format!(
-                        "{}: {}",
-                        escape_ident(&p.name),
-                        type_gen.ts_type_decl(&p.type_decl)
-                    )
-                })
-                .collect::<Vec<_>>()
-                .join(", ");
+        .map(|p| {
+            let ident = escape_ident(&p.name);
+            let ty = type_gen.ts_type_decl(&p.type_decl);
+            quote!($(ident): $(ty))
+        })
+        .collect();
 
-    let code_arg = "code: Uint8Array | Buffer | HexString".to_string();
-    let code_id_arg = "codeId: `0x${string}`".to_string();
-    let from_code_sig = if args_sig.is_empty() {
-        code_arg
+    let code_id_arg = "`0x${string}`".to_string();
+    let from_code_sig = if ctor.params.is_empty() {
+        quote!(code: Uint8Array | Buffer | HexString)
     } else {
-        format!("{code_arg}, {args_sig}")
+        quote!(code: Uint8Array | Buffer | HexString, $(for arg in &args_sig join (, ) => $(arg)) )
     };
-    let from_code_id_sig = if args_sig.is_empty() {
-        code_id_arg
+    let from_code_id_sig = if ctor.params.is_empty() {
+        quote!(codeId: $(code_id_arg))
     } else {
-        format!("{code_id_arg}, {args_sig}")
+        quote!(codeId: $(code_id_arg), $(for arg in &args_sig join (, ) => $(arg)) )
     };
 
     let payload_type = payload_type_expr(&ctor.params, "this._typeResolver");

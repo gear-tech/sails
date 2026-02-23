@@ -1,5 +1,5 @@
 import { GearApi, HexString } from "@gear-js/api";
-import { QueryBuilderWithHeader, TransactionBuilderWithHeader, TypeResolver, ZERO_ADDRESS } from '../..';
+import { ActorId, H160, H256, NonZeroU32, NonZeroU8, QueryBuilderWithHeader, TransactionBuilderWithHeader, TypeResolver, ZERO_ADDRESS } from '../..';
 import { InterfaceId, SailsMessageHeader } from "sails-js-parser-idl-v2";
 import { IStructField } from "sails-js-types";
 
@@ -388,7 +388,6 @@ export class Dog {
     }
 }
 export type ReferenceCount = number;
-
 export class References {
     private _typeResolver: TypeResolver;
     constructor(
@@ -502,28 +501,11 @@ export class References {
         );
     }
 }
-export interface DoThatParam {
-    p1: number;
-    p2: `0x${string}`;
-    p3: ManyVariants;
-}
-
-export type ManyVariants =
-    | { One: null }
-    | { Two: number }
-    | { Three: bigint | null }
-    | { Four: { a: number; b: number | null; } }
-    | { Five: [string, `0x${string}`] }
-    | { Six: [number] };
-
-export type ManyVariantsReply = 'One' | 'Two' | 'Three' | 'Four' | 'Five' | 'Six';
-
-export type NonZeroU32 = number;
-
-export type NonZeroU8 = number;
+export interface DoThatParam { p1: NonZeroU32; p2: ActorId; p3: ManyVariants }
+export type ManyVariants = { One: null } | { Two: number } | { Three: bigint | null } | { Four: { a: number; b: number | null } } | { Five: [string, H256] } | { Six: [number] };
+export type ManyVariantsReply = "One" | "Two" | "Three" | "Four" | "Five" | "Six";
 
 export type TupleStruct = boolean;
-
 export class ThisThat {
     private _typeResolver: TypeResolver;
     constructor(
@@ -536,8 +518,8 @@ export class ThisThat {
     private get registry() {
         return this._typeResolver.registry;
     }
-    public doThat(param: DoThatParam): TransactionBuilderWithHeader<{ ok: [`0x${string}`, number, ManyVariantsReply] } | { err: [string] }> {
-        return new TransactionBuilderWithHeader<{ ok: [`0x${string}`, number, ManyVariantsReply] } | { err: [string] }>(
+    public doThat(param: DoThatParam): TransactionBuilderWithHeader<{ ok: [ActorId, NonZeroU32, ManyVariantsReply] } | { err: [string] }> {
+        return new TransactionBuilderWithHeader<{ ok: [ActorId, NonZeroU32, ManyVariantsReply] } | { err: [string] }>(
             this._api,
             this.registry,
             "send_message",
@@ -549,7 +531,7 @@ export class ThisThat {
         );
     }
 
-    public doThis(p1: number, p2: string, p3: [`0x${string}` | null, number], p4: TupleStruct): TransactionBuilderWithHeader<[string, number]> {
+    public doThis(p1: number, p2: string, p3: [H160 | null, NonZeroU8], p4: TupleStruct): TransactionBuilderWithHeader<[string, number]> {
         return new TransactionBuilderWithHeader<[string, number]>(
             this._api,
             this.registry,

@@ -84,4 +84,3 @@ pub(crate) fn escape_ident(input: &str) -> String {
         input.to_string()
     }
 }
-

@@ -1,10 +1,9 @@
 ---
 source: rs/client-gen-js/tests/generator.rs
-assertion_line: 21
 expression: generated
 ---
 import {GearApi, HexString} from "@gear-js/api";
-import {QueryBuilderWithHeader, TypeResolver} from "sails-js";
+import {ActorId, QueryBuilderWithHeader, TypeResolver} from "sails-js";
 import {InterfaceId, SailsMessageHeader} from "sails-js-parser-idl-v2";
 
 export class TypeNamesProgram {
@@ -43,7 +42,7 @@ export class TypeNames {
     private get registry() {
         return this._typeResolver.registry;
     }
-    public read(value: { ok: [number, `0x${string}`][] } | { err: bigint } | null): QueryBuilderWithHeader<{ ok: Alias<number | null> } | { err: string }> {
+    public read(value: { ok: [number, ActorId][] } | { err: bigint } | null): QueryBuilderWithHeader<{ ok: Alias<number | null> } | { err: string }> {
         return new QueryBuilderWithHeader<{ ok: Alias<number | null> } | { err: string }>(
             this._api,
             this.registry,

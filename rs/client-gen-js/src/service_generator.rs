@@ -8,11 +8,11 @@ use js::Tokens;
 use sails_idl_parser_v2::ast;
 
 pub(crate) struct ServiceGenerator<'a> {
-    type_gen: &'a TypeGenerator<'a>,
+    type_gen: &'a TypeGenerator,
 }
 
 impl<'a> ServiceGenerator<'a> {
-    pub(crate) fn new(type_gen: &'a TypeGenerator<'a>) -> Self {
+    pub(crate) fn new(type_gen: &'a TypeGenerator) -> Self {
         Self { type_gen }
     }
 
@@ -29,10 +29,7 @@ impl<'a> ServiceGenerator<'a> {
             .expect("Service must have interface_id")
             .to_string();
 
-        for ty in &service.types {
-            self.type_gen.render_type(tokens, ty);
-            tokens.push();
-        }
+        self.type_gen.render_all(tokens, &service.types);
 
         let mut all_types = Vec::new();
         for ty in &service.types {
@@ -90,25 +87,16 @@ impl<'a> ServiceGenerator<'a> {
     fn render_func(&self, func: &ast::ServiceFunc, entry_id: u16, interface_id: &str) -> Tokens {
         let method_name = escape_ident(&to_camel(&func.name));
 
-        let args = func
-            .params
-            .iter()
-            .map(|p| {
-                format!(
-                    "{}: {}",
-                    escape_ident(&p.name),
-                    self.type_gen.ts_type_decl(&p.type_decl)
-                )
-            })
-            .collect::<Vec<_>>()
-            .join(", ");
+        let args = func.params.iter().map(|p| {
+            let ident = escape_ident(&p.name);
+            let ty = self.type_gen.ts_type_decl(&p.type_decl);
+            quote!($(ident): $(ty))
+        });
 
         let return_type = if let Some(throws) = &func.throws {
-            format!(
-                "{{ ok: {} }} | {{ err: {} }}",
-                self.type_gen.ts_type_decl(&func.output),
-                self.type_gen.ts_type_decl(throws)
-            )
+            let ok = self.type_gen.ts_type_decl(&func.output);
+            let err = self.type_gen.ts_type_decl(throws);
+            quote!({ ok: $(ok) } | { err: $(err) })
         } else {
             self.type_gen.ts_type_decl(&func.output)
         };
@@ -146,7 +134,7 @@ impl<'a> ServiceGenerator<'a> {
             ast::FunctionKind::Query => {
                 quote! {
                     $doc_tokens
-                    public $(method_name)($(args)): $query_builder<$(&return_type)> {
+                    public $(method_name)($(for arg in args join (, ) => $arg)): $query_builder<$(&return_type)> {
                       return new $query_builder<$(&return_type)>(
                         this._api,
                         this.registry,
@@ -162,7 +150,7 @@ impl<'a> ServiceGenerator<'a> {
             ast::FunctionKind::Command => {
                 quote! {
                     $doc_tokens
-                    public $(method_name)($(args)): $tx_builder<$(&return_type)> {
+                    public $(method_name)($(for arg in args join (, ) => $arg)): $tx_builder<$(&return_type)> {
                       return new $tx_builder<$(&return_type)>(
                         this._api,
                         this.registry,
@@ -181,7 +169,7 @@ impl<'a> ServiceGenerator<'a> {
 
     fn render_event(&self, event: &ast::ServiceEvent, entry_id: u16, interface_id: &str) -> Tokens {
         let method_name = escape_ident(&format!("subscribeTo{}Event", event.name));
-        let event_ts_type = self.event_ts_type(event);
+        let event_ts_type = self.type_gen.ts_struct_def_tokens(&event.def);
         let type_str = "`([u8; 16], ${typeStr})`";
 
         let zero_address = &js::import("sails-js", "ZERO_ADDRESS");
@@ -207,39 +195,5 @@ impl<'a> ServiceGenerator<'a> {
               });
             }
         }
-    }
-
-    fn event_ts_type(&self, event: &ast::ServiceEvent) -> String {
-        let fields = &event.def.fields;
-        if fields.is_empty() {
-            return "null".to_string();
-        }
-
-        if event.def.is_tuple() {
-            if fields.len() == 1 {
-                return self.type_gen.ts_type_decl(&fields[0].type_decl);
-            }
-            return format!(
-                "[{}]",
-                fields
-                    .iter()
-                    .map(|f| self.type_gen.ts_type_decl(&f.type_decl))
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            );
-        }
-
-        format!(
-            "{{ {} }}",
-            fields
-                .iter()
-                .map(|f| format!(
-                    "{}: {}",
-                    escape_ident(f.name.as_deref().unwrap_or("field")),
-                    self.type_gen.ts_type_decl(&f.type_decl)
-                ))
-                .collect::<Vec<_>>()
-                .join("; ")
-        )
     }
 }
