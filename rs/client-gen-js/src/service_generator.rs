@@ -45,13 +45,13 @@ impl<'a> ServiceGenerator<'a> {
             .funcs
             .iter()
             .enumerate()
-            .map(|(entry_id, func)| self.render_func(func, entry_id as u16, &interface_id));
+            .map(|(entry_id, func)| self.render_func(func, entry_id as u16));
 
         let event_tokens = service
             .events
             .iter()
             .enumerate()
-            .map(|(entry_id, event)| self.render_event(event, entry_id as u16, &interface_id));
+            .map(|(entry_id, event)| self.render_event(event, entry_id as u16));
 
         let extend_tokens = service.extends.iter().map(|base| {
             let base_class_name = base.name.clone();
@@ -63,19 +63,23 @@ impl<'a> ServiceGenerator<'a> {
                 }
             }
         });
+        let interface_id_type = &js::import("sails-js-parser-idl-v2", "InterfaceId");
 
         quote_in! { *tokens =>
-            export class $(class_name) {
+            export class $class_name {
               private _typeResolver: $type_resolver;
               constructor(
                 private _api: $gear_api,
                 private _programId: $hex_string,
                 private _routeIdx: number = 0,
               ) {
-                this._typeResolver = new $type_resolver($(resolver_types));
+                this._typeResolver = new $type_resolver($resolver_types);
               }
               private get registry() {
                 return this._typeResolver.registry;
+              }
+              public get interfaceId(): $interface_id_type {
+                return $interface_id_type.from($(quoted(&interface_id)));
               }
               $(for ext in extend_tokens => $ext$['\n'])
               $(for func in func_tokens => $func$['\n'])
@@ -84,7 +88,7 @@ impl<'a> ServiceGenerator<'a> {
         };
     }
 
-    fn render_func(&self, func: &ast::ServiceFunc, entry_id: u16, interface_id: &str) -> Tokens {
+    fn render_func(&self, func: &ast::ServiceFunc, entry_id: u16) -> Tokens {
         let method_name = escape_ident(&to_camel(&func.name));
 
         let args = func.params.iter().map(|p| {
@@ -127,22 +131,21 @@ impl<'a> ServiceGenerator<'a> {
 
         let query_builder = &js::import("sails-js", "QueryBuilderWithHeader");
         let tx_builder = &js::import("sails-js", "TransactionBuilderWithHeader");
-        let interface_id_type = &js::import("sails-js-parser-idl-v2", "InterfaceId");
         let message_header = &js::import("sails-js-parser-idl-v2", "SailsMessageHeader");
 
         match func.kind {
             ast::FunctionKind::Query => {
                 quote! {
                     $doc_tokens
-                    public $(method_name)($(for arg in args join (, ) => $arg)): $query_builder<$(&return_type)> {
+                    public $method_name($(for arg in args join (, ) => $arg)): $query_builder<$(&return_type)> {
                       return new $query_builder<$(&return_type)>(
                         this._api,
                         this.registry,
                         this._programId,
-                        $message_header.v1($interface_id_type.from($(quoted(interface_id))), $(entry_id), this._routeIdx),
-                        $(params_expr),
-                        $(payload_type),
-                        $(return_type_scale),
+                        $message_header.v1(this.interfaceId, $(entry_id), this._routeIdx),
+                        $params_expr,
+                        $payload_type,
+                        $return_type_scale,
                       );
                     }
                 }
@@ -150,15 +153,15 @@ impl<'a> ServiceGenerator<'a> {
             ast::FunctionKind::Command => {
                 quote! {
                     $doc_tokens
-                    public $(method_name)($(for arg in args join (, ) => $arg)): $tx_builder<$(&return_type)> {
+                    public $method_name($(for arg in args join (, ) => $arg)): $tx_builder<$(&return_type)> {
                       return new $tx_builder<$(&return_type)>(
                         this._api,
                         this.registry,
                         $(quoted("send_message")),
-                        $message_header.v1($interface_id_type.from($(quoted(interface_id))), $(entry_id), this._routeIdx),
-                        $(params_expr),
-                        $(payload_type),
-                        $(return_type_scale),
+                        $message_header.v1(this.interfaceId, $(entry_id), this._routeIdx),
+                        $params_expr,
+                        $payload_type,
+                        $return_type_scale,
                         this._programId,
                       );
                     }
@@ -167,21 +170,20 @@ impl<'a> ServiceGenerator<'a> {
         }
     }
 
-    fn render_event(&self, event: &ast::ServiceEvent, entry_id: u16, interface_id: &str) -> Tokens {
+    fn render_event(&self, event: &ast::ServiceEvent, entry_id: u16) -> Tokens {
         let method_name = escape_ident(&format!("subscribeTo{}Event", event.name));
         let event_ts_type = self.type_gen.ts_struct_def_tokens(&event.def);
         let type_str = "`([u8; 16], ${typeStr})`";
 
         let zero_address = &js::import("sails-js", "ZERO_ADDRESS");
-        let interface_id_type = &js::import("sails-js-parser-idl-v2", "InterfaceId");
         let message_header = &js::import("sails-js-parser-idl-v2", "SailsMessageHeader");
         let struct_field = &js::import("sails-js-types", "IStructField");
-        let docs = doc_tokens(&event.docs);
+        let doc_tokens = doc_tokens(&event.docs);
 
         quote! {
-            $docs
+            $doc_tokens
             public $(method_name)<T = $(&event_ts_type)>(callback: (eventData: T) => void | Promise<void>): Promise<() => void> {
-              const interfaceIdu64 = $interface_id_type.from($(quoted(interface_id))).asU64();
+              const interfaceIdu64 = this.interfaceId.asU64();
               const eventFields = $(event.def.to_json_string().expect("StructDef should be serializable to JSON")).fields as $struct_field[];
               const typeStr = this._typeResolver.getStructDef(eventFields, {}, true);
               return this._api.gearEvents.subscribeToGearEvent("UserMessageSent", ({ data: { message } }) => {

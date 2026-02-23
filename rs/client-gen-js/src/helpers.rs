@@ -7,11 +7,14 @@ pub(crate) fn push_doc(tokens: &mut Tokens, docs: &[String]) {
         return;
     }
 
-    tokens.append("/**\n");
+    tokens.append("/**");
+    tokens.push();
     for line in docs {
-        tokens.append(format!(" * {}\n", line));
+        tokens.append(format!(" * {}", line));
+        tokens.push();
     }
-    tokens.append(" */\n");
+    tokens.append(" */");
+    tokens.push();
 }
 
 pub(crate) fn doc_tokens(docs: &[String]) -> Tokens {

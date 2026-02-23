@@ -50,15 +50,14 @@ impl TypeGenerator {
         def: &ast::StructDef,
     ) -> Tokens {
         let generics = render_type_params(type_params);
-        let name = name.to_string();
         let payload = self.ts_struct_def_tokens(def);
-        if def.is_tuple() {
+        if def.is_unit() || def.is_tuple() {
             quote! {
-                export type $(name)$(generics) = $(payload);
+                export type $(name)$(generics) = $payload;
             }
         } else {
             quote! {
-                export interface $(name)$(generics) $(payload)
+                export interface $(name)$(generics) $payload
             }
         }
     }
@@ -74,7 +73,7 @@ impl TypeGenerator {
 
         if is_unit_only {
             quote! {
-                export type $(name)$(generics) = $(for v in &def.variants join( | ) => $(quoted(&v.name)));$['\n']
+                export type $(name)$(generics) = $(for v in &def.variants join( | ) => $(quoted(&v.name)));
             }
         } else {
             let variant_tokens = def.variants.iter().map(|variant| {
@@ -131,37 +130,37 @@ impl TypeGenerator {
                     quote! { bigint }
                 }
                 ast::PrimitiveType::ActorId => {
-                    let actor_id_token = js::import("sails-js", "ActorId");
-                    quote! { $(actor_id_token) }
+                    let import = js::import("sails-js", "ActorId");
+                    quote! { $import }
                 }
                 ast::PrimitiveType::CodeId => {
-                    let code_id_token = js::import("sails-js", "CodeId");
-                    quote! { $(code_id_token) }
+                    let import = js::import("sails-js", "CodeId");
+                    quote! { $import }
                 }
                 ast::PrimitiveType::MessageId => {
-                    let message_id_token = js::import("sails-js", "MessageId");
-                    quote! { $(message_id_token) }
+                    let import = js::import("sails-js", "MessageId");
+                    quote! { $import }
                 }
                 ast::PrimitiveType::H160 => {
-                    let h160_token = js::import("sails-js", "H160");
-                    quote! { $(h160_token) }
+                    let import = js::import("sails-js", "H160");
+                    quote! { $import }
                 }
                 ast::PrimitiveType::H256 => {
-                    let h256_token = js::import("sails-js", "H256");
-                    quote! { $(h256_token) }
+                    let import = js::import("sails-js", "H256");
+                    quote! { $import }
                 }
             },
             ast::TypeDecl::Slice { item } => {
-                let ts_type = self.ts_type_decl(item);
-                quote! { $(ts_type)[] }
+                let ty = self.ts_type_decl(item);
+                quote! { $ty[] }
             }
             ast::TypeDecl::Array { item, len } => {
                 if *len == 32 {
                     let rendered = "`0x${string}`".to_string();
-                    quote! { $(rendered) }
+                    quote! { $rendered }
                 } else {
                     let ty = self.ts_type_decl(item);
-                    quote! { $(ty)[] }
+                    quote! { $ty[] }
                 }
             }
             ast::TypeDecl::Tuple { types } => {
@@ -175,12 +174,12 @@ impl TypeGenerator {
             ast::TypeDecl::Named { name, generics } => {
                 if name == "Option" && generics.len() == 1 {
                     let ty = self.ts_type_decl(&generics[0]);
-                    return quote!($(ty) | null);
+                    return quote!($ty | null);
                 }
                 if name == "Result" && generics.len() == 2 {
                     let ok = self.ts_type_decl(&generics[0]);
                     let err = self.ts_type_decl(&generics[1]);
-                    return quote!({ ok: $(ok) } | { err: $(err) });
+                    return quote!({ ok: $ok } | { err: $err });
                 }
 
                 if name == "NonZeroU8"
@@ -191,14 +190,14 @@ impl TypeGenerator {
                     || name == "NonZeroU256"
                 {
                     let import = js::import("sails-js", name);
-                    return quote! { $(import) };
+                    return quote! { $import };
                 }
 
                 if generics.is_empty() {
-                    quote! { $(name) }
+                    quote! { $name }
                 } else {
                     let generic_tokens = generics.iter().map(|g| self.ts_type_decl(g));
-                    quote! { $(name)<$(for g in generic_tokens join (, ) => $(g))> }
+                    quote! { $name<$(for g in generic_tokens join (, ) => $g)> }
                 }
             }
         }

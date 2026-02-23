@@ -36,9 +36,6 @@ impl<'a> RootGenerator<'a> {
 
         if let Some(program) = &doc.program {
             self.type_gen.render_all(&mut tokens, &program.types);
-            if !program.types.is_empty() {
-                tokens.push();
-            }
 
             let gear_api = &js::import("@gear-js/api", "GearApi");
             let hex_string = &js::import("@gear-js/api", "HexString");
@@ -88,13 +85,13 @@ impl<'a> RootGenerator<'a> {
                 });
 
             quote_in! { tokens =>
-                export class $(program_class_name) {
+                export class $program_class_name {
                   private _typeResolver: $type_resolver;
                   constructor(
                     public api: $gear_api,
-                    private _programId?: $(program_id_ts),
+                    private _programId?: $program_id_ts,
                   ) {
-                    this._typeResolver = new $type_resolver($(resolver_types));
+                    this._typeResolver = new $type_resolver($resolver_types);
                   }
 
                   private get registry() {
@@ -111,7 +108,7 @@ impl<'a> RootGenerator<'a> {
                   $(for getter in service_getters => $getter$['\n'])
                 }
             };
-            tokens.push();
+            tokens.line();
         }
 
         if let Some(program) = &doc.program {
@@ -185,7 +182,7 @@ fn render_service_recursive<'a>(
     }
 
     service_gen.render(tokens, service_expo, service);
-    tokens.push();
+    tokens.line();
     rendered.insert(current_name);
 }
 
@@ -241,20 +238,17 @@ fn render_ctor_methods(
     };
 
     let docs = doc_tokens(&ctor.docs);
-    let docs_for_second = docs.clone();
-    let params_expr_for_second = params_expr.clone();
-    let payload_type_for_second = payload_type.clone();
 
     let from_code = quote! {
-        $docs
+        $(&docs)
         public $(from_code_name)($(from_code_sig)): $tx_builder<null> {
           const builder = new $tx_builder<null>(
             this.api,
             this.registry,
             "upload_program",
-            $message_header.v1($interface_id_type.zero(), $(entry_id), 0),
-            $(params_expr),
-            $(payload_type),
+            $message_header.v1($interface_id_type.zero(), $entry_id, 0),
+            $(&params_expr),
+            $(&payload_type),
             this._typeResolver.getTypeDeclString("String"),
             code,
           );
@@ -264,15 +258,15 @@ fn render_ctor_methods(
     };
 
     let from_code_id = quote! {
-        $docs_for_second
-        public $(from_code_id_name)($(from_code_id_sig)): $tx_builder<null> {
+        $(&docs)
+        public $from_code_id_name($from_code_id_sig): $tx_builder<null> {
           const builder = new $tx_builder<null>(
             this.api,
             this.registry,
             "create_program",
-            $message_header.v1($interface_id_type.zero(), $(entry_id), 0),
-            $(params_expr_for_second),
-            $(payload_type_for_second),
+            $message_header.v1($interface_id_type.zero(), $entry_id, 0),
+            $(&params_expr),
+            $(&payload_type),
             this._typeResolver.getTypeDeclString("String"),
             codeId,
           );

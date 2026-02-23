@@ -28,6 +28,7 @@ export class TypeNamesProgram {
         return new TypeNames(this.api, this.programId, 1);
     }
 }
+
 export type Alias<T> = T;
 
 export class TypeNames {
@@ -42,12 +43,15 @@ export class TypeNames {
     private get registry() {
         return this._typeResolver.registry;
     }
+    public get interfaceId(): InterfaceId {
+        return InterfaceId.from("0x13a669a6a51e0cdc");
+    }
     public read(value: { ok: [number, ActorId][] } | { err: bigint } | null): QueryBuilderWithHeader<{ ok: Alias<number | null> } | { err: string }> {
         return new QueryBuilderWithHeader<{ ok: Alias<number | null> } | { err: string }>(
             this._api,
             this.registry,
             this._programId,
-            SailsMessageHeader.v1(InterfaceId.from("0x13a669a6a51e0cdc"), 0, this._routeIdx),
+            SailsMessageHeader.v1(this.interfaceId, 0, this._routeIdx),
             value,
             this._typeResolver.getTypeDeclString({"kind":"named","name":"Option","generics":[{"kind":"named","name":"Result","generics":[{"kind":"slice","item":{"kind":"tuple","types":["u32","ActorId"]}},"u128"]}]}),
             this._typeResolver.getTypeDeclString({"kind":"named","name":"Result","generics":[{"kind":"named","name":"Alias","generics":[{"kind":"named","name":"Option","generics":["u32"]}]},"String"]}),

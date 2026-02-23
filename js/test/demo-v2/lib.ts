@@ -124,6 +124,10 @@ export class DemoClient {
     public get chaos(): Chaos {
         return new Chaos(this.api, this.programId, 7);
     }
+
+    public get chain(): Chain {
+        return new Chain(this.api, this.programId, 8);
+    }
 }
 export class PingPong {
     private _typeResolver: TypeResolver;
@@ -137,12 +141,15 @@ export class PingPong {
     private get registry() {
         return this._typeResolver.registry;
     }
+    get interfaceId() {
+        return InterfaceId.from("0x6d0eb40dde4038f7");
+    }
     public ping(input: string): TransactionBuilderWithHeader<{ ok: string } | { err: string }> {
         return new TransactionBuilderWithHeader<{ ok: string } | { err: string }>(
             this._api,
             this.registry,
             "send_message",
-            SailsMessageHeader.v1(InterfaceId.from("0x6d0eb40dde4038f7"), 0, this._routeIdx),
+            SailsMessageHeader.v1(this.interfaceId, 0, this._routeIdx),
             input,
             this._typeResolver.getTypeDeclString("String"),
             this._typeResolver.getTypeDeclString({ "kind": "named", "name": "Result", "generics": ["String", "String"] }),
@@ -162,6 +169,9 @@ export class Counter {
     private get registry() {
         return this._typeResolver.registry;
     }
+    get interfaceId() {
+        return InterfaceId.from("0x579d6daba41b7d82");
+    }
     /**
  * Add a value to the counter
  */
@@ -171,7 +181,7 @@ export class Counter {
             this._api,
             this.registry,
             "send_message",
-            SailsMessageHeader.v1(InterfaceId.from("0x579d6daba41b7d82"), 0, this._routeIdx),
+            SailsMessageHeader.v1(this.interfaceId, 0, this._routeIdx),
             value,
             this._typeResolver.getTypeDeclString("u32"),
             this._typeResolver.getTypeDeclString("u32"),
@@ -188,7 +198,7 @@ export class Counter {
             this._api,
             this.registry,
             "send_message",
-            SailsMessageHeader.v1(InterfaceId.from("0x579d6daba41b7d82"), 1, this._routeIdx),
+            SailsMessageHeader.v1(this.interfaceId, 1, this._routeIdx),
             value,
             this._typeResolver.getTypeDeclString("u32"),
             this._typeResolver.getTypeDeclString("u32"),
@@ -205,7 +215,7 @@ export class Counter {
             this._api,
             this.registry,
             this._programId,
-            SailsMessageHeader.v1(InterfaceId.from("0x579d6daba41b7d82"), 2, this._routeIdx),
+            SailsMessageHeader.v1(this.interfaceId, 2, this._routeIdx),
             null,
             null,
             this._typeResolver.getTypeDeclString("u32"),
@@ -217,7 +227,7 @@ export class Counter {
  */
 
     public subscribeToAddedEvent<T = number>(callback: (eventData: T) => void | Promise<void>): Promise<() => void> {
-        const interfaceIdu64 = InterfaceId.from("0x579d6daba41b7d82").asU64();
+        const interfaceIdu64 = this.interfaceId.asU64();
         const eventFields = { "fields": [{ "type": "u32" }] }.fields as IStructField[];
         const typeStr = this._typeResolver.getStructDef(eventFields, {}, true);
         return this._api.gearEvents.subscribeToGearEvent("UserMessageSent", ({ data: { message } }) => {
@@ -236,7 +246,7 @@ export class Counter {
  */
 
     public subscribeToSubtractedEvent<T = number>(callback: (eventData: T) => void | Promise<void>): Promise<() => void> {
-        const interfaceIdu64 = InterfaceId.from("0x579d6daba41b7d82").asU64();
+        const interfaceIdu64 = this.interfaceId.asU64();
         const eventFields = { "fields": [{ "type": "u32" }] }.fields as IStructField[];
         const typeStr = this._typeResolver.getStructDef(eventFields, {}, true);
         return this._api.gearEvents.subscribeToGearEvent("UserMessageSent", ({ data: { message } }) => {
@@ -262,12 +272,15 @@ export class MammalService {
     private get registry() {
         return this._typeResolver.registry;
     }
+    get interfaceId() {
+        return InterfaceId.from("0xff6b93e1961026fe");
+    }
     public makeSound(): TransactionBuilderWithHeader<string> {
         return new TransactionBuilderWithHeader<string>(
             this._api,
             this.registry,
             "send_message",
-            SailsMessageHeader.v1(InterfaceId.from("0xff6b93e1961026fe"), 0, this._routeIdx),
+            SailsMessageHeader.v1(this.interfaceId, 0, this._routeIdx),
             null,
             null,
             this._typeResolver.getTypeDeclString("String"),
@@ -280,7 +293,7 @@ export class MammalService {
             this._api,
             this.registry,
             this._programId,
-            SailsMessageHeader.v1(InterfaceId.from("0xff6b93e1961026fe"), 1, this._routeIdx),
+            SailsMessageHeader.v1(this.interfaceId, 1, this._routeIdx),
             null,
             null,
             this._typeResolver.getTypeDeclString("u32"),
@@ -299,12 +312,15 @@ export class WalkerService {
     private get registry() {
         return this._typeResolver.registry;
     }
+    get interfaceId() {
+        return InterfaceId.from("0xee1536b55170bf0a");
+    }
     public walk(dx: number, dy: number): TransactionBuilderWithHeader<null> {
         return new TransactionBuilderWithHeader<null>(
             this._api,
             this.registry,
             "send_message",
-            SailsMessageHeader.v1(InterfaceId.from("0xee1536b55170bf0a"), 0, this._routeIdx),
+            SailsMessageHeader.v1(this.interfaceId, 0, this._routeIdx),
             [dx, dy],
             this._typeResolver.getTypeDeclString({ "kind": "tuple", "types": ["i32", "i32"] }),
             this._typeResolver.getTypeDeclString("()"),
@@ -317,7 +333,7 @@ export class WalkerService {
             this._api,
             this.registry,
             this._programId,
-            SailsMessageHeader.v1(InterfaceId.from("0xee1536b55170bf0a"), 1, this._routeIdx),
+            SailsMessageHeader.v1(this.interfaceId, 1, this._routeIdx),
             null,
             null,
             this._typeResolver.getTypeDeclString({ "kind": "tuple", "types": ["i32", "i32"] }),
@@ -325,7 +341,7 @@ export class WalkerService {
     }
 
     public subscribeToWalkedEvent<T = { $from: [number, number]; to: [number, number] }>(callback: (eventData: T) => void | Promise<void>): Promise<() => void> {
-        const interfaceIdu64 = InterfaceId.from("0xee1536b55170bf0a").asU64();
+        const interfaceIdu64 = this.interfaceId.asU64();
         const eventFields = { "fields": [{ "name": "from", "type": { "kind": "tuple", "types": ["i32", "i32"] } }, { "name": "to", "type": { "kind": "tuple", "types": ["i32", "i32"] } }] }.fields as IStructField[];
         const typeStr = this._typeResolver.getStructDef(eventFields, {}, true);
         return this._api.gearEvents.subscribeToGearEvent("UserMessageSent", ({ data: { message } }) => {
@@ -351,6 +367,9 @@ export class Dog {
     private get registry() {
         return this._typeResolver.registry;
     }
+    get interfaceId() {
+        return InterfaceId.from("0x18666e67a21917a1");
+    }
     public get mammalService(): MammalService {
         return new MammalService(this._api, this._programId, this._routeIdx);
     }
@@ -364,7 +383,7 @@ export class Dog {
             this._api,
             this.registry,
             "send_message",
-            SailsMessageHeader.v1(InterfaceId.from("0x18666e67a21917a1"), 0, this._routeIdx),
+            SailsMessageHeader.v1(this.interfaceId, 0, this._routeIdx),
             null,
             null,
             this._typeResolver.getTypeDeclString("String"),
@@ -373,7 +392,7 @@ export class Dog {
     }
 
     public subscribeToBarkedEvent<T = null>(callback: (eventData: T) => void | Promise<void>): Promise<() => void> {
-        const interfaceIdu64 = InterfaceId.from("0x18666e67a21917a1").asU64();
+        const interfaceIdu64 = this.interfaceId.asU64();
         const eventFields = { "fields": [] }.fields as IStructField[];
         const typeStr = this._typeResolver.getStructDef(eventFields, {}, true);
         return this._api.gearEvents.subscribeToGearEvent("UserMessageSent", ({ data: { message } }) => {
@@ -388,6 +407,7 @@ export class Dog {
     }
 }
 export type ReferenceCount = number;
+
 export class References {
     private _typeResolver: TypeResolver;
     constructor(
@@ -400,12 +420,15 @@ export class References {
     private get registry() {
         return this._typeResolver.registry;
     }
+    get interfaceId() {
+        return InterfaceId.from("0x8a0f8abe176d75b9");
+    }
     public add(v: number): TransactionBuilderWithHeader<number> {
         return new TransactionBuilderWithHeader<number>(
             this._api,
             this.registry,
             "send_message",
-            SailsMessageHeader.v1(InterfaceId.from("0x8a0f8abe176d75b9"), 0, this._routeIdx),
+            SailsMessageHeader.v1(this.interfaceId, 0, this._routeIdx),
             v,
             this._typeResolver.getTypeDeclString("u32"),
             this._typeResolver.getTypeDeclString("u32"),
@@ -418,7 +441,7 @@ export class References {
             this._api,
             this.registry,
             "send_message",
-            SailsMessageHeader.v1(InterfaceId.from("0x8a0f8abe176d75b9"), 1, this._routeIdx),
+            SailsMessageHeader.v1(this.interfaceId, 1, this._routeIdx),
             byte,
             this._typeResolver.getTypeDeclString("u8"),
             this._typeResolver.getTypeDeclString({ "kind": "slice", "item": "u8" }),
@@ -431,7 +454,7 @@ export class References {
             this._api,
             this.registry,
             "send_message",
-            SailsMessageHeader.v1(InterfaceId.from("0x8a0f8abe176d75b9"), 2, this._routeIdx),
+            SailsMessageHeader.v1(this.interfaceId, 2, this._routeIdx),
             $number,
             this._typeResolver.getTypeDeclString("u8"),
             this._typeResolver.getTypeDeclString({ "kind": "named", "name": "Result", "generics": ["String", "String"] }),
@@ -444,7 +467,7 @@ export class References {
             this._api,
             this.registry,
             "send_message",
-            SailsMessageHeader.v1(InterfaceId.from("0x8a0f8abe176d75b9"), 3, this._routeIdx),
+            SailsMessageHeader.v1(this.interfaceId, 3, this._routeIdx),
             null,
             null,
             this._typeResolver.getTypeDeclString({ "kind": "named", "name": "ReferenceCount" }),
@@ -457,7 +480,7 @@ export class References {
             this._api,
             this.registry,
             "send_message",
-            SailsMessageHeader.v1(InterfaceId.from("0x8a0f8abe176d75b9"), 4, this._routeIdx),
+            SailsMessageHeader.v1(this.interfaceId, 4, this._routeIdx),
             $number,
             this._typeResolver.getTypeDeclString("u8"),
             this._typeResolver.getTypeDeclString({ "kind": "named", "name": "Result", "generics": ["()", "String"] }),
@@ -470,7 +493,7 @@ export class References {
             this._api,
             this.registry,
             this._programId,
-            SailsMessageHeader.v1(InterfaceId.from("0x8a0f8abe176d75b9"), 5, this._routeIdx),
+            SailsMessageHeader.v1(this.interfaceId, 5, this._routeIdx),
             null,
             null,
             this._typeResolver.getTypeDeclString("String"),
@@ -482,7 +505,7 @@ export class References {
             this._api,
             this.registry,
             this._programId,
-            SailsMessageHeader.v1(InterfaceId.from("0x8a0f8abe176d75b9"), 6, this._routeIdx),
+            SailsMessageHeader.v1(this.interfaceId, 6, this._routeIdx),
             null,
             null,
             this._typeResolver.getTypeDeclString({ "kind": "named", "name": "Option", "generics": ["u8"] }),
@@ -494,7 +517,7 @@ export class References {
             this._api,
             this.registry,
             this._programId,
-            SailsMessageHeader.v1(InterfaceId.from("0x8a0f8abe176d75b9"), 7, this._routeIdx),
+            SailsMessageHeader.v1(this.interfaceId, 7, this._routeIdx),
             null,
             null,
             this._typeResolver.getTypeDeclString({ "kind": "named", "name": "Option", "generics": ["String"] }),
@@ -502,10 +525,13 @@ export class References {
     }
 }
 export interface DoThatParam { p1: NonZeroU32; p2: ActorId; p3: ManyVariants }
+
 export type ManyVariants = { One: null } | { Two: number } | { Three: bigint | null } | { Four: { a: number; b: number | null } } | { Five: [string, H256] } | { Six: [number] };
+
 export type ManyVariantsReply = "One" | "Two" | "Three" | "Four" | "Five" | "Six";
 
 export type TupleStruct = boolean;
+
 export class ThisThat {
     private _typeResolver: TypeResolver;
     constructor(
@@ -518,12 +544,15 @@ export class ThisThat {
     private get registry() {
         return this._typeResolver.registry;
     }
+    get interfaceId() {
+        return InterfaceId.from("0x381e13fdd02d675f");
+    }
     public doThat(param: DoThatParam): TransactionBuilderWithHeader<{ ok: [ActorId, NonZeroU32, ManyVariantsReply] } | { err: [string] }> {
         return new TransactionBuilderWithHeader<{ ok: [ActorId, NonZeroU32, ManyVariantsReply] } | { err: [string] }>(
             this._api,
             this.registry,
             "send_message",
-            SailsMessageHeader.v1(InterfaceId.from("0x381e13fdd02d675f"), 0, this._routeIdx),
+            SailsMessageHeader.v1(this.interfaceId, 0, this._routeIdx),
             param,
             this._typeResolver.getTypeDeclString({ "kind": "named", "name": "DoThatParam" }),
             this._typeResolver.getTypeDeclString({ "kind": "named", "name": "Result", "generics": [{ "kind": "tuple", "types": ["ActorId", { "kind": "named", "name": "NonZeroU32" }, { "kind": "named", "name": "ManyVariantsReply" }] }, { "kind": "tuple", "types": ["String"] }] }),
@@ -536,7 +565,7 @@ export class ThisThat {
             this._api,
             this.registry,
             "send_message",
-            SailsMessageHeader.v1(InterfaceId.from("0x381e13fdd02d675f"), 1, this._routeIdx),
+            SailsMessageHeader.v1(this.interfaceId, 1, this._routeIdx),
             [p1, p2, p3, p4],
             this._typeResolver.getTypeDeclString({ "kind": "tuple", "types": ["u32", "String", { "kind": "tuple", "types": [{ "kind": "named", "name": "Option", "generics": ["H160"] }, { "kind": "named", "name": "NonZeroU8" }] }, { "kind": "named", "name": "TupleStruct" }] }),
             this._typeResolver.getTypeDeclString({ "kind": "tuple", "types": ["String", "u32"] }),
@@ -549,7 +578,7 @@ export class ThisThat {
             this._api,
             this.registry,
             "send_message",
-            SailsMessageHeader.v1(InterfaceId.from("0x381e13fdd02d675f"), 2, this._routeIdx),
+            SailsMessageHeader.v1(this.interfaceId, 2, this._routeIdx),
             null,
             null,
             this._typeResolver.getTypeDeclString("()"),
@@ -562,7 +591,7 @@ export class ThisThat {
             this._api,
             this.registry,
             this._programId,
-            SailsMessageHeader.v1(InterfaceId.from("0x381e13fdd02d675f"), 3, this._routeIdx),
+            SailsMessageHeader.v1(this.interfaceId, 3, this._routeIdx),
             null,
             null,
             this._typeResolver.getTypeDeclString({ "kind": "named", "name": "Result", "generics": ["String", "String"] }),
@@ -574,7 +603,7 @@ export class ThisThat {
             this._api,
             this.registry,
             this._programId,
-            SailsMessageHeader.v1(InterfaceId.from("0x381e13fdd02d675f"), 4, this._routeIdx),
+            SailsMessageHeader.v1(this.interfaceId, 4, this._routeIdx),
             null,
             null,
             this._typeResolver.getTypeDeclString("u32"),
@@ -593,6 +622,9 @@ export class ValueFee {
     private get registry() {
         return this._typeResolver.registry;
     }
+    get interfaceId() {
+        return InterfaceId.from("0x41c1080b4e1e8dc5");
+    }
     /**
  * Return flag if fee taken and remain value,
  * using special type `CommandReply<T>`
@@ -603,7 +635,7 @@ export class ValueFee {
             this._api,
             this.registry,
             "send_message",
-            SailsMessageHeader.v1(InterfaceId.from("0x41c1080b4e1e8dc5"), 0, this._routeIdx),
+            SailsMessageHeader.v1(this.interfaceId, 0, this._routeIdx),
             null,
             null,
             this._typeResolver.getTypeDeclString("bool"),
@@ -612,7 +644,7 @@ export class ValueFee {
     }
 
     public subscribeToWithheldEvent<T = bigint>(callback: (eventData: T) => void | Promise<void>): Promise<() => void> {
-        const interfaceIdu64 = InterfaceId.from("0x41c1080b4e1e8dc5").asU64();
+        const interfaceIdu64 = this.interfaceId.asU64();
         const eventFields = { "fields": [{ "type": "u128" }] }.fields as IStructField[];
         const typeStr = this._typeResolver.getStructDef(eventFields, {}, true);
         return this._api.gearEvents.subscribeToGearEvent("UserMessageSent", ({ data: { message } }) => {
@@ -638,12 +670,15 @@ export class Chaos {
     private get registry() {
         return this._typeResolver.registry;
     }
+    get interfaceId() {
+        return InterfaceId.from("0xf0c8c80dfabf72d5");
+    }
     public panicAfterWait(): QueryBuilderWithHeader<null> {
         return new QueryBuilderWithHeader<null>(
             this._api,
             this.registry,
             this._programId,
-            SailsMessageHeader.v1(InterfaceId.from("0xf0c8c80dfabf72d5"), 0, this._routeIdx),
+            SailsMessageHeader.v1(this.interfaceId, 0, this._routeIdx),
             null,
             null,
             this._typeResolver.getTypeDeclString("()"),
@@ -655,7 +690,7 @@ export class Chaos {
             this._api,
             this.registry,
             this._programId,
-            SailsMessageHeader.v1(InterfaceId.from("0xf0c8c80dfabf72d5"), 1, this._routeIdx),
+            SailsMessageHeader.v1(this.interfaceId, 1, this._routeIdx),
             null,
             null,
             this._typeResolver.getTypeDeclString("u32"),
@@ -667,10 +702,42 @@ export class Chaos {
             this._api,
             this.registry,
             this._programId,
-            SailsMessageHeader.v1(InterfaceId.from("0xf0c8c80dfabf72d5"), 2, this._routeIdx),
+            SailsMessageHeader.v1(this.interfaceId, 2, this._routeIdx),
             null,
             null,
             this._typeResolver.getTypeDeclString("()"),
+        );
+    }
+}
+export class Chain {
+    private _typeResolver: TypeResolver;
+    constructor(
+        private _api: GearApi,
+        private _programId: HexString,
+        private _routeIdx: number = 0,
+    ) {
+        this._typeResolver = new TypeResolver([]);
+    }
+    private get registry() {
+        return this._typeResolver.registry;
+    }
+    get interfaceId() {
+        return InterfaceId.from("0xd422c66e6021e0f9");
+    }
+    public get dog(): Dog {
+        return new Dog(this._api, this._programId, this._routeIdx);
+    }
+
+    public makeSound(): TransactionBuilderWithHeader<string> {
+        return new TransactionBuilderWithHeader<string>(
+            this._api,
+            this.registry,
+            "send_message",
+            SailsMessageHeader.v1(this.interfaceId, 0, this._routeIdx),
+            null,
+            null,
+            this._typeResolver.getTypeDeclString("String"),
+            this._programId,
         );
     }
 }
