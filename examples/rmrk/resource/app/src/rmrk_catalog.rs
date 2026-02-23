@@ -5,14 +5,18 @@ extern crate std;
 #[allow(unused_imports)]
 use sails_rs::{client::*, collections::*, prelude::*};
 pub struct RmrkCatalogProgram;
+
 impl RmrkCatalogProgram {
     pub const ROUTE_ID_RMRK_CATALOG: u8 = 1;
 }
+
 impl sails_rs::client::Program for RmrkCatalogProgram {}
+
 pub trait RmrkCatalog {
     type Env: sails_rs::client::GearEnv;
     fn rmrk_catalog(&self) -> sails_rs::client::Service<rmrk_catalog::RmrkCatalogImpl, Self::Env>;
 }
+
 impl<E: sails_rs::client::GearEnv> RmrkCatalog for sails_rs::client::Actor<RmrkCatalogProgram, E> {
     type Env = E;
     fn rmrk_catalog(&self) -> sails_rs::client::Service<rmrk_catalog::RmrkCatalogImpl, Self::Env> {
@@ -25,6 +29,7 @@ pub trait RmrkCatalogCtors {
     #[allow(clippy::wrong_self_convention)]
     fn new(self) -> sails_rs::client::PendingCtor<RmrkCatalogProgram, io::New, Self::Env>;
 }
+
 impl<E: sails_rs::client::GearEnv> RmrkCatalogCtors
     for sails_rs::client::Deployment<RmrkCatalogProgram, E>
 {
@@ -41,6 +46,7 @@ pub mod io {
 
 pub mod rmrk_catalog {
     use super::*;
+
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
@@ -88,6 +94,7 @@ pub mod rmrk_catalog {
         /// The metadata URI of the part.
         pub metadata_uri: String,
     }
+
     pub trait RmrkCatalog {
         type Env: sails_rs::client::GearEnv;
         fn add_equippables(
@@ -123,11 +130,14 @@ pub mod rmrk_catalog {
         ) -> sails_rs::client::PendingCall<io::Equippable, Self::Env>;
         fn part(&self, part_id: u32) -> sails_rs::client::PendingCall<io::Part, Self::Env>;
     }
+
     pub struct RmrkCatalogImpl;
+
     impl sails_rs::client::Identifiable for RmrkCatalogImpl {
         const INTERFACE_ID: sails_rs::InterfaceId =
             sails_rs::InterfaceId::from_bytes_8([55, 233, 20, 71, 187, 19, 237, 60]);
     }
+
     impl<E: sails_rs::client::GearEnv> RmrkCatalog for sails_rs::client::Service<RmrkCatalogImpl, E> {
         type Env = E;
         fn add_equippables(
@@ -197,6 +207,15 @@ pub mod rmrk_catalog {
     pub mod mockall {
         use super::*;
         use sails_rs::mockall::*;
-        mock! { pub RmrkCatalog {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl rmrk_catalog::RmrkCatalog for RmrkCatalog { type Env = sails_rs::client::GstdEnv; fn add_equippables (&mut self, part_id: u32, collection_ids: Vec<ActorId>) -> sails_rs::client::PendingCall<rmrk_catalog::io::AddEquippables, sails_rs::client::GstdEnv>;fn add_parts (&mut self, parts: Vec<(u32, Part, )>) -> sails_rs::client::PendingCall<rmrk_catalog::io::AddParts, sails_rs::client::GstdEnv>;fn remove_equippable (&mut self, part_id: u32, collection_id: ActorId) -> sails_rs::client::PendingCall<rmrk_catalog::io::RemoveEquippable, sails_rs::client::GstdEnv>;fn remove_parts (&mut self, part_ids: Vec<u32>) -> sails_rs::client::PendingCall<rmrk_catalog::io::RemoveParts, sails_rs::client::GstdEnv>;fn reset_equippables (&mut self, part_id: u32) -> sails_rs::client::PendingCall<rmrk_catalog::io::ResetEquippables, sails_rs::client::GstdEnv>;fn set_equippables_to_all (&mut self, part_id: u32) -> sails_rs::client::PendingCall<rmrk_catalog::io::SetEquippablesToAll, sails_rs::client::GstdEnv>;fn equippable (&self, part_id: u32, collection_id: ActorId) -> sails_rs::client::PendingCall<rmrk_catalog::io::Equippable, sails_rs::client::GstdEnv>;fn part (&self, part_id: u32) -> sails_rs::client::PendingCall<rmrk_catalog::io::Part, sails_rs::client::GstdEnv>; } }
+        mock! {
+            pub RmrkCatalog {}
+
+            #[allow(refining_impl_trait)]
+            #[allow(clippy::type_complexity)]
+            impl rmrk_catalog::RmrkCatalog for RmrkCatalog {
+                type Env = sails_rs::client::GstdEnv;
+                fn add_equippables (&mut self, part_id: u32, collection_ids: Vec<ActorId>) -> sails_rs::client::PendingCall<rmrk_catalog::io::AddEquippables, sails_rs::client::GstdEnv>;fn add_parts (&mut self, parts: Vec<(u32, Part, )>) -> sails_rs::client::PendingCall<rmrk_catalog::io::AddParts, sails_rs::client::GstdEnv>;fn remove_equippable (&mut self, part_id: u32, collection_id: ActorId) -> sails_rs::client::PendingCall<rmrk_catalog::io::RemoveEquippable, sails_rs::client::GstdEnv>;fn remove_parts (&mut self, part_ids: Vec<u32>) -> sails_rs::client::PendingCall<rmrk_catalog::io::RemoveParts, sails_rs::client::GstdEnv>;fn reset_equippables (&mut self, part_id: u32) -> sails_rs::client::PendingCall<rmrk_catalog::io::ResetEquippables, sails_rs::client::GstdEnv>;fn set_equippables_to_all (&mut self, part_id: u32) -> sails_rs::client::PendingCall<rmrk_catalog::io::SetEquippablesToAll, sails_rs::client::GstdEnv>;fn equippable (&self, part_id: u32, collection_id: ActorId) -> sails_rs::client::PendingCall<rmrk_catalog::io::Equippable, sails_rs::client::GstdEnv>;fn part (&self, part_id: u32) -> sails_rs::client::PendingCall<rmrk_catalog::io::Part, sails_rs::client::GstdEnv>;
+            }
+        }
     }
 }

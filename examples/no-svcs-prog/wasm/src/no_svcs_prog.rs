@@ -2,11 +2,15 @@
 #[allow(unused_imports)]
 use sails_rs::{client::*, collections::*, prelude::*};
 pub struct NoSvcsProgProgram;
+
 impl NoSvcsProgProgram {}
+
 impl sails_rs::client::Program for NoSvcsProgProgram {}
+
 pub trait NoSvcsProg {
     type Env: sails_rs::client::GearEnv;
 }
+
 impl<E: sails_rs::client::GearEnv> NoSvcsProg for sails_rs::client::Actor<NoSvcsProgProgram, E> {
     type Env = E;
 }
@@ -14,6 +18,7 @@ pub trait NoSvcsProgCtors {
     type Env: sails_rs::client::GearEnv;
     fn create(self) -> sails_rs::client::PendingCtor<NoSvcsProgProgram, io::Create, Self::Env>;
 }
+
 impl<E: sails_rs::client::GearEnv> NoSvcsProgCtors
     for sails_rs::client::Deployment<NoSvcsProgProgram, E>
 {

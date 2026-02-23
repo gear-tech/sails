@@ -6,13 +6,16 @@ expression: "gen_client(idl, \"NonZeroParams\")"
 #[allow(unused_imports)]
 use sails_rs::{client::*, collections::*, prelude::*};
 pub struct NonZeroParamsProgram;
+
 impl sails_rs::client::Program for NonZeroParamsProgram {}
+
 pub trait NonZeroParams {
     type Env: sails_rs::client::GearEnv;
     fn non_zero_params(
         &self,
     ) -> sails_rs::client::Service<non_zero_params::NonZeroParamsImpl, Self::Env>;
 }
+
 impl<E: sails_rs::client::GearEnv> NonZeroParams
     for sails_rs::client::Actor<NonZeroParamsProgram, E>
 {
@@ -43,7 +46,9 @@ pub mod non_zero_params {
             p2: MyParam,
         ) -> sails_rs::client::PendingCall<io::DoThis, Self::Env>;
     }
+
     pub struct NonZeroParamsImpl;
+
     impl<E: sails_rs::client::GearEnv> NonZeroParams
         for sails_rs::client::Service<NonZeroParamsImpl, E>
     {
