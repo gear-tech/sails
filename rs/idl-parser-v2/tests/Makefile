@@ -31,7 +31,7 @@ run: all
 # Rule to build the Rust library
 $(TARGET_DIR)/libsails_idl_parser_v2.so:
 	cargo clean -p sails-idl-parser-v2
-	cargo build -p sails-idl-parser-v2 --target-dir "$(CRATE_DIR)/target" --lib
+	cargo build -p sails-idl-parser-v2 --target-dir "$(CRATE_DIR)/target" --lib --features=ffi
 
 # Rule to compile C source files into object files
 $(TARGET_DIR)/%.o: $(C_TEST_DIR)/%.c $(C_TEST_DIR)/utils.h $(TARGET_DIR)/libsails_idl_parser_v2.so
@@ -69,4 +69,3 @@ valgrind-full-coverage: $(TEST_FULL_COVERAGE)
 	LD_LIBRARY_PATH="$(TARGET_DIR):$(LD_LIBRARY_PATH)" \
 	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --num-callers=50 \
 	$(TEST_FULL_COVERAGE)
-

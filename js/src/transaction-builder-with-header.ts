@@ -13,35 +13,13 @@ import { IKeyringPair, ISubmittableResult } from '@polkadot/types/types';
 import { TypeRegistry, u128, u64 } from '@polkadot/types';
 import { getPayloadMethod } from 'sails-js-util';
 import { u8aConcat } from '@polkadot/util';
+import type { SailsMessageHeader } from 'sails-js-parser-idl-v2';
 
 import { ZERO_ADDRESS } from './consts.js';
 import { throwOnErrorReply as commonThrowOnErrorReply } from './utils.js';
+import { IMethodReturnType } from './transaction-builder.js';
 
-export interface IMethodReturnType<T> {
-  /**
-   * ## The id of the sent message.
-   */
-  msgId: HexString;
-  /**
-   * ## The blockhash of the block that contains the transaction.
-   */
-  blockHash: HexString;
-  /**
-   * ## The transaction hash.
-   */
-  txHash: HexString;
-  /**
-   * ## A promise that resolves when the block with the transaction is finalized.
-   */
-  isFinalized: Promise<boolean>;
-  /**
-   * ## A promise that resolves into the response from the program.
-   * @param rawResult (optional) If true, the response will be the raw bytes of the function result, otherwise it will be decoded.
-   */
-  response: <Raw extends boolean = false>(rawResult?: Raw) => Promise<Raw extends true ? HexString : T>;
-}
-
-export class TransactionBuilder<ResponseType> {
+export class TransactionBuilderWithHeader<ResponseType> {
   private _account: string | IKeyringPair;
   private _signerOptions: Partial<SignerOptions>;
   private _tx: SubmittableExtrinsic<'promise', ISubmittableResult>;
@@ -55,8 +33,7 @@ export class TransactionBuilder<ResponseType> {
     api: GearApi,
     registry: TypeRegistry,
     extrinsic: 'send_message',
-    service: string,
-    method: string,
+    header: SailsMessageHeader,
     payload: unknown,
     payloadType: string | null,
     responseType: string,
@@ -66,8 +43,7 @@ export class TransactionBuilder<ResponseType> {
     api: GearApi,
     registry: TypeRegistry,
     extrinsic: 'upload_program',
-    service: null,
-    method: string,
+    header: SailsMessageHeader,
     payload: unknown,
     payloadType: string | null,
     responseType: string,
@@ -78,8 +54,7 @@ export class TransactionBuilder<ResponseType> {
     api: GearApi,
     registry: TypeRegistry,
     extrinsic: 'create_program',
-    service: null,
-    method: string,
+    header: SailsMessageHeader,
     payload: unknown,
     payloadType: string | null,
     responseType: string,
@@ -91,26 +66,19 @@ export class TransactionBuilder<ResponseType> {
     private _api: GearApi,
     private _registry: TypeRegistry,
     extrinsic: 'send_message' | 'upload_program' | 'create_program',
-    private _service: string | null,
-    private _method: string,
+    header: SailsMessageHeader,
     payload: unknown | null,
     payloadType: string | null,
     private _responseType: string,
     _programIdOrCodeOrCodeId: HexString | Uint8Array | ArrayBufferLike,
     private _onProgramCreated?: (programId: HexString) => void | Promise<void>,
   ) {
-    const encodedService = this._service
-      ? this._registry.createType('String', this._service).toU8a()
-      : new Uint8Array();
-    const encodedMethod = this._registry.createType('String', this._method).toU8a();
+    const encodedHeader = header.toBytes();
     const data = payloadType === null ? new Uint8Array() : this._registry.createType<any>(payloadType, payload).toU8a();
 
-    const _payload = u8aConcat(encodedService, encodedMethod, data);
+    const _payload = u8aConcat(encodedHeader, data);
 
-    this._prefixByteLength = encodedMethod.byteLength;
-    if (this._service) {
-      this._prefixByteLength += encodedService.byteLength;
-    }
+    this._prefixByteLength = encodedHeader.length;
 
     switch (extrinsic) {
       case 'send_message': {
@@ -338,7 +306,7 @@ export class TransactionBuilder<ResponseType> {
    * @param payload - Raw bytes from the reply message
    * @returns Decoded payload
    */
-  public decodePayload(payload: Uint8Array | HexString): ResponseType {
+  public decodePayload(payload: Uint8Array): ResponseType {
     const method = getPayloadMethod(this._responseType);
     const noPrefixPayload = payload.slice(this._prefixByteLength);
     const type = this._registry.createType<any>(this._responseType, noPrefixPayload);

@@ -227,7 +227,7 @@ export class Sails {
         returnTypeDef: func.def,
         docs: func.docs,
         encodePayload: (...args: unknown[]): HexString => {
-          if (args.length !== args.length) {
+          if (args.length !== params.length) {
             throw new Error(`Expected ${params.length} arguments, but got ${args.length}`);
           }
 
@@ -350,7 +350,7 @@ export class Sails {
       funcs[func.name] = {
         args: params,
         encodePayload: (...args): HexString => {
-          if (args.length !== args.length) {
+          if (args.length !== params.length) {
             throw new Error(`Expected ${params.length} arguments, but got ${args.length}`);
           }
 

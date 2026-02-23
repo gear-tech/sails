@@ -5,3 +5,6 @@ export { throwOnErrorReply } from './utils.js';
 export { ZERO_ADDRESS } from './consts.js';
 export * from './primitives/index.js';
 export { Sails } from './sails.js';
+export { SailsProgram, SailsService } from './sails-idl-v2.js';
+export { QueryBuilderWithHeader } from './query-builder-with-header.js';
+export { TransactionBuilderWithHeader } from './transaction-builder-with-header.js';

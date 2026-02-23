@@ -1,46 +1,31 @@
-import { writeFileSync, rmSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, rmSync, mkdirSync, existsSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { gzipSync } from 'node:zlib';
 import commonjs from '@rollup/plugin-commonjs';
 import typescript from 'rollup-plugin-typescript2';
-import config from '../config.json' with { type: 'json' };
 
-async function getStreamFromRelease(version, cs) {
-  const link = `https://github.com/gear-tech/sails/releases/download/rs%2Fv${version}/sails_idl_parser.wasm`;
-  const res = await fetch(link);
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
-  if (!res.ok) {
-    throw new Error(`Failed to fetch parser from ${link}`);
+function getBase64Parser() {
+  const parserPath = resolve(__dirname, '../../target/wasm32-unknown-unknown/release/sails_idl_parser.opt.wasm');
+  if (!existsSync(parserPath)) {
+    throw new Error(`Build sails-idl-parser-wasm project\n
+cargo build -p sails-idl-parser-wasm --target=wasm32-unknown-unknown --release\n
+wasm-opt -O4 -o ./target/wasm32-unknown-unknown/release/sails_idl_parser.opt.wasm ./target/wasm32-unknown-unknown/release/sails_idl_parser_wasm.wasm\n`);
   }
-
-  return res.body.pipeThrough(cs);
-}
-
-async function getBase64Parser(version) {
-  const cs = new CompressionStream('gzip');
-
-  const stream = await getStreamFromRelease(version, cs);
-
-  const reader = stream.getReader();
-
-  let resultArray = [];
-
-  while (true) {
-    const read = await reader.read();
-
-    if (read.done) break;
-
-    resultArray = [...resultArray, ...read.value];
-  }
-
-  return Buffer.from(Uint8Array.from(resultArray).buffer).toString('base64');
+  const parserBytes = readFileSync(parserPath);
+  const compressedBytes = gzipSync(parserBytes);
+  return compressedBytes.toString('base64');
 }
 
 function writeCompressedWasmParser(type) {
   return {
     name: 'write-wasm-parser',
     async closeBundle() {
-      const base64Bytes = await getBase64Parser(config['sails-rs']);
-
+      const base64Bytes = getBase64Parser();
       mkdirSync('./lib', { recursive: true });
+
       if (type === 'cjs') {
         mkdirSync('./lib/cjs', { recursive: true });
         writeFileSync(
