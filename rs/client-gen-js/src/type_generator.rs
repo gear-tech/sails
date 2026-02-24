@@ -155,7 +155,12 @@ impl TypeGenerator {
                 quote! { $ty[] }
             }
             ast::TypeDecl::Array { item, len } => {
-                if *len == 32 {
+                if *len == 32
+                    && matches!(
+                        item.as_ref(),
+                        ast::TypeDecl::Primitive(ast::PrimitiveType::U8)
+                    )
+                {
                     let rendered = "`0x${string}`".to_string();
                     quote! { $rendered }
                 } else {
@@ -181,7 +186,6 @@ impl TypeGenerator {
                     let err = self.ts_type_decl(&generics[1]);
                     return quote!({ ok: $ok } | { err: $err });
                 }
-
                 if name == "NonZeroU8"
                     || name == "NonZeroU16"
                     || name == "NonZeroU32"

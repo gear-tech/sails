@@ -22,9 +22,8 @@ export class DemoClient {
     }
 
     /**
- * Program constructor (called once at the very beginning of the program lifetime)
- */
-
+     * Program constructor (called once at the very beginning of the program lifetime)
+     */
     public defaultCtorFromCode(code: Uint8Array | Buffer | HexString): TransactionBuilderWithHeader<null> {
         const builder = new TransactionBuilderWithHeader<null>(
             this.api,
@@ -41,9 +40,8 @@ export class DemoClient {
     }
 
     /**
- * Program constructor (called once at the very beginning of the program lifetime)
- */
-
+     * Program constructor (called once at the very beginning of the program lifetime)
+     */
     public defaultCtorFromCodeId(codeId: `0x${string}`): TransactionBuilderWithHeader<null> {
         const builder = new TransactionBuilderWithHeader<null>(
             this.api,
@@ -60,9 +58,8 @@ export class DemoClient {
     }
 
     /**
- * Another program constructor (called once at the very beginning of the program lifetime)
- */
-
+     * Another program constructor (called once at the very beginning of the program lifetime)
+     */
     public newCtorFromCode(code: Uint8Array | Buffer | HexString, counter: number | null, dog_position: [number, number] | null): TransactionBuilderWithHeader<null> {
         const builder = new TransactionBuilderWithHeader<null>(
             this.api,
@@ -79,9 +76,8 @@ export class DemoClient {
     }
 
     /**
- * Another program constructor (called once at the very beginning of the program lifetime)
- */
-
+     * Another program constructor (called once at the very beginning of the program lifetime)
+     */
     public newCtorFromCodeId(codeId: `0x${string}`, counter: number | null, dog_position: [number, number] | null): TransactionBuilderWithHeader<null> {
         const builder = new TransactionBuilderWithHeader<null>(
             this.api,
@@ -129,6 +125,7 @@ export class DemoClient {
         return new Chain(this.api, this.programId, 8);
     }
 }
+
 export class PingPong {
     private _typeResolver: TypeResolver;
     constructor(
@@ -141,7 +138,7 @@ export class PingPong {
     private get registry() {
         return this._typeResolver.registry;
     }
-    get interfaceId() {
+    public get interfaceId(): InterfaceId {
         return InterfaceId.from("0x6d0eb40dde4038f7");
     }
     public ping(input: string): TransactionBuilderWithHeader<{ ok: string } | { err: string }> {
@@ -157,6 +154,7 @@ export class PingPong {
         );
     }
 }
+
 export class Counter {
     private _typeResolver: TypeResolver;
     constructor(
@@ -169,13 +167,12 @@ export class Counter {
     private get registry() {
         return this._typeResolver.registry;
     }
-    get interfaceId() {
+    public get interfaceId(): InterfaceId {
         return InterfaceId.from("0x579d6daba41b7d82");
     }
     /**
- * Add a value to the counter
- */
-
+     * Add a value to the counter
+     */
     public add(value: number): TransactionBuilderWithHeader<number> {
         return new TransactionBuilderWithHeader<number>(
             this._api,
@@ -190,9 +187,8 @@ export class Counter {
     }
 
     /**
- * Substract a value from the counter
- */
-
+     * Substract a value from the counter
+     */
     public sub(value: number): TransactionBuilderWithHeader<number> {
         return new TransactionBuilderWithHeader<number>(
             this._api,
@@ -207,9 +203,8 @@ export class Counter {
     }
 
     /**
- * Get the current value
- */
-
+     * Get the current value
+     */
     public value(): QueryBuilderWithHeader<number> {
         return new QueryBuilderWithHeader<number>(
             this._api,
@@ -223,9 +218,8 @@ export class Counter {
     }
 
     /**
- * Emitted when a new value is added to the counter
- */
-
+     * Emitted when a new value is added to the counter
+     */
     public subscribeToAddedEvent<T = number>(callback: (eventData: T) => void | Promise<void>): Promise<() => void> {
         const interfaceIdu64 = this.interfaceId.asU64();
         const eventFields = { "fields": [{ "type": "u32" }] }.fields as IStructField[];
@@ -242,9 +236,8 @@ export class Counter {
     }
 
     /**
- * Emitted when a value is subtracted from the counter
- */
-
+     * Emitted when a value is subtracted from the counter
+     */
     public subscribeToSubtractedEvent<T = number>(callback: (eventData: T) => void | Promise<void>): Promise<() => void> {
         const interfaceIdu64 = this.interfaceId.asU64();
         const eventFields = { "fields": [{ "type": "u32" }] }.fields as IStructField[];
@@ -260,6 +253,7 @@ export class Counter {
         });
     }
 }
+
 export class MammalService {
     private _typeResolver: TypeResolver;
     constructor(
@@ -272,7 +266,7 @@ export class MammalService {
     private get registry() {
         return this._typeResolver.registry;
     }
-    get interfaceId() {
+    public get interfaceId(): InterfaceId {
         return InterfaceId.from("0xff6b93e1961026fe");
     }
     public makeSound(): TransactionBuilderWithHeader<string> {
@@ -300,6 +294,7 @@ export class MammalService {
         );
     }
 }
+
 export class WalkerService {
     private _typeResolver: TypeResolver;
     constructor(
@@ -312,7 +307,7 @@ export class WalkerService {
     private get registry() {
         return this._typeResolver.registry;
     }
-    get interfaceId() {
+    public get interfaceId(): InterfaceId {
         return InterfaceId.from("0xee1536b55170bf0a");
     }
     public walk(dx: number, dy: number): TransactionBuilderWithHeader<null> {
@@ -355,6 +350,7 @@ export class WalkerService {
         });
     }
 }
+
 export class Dog {
     private _typeResolver: TypeResolver;
     constructor(
@@ -367,7 +363,7 @@ export class Dog {
     private get registry() {
         return this._typeResolver.registry;
     }
-    get interfaceId() {
+    public get interfaceId(): InterfaceId {
         return InterfaceId.from("0x18666e67a21917a1");
     }
     public get mammalService(): MammalService {
@@ -406,6 +402,7 @@ export class Dog {
         });
     }
 }
+
 export type ReferenceCount = number;
 
 export class References {
@@ -420,7 +417,7 @@ export class References {
     private get registry() {
         return this._typeResolver.registry;
     }
-    get interfaceId() {
+    public get interfaceId(): InterfaceId {
         return InterfaceId.from("0x8a0f8abe176d75b9");
     }
     public add(v: number): TransactionBuilderWithHeader<number> {
@@ -524,6 +521,7 @@ export class References {
         );
     }
 }
+
 export interface DoThatParam { p1: NonZeroU32; p2: ActorId; p3: ManyVariants }
 
 export type ManyVariants = { One: null } | { Two: number } | { Three: bigint | null } | { Four: { a: number; b: number | null } } | { Five: [string, H256] } | { Six: [number] };
@@ -544,7 +542,7 @@ export class ThisThat {
     private get registry() {
         return this._typeResolver.registry;
     }
-    get interfaceId() {
+    public get interfaceId(): InterfaceId {
         return InterfaceId.from("0x381e13fdd02d675f");
     }
     public doThat(param: DoThatParam): TransactionBuilderWithHeader<{ ok: [ActorId, NonZeroU32, ManyVariantsReply] } | { err: [string] }> {
@@ -610,6 +608,7 @@ export class ThisThat {
         );
     }
 }
+
 export class ValueFee {
     private _typeResolver: TypeResolver;
     constructor(
@@ -622,14 +621,13 @@ export class ValueFee {
     private get registry() {
         return this._typeResolver.registry;
     }
-    get interfaceId() {
+    public get interfaceId(): InterfaceId {
         return InterfaceId.from("0x41c1080b4e1e8dc5");
     }
     /**
- * Return flag if fee taken and remain value,
- * using special type `CommandReply<T>`
- */
-
+     * Return flag if fee taken and remain value,
+     * using special type `CommandReply<T>`
+     */
     public doSomethingAndTakeFee(): TransactionBuilderWithHeader<boolean> {
         return new TransactionBuilderWithHeader<boolean>(
             this._api,
@@ -658,6 +656,7 @@ export class ValueFee {
         });
     }
 }
+
 export class Chaos {
     private _typeResolver: TypeResolver;
     constructor(
@@ -670,7 +669,7 @@ export class Chaos {
     private get registry() {
         return this._typeResolver.registry;
     }
-    get interfaceId() {
+    public get interfaceId(): InterfaceId {
         return InterfaceId.from("0xf0c8c80dfabf72d5");
     }
     public panicAfterWait(): QueryBuilderWithHeader<null> {
@@ -709,6 +708,7 @@ export class Chaos {
         );
     }
 }
+
 export class Chain {
     private _typeResolver: TypeResolver;
     constructor(
@@ -721,7 +721,7 @@ export class Chain {
     private get registry() {
         return this._typeResolver.registry;
     }
-    get interfaceId() {
+    public get interfaceId(): InterfaceId {
         return InterfaceId.from("0xd422c66e6021e0f9");
     }
     public get dog(): Dog {

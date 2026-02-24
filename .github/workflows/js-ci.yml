@@ -3,7 +3,7 @@ name: "[js] CI"
 on:
   pull_request:
     types: [opened, synchronize, reopened, labeled]
-    branches: [master]
+    branches: [master, master-idl-v2]
     paths:
       - "js/**"
       - "package.json"
@@ -49,6 +49,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install wasm-opt
+        uses: ./.github/actions/install-wasm-utils
+
+      - name: Build IDL v2 Parser for WASM
+        run: |
+          cargo build -p sails-idl-parser-wasm --target wasm32-unknown-unknown --release
+          wasm-opt -O4 -o ./target/wasm32-unknown-unknown/release/sails_idl_v2_parser.wasm ./target/wasm32-unknown-unknown/release/sails_idl_parser_wasm.wasm
+
       - name: "Install: NodeJS 20.x"
         uses: actions/setup-node@v4
         with:
@@ -62,9 +70,6 @@ jobs:
 
       - name: "Build"
         run: pnpm build
-
-      - name: Install wasm-opt
-        uses: ./.github/actions/install-wasm-utils
 
       - name: "Prepare: download Gear node"
         run: |

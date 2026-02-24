@@ -64,8 +64,6 @@ const RESERVED: &[&str] = &[
     "yield",
     "as",
     "implements",
-    "interface",
-    "let",
     "package",
     "private",
     "protected",

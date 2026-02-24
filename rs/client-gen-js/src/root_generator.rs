@@ -26,12 +26,12 @@ impl<'a> RootGenerator<'a> {
         tokens.push();
 
         let mut service_index: BTreeMap<u64, &ast::ServiceUnit> = BTreeMap::new();
-        let mut service_name_index: BTreeMap<&str, &ast::ServiceUnit> = BTreeMap::new();
         for service in &doc.services {
-            service_name_index.insert(service.name.name.as_str(), service);
-            if let Some(interface_id) = service.name.interface_id {
-                service_index.insert(interface_id.as_u64(), service);
-            }
+            let interface_id = service
+                .name
+                .interface_id
+                .expect("Service must have interface_id");
+            service_index.insert(interface_id.as_u64(), service);
         }
 
         if let Some(program) = &doc.program {
@@ -123,7 +123,6 @@ impl<'a> RootGenerator<'a> {
                         &mut tokens,
                         &service_gen,
                         &service_index,
-                        &service_name_index,
                         service_expo,
                         service,
                         &mut rendered,
@@ -132,7 +131,9 @@ impl<'a> RootGenerator<'a> {
             }
         }
 
-        tokens.to_file_string().unwrap_or_default()
+        tokens
+            .to_file_string()
+            .expect("failed to render tokens to string")
     }
 }
 
@@ -140,7 +141,6 @@ fn render_service_recursive<'a>(
     tokens: &mut Tokens,
     service_gen: &ServiceGenerator<'a>,
     service_index: &BTreeMap<u64, &'a ast::ServiceUnit>,
-    service_name_index: &BTreeMap<&str, &'a ast::ServiceUnit>,
     service_expo: &ast::ServiceExpo,
     service: &'a ast::ServiceUnit,
     rendered: &mut BTreeSet<String>,
@@ -152,15 +152,12 @@ fn render_service_recursive<'a>(
     }
 
     for base in &service.extends {
-        let base_service = if let Some(base_id) = base.interface_id.map(|id| id.as_u64()) {
-            service_index.get(&base_id).copied()
-        } else {
-            service_name_index.get(base.name.as_str()).copied()
-        };
-
-        let Some(base_service) = base_service else {
-            continue;
-        };
+        let base_id = base
+            .interface_id
+            .expect("ServiceIdent must have interface_id");
+        let base_service = service_index.get(&base_id.as_u64()).copied().expect(
+            "Base service referenced in `extends` was not found in the parsed IDL service index",
+        );
 
         let base_expo = ast::ServiceExpo {
             name: base.clone(),
@@ -174,7 +171,6 @@ fn render_service_recursive<'a>(
             tokens,
             service_gen,
             service_index,
-            service_name_index,
             &base_expo,
             base_service,
             rendered,
