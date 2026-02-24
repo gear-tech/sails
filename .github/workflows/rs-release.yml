@@ -21,6 +21,8 @@ env:
   GITHUB_USER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
   # crates in order of dependency (topological order), first the ones that are not dependent on any other
   SAILS_CRATES: |
+    sails-reflect-hash-derive
+    sails-reflect-hash
     sails-idl-meta
     sails-idl-parser
     sails-idl-gen

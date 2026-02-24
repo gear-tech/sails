@@ -83,6 +83,10 @@ impl SailsMessageHeader {
 impl SailsMessageHeader {
     /// Serialize header to bytes.
     pub fn to_bytes(&self) -> Vec<u8> {
+        assert!(
+            self.hlen.inner() == MINIMAL_HLEN,
+            "encoding headers with extensions is not supported yet"
+        );
         let mut bytes = Vec::with_capacity(self.hlen.inner() as usize);
         bytes.extend_from_slice(Magic::new().as_bytes());
         bytes.push(self.version.inner());
@@ -98,7 +102,8 @@ impl SailsMessageHeader {
 
     /// Deserialize header from bytes advancing the slice.
     pub fn try_read_bytes(bytes: &mut &[u8]) -> Result<Self, &'static str> {
-        if bytes.len() < MINIMAL_HLEN as usize {
+        let input_len = bytes.len();
+        if input_len < MINIMAL_HLEN as usize {
             return Err("Insufficient bytes for header");
         }
 
@@ -107,6 +112,9 @@ impl SailsMessageHeader {
 
         let version = Version::try_read_bytes(bytes)?;
         let hlen = HeaderLength::try_read_bytes(bytes)?;
+        if version == Version::v1() && hlen.0 > MINIMAL_HLEN {
+            return Err("Header len must be 16 in version 1");
+        }
         let interface_id = InterfaceId::try_read_bytes(bytes)?;
 
         let entry_id = u16::from_le_bytes([bytes[0], bytes[1]]);
@@ -181,6 +189,10 @@ impl SailsMessageHeader {
 
 impl Encode for SailsMessageHeader {
     fn encode_to<O: Output + ?Sized>(&self, dest: &mut O) {
+        assert!(
+            self.hlen.inner() == MINIMAL_HLEN,
+            "encoding headers with extensions is not supported yet"
+        );
         // Copy-paste for the optimization purpose, as `to_bytes` allocates a new Vec.
         dest.write(Magic::new().as_bytes());
         dest.push_byte(self.version.inner());

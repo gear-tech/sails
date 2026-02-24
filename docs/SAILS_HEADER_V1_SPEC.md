@@ -26,7 +26,7 @@ Sails Header defines a deterministic, userspace envelope for Sails-based Gear/Va
 | Route               | A named service instance. Programs may expose multiple instances per interface.                                    |
 | `interface_id`      | 64-bit identifier derived from the interface hashing spec (service name excluded).                                 |
 | `entry_id`          | 16-bit identifier for an interface entry (function/event), assigned deterministically.                             |
-| `route_idx`         | One-byte route index. `0x00` denotes the default instance. Non-zero indices are mapped via a per-program manifest. |
+| `route_idx`         | One-byte route selector. `0x00` requests route inference (allowed only when exactly one interface instance matches). Non-zero indices are mapped via a per-program manifest. |
 
 ## Header Layout
 
@@ -37,7 +37,7 @@ Byte offset  Field          Size (bytes)  Description
 3            Header length  1             Total header size in bytes; base header = 0x10
 4–11         Interface ID   8             64-bit ID from Interface hash
 12–13        Entry ID       2             Little-endian 16-bit entry identifier
-14           Route Index    1             Unsigned byte; 0 = default route
+14           Route Index    1             Unsigned byte; 0 = infer route if unambiguous
 15           Reserved       1             Must be set to 0x00 in v1 (no error flags). Future specs may repurpose this byte.
 >15          Extensions     variable      Present only if `header length` > 0x10
 ```
@@ -49,7 +49,7 @@ Byte offset  Field          Size (bytes)  Description
 - **Header length.** Allows optional extensions to follow the base fields. Payload data starts at offset `header length`.
 - **Interface ID.** Deterministic identifier computed via the hashing spec (see below). The ID never depends on the textual service name.
 - **Entry ID.** Deterministically assigned `u16` per interface by sorting entry names lexicographically (ties resolved by canonical signature). Implementations may freeze the assignment in lockfiles to preserve wire compatibility.
-- **Route Index.** Identifies which service instance is targeted; mapping from integer to route name is program-specific.
+- **Route Index.** Identifies which service instance is targeted; mapping from integer to route name is program-specific. A value of `0x00` means "infer the route for this `interface_id`" and is valid only if exactly one instance of that interface exists in the target program.
 - **Reserved byte.** Always zero in v1 (no error flag semantics). Future revisions may reinterpret this byte. Receivers MUST treat non-zero values as invalid for v1 headers.
 - **Extensions.** Optional, structured as a TLV stream (see below). `header length` MUST cover the base header plus all extension bytes.
 
@@ -75,7 +75,7 @@ See [REFLECT_HASH_SPEC](REFLECT_HASH_SPEC.md)
 
 ### Route Index
 
-`route_idx` values are assigned by the program author. `0x00` is the default instance. Additional instances are mapped via a manifest or registry that downstream tooling can inspect.
+`route_idx` values are assigned by the program author. Non-zero values identify specific interface instances and are mapped via a manifest or registry that downstream tooling can inspect. `0x00` is reserved as an inference sentinel: the receiver may resolve it only when exactly one instance with the given `interface_id` exists; otherwise the message is invalid/ambiguous.
 
 ### Extension Framing (TBD)
 
@@ -125,6 +125,7 @@ A receiver that detects a potential header SHOULD apply at least the following c
 3. **Header length:** `hlen >= 0x10` and `hlen <= payload_length`. Reject if the length is smaller than the base header or extends beyond the payload.
 4. **Reserved byte:** For v1 the byte at offset 15 MUST be zero. Non-zero values indicate incompatible behavior unless a future version redefines it.
 5. **Extensions:** If `hlen > 0x10`, ensure each TLV record fits within the declared header length; malformed TLVs invalidate the header.
+6. **Route inference (`route_idx == 0x00`):** Resolve only if exactly one matching `interface_id` instance exists. If none or many exist, reject as invalid/ambiguous.
 
 Once the header passes validation, proceed to decode routing identifiers and payload.
 
@@ -132,36 +133,36 @@ Once the header passes validation, proceed to decode routing identifiers and pay
 
 - Headers with invalid magic, unsupported versions, non-zero reserved byte (in v1), or header lengths that extend beyond the payload MUST be rejected before processing.
 - Extension parsing must respect `length` fields strictly; implementations SHOULD cap accepted header lengths to prevent resource exhaustion.
-- Tooling should treat `interface_id`, `entry_id`, and `route_idx` as untrusted inputs - only use them after successful validation and cross-checking against known manifests.
+- Tooling should treat `interface_id`, `entry_id`, and `route_idx` as untrusted inputs - only use them after successful validation and cross-checking against known manifests. For `route_idx = 0x00`, perform ambiguity checks before resolving a concrete route.
 
 ## Examples
 
-### Example A – Default Route Call
+### Example A – Route Inference Call (`route_idx = 0`)
 
-Assume `interface_id = 0xA1B2C3D4E5F60718` and `entry_id = 0x0200` (`Foo::Bar`), default route (`route_idx = 0x00`), base header only.
+Assume `interface_id = 0xA1B2C3D4E5F60718` and `entry_id = 0x0200` (`Foo::Bar`), route inference requested (`route_idx = 0x00`), base header only. The receiver may accept this only if exactly one instance of that interface exists.
 
 ```
-47 4D  01   0B      18 07 F6 E5 D4 C3 B2 A1  02 00     00     00
-^magic ^ver ^hlen  ^interface_id LE          ^entry_id ^route ^reserved
+47 4D  01   10     18 07 F6 E5 D4 C3 B2 A1  02 00     00     00
+^magic ^ver ^hlen  ^interface_id LE         ^entry_id ^route ^reserved
 ```
 
 Payload bytes follow immediately after byte offset 11.
 
-### Example B – Alternate Route (reserved byte zero)
+### Example B – Explicit Non-Zero Route (reserved byte zero)
 
 `interface_id = 0x0123456789ABCDEF`, `entry_id = 0x0500`, `route_idx = 0x02`, reserved byte remains zero.
 
 ```
-47 4D 01 0B  EF CD AB 89 67 45 23 01  05 00  02  00
+47 4D 01 10   EF CD AB 89 67 45 23 01   05 00   02   00
 ```
 
 ## Frequently Asked Questions
 
 **Q: How do I map `route_idx` back to route names?**  
-Provide a manifest that associates each route name with a 1-byte index. Tooling can distribute this manifest alongside the program binary or IDL.
+Provide a manifest that associates each route name with a non-zero 1-byte index. Tooling can distribute this manifest alongside the program binary or IDL. A `route_idx` of `0x00` means the sender requests route inference, so tooling should verify the target program exposes exactly one matching `interface_id` instance before resolving it.
 
 **Q: Can I include additional metadata in the header?**  
-Yes. Increase `header length` and append extension fields. Receivers that understand the extension can parse it; others should skip to `header length` before reading the payload.
+The `v1` header is fixed to 16 bytes and does not permit additional metadata fields. Header extensions are reserved for future versions of the specification.
 
 **Q: How do off-chain tools verify the header?**  
 Check the magic/version, read `interface_id` and `entry_id`, and consult a registry or IDL manifest to interpret the payload.
