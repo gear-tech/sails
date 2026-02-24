@@ -5,6 +5,7 @@ use futures::{
     Stream,
     channel::{mpsc, oneshot},
 };
+pub use gear_core_errors::{ErrorReplyReason, SimpleExecutionError};
 use hashbrown::HashMap;
 use std::rc::Rc;
 use tokio_stream::StreamExt;
@@ -295,7 +296,21 @@ impl<T: ServiceCall> PendingCall<T, GtestEnv> {
     pub fn query(mut self) -> Result<T::Reply, GtestError> {
         let (payload, params) = self.take_encoded_args_and_params();
         // Calculate reply
-        let reply_bytes = self.env.query(self.destination, payload, params)?;
+        let reply_bytes = match self.env.query(self.destination, payload, params) {
+            Ok(bytes) => bytes,
+            Err(GtestError::ReplyHasError(reason, payload))
+                if matches!(
+                    reason,
+                    ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic)
+                ) =>
+            {
+                if let Ok(reply) = T::decode_error_with_header(self.route_idx, &payload) {
+                    return Ok(reply);
+                }
+                return Err(GtestError::ReplyHasError(reason, payload));
+            }
+            Err(err) => return Err(err),
+        };
 
         // Decode reply
         T::decode_reply_with_header(self.route_idx, reply_bytes)
@@ -334,6 +349,16 @@ impl<T: ServiceCall> Future for PendingCall<T, GtestEnv> {
                     Ok(reply) => Poll::Ready(Ok(reply)),
                     Err(err) => Poll::Ready(Err(TestError::ScaleCodecError(err).into())),
                 },
+                Err(GtestError::ReplyHasError(reason, payload)) => {
+                    if matches!(
+                        reason,
+                        ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic)
+                    ) && let Ok(reply) = T::decode_error_with_header(self.route_idx, &payload)
+                    {
+                        return Poll::Ready(Ok(reply));
+                    }
+                    Poll::Ready(Err(GtestError::ReplyHasError(reason, payload)))
+                }
                 Err(err) => Poll::Ready(Err(err)),
             },
             Err(_err) => Poll::Ready(Err(GtestError::ReplyIsMissing)),
@@ -341,7 +366,7 @@ impl<T: ServiceCall> Future for PendingCall<T, GtestEnv> {
     }
 }
 
-impl<A, T: ServiceCall> PendingCtor<A, T, GtestEnv> {
+impl<A, T: CtorCall> PendingCtor<A, T, GtestEnv> {
     pub fn create_program(mut self) -> Result<Self, GtestError> {
         if self.state.is_some() {
             panic!("{PENDING_CTOR_INVALID_STATE}");
@@ -372,8 +397,8 @@ impl<A, T: ServiceCall> PendingCtor<A, T, GtestEnv> {
     }
 }
 
-impl<A, T: ServiceCall> Future for PendingCtor<A, T, GtestEnv> {
-    type Output = Result<Actor<A, GtestEnv>, <GtestEnv as GearEnv>::Error>;
+impl<A: 'static, T: CtorCall> Future for PendingCtor<A, T, GtestEnv> {
+    type Output = Result<T::Output<A, GtestEnv>, GtestError>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         if self.state.is_none() {
@@ -409,12 +434,21 @@ impl<A, T: ServiceCall> Future for PendingCtor<A, T, GtestEnv> {
         match ready!(reply_receiver.poll(cx)) {
             Ok(res) => match res {
                 Ok(_) => {
-                    // Do not decode payload here
                     let program_id = this
                         .program_id
                         .take()
                         .unwrap_or_else(|| panic!("{PENDING_CTOR_INVALID_STATE}"));
-                    Poll::Ready(Ok(Actor::new(this.env.clone(), program_id)))
+                    Poll::Ready(Ok(T::construct(this.env.clone(), Some(program_id), Ok(()))))
+                }
+                Err(GtestError::ReplyHasError(reason, payload)) => {
+                    if matches!(
+                        reason,
+                        ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic)
+                    ) && let Ok(biz_err) = T::decode_error(&payload)
+                    {
+                        return Poll::Ready(Ok(T::construct(this.env.clone(), None, Err(biz_err))));
+                    }
+                    Poll::Ready(Err(GtestError::ReplyHasError(reason, payload)))
                 }
                 Err(err) => Poll::Ready(Err(err)),
             },

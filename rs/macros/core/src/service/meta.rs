@@ -264,12 +264,21 @@ struct FnHashBuilder<'a> {
 
 impl<'a> FnHashBuilder<'a> {
     fn from_handler(handler: &'a FnBuilder<'a>, sails_path: &'a Path) -> Self {
+        let original_result_type = shared::result_type(&handler.impl_fn.sig);
+        let static_result_type = shared::replace_any_lifetime_with_static(original_result_type);
+        let (result_type, _) =
+            if let Some(ty) = shared::extract_reply_type_with_value(&static_result_type) {
+                (ty.clone(), true)
+            } else {
+                (static_result_type, false)
+            };
+
         Self {
             sails_path,
             is_query: handler.is_query(),
             route: &handler.route,
             arg_types: handler.params_types(),
-            result_type: handler.result_type_with_static_lifetime(),
+            result_type,
             unwrap_result: handler.unwrap_result,
             override_name: None,
         }
@@ -285,6 +294,10 @@ impl<'a> FnHashBuilder<'a> {
 
         let arg_types = self.arg_types;
 
+        // Generate RES_HASH - check if result type is Result<T, E>
+        // TODO: We only use 'flat' hashing (with | separator) if unwrap_result is true.
+        // This is to stay in sync with idl-gen which only uses 'throws' if metadata has 3 fields.
+        // If we want truly unified throws, we need a hashing scheme that is independent of syntactic unfolding.
         let result_tokens = if self.unwrap_result
             && let Type::Path(ref tp) = self.result_type
             && let Some((ok_ty, err_ty)) = shared::extract_result_types(tp)

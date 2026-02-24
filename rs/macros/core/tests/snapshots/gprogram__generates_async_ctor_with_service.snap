@@ -34,6 +34,15 @@ mod meta_in_program {
         pub(super) p1: u32,
         pub(super) p2: String,
     }
+    impl sails_rs::meta::Identifiable for __NewParams {
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = sails_rs::meta::InterfaceId::zero();
+    }
+    impl sails_rs::meta::MethodMeta for __NewParams {
+        const ENTRY_ID: u16 = 0u16;
+    }
+    impl sails_rs::gstd::InvocationIo for __NewParams {
+        type Params = Self;
+    }
     #[derive(sails_rs::TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum ConstructorsMeta {

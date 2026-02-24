@@ -24,7 +24,7 @@ mod tests {
 
         let mut expected = vec![
             0x47, 0x4D, 0x01, 0x10, // Magic, Version, Header Length
-            56, 30, 19, 253, 208, 45, 103, 95, // Interface ID
+            68, 91, 237, 110, 251, 232, 230, 221, // Interface ID
             0, 0, // Entry ID
             5, // Route Index
             0, // Reserved
@@ -46,13 +46,12 @@ mod tests {
         // We don't need manual InterfaceId anymore, it's inside decode_reply
         let mut bytes = vec![
             0x47, 0x4D, 0x01, 0x10, // Magic, Version, Header Length
-            56, 30, 19, 253, 208, 45, 103, 95, // Interface ID
+            68, 91, 237, 110, 251, 232, 230, 221, // Interface ID
             0, 0, // Entry ID
             0, // Route Index
             0, // Reserved
         ];
         bytes.extend_from_slice(&[
-            0, // Ok
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 123, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, // 123
             255, 255, 255, 255, // NonZeroU32::MAX

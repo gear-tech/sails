@@ -14,6 +14,8 @@ pub mod parts;
 static mut CATALOG_DATA: Option<CatalogData> = None;
 static mut CATALOG_ADMIN: Option<ActorId> = None;
 
+// TODO: The service macro currently fails to recognize this as a 'Result' type for automatic 'throws' unfolding
+// because it expects exactly 2 generic arguments and the literal name "Result".
 type Result<T> = RtlResult<T, Error>;
 
 type PartMap<K, V> = BTreeMap<K, V>;

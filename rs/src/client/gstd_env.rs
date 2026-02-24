@@ -215,6 +215,17 @@ const _: () = {
                         .map_err(Error::Decode)?;
                     Poll::Ready(Ok(res))
                 }
+                // error reply
+                Err(gstd::errors::Error::ErrorReply(
+                    error_payload,
+                    ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic),
+                )) => match T::decode_error_with_header(self.route_idx, &error_payload.0) {
+                    Ok(res) => Poll::Ready(Ok(res)),
+                    Err(_) => Poll::Ready(Err(gstd::errors::Error::ErrorReply(
+                        error_payload,
+                        ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic),
+                    ))),
+                },
                 // reply with ProgramExited
                 Err(gstd::errors::Error::ErrorReply(
                     error_payload,
@@ -264,8 +275,8 @@ const _: () = {
         }
     }
 
-    impl<A, T: ServiceCall> Future for PendingCtor<A, T, GstdEnv> {
-        type Output = Result<Actor<A, GstdEnv>, <GstdEnv as GearEnv>::Error>;
+    impl<A: 'static, T: CtorCall> Future for PendingCtor<A, T, GstdEnv> {
+        type Output = Result<T::Output<A, GstdEnv>, <GstdEnv as GearEnv>::Error>;
 
         fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
             if self.state.is_none() {
@@ -318,9 +329,21 @@ const _: () = {
                 // Poll create program future
                 match ready!(future.poll(cx)) {
                     Ok((program_id, _payload)) => {
-                        // Do not decode payload here
-                        Poll::Ready(Ok(Actor::new(this.env.clone(), program_id)))
+                        Poll::Ready(Ok(T::construct(this.env.clone(), Some(program_id), Ok(()))))
                     }
+                    Err(gstd::errors::Error::ErrorReply(
+                        error_payload,
+                        ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic),
+                    )) => match T::decode_error(&error_payload.0) {
+                        Ok(biz_err) => {
+                            Poll::Ready(Ok(T::construct(this.env.clone(), None, Err(biz_err))))
+                        }
+                        Err(_) => Poll::Ready(Err(gstd::errors::Error::ErrorReply(
+                            error_payload,
+                            ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic),
+                        )
+                        .into())),
+                    },
                     Err(err) => Poll::Ready(Err(err)),
                 }
             } else {
@@ -396,8 +419,8 @@ const _: () = {
         }
     }
 
-    impl<A, T: ServiceCall> Future for PendingCtor<A, T, GstdEnv> {
-        type Output = Result<Actor<A, GstdEnv>, <GstdEnv as GearEnv>::Error>;
+    impl<A: 'static, T: CtorCall> Future for PendingCtor<A, T, GstdEnv> {
+        type Output = Result<T::Output<A, GstdEnv>, <GstdEnv as GearEnv>::Error>;
 
         fn poll(mut self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {
             match self.state.take() {
@@ -407,7 +430,7 @@ const _: () = {
                         .take()
                         .unwrap_or_else(|| panic!("{PENDING_CTOR_INVALID_STATE}"));
                     let env = self.env.clone();
-                    Poll::Ready(Ok(Actor::new(env, program_id)))
+                    Poll::Ready(Ok(T::construct(env, Some(program_id), Ok(()))))
                 }
                 None => panic!("{PENDING_CTOR_INVALID_STATE}"),
             }

@@ -731,7 +731,6 @@ impl FnBuilder<'_> {
         let sails_path = self.sails_path;
         let handler_ident = self.ident;
         let entry_id = self.entry_id;
-        let unwrap_token = self.unwrap_result.then(|| quote!(.unwrap()));
         let handler_args = self.params_idents();
         let handler_types = self.params_types();
         let payable_check = {
@@ -744,10 +743,41 @@ impl FnBuilder<'_> {
                 quote!()
             }
         };
+
+        let await_token = self.is_async().then(|| quote!(.await));
+        let raw_call =
+            quote! { #program_type_path :: #handler_ident (#(#handler_args),*) #await_token };
+
+        let params_struct_ident = &self.params_struct_ident;
+        let original_result_type = shared::result_type(&self.impl_fn.sig);
+        let call = if let syn::Type::Path(tp) = &original_result_type
+            && let Some((_ok_ty, _err_ty)) = shared::extract_result_types(tp)
+        {
+            quote! {
+                match #raw_call {
+                    Ok(v) => v,
+                    Err(e) => {
+                        let encoded = <meta_in_program::#params_struct_ident as #sails_path::gstd::InvocationIo>::with_optimized_encode_with_id(
+                            <meta_in_program::#params_struct_ident as #sails_path::meta::Identifiable>::INTERFACE_ID,
+                            <meta_in_program::#params_struct_ident as #sails_path::meta::MethodMeta>::ENTRY_ID,
+                            &e,
+                            0, // route_idx for ctors is always 0
+                            |encoded| encoded.to_vec()
+                        );
+                        #sails_path::gstd::Syscall::panic(&encoded)
+                    }
+                }
+            }
+        } else if self.unwrap_result {
+            quote! { #raw_call .unwrap() }
+        } else {
+            raw_call
+        };
+
         let ctor_call_impl = if self.is_async() {
             quote! {
                 gstd::message_loop(async move {
-                    let program = #program_type_path :: #handler_ident (#(#handler_args),*) .await #unwrap_token ;
+                    let program = #call;
 
                     unsafe {
                         #program_ident = Some(program);
@@ -756,7 +786,7 @@ impl FnBuilder<'_> {
             }
         } else {
             quote! {
-                let program = #program_type_path :: #handler_ident (#(#handler_args),*) #unwrap_token;
+                let program = #call;
                 unsafe {
                     #program_ident = Some(program);
                 }
@@ -777,6 +807,7 @@ impl FnBuilder<'_> {
         let sails_path = self.sails_path;
         let params_struct_ident = &self.params_struct_ident;
         let params_struct_members = self.params().map(|(ident, ty)| quote!(#ident: #ty));
+        let entry_id = &self.entry_id;
 
         quote! {
             #[derive(#sails_path::Decode, #sails_path::TypeInfo)]
@@ -784,6 +815,18 @@ impl FnBuilder<'_> {
             #[scale_info(crate = #scale_info_path )]
             pub struct #params_struct_ident {
                 #(pub(super) #params_struct_members,)*
+            }
+
+            impl #sails_path::meta::Identifiable for #params_struct_ident {
+                const INTERFACE_ID: #sails_path::meta::InterfaceId = #sails_path::meta::InterfaceId::zero();
+            }
+
+            impl #sails_path::meta::MethodMeta for #params_struct_ident {
+                const ENTRY_ID: u16 = #entry_id;
+            }
+
+            impl #sails_path::gstd::InvocationIo for #params_struct_ident {
+                type Params = Self;
             }
         }
     }
@@ -797,9 +840,21 @@ impl FnBuilder<'_> {
             .filter(|attr| attr.path().is_ident("doc"));
         let params_struct_ident = &self.params_struct_ident;
 
-        quote! {
-            #( #ctor_docs_attrs )*
-            #ctor_route(#params_struct_ident)
+        let original_result_type = shared::result_type(&self.impl_fn.sig);
+        let static_result_type = shared::replace_any_lifetime_with_static(original_result_type);
+
+        if let Type::Path(ref tp) = static_result_type
+            && let Some((_ok_ty, err_ty)) = shared::extract_result_types(tp)
+        {
+            quote! {
+                #( #ctor_docs_attrs )*
+                #ctor_route(#params_struct_ident, #err_ty)
+            }
+        } else {
+            quote! {
+                #( #ctor_docs_attrs )*
+                #ctor_route(#params_struct_ident)
+            }
         }
     }
 }
