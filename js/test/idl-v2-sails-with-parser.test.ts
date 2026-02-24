@@ -203,7 +203,7 @@ describe('Sails with Parser v2 - Queries', () => {
       .Value()
       .withAddress(alice.address)
       .withValue(0n)
-      .withGasLimit(1_000_000_000n)
+      .withGasLimit(10_000_000_000n)
       .call();
     expect(result).toBe(12);
   });

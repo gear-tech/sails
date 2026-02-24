@@ -7060,6 +7060,7 @@ dependencies = [
  "convert_case 0.11.0",
  "rustdoc-types",
  "sails-client-gen",
+ "sails-client-gen-js",
  "sails-sol-gen",
  "serde_json",
  "toml_edit 0.25.3+spec-1.1.0",
@@ -7074,6 +7075,18 @@ dependencies = [
  "genco",
  "insta",
  "parity-scale-codec",
+ "sails-idl-meta",
+ "sails-idl-parser-v2",
+]
+
+[[package]]
+name = "sails-client-gen-js"
+version = "0.10.2"
+dependencies = [
+ "anyhow",
+ "convert_case 0.11.0",
+ "genco",
+ "insta",
  "sails-idl-meta",
  "sails-idl-parser-v2",
 ]

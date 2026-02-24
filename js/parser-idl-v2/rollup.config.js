@@ -8,11 +8,11 @@ import typescript from 'rollup-plugin-typescript2';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 function getBase64Parser() {
-  const parserPath = resolve(__dirname, '../../target/wasm32-unknown-unknown/release/sails_idl_parser.opt.wasm');
+  const parserPath = resolve(__dirname, '../../target/wasm32-unknown-unknown/release/sails_idl_v2_parser.wasm');
   if (!existsSync(parserPath)) {
     throw new Error(`Build sails-idl-parser-wasm project\n
 cargo build -p sails-idl-parser-wasm --target=wasm32-unknown-unknown --release\n
-wasm-opt -O4 -o ./target/wasm32-unknown-unknown/release/sails_idl_parser.opt.wasm ./target/wasm32-unknown-unknown/release/sails_idl_parser_wasm.wasm\n`);
+wasm-opt -O4 -o ./target/wasm32-unknown-unknown/release/sails_idl_v2_parser.wasm ./target/wasm32-unknown-unknown/release/sails_idl_parser_wasm.wasm\n`);
   }
   const parserBytes = readFileSync(parserPath);
   const compressedBytes = gzipSync(parserBytes);

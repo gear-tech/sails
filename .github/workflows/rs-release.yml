@@ -26,6 +26,7 @@ env:
     sails-idl-gen
     sails-sol-gen
     sails-client-gen
+    sails-client-gen-js
     sails-macros-core
     sails-macros
     sails-rs
@@ -129,6 +130,12 @@ jobs:
           cargo build -p sails-idl-parser --target wasm32-unknown-unknown --release
           mkdir -p ./assets/sails_idl_parser
           wasm-opt -O4 -o ./assets/sails_idl_parser/sails_idl_parser.wasm ./target/wasm32-unknown-unknown/release/sails_idl_parser.wasm
+
+      - name: Build IDL v2 Parser for WASM
+        run: |
+          cargo build -p sails-idl-parser-wasm --target wasm32-unknown-unknown --release
+          mkdir -p ./assets/sails_idl_parser
+          wasm-opt -O4 -o ./assets/sails_idl_parser/sails_idl_v2_parser.wasm ./target/wasm32-unknown-unknown/release/sails_idl_parser_wasm.wasm
 
       - name: Build Demo
         run: |
@@ -265,6 +272,7 @@ jobs:
           fail_on_unmatched_files: true
           files: |
             ./assets/sails_idl_parser/sails_idl_parser.wasm
+            ./assets/sails_idl_parser/sails_idl_v2_parser.wasm
             ./assets/demo/demo.wasm
             ./assets/demo/demo.idl
             ./assets/no_svcs_prog/no_svcs_prog.wasm

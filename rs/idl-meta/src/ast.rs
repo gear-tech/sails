@@ -425,6 +425,16 @@ impl TypeDecl {
             _ => None,
         }
     }
+
+    #[cfg(feature = "serde")]
+    pub fn to_json_string(&self) -> Result<String, serde_json::Error> {
+        serde_json::to_string(self)
+    }
+
+    #[cfg(feature = "serde")]
+    pub fn to_json_string_pretty(&self) -> Result<String, serde_json::Error> {
+        serde_json::to_string_pretty(self)
+    }
 }
 
 impl Display for TypeDecl {
@@ -605,6 +615,18 @@ pub struct Type {
     pub annotations: Vec<(String, Option<String>)>,
 }
 
+impl Type {
+    #[cfg(feature = "serde")]
+    pub fn to_json_string(&self) -> Result<String, serde_json::Error> {
+        serde_json::to_string(self)
+    }
+
+    #[cfg(feature = "serde")]
+    pub fn to_json_string_pretty(&self) -> Result<String, serde_json::Error> {
+        serde_json::to_string_pretty(self)
+    }
+}
+
 /// Generic type parameter in a type definition.
 ///
 /// - `name` is the declared identifier of the parameter (e.g. `T`);
@@ -680,6 +702,16 @@ impl StructDef {
     /// Returns `true` if the struct is tuple-like (all fields are unnamed).
     pub fn is_tuple(&self) -> bool {
         self.fields.iter().all(|f| f.name.is_none())
+    }
+
+    #[cfg(feature = "serde")]
+    pub fn to_json_string(&self) -> Result<String, serde_json::Error> {
+        serde_json::to_string(self)
+    }
+
+    #[cfg(feature = "serde")]
+    pub fn to_json_string_pretty(&self) -> Result<String, serde_json::Error> {
+        serde_json::to_string_pretty(self)
     }
 }
 
