@@ -1,5 +1,5 @@
 [workspace]
-members = ["cargo:rs/cli"]
+members = ["cargo:."]
 
 # Config for 'dist'
 [dist]
@@ -21,6 +21,8 @@ targets = [
 install-path = "CARGO_HOME"
 # Whether to install an updater program
 install-updater = true
+# Globally disable dist, so we can opt-in specific packages
+dist = false
 # Use precise builds to avoid workspace ambiguity
 precise-builds = true
 # Specify which packages should be distributed
