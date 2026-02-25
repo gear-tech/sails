@@ -28,7 +28,7 @@ precise-builds = true
 packages = ["sails-cli"]
 # Use the project's standard tag namespace
 tag-namespace = "rs"
-# Run build in PRs to verify and upload artifacts
-pr-run-mode = "upload"
+# Run 'dist plan' in PRs to verify configuration (don't upload artifacts)
+pr-run-mode = "plan"
 # Static link the C runtime on Windows for better portability
 msvc-crt-static = true
