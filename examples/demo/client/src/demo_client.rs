@@ -242,33 +242,33 @@ pub mod mammal_service {
 
     pub trait MammalService {
         type Env: sails_rs::client::GearEnv;
-        fn make_sound(&mut self) -> sails_rs::client::PendingCall<io::MakeSound, Self::Env>;
         fn avg_weight(&self) -> sails_rs::client::PendingCall<io::AvgWeight, Self::Env>;
+        fn make_sound(&mut self) -> sails_rs::client::PendingCall<io::MakeSound, Self::Env>;
     }
 
     pub struct MammalServiceImpl;
 
     impl sails_rs::client::Identifiable for MammalServiceImpl {
         const INTERFACE_ID: sails_rs::InterfaceId =
-            sails_rs::InterfaceId::from_bytes_8([255, 107, 147, 225, 150, 16, 38, 254]);
+            sails_rs::InterfaceId::from_bytes_8([241, 129, 131, 53, 115, 172, 5, 191]);
     }
 
     impl<E: sails_rs::client::GearEnv> MammalService
         for sails_rs::client::Service<MammalServiceImpl, E>
     {
         type Env = E;
-        fn make_sound(&mut self) -> sails_rs::client::PendingCall<io::MakeSound, Self::Env> {
+        fn avg_weight(&self) -> sails_rs::client::PendingCall<io::AvgWeight, Self::Env> {
             self.pending_call(())
         }
-        fn avg_weight(&self) -> sails_rs::client::PendingCall<io::AvgWeight, Self::Env> {
+        fn make_sound(&mut self) -> sails_rs::client::PendingCall<io::MakeSound, Self::Env> {
             self.pending_call(())
         }
     }
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(MakeSound () -> String, 0, <super::MammalServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(AvgWeight () -> u32, 1, <super::MammalServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(AvgWeight () -> u32, 0, <super::MammalServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(MakeSound () -> String, 1, <super::MammalServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(feature = "with_mocks")]
@@ -283,7 +283,7 @@ pub mod mammal_service {
             #[allow(clippy::type_complexity)]
             impl mammal_service::MammalService for MammalService {
                 type Env = sails_rs::client::GstdEnv;
-                fn make_sound (&mut self, ) -> sails_rs::client::PendingCall<mammal_service::io::MakeSound, sails_rs::client::GstdEnv>;fn avg_weight (&self, ) -> sails_rs::client::PendingCall<mammal_service::io::AvgWeight, sails_rs::client::GstdEnv>;
+                fn avg_weight (&self, ) -> sails_rs::client::PendingCall<mammal_service::io::AvgWeight, sails_rs::client::GstdEnv>;fn make_sound (&mut self, ) -> sails_rs::client::PendingCall<mammal_service::io::MakeSound, sails_rs::client::GstdEnv>;
             }
         }
     }
@@ -294,33 +294,33 @@ pub mod walker_service {
 
     pub trait WalkerService {
         type Env: sails_rs::client::GearEnv;
-        fn walk(&mut self, dx: i32, dy: i32) -> sails_rs::client::PendingCall<io::Walk, Self::Env>;
         fn position(&self) -> sails_rs::client::PendingCall<io::Position, Self::Env>;
+        fn walk(&mut self, dx: i32, dy: i32) -> sails_rs::client::PendingCall<io::Walk, Self::Env>;
     }
 
     pub struct WalkerServiceImpl;
 
     impl sails_rs::client::Identifiable for WalkerServiceImpl {
         const INTERFACE_ID: sails_rs::InterfaceId =
-            sails_rs::InterfaceId::from_bytes_8([238, 21, 54, 181, 81, 112, 191, 10]);
+            sails_rs::InterfaceId::from_bytes_8([6, 182, 117, 14, 54, 240, 253, 167]);
     }
 
     impl<E: sails_rs::client::GearEnv> WalkerService
         for sails_rs::client::Service<WalkerServiceImpl, E>
     {
         type Env = E;
-        fn walk(&mut self, dx: i32, dy: i32) -> sails_rs::client::PendingCall<io::Walk, Self::Env> {
-            self.pending_call((dx, dy))
-        }
         fn position(&self) -> sails_rs::client::PendingCall<io::Position, Self::Env> {
             self.pending_call(())
+        }
+        fn walk(&mut self, dx: i32, dy: i32) -> sails_rs::client::PendingCall<io::Walk, Self::Env> {
+            self.pending_call((dx, dy))
         }
     }
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(Walk (dx: i32, dy: i32) -> (), 0, <super::WalkerServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(Position () -> (i32, i32, ), 1, <super::WalkerServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Position () -> (i32, i32, ), 0, <super::WalkerServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Walk (dx: i32, dy: i32) -> (), 1, <super::WalkerServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -366,7 +366,7 @@ pub mod walker_service {
             #[allow(clippy::type_complexity)]
             impl walker_service::WalkerService for WalkerService {
                 type Env = sails_rs::client::GstdEnv;
-                fn walk (&mut self, dx: i32, dy: i32) -> sails_rs::client::PendingCall<walker_service::io::Walk, sails_rs::client::GstdEnv>;fn position (&self, ) -> sails_rs::client::PendingCall<walker_service::io::Position, sails_rs::client::GstdEnv>;
+                fn position (&self, ) -> sails_rs::client::PendingCall<walker_service::io::Position, sails_rs::client::GstdEnv>;fn walk (&mut self, dx: i32, dy: i32) -> sails_rs::client::PendingCall<walker_service::io::Walk, sails_rs::client::GstdEnv>;
             }
         }
     }
@@ -390,7 +390,7 @@ pub mod dog {
 
     impl sails_rs::client::Identifiable for DogImpl {
         const INTERFACE_ID: sails_rs::InterfaceId =
-            sails_rs::InterfaceId::from_bytes_8([24, 102, 110, 103, 162, 25, 23, 161]);
+            sails_rs::InterfaceId::from_bytes_8([6, 27, 83, 55, 189, 176, 227, 91]);
     }
 
     impl<E: sails_rs::client::GearEnv> Dog for sails_rs::client::Service<DogImpl, E> {
@@ -479,22 +479,22 @@ pub mod references {
         type Env: sails_rs::client::GearEnv;
         fn add(&mut self, v: u32) -> sails_rs::client::PendingCall<io::Add, Self::Env>;
         fn add_byte(&mut self, byte: u8) -> sails_rs::client::PendingCall<io::AddByte, Self::Env>;
+        fn baked(&self) -> sails_rs::client::PendingCall<io::Baked, Self::Env>;
         fn guess_num(
             &mut self,
             number: u8,
         ) -> sails_rs::client::PendingCall<io::GuessNum, Self::Env>;
         fn incr(&mut self) -> sails_rs::client::PendingCall<io::Incr, Self::Env>;
-        fn set_num(&mut self, number: u8) -> sails_rs::client::PendingCall<io::SetNum, Self::Env>;
-        fn baked(&self) -> sails_rs::client::PendingCall<io::Baked, Self::Env>;
         fn last_byte(&self) -> sails_rs::client::PendingCall<io::LastByte, Self::Env>;
         fn message(&self) -> sails_rs::client::PendingCall<io::Message, Self::Env>;
+        fn set_num(&mut self, number: u8) -> sails_rs::client::PendingCall<io::SetNum, Self::Env>;
     }
 
     pub struct ReferencesImpl;
 
     impl sails_rs::client::Identifiable for ReferencesImpl {
         const INTERFACE_ID: sails_rs::InterfaceId =
-            sails_rs::InterfaceId::from_bytes_8([138, 15, 138, 190, 23, 109, 117, 185]);
+            sails_rs::InterfaceId::from_bytes_8([218, 194, 171, 213, 116, 66, 165, 250]);
     }
 
     impl<E: sails_rs::client::GearEnv> References for sails_rs::client::Service<ReferencesImpl, E> {
@@ -505,6 +505,9 @@ pub mod references {
         fn add_byte(&mut self, byte: u8) -> sails_rs::client::PendingCall<io::AddByte, Self::Env> {
             self.pending_call((byte,))
         }
+        fn baked(&self) -> sails_rs::client::PendingCall<io::Baked, Self::Env> {
+            self.pending_call(())
+        }
         fn guess_num(
             &mut self,
             number: u8,
@@ -514,17 +517,14 @@ pub mod references {
         fn incr(&mut self) -> sails_rs::client::PendingCall<io::Incr, Self::Env> {
             self.pending_call(())
         }
-        fn set_num(&mut self, number: u8) -> sails_rs::client::PendingCall<io::SetNum, Self::Env> {
-            self.pending_call((number,))
-        }
-        fn baked(&self) -> sails_rs::client::PendingCall<io::Baked, Self::Env> {
-            self.pending_call(())
-        }
         fn last_byte(&self) -> sails_rs::client::PendingCall<io::LastByte, Self::Env> {
             self.pending_call(())
         }
         fn message(&self) -> sails_rs::client::PendingCall<io::Message, Self::Env> {
             self.pending_call(())
+        }
+        fn set_num(&mut self, number: u8) -> sails_rs::client::PendingCall<io::SetNum, Self::Env> {
+            self.pending_call((number,))
         }
     }
 
@@ -532,12 +532,12 @@ pub mod references {
         use super::*;
         sails_rs::io_struct_impl!(Add (v: u32) -> u32, 0, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
         sails_rs::io_struct_impl!(AddByte (byte: u8) -> Vec<u8>, 1, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(GuessNum (number: u8) -> super::Result<String, String, >, 2, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(Incr () -> super::ReferenceCount, 3, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(SetNum (number: u8) -> super::Result<(), String, >, 4, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(Baked () -> String, 5, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(LastByte () -> super::Option<u8, >, 6, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(Message () -> super::Option<String, >, 7, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Baked () -> String, 2, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(GuessNum (number: u8) -> super::Result<String, String, >, 3, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Incr () -> super::ReferenceCount, 4, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(LastByte () -> super::Option<u8, >, 5, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Message () -> super::Option<String, >, 6, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(SetNum (number: u8) -> super::Result<(), String, >, 7, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(feature = "with_mocks")]
@@ -552,7 +552,7 @@ pub mod references {
             #[allow(clippy::type_complexity)]
             impl references::References for References {
                 type Env = sails_rs::client::GstdEnv;
-                fn add (&mut self, v: u32) -> sails_rs::client::PendingCall<references::io::Add, sails_rs::client::GstdEnv>;fn add_byte (&mut self, byte: u8) -> sails_rs::client::PendingCall<references::io::AddByte, sails_rs::client::GstdEnv>;fn guess_num (&mut self, number: u8) -> sails_rs::client::PendingCall<references::io::GuessNum, sails_rs::client::GstdEnv>;fn incr (&mut self, ) -> sails_rs::client::PendingCall<references::io::Incr, sails_rs::client::GstdEnv>;fn set_num (&mut self, number: u8) -> sails_rs::client::PendingCall<references::io::SetNum, sails_rs::client::GstdEnv>;fn baked (&self, ) -> sails_rs::client::PendingCall<references::io::Baked, sails_rs::client::GstdEnv>;fn last_byte (&self, ) -> sails_rs::client::PendingCall<references::io::LastByte, sails_rs::client::GstdEnv>;fn message (&self, ) -> sails_rs::client::PendingCall<references::io::Message, sails_rs::client::GstdEnv>;
+                fn add (&mut self, v: u32) -> sails_rs::client::PendingCall<references::io::Add, sails_rs::client::GstdEnv>;fn add_byte (&mut self, byte: u8) -> sails_rs::client::PendingCall<references::io::AddByte, sails_rs::client::GstdEnv>;fn baked (&self, ) -> sails_rs::client::PendingCall<references::io::Baked, sails_rs::client::GstdEnv>;fn guess_num (&mut self, number: u8) -> sails_rs::client::PendingCall<references::io::GuessNum, sails_rs::client::GstdEnv>;fn incr (&mut self, ) -> sails_rs::client::PendingCall<references::io::Incr, sails_rs::client::GstdEnv>;fn last_byte (&self, ) -> sails_rs::client::PendingCall<references::io::LastByte, sails_rs::client::GstdEnv>;fn message (&self, ) -> sails_rs::client::PendingCall<references::io::Message, sails_rs::client::GstdEnv>;fn set_num (&mut self, number: u8) -> sails_rs::client::PendingCall<references::io::SetNum, sails_rs::client::GstdEnv>;
             }
         }
     }
@@ -834,7 +834,7 @@ pub mod chain {
 
     impl sails_rs::client::Identifiable for ChainImpl {
         const INTERFACE_ID: sails_rs::InterfaceId =
-            sails_rs::InterfaceId::from_bytes_8([212, 34, 198, 110, 96, 33, 224, 249]);
+            sails_rs::InterfaceId::from_bytes_8([1, 252, 190, 24, 62, 33, 153, 176]);
     }
 
     impl<E: sails_rs::client::GearEnv> Chain for sails_rs::client::Service<ChainImpl, E> {

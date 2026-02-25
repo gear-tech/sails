@@ -251,7 +251,7 @@ impl ServiceUnit {
     /// Stabilize ordering for deterministic output and comparisons.
     pub fn normalize(&mut self) {
         self.events.sort_by_key(|e| e.name.to_lowercase());
-        self.funcs.sort_by_key(|f| (f.kind, f.name.to_lowercase()));
+        self.funcs.sort_by_key(|f| f.name.to_lowercase());
         self.extends.sort_by_key(|e| e.name.to_lowercase());
     }
 }

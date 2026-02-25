@@ -10,11 +10,11 @@ interface IPayableContract {
 
     function myServiceDeposit(bool _callReply) external payable returns (bytes32 messageId);
 
+    function myServiceRegularCall(bool _callReply) external returns (bytes32 messageId);
+
     function myServiceSwapAndRefund(bool _callReply) external payable returns (bytes32 messageId);
 
     function myServiceWithdraw(bool _callReply) external returns (bytes32 messageId);
-
-    function myServiceRegularCall(bool _callReply) external returns (bytes32 messageId);
 }
 
 contract PayableContractAbi is IPayableContract {
@@ -22,11 +22,11 @@ contract PayableContractAbi is IPayableContract {
 
     function myServiceDeposit(bool _callReply) external payable returns (bytes32 messageId) {}
 
+    function myServiceRegularCall(bool _callReply) external returns (bytes32 messageId) {}
+
     function myServiceSwapAndRefund(bool _callReply) external payable returns (bytes32 messageId) {}
 
     function myServiceWithdraw(bool _callReply) external returns (bytes32 messageId) {}
-
-    function myServiceRegularCall(bool _callReply) external returns (bytes32 messageId) {}
 }
 
 interface IPayableContractCallbacks {
@@ -34,11 +34,11 @@ interface IPayableContractCallbacks {
 
     function replyOn_myServiceDeposit(bytes32 messageId) external;
 
+    function replyOn_myServiceRegularCall(bytes32 messageId, bool reply) external;
+
     function replyOn_myServiceSwapAndRefund(bytes32 messageId, uint128 reply) external payable;
 
     function replyOn_myServiceWithdraw(bytes32 messageId, uint128 reply) external payable;
-
-    function replyOn_myServiceRegularCall(bytes32 messageId, bool reply) external;
 
     function onErrorReply(bytes32 messageId, bytes calldata payload, bytes4 replyCode) external payable;
 }
@@ -71,15 +71,15 @@ contract PayableContractCaller is IPayableContractCallbacks {
         // TODO: implement this
     }
 
+    function replyOn_myServiceRegularCall(bytes32 messageId, bool reply) external onlyVaraEthProgram {
+        // TODO: implement this
+    }
+
     function replyOn_myServiceSwapAndRefund(bytes32 messageId, uint128 reply) external payable onlyVaraEthProgram {
         // TODO: implement this
     }
 
     function replyOn_myServiceWithdraw(bytes32 messageId, uint128 reply) external payable onlyVaraEthProgram {
-        // TODO: implement this
-    }
-
-    function replyOn_myServiceRegularCall(bytes32 messageId, bool reply) external onlyVaraEthProgram {
         // TODO: implement this
     }
 

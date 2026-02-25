@@ -190,8 +190,8 @@ fn discover_service_handlers<'a>(
     .into_iter()
     .filter(|fn_builder| fn_builder.export)
     .collect();
-    // service funcs ordered by (fn_type, name)
-    vec.sort_by_key(|f| (f.is_query(), f.route.to_lowercase()));
+    // service funcs ordered only by `route` (not by `is_query`)
+    vec.sort_by_key(|f| f.route.to_lowercase());
     vec.iter_mut()
         .filter(|f| f.overrides.is_none())
         .enumerate()

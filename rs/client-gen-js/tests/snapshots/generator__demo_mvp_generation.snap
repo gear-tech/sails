@@ -124,6 +124,10 @@ export class DemoClient {
     public get chaos(): Chaos {
         return new Chaos(this.api, this.programId, 7);
     }
+
+    public get chain(): Chain {
+        return new Chain(this.api, this.programId, 8);
+    }
 }
 
 export class PingPong {
@@ -267,30 +271,30 @@ export class MammalService {
         return this._typeResolver.registry;
     }
     public get interfaceId(): InterfaceId {
-        return InterfaceId.from("0xff6b93e1961026fe");
+        return InterfaceId.from("0xf181833573ac05bf");
     }
-    public makeSound(): TransactionBuilderWithHeader<string> {
-        return new TransactionBuilderWithHeader<string>(
-            this._api,
-            this.registry,
-            "send_message",
-            SailsMessageHeader.v1(this.interfaceId, 0, this._routeIdx),
-            null,
-            null,
-            this._typeResolver.getTypeDeclString("String"),
-            this._programId,
-        );
-    }
-
     public avgWeight(): QueryBuilderWithHeader<number> {
         return new QueryBuilderWithHeader<number>(
             this._api,
             this.registry,
             this._programId,
-            SailsMessageHeader.v1(this.interfaceId, 1, this._routeIdx),
+            SailsMessageHeader.v1(this.interfaceId, 0, this._routeIdx),
             null,
             null,
             this._typeResolver.getTypeDeclString("u32"),
+        );
+    }
+
+    public makeSound(): TransactionBuilderWithHeader<string> {
+        return new TransactionBuilderWithHeader<string>(
+            this._api,
+            this.registry,
+            "send_message",
+            SailsMessageHeader.v1(this.interfaceId, 1, this._routeIdx),
+            null,
+            null,
+            this._typeResolver.getTypeDeclString("String"),
+            this._programId,
         );
     }
 }
@@ -308,30 +312,30 @@ export class WalkerService {
         return this._typeResolver.registry;
     }
     public get interfaceId(): InterfaceId {
-        return InterfaceId.from("0xee1536b55170bf0a");
+        return InterfaceId.from("0x06b6750e36f0fda7");
     }
-    public walk(dx: number, dy: number): TransactionBuilderWithHeader<null> {
-        return new TransactionBuilderWithHeader<null>(
-            this._api,
-            this.registry,
-            "send_message",
-            SailsMessageHeader.v1(this.interfaceId, 0, this._routeIdx),
-            [dx, dy],
-            this._typeResolver.getTypeDeclString({"kind":"tuple","types":["i32", "i32"]}),
-            this._typeResolver.getTypeDeclString("()"),
-            this._programId,
-        );
-    }
-
     public position(): QueryBuilderWithHeader<[number, number]> {
         return new QueryBuilderWithHeader<[number, number]>(
             this._api,
             this.registry,
             this._programId,
-            SailsMessageHeader.v1(this.interfaceId, 1, this._routeIdx),
+            SailsMessageHeader.v1(this.interfaceId, 0, this._routeIdx),
             null,
             null,
             this._typeResolver.getTypeDeclString({"kind":"tuple","types":["i32","i32"]}),
+        );
+    }
+
+    public walk(dx: number, dy: number): TransactionBuilderWithHeader<null> {
+        return new TransactionBuilderWithHeader<null>(
+            this._api,
+            this.registry,
+            "send_message",
+            SailsMessageHeader.v1(this.interfaceId, 1, this._routeIdx),
+            [dx, dy],
+            this._typeResolver.getTypeDeclString({"kind":"tuple","types":["i32", "i32"]}),
+            this._typeResolver.getTypeDeclString("()"),
+            this._programId,
         );
     }
 
@@ -364,7 +368,7 @@ export class Dog {
         return this._typeResolver.registry;
     }
     public get interfaceId(): InterfaceId {
-        return InterfaceId.from("0x18666e67a21917a1");
+        return InterfaceId.from("0x061b5337bdb0e35b");
     }
     public get mammalService(): MammalService {
         return new MammalService(this._api, this._programId, this._routeIdx);
@@ -418,7 +422,7 @@ export class References {
         return this._typeResolver.registry;
     }
     public get interfaceId(): InterfaceId {
-        return InterfaceId.from("0x8a0f8abe176d75b9");
+        return InterfaceId.from("0xdac2abd57442a5fa");
     }
     public add(v: number): TransactionBuilderWithHeader<number> {
         return new TransactionBuilderWithHeader<number>(
@@ -446,12 +450,24 @@ export class References {
         );
     }
 
+    public baked(): QueryBuilderWithHeader<string> {
+        return new QueryBuilderWithHeader<string>(
+            this._api,
+            this.registry,
+            this._programId,
+            SailsMessageHeader.v1(this.interfaceId, 2, this._routeIdx),
+            null,
+            null,
+            this._typeResolver.getTypeDeclString("String"),
+        );
+    }
+
     public guessNum($number: number): TransactionBuilderWithHeader<{ ok: string } | { err: string }> {
         return new TransactionBuilderWithHeader<{ ok: string } | { err: string }>(
             this._api,
             this.registry,
             "send_message",
-            SailsMessageHeader.v1(this.interfaceId, 2, this._routeIdx),
+            SailsMessageHeader.v1(this.interfaceId, 3, this._routeIdx),
             $number,
             this._typeResolver.getTypeDeclString("u8"),
             this._typeResolver.getTypeDeclString({"kind":"named","name":"Result","generics":["String","String"]}),
@@ -464,36 +480,11 @@ export class References {
             this._api,
             this.registry,
             "send_message",
-            SailsMessageHeader.v1(this.interfaceId, 3, this._routeIdx),
+            SailsMessageHeader.v1(this.interfaceId, 4, this._routeIdx),
             null,
             null,
             this._typeResolver.getTypeDeclString({"kind":"named","name":"ReferenceCount"}),
             this._programId,
-        );
-    }
-
-    public setNum($number: number): TransactionBuilderWithHeader<{ ok: null } | { err: string }> {
-        return new TransactionBuilderWithHeader<{ ok: null } | { err: string }>(
-            this._api,
-            this.registry,
-            "send_message",
-            SailsMessageHeader.v1(this.interfaceId, 4, this._routeIdx),
-            $number,
-            this._typeResolver.getTypeDeclString("u8"),
-            this._typeResolver.getTypeDeclString({"kind":"named","name":"Result","generics":["()","String"]}),
-            this._programId,
-        );
-    }
-
-    public baked(): QueryBuilderWithHeader<string> {
-        return new QueryBuilderWithHeader<string>(
-            this._api,
-            this.registry,
-            this._programId,
-            SailsMessageHeader.v1(this.interfaceId, 5, this._routeIdx),
-            null,
-            null,
-            this._typeResolver.getTypeDeclString("String"),
         );
     }
 
@@ -502,7 +493,7 @@ export class References {
             this._api,
             this.registry,
             this._programId,
-            SailsMessageHeader.v1(this.interfaceId, 6, this._routeIdx),
+            SailsMessageHeader.v1(this.interfaceId, 5, this._routeIdx),
             null,
             null,
             this._typeResolver.getTypeDeclString({"kind":"named","name":"Option","generics":["u8"]}),
@@ -514,10 +505,23 @@ export class References {
             this._api,
             this.registry,
             this._programId,
-            SailsMessageHeader.v1(this.interfaceId, 7, this._routeIdx),
+            SailsMessageHeader.v1(this.interfaceId, 6, this._routeIdx),
             null,
             null,
             this._typeResolver.getTypeDeclString({"kind":"named","name":"Option","generics":["String"]}),
+        );
+    }
+
+    public setNum($number: number): TransactionBuilderWithHeader<{ ok: null } | { err: string }> {
+        return new TransactionBuilderWithHeader<{ ok: null } | { err: string }>(
+            this._api,
+            this.registry,
+            "send_message",
+            SailsMessageHeader.v1(this.interfaceId, 7, this._routeIdx),
+            $number,
+            this._typeResolver.getTypeDeclString("u8"),
+            this._typeResolver.getTypeDeclString({"kind":"named","name":"Result","generics":["()","String"]}),
+            this._programId,
         );
     }
 }
@@ -705,6 +709,39 @@ export class Chaos {
             null,
             null,
             this._typeResolver.getTypeDeclString("()"),
+        );
+    }
+}
+
+export class Chain {
+    private _typeResolver: TypeResolver;
+    constructor(
+        private _api: GearApi,
+        private _programId: HexString,
+        private _routeIdx: number = 0,
+    ) {
+        this._typeResolver = new TypeResolver([]);
+    }
+    private get registry() {
+        return this._typeResolver.registry;
+    }
+    public get interfaceId(): InterfaceId {
+        return InterfaceId.from("0x01fcbe183e2199b0");
+    }
+    public get dog(): Dog {
+        return new Dog(this._api, this._programId, this._routeIdx);
+    }
+
+    public makeSound(): TransactionBuilderWithHeader<string> {
+        return new TransactionBuilderWithHeader<string>(
+            this._api,
+            this.registry,
+            "send_message",
+            SailsMessageHeader.v1(this.interfaceId, 0, this._routeIdx),
+            null,
+            null,
+            this._typeResolver.getTypeDeclString("String"),
+            this._programId,
         );
     }
 }

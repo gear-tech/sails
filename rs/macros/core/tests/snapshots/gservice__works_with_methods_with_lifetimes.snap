@@ -29,10 +29,10 @@ for ReferenceServiceExposure<T> {
                 Some(false)
             }
             (id, 2u16) if id == <T as sails_rs::meta::Identifiable>::INTERFACE_ID => {
-                Some(false)
+                Some(true)
             }
             (id, 3u16) if id == <T as sails_rs::meta::Identifiable>::INTERFACE_ID => {
-                Some(true)
+                Some(false)
             }
             (id, 4u16) if id == <T as sails_rs::meta::Identifiable>::INTERFACE_ID => {
                 Some(true)
@@ -113,14 +113,14 @@ impl ReferenceServiceExposure<ReferenceService> {
                 1u16,
             ) if id
                 == <self::ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID => {
-                let request: reference_service_meta::__IncrParams = sails_rs::scale_codec::Decode::decode(
+                let request: reference_service_meta::__BakedParams = sails_rs::scale_codec::Decode::decode(
                         &mut input,
                     )
                     .expect("Failed to decode params");
-                let result = self.incr();
+                let result = self.baked();
                 let value = 0u128;
-                if !sails_rs::gstd::is_empty_tuple::<&'static ReferenceCount>() {
-                    <reference_service_meta::__IncrParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                if !sails_rs::gstd::is_empty_tuple::<&'static str>() {
+                    <reference_service_meta::__BakedParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
                         &result,
                         self.route_idx,
                         |encoded_result| result_handler(encoded_result, value),
@@ -130,17 +130,17 @@ impl ReferenceServiceExposure<ReferenceService> {
             }
             (
                 id,
-                2u16,
+                3u16,
             ) if id
                 == <self::ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID => {
-                let request: reference_service_meta::__BakedParams = sails_rs::scale_codec::Decode::decode(
+                let request: reference_service_meta::__IncrParams = sails_rs::scale_codec::Decode::decode(
                         &mut input,
                     )
                     .expect("Failed to decode params");
-                let result = self.baked();
+                let result = self.incr();
                 let value = 0u128;
-                if !sails_rs::gstd::is_empty_tuple::<&'static str>() {
-                    <reference_service_meta::__BakedParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                if !sails_rs::gstd::is_empty_tuple::<&'static ReferenceCount>() {
+                    <reference_service_meta::__IncrParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
                         &result,
                         self.route_idx,
                         |encoded_result| result_handler(encoded_result, value),
@@ -162,7 +162,7 @@ impl ReferenceServiceExposure<ReferenceService> {
         match (interface_id, entry_id) {
             (
                 id,
-                3u16,
+                2u16,
             ) if id
                 == <self::ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID => {
                 let request: reference_service_meta::__FirstByteParams = sails_rs::scale_codec::Decode::decode(
@@ -221,13 +221,13 @@ mod reference_service_meta {
             final_hash = final_hash
                 .update(&sails_rs::hash_fn!(command AddByte(u8) -> & 'static [u8]));
             final_hash = final_hash
-                .update(&sails_rs::hash_fn!(command Incr() -> & 'static ReferenceCount));
-            final_hash = final_hash
                 .update(&sails_rs::hash_fn!(query Baked() -> & 'static str));
             final_hash = final_hash
                 .update(
                     &sails_rs::hash_fn!(query FirstByte() -> Option < & 'static u8 >),
                 );
+            final_hash = final_hash
+                .update(&sails_rs::hash_fn!(command Incr() -> & 'static ReferenceCount));
             final_hash = final_hash
                 .update(
                     &sails_rs::hash_fn!(query LastByte() -> Option < & 'static u8 >),
@@ -249,22 +249,22 @@ mod reference_service_meta {
                 is_async: false,
             },
             sails_rs::meta::MethodMetadata {
-                name: "Incr",
-                entry_id: 1u16,
-                hash: sails_rs::hash_fn!(command Incr() -> & 'static ReferenceCount),
-                is_async: false,
-            },
-            sails_rs::meta::MethodMetadata {
                 name: "Baked",
-                entry_id: 2u16,
+                entry_id: 1u16,
                 hash: sails_rs::hash_fn!(query Baked() -> & 'static str),
                 is_async: false,
             },
             sails_rs::meta::MethodMetadata {
                 name: "FirstByte",
-                entry_id: 3u16,
+                entry_id: 2u16,
                 hash: sails_rs::hash_fn!(query FirstByte() -> Option < & 'static u8 >),
                 is_async: true,
+            },
+            sails_rs::meta::MethodMetadata {
+                name: "Incr",
+                entry_id: 3u16,
+                hash: sails_rs::hash_fn!(command Incr() -> & 'static ReferenceCount),
+                is_async: false,
             },
             sails_rs::meta::MethodMetadata {
                 name: "LastByte",
@@ -293,25 +293,12 @@ mod reference_service_meta {
     #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
-    pub struct __IncrParams {}
-    impl sails_rs::meta::Identifiable for __IncrParams {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID;
-    }
-    impl sails_rs::meta::MethodMeta for __IncrParams {
-        const ENTRY_ID: u16 = 1u16;
-    }
-    impl sails_rs::gstd::InvocationIo for __IncrParams {
-        type Params = Self;
-    }
-    #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
-    #[codec(crate = sails_rs::scale_codec)]
-    #[scale_info(crate = sails_rs::scale_info)]
     pub struct __BakedParams {}
     impl sails_rs::meta::Identifiable for __BakedParams {
         const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID;
     }
     impl sails_rs::meta::MethodMeta for __BakedParams {
-        const ENTRY_ID: u16 = 2u16;
+        const ENTRY_ID: u16 = 1u16;
     }
     impl sails_rs::gstd::InvocationIo for __BakedParams {
         type Params = Self;
@@ -324,9 +311,22 @@ mod reference_service_meta {
         const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID;
     }
     impl sails_rs::meta::MethodMeta for __FirstByteParams {
-        const ENTRY_ID: u16 = 3u16;
+        const ENTRY_ID: u16 = 2u16;
     }
     impl sails_rs::gstd::InvocationIo for __FirstByteParams {
+        type Params = Self;
+    }
+    #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
+    #[codec(crate = sails_rs::scale_codec)]
+    #[scale_info(crate = sails_rs::scale_info)]
+    pub struct __IncrParams {}
+    impl sails_rs::meta::Identifiable for __IncrParams {
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID;
+    }
+    impl sails_rs::meta::MethodMeta for __IncrParams {
+        const ENTRY_ID: u16 = 3u16;
+    }
+    impl sails_rs::gstd::InvocationIo for __IncrParams {
         type Params = Self;
     }
     #[derive(sails_rs::Decode, sails_rs::TypeInfo)]

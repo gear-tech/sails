@@ -76,7 +76,7 @@ The entire idea of the [Gear Protocol](https://gear-tech.io/) is based on the
 asynchronous version of the [Request-Response Pattern](https://en.wikipedia.org/wiki/Request%E2%80%93response).
 On-chain applications loaded onto Gear-based network receive and handle messages from the
 other on-chain or off-chain applications. Both can be treated as external consumers
-of services provided by your application, and the latter can represent ordinary people
+of services provided by your application, and the later can represent ordinary people
 interacting with the network.
 
 ### Application
@@ -142,7 +142,7 @@ impl MyService {
         ...
     }
 
-    // This is a inner method, not accessible via remote calls
+    // This is an inner method, not accessible via remote calls
     pub fn do_something_inner(&mut self, p1: u32, p2: String) -> &'static [u8] {
         ...
     }
