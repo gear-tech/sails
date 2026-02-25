@@ -21,6 +21,8 @@ targets = [
 install-path = "CARGO_HOME"
 # Whether to install an updater program
 install-updater = true
+# Use precise builds to avoid workspace ambiguity
+precise-builds = true
 # Specify which packages should be distributed
 packages = ["sails-cli"]
 # Use a unique namespace to avoid overwriting existing rs-release.yml
