@@ -32,5 +32,7 @@ tag-namespace = "rs"
 pr-run-mode = "plan"
 # Don't create a release; wait for the existing draft from rs-publish.yml
 create-release = false
+# Allow manual edits to the CI workflow name and triggers
+allow-dirty = ["ci"]
 # Static link the C runtime on Windows for better portability
 msvc-crt-static = true
