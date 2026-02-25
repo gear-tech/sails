@@ -26,8 +26,8 @@ dist = false
 precise-builds = true
 # Specify which packages should be distributed
 packages = ["sails-cli"]
-# Use a unique namespace to avoid overwriting existing rs-release.yml
-tag-namespace = "rs-dist"
+# Use the project's standard tag namespace
+tag-namespace = "rs"
 # Run build in PRs to verify and upload artifacts
 pr-run-mode = "upload"
 # Static link the C runtime on Windows for better portability
