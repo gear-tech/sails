@@ -30,5 +30,7 @@ packages = ["sails-cli"]
 tag-namespace = "rs"
 # Run 'dist plan' in PRs to verify configuration (don't upload artifacts)
 pr-run-mode = "plan"
+# Don't create a release; wait for the existing draft from rs-publish.yml
+create-release = false
 # Static link the C runtime on Windows for better portability
 msvc-crt-static = true
