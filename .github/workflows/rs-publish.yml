@@ -25,6 +25,7 @@ env:
     sails-reflect-hash
     sails-idl-meta
     sails-idl-parser
+    sails-idl-parser-v2
     sails-idl-gen
     sails-sol-gen
     sails-client-gen
@@ -223,6 +224,8 @@ jobs:
     defaults:
       run:
         shell: bash
+    outputs:
+      r_tag: ${{ needs.prepare.outputs.r_tag }}
     env:
       R_NAME: Sails-RS v${{ needs.prepare.outputs.r_version }}
 
@@ -247,12 +250,25 @@ jobs:
           git tag -a "$R_TAG" -m "Release v${{ needs.prepare.outputs.r_version }}"
           git push origin "$R_TAG"
 
+      - name: Install GitHub CLI
+        run: sudo apt-get install -y gh
+
+      - name: Create Sync PR
+        id: sync_pr
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
+          PR_URL=$(gh pr create \
+            --title "release: sync $R_NAME to master" \
+            --body "This PR was created by GitHub Actions" \
+            --base master \
+            --head ${{ needs.prepare.outputs.rc_branch }}) || echo "PR already exists"
+          echo "url=$PR_URL" >> $GITHUB_OUTPUT
+
       - name: Create Draft Release
         uses: softprops/action-gh-release@v2
         with:
           name: ${{ env.R_NAME }}
           tag_name: ${{ needs.prepare.outputs.r_tag }}
-          target_commitish: ${{ needs.prepare.outputs.rc_branch }}
           draft: true
           body: |
             :exclamation: This is a draft release.
@@ -268,16 +284,10 @@ jobs:
             ./assets/no_svcs_prog/no_svcs_prog.idl
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install GitHub CLI
-        run: sudo apt-get install -y gh
-
-      - name: Create Sync PR
-        id: sync_pr
-        run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
-          PR_URL=$(gh pr create \
-            --title "release: sync ${{ env.R_NAME }} to master" \
-            --body "This PR was created by GitHub Actions" \
-            --base master \
-            --head ${{ needs.prepare.outputs.rc_branch }}) || echo "PR already exists"
-          echo "url=$PR_URL" >> $GITHUB_OUTPUT
+  binaries:
+    name: Build Binaries
+    needs: release
+    uses: ./.github/workflows/rs-release.yml
+    with:
+      tag: ${{ needs.release.outputs.r_tag }}
+    secrets: inherit

@@ -26,13 +26,15 @@ dist = false
 precise-builds = true
 # Specify which packages should be distributed
 packages = ["sails-cli"]
-# Use the project's standard tag namespace
-tag-namespace = "rs"
 # Run 'dist plan' in PRs to verify configuration (don't upload artifacts)
 pr-run-mode = "plan"
 # Don't create a release; wait for the existing draft from rs-publish.yml
 create-release = false
-# Allow manual edits to the CI workflow name and triggers
+# Allow manual edits to the CI workflow name and triggers. 
+# This config is used specifically for managing the bin-release.yml file.
+# IMPORTANT: To regenerate or update the workflow, you must temporarily disable 'allow-dirty', 
+# run 'dist generate', and then re-enable it to preserve manual customizations 
+# (like making it a reusable workflow_call).
 allow-dirty = ["ci"]
 # Static link the C runtime on Windows for better portability
 msvc-crt-static = true
