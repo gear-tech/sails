@@ -76,7 +76,7 @@ The entire idea of the [Gear Protocol](https://gear-tech.io/) is based on the
 asynchronous version of the [Request-Response Pattern](https://en.wikipedia.org/wiki/Request%E2%80%93response).
 On-chain applications loaded onto Gear-based network receive and handle messages from the
 other on-chain or off-chain applications. Both can be treated as external consumers
-of services provided by your application, and the later can represent ordinary people
+of services provided by your application, and the latter can represent ordinary people
 interacting with the network.
 
 ### Application
@@ -171,7 +171,7 @@ pub fn create() -> Self {
 
 A set of program's **public** methods working over `&self` and having no other parameters
 are treated as exposed service constructors and are called each time when an incoming
-request message needs be dispatched to a selected service. All the other methods and
+request message needs to be dispatched to a selected service. All the other methods and
 associated functions are treated as implementation details and ignored. The code
 generated behind the program by the `#[program]` attribute receives an incoming request
 message from the network, decodes it and dispatches it to a matching service for actual
@@ -440,7 +440,7 @@ All you need to do is compose a byte payload according to the layout outlined in
 [Payload Encoding](#payload-encoding) section and send it to the application.
 
 Thanks to the generated IDL, `Sails` provides a way to interact with your application
-using generated clients with an interface similar to the one exposed by later in
+using generated clients with an interface similar to the one exposed by the program in
 a clearer way. Currently, `Sails` can generate client code for Rust and TypeScript.
 
 When it comes to Rust, there are two options:
@@ -521,9 +521,9 @@ trait:
 - `sails_rs::client::GstdEnv` should be used when the client code is executed
   as part of another on-chain application.
 - `sails_rs::client::GclientEnv` should be used when the client code is executed
-  as a part of an off-chain application.
+  as part of an off-chain application.
 - `sails_rs::client::GtestEnv` should be used when the client code is executed
-  as a part of a tests utilizing the `gtest` crate.
+  as part of tests utilizing the `gtest` crate.
 
 See the [Redirect](/examples/redirect/proxy/src/lib.rs) example, which demonstrates how to work with a remote program using a generated client.
 
