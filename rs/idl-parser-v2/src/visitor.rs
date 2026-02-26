@@ -350,7 +350,7 @@ mod tests {
         accept_idl_doc(&doc, &mut visitor);
 
         assert_eq!(visitor.program_count, 1);
-        assert_eq!(visitor.service_count, 6);
+        assert_eq!(visitor.service_count, 10);
     }
 
     #[test]

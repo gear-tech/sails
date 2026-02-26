@@ -25,15 +25,15 @@ service Counter@0x579d6daba41b7d82 {
     }
 }
 
-service MammalService@0xff6b93e1961026fe {
+service MammalService@0xf181833573ac05bf {
     functions {
-        MakeSound() -> String;
         @query
         AvgWeight() -> u32;
+        MakeSound() -> String;
     }
 }
 
-service WalkerService@0xee1536b55170bf0a {
+service WalkerService@0x06b6750e36f0fda7 {
     events {
         Walked {
             from: (i32, i32),
@@ -41,16 +41,16 @@ service WalkerService@0xee1536b55170bf0a {
         },
     }
     functions {
-        Walk(dx: i32, dy: i32);
         @query
         Position() -> (i32, i32);
+        Walk(dx: i32, dy: i32);
     }
 }
 
-service Dog@0x18666e67a21917a1 {
+service Dog@0x061b5337bdb0e35b {
     extends {
-        MammalService@0xff6b93e1961026fe,
-        WalkerService@0xee1536b55170bf0a,
+        MammalService@0xf181833573ac05bf,
+        WalkerService@0x06b6750e36f0fda7,
     }
     events {
         Barked,
@@ -60,19 +60,19 @@ service Dog@0x18666e67a21917a1 {
     }
 }
 
-service References@0x8a0f8abe176d75b9 {
+service References@0xdac2abd57442a5fa {
     functions {
         Add(v: u32) -> u32;
         AddByte(byte: u8) -> [u8];
-        GuessNum(number: u8) -> Result<String, String>;
-        Incr() -> ReferenceCount;
-        SetNum(number: u8) -> Result<(), String>;
         @query
         Baked() -> String;
+        GuessNum(number: u8) -> Result<String, String>;
+        Incr() -> ReferenceCount;
         @query
         LastByte() -> Option<u8>;
         @query
         Message() -> Option<String>;
+        SetNum(number: u8) -> Result<(), String>;
     }
     types {
         struct ReferenceCount(u32);
@@ -142,9 +142,9 @@ service Chaos@0xf0c8c80dfabf72d5 {
     }
 }
 
-service Chain@0xd422c66e6021e0f9 {
+service Chain@0x01fcbe183e2199b0 {
     extends {
-        Dog@0x18666e67a21917a1,
+        Dog@0x061b5337bdb0e35b,
     }
     functions {
         MakeSound() -> String;
@@ -161,11 +161,11 @@ program DemoClient {
     services {
         PingPong@0x6d0eb40dde4038f7,
         Counter@0x579d6daba41b7d82,
-        Dog@0x18666e67a21917a1,
-        References@0x8a0f8abe176d75b9,
+        Dog@0x061b5337bdb0e35b,
+        References@0xdac2abd57442a5fa,
         ThisThat@0x381e13fdd02d675f,
         ValueFee@0x41c1080b4e1e8dc5,
         Chaos@0xf0c8c80dfabf72d5,
-        Chain@0xd422c66e6021e0f9,
+        Chain@0x01fcbe183e2199b0,
     }
 }

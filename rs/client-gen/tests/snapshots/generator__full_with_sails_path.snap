@@ -478,26 +478,32 @@ pub mod dog {
 
     pub trait Dog {
         type Env: my_crate::sails::client::GearEnv;
+        fn avg_weight(&self) -> my_crate::sails::client::PendingCall<io::AvgWeight, Self::Env>;
         fn make_sound(&mut self) -> my_crate::sails::client::PendingCall<io::MakeSound, Self::Env>;
+        fn position(&self) -> my_crate::sails::client::PendingCall<io::Position, Self::Env>;
         fn walk(
             &mut self,
             dx: i32,
             dy: i32,
         ) -> my_crate::sails::client::PendingCall<io::Walk, Self::Env>;
-        fn avg_weight(&self) -> my_crate::sails::client::PendingCall<io::AvgWeight, Self::Env>;
-        fn position(&self) -> my_crate::sails::client::PendingCall<io::Position, Self::Env>;
     }
 
     pub struct DogImpl;
 
     impl my_crate::sails::client::Identifiable for DogImpl {
         const INTERFACE_ID: my_crate::sails::InterfaceId =
-            my_crate::sails::InterfaceId::from_bytes_8([75, 2, 200, 107, 128, 2, 138, 218]);
+            my_crate::sails::InterfaceId::from_bytes_8([251, 78, 242, 48, 212, 21, 61, 146]);
     }
 
     impl<E: my_crate::sails::client::GearEnv> Dog for my_crate::sails::client::Service<DogImpl, E> {
         type Env = E;
+        fn avg_weight(&self) -> my_crate::sails::client::PendingCall<io::AvgWeight, Self::Env> {
+            self.pending_call(())
+        }
         fn make_sound(&mut self) -> my_crate::sails::client::PendingCall<io::MakeSound, Self::Env> {
+            self.pending_call(())
+        }
+        fn position(&self) -> my_crate::sails::client::PendingCall<io::Position, Self::Env> {
             self.pending_call(())
         }
         fn walk(
@@ -507,20 +513,14 @@ pub mod dog {
         ) -> my_crate::sails::client::PendingCall<io::Walk, Self::Env> {
             self.pending_call((dx, dy))
         }
-        fn avg_weight(&self) -> my_crate::sails::client::PendingCall<io::AvgWeight, Self::Env> {
-            self.pending_call(())
-        }
-        fn position(&self) -> my_crate::sails::client::PendingCall<io::Position, Self::Env> {
-            self.pending_call(())
-        }
     }
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(MakeSound () -> String, 0, <super::DogImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
-        my_crate::sails::io_struct_impl!(Walk (dx: i32, dy: i32) -> (), 1, <super::DogImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
-        my_crate::sails::io_struct_impl!(AvgWeight () -> u32, 2, <super::DogImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
-        my_crate::sails::io_struct_impl!(Position () -> (i32, i32, ), 3, <super::DogImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(AvgWeight () -> u32, 0, <super::DogImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(MakeSound () -> String, 1, <super::DogImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(Position () -> (i32, i32, ), 2, <super::DogImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(Walk (dx: i32, dy: i32) -> (), 3, <super::DogImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -574,25 +574,25 @@ pub mod references {
             &mut self,
             byte: u8,
         ) -> my_crate::sails::client::PendingCall<io::AddByte, Self::Env>;
+        fn baked(&self) -> my_crate::sails::client::PendingCall<io::Baked, Self::Env>;
         fn guess_num(
             &mut self,
             number: u8,
         ) -> my_crate::sails::client::PendingCall<io::GuessNum, Self::Env>;
         fn incr(&mut self) -> my_crate::sails::client::PendingCall<io::Incr, Self::Env>;
+        fn last_byte(&self) -> my_crate::sails::client::PendingCall<io::LastByte, Self::Env>;
+        fn message(&self) -> my_crate::sails::client::PendingCall<io::Message, Self::Env>;
         fn set_num(
             &mut self,
             number: u8,
         ) -> my_crate::sails::client::PendingCall<io::SetNum, Self::Env>;
-        fn baked(&self) -> my_crate::sails::client::PendingCall<io::Baked, Self::Env>;
-        fn last_byte(&self) -> my_crate::sails::client::PendingCall<io::LastByte, Self::Env>;
-        fn message(&self) -> my_crate::sails::client::PendingCall<io::Message, Self::Env>;
     }
 
     pub struct ReferencesImpl;
 
     impl my_crate::sails::client::Identifiable for ReferencesImpl {
         const INTERFACE_ID: my_crate::sails::InterfaceId =
-            my_crate::sails::InterfaceId::from_bytes_8([61, 171, 145, 177, 150, 71, 129, 98]);
+            my_crate::sails::InterfaceId::from_bytes_8([247, 161, 255, 157, 46, 10, 151, 232]);
     }
 
     impl<E: my_crate::sails::client::GearEnv> References
@@ -608,6 +608,9 @@ pub mod references {
         ) -> my_crate::sails::client::PendingCall<io::AddByte, Self::Env> {
             self.pending_call((byte,))
         }
+        fn baked(&self) -> my_crate::sails::client::PendingCall<io::Baked, Self::Env> {
+            self.pending_call(())
+        }
         fn guess_num(
             &mut self,
             number: u8,
@@ -617,20 +620,17 @@ pub mod references {
         fn incr(&mut self) -> my_crate::sails::client::PendingCall<io::Incr, Self::Env> {
             self.pending_call(())
         }
-        fn set_num(
-            &mut self,
-            number: u8,
-        ) -> my_crate::sails::client::PendingCall<io::SetNum, Self::Env> {
-            self.pending_call((number,))
-        }
-        fn baked(&self) -> my_crate::sails::client::PendingCall<io::Baked, Self::Env> {
-            self.pending_call(())
-        }
         fn last_byte(&self) -> my_crate::sails::client::PendingCall<io::LastByte, Self::Env> {
             self.pending_call(())
         }
         fn message(&self) -> my_crate::sails::client::PendingCall<io::Message, Self::Env> {
             self.pending_call(())
+        }
+        fn set_num(
+            &mut self,
+            number: u8,
+        ) -> my_crate::sails::client::PendingCall<io::SetNum, Self::Env> {
+            self.pending_call((number,))
         }
     }
 
@@ -638,12 +638,12 @@ pub mod references {
         use super::*;
         my_crate::sails::io_struct_impl!(Add (v: u32) -> u32, 0, <super::ReferencesImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
         my_crate::sails::io_struct_impl!(AddByte (byte: u8) -> Vec<u8>, 1, <super::ReferencesImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
-        my_crate::sails::io_struct_impl!(GuessNum (number: u8) -> super::Result<String, String>, 2, <super::ReferencesImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
-        my_crate::sails::io_struct_impl!(Incr () -> super::ReferenceCount, 3, <super::ReferencesImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
-        my_crate::sails::io_struct_impl!(SetNum (number: u8) -> super::Result<(), String>, 4, <super::ReferencesImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
-        my_crate::sails::io_struct_impl!(Baked () -> String, 5, <super::ReferencesImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
-        my_crate::sails::io_struct_impl!(LastByte () -> super::Option<u8, >, 6, <super::ReferencesImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
-        my_crate::sails::io_struct_impl!(Message () -> super::Option<String, >, 7, <super::ReferencesImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(Baked () -> String, 2, <super::ReferencesImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(GuessNum (number: u8) -> super::Result<String, String>, 3, <super::ReferencesImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(Incr () -> super::ReferenceCount, 4, <super::ReferencesImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(LastByte () -> super::Option<u8, >, 5, <super::ReferencesImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(Message () -> super::Option<String, >, 6, <super::ReferencesImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
+        my_crate::sails::io_struct_impl!(SetNum (number: u8) -> super::Result<(), String>, 7, <super::ReferencesImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID);
     }
 }
 

@@ -1,18 +1,18 @@
 
 !@sails: 0.10.2
 
-service RmrkCatalog@0x37e91447bb13ed3c {
+service RmrkCatalog@0xb810a541ab5d5389 {
     functions {
         AddEquippables(part_id: u32, collection_ids: [ActorId]) -> Result<(u32, [ActorId]), Error>;
         AddParts(parts: [(u32, Part)]) -> Result<[(u32, Part)], Error>;
-        RemoveEquippable(part_id: u32, collection_id: ActorId) -> Result<(u32, ActorId), Error>;
-        RemoveParts(part_ids: [u32]) -> Result<[u32], Error>;
-        ResetEquippables(part_id: u32) -> Result<(), Error>;
-        SetEquippablesToAll(part_id: u32) -> Result<(), Error>;
         @query
         Equippable(part_id: u32, collection_id: ActorId) -> Result<bool, Error>;
         @query
         Part(part_id: u32) -> Option<Part>;
+        RemoveEquippable(part_id: u32, collection_id: ActorId) -> Result<(u32, ActorId), Error>;
+        RemoveParts(part_ids: [u32]) -> Result<[u32], Error>;
+        ResetEquippables(part_id: u32) -> Result<(), Error>;
+        SetEquippablesToAll(part_id: u32) -> Result<(), Error>;
     }
     types {
         enum Error {
@@ -54,6 +54,6 @@ program RmrkCatalog {
         New();
     }
     services {
-        RmrkCatalog@0x37e91447bb13ed3c,
+        RmrkCatalog@0xb810a541ab5d5389,
     }
 }

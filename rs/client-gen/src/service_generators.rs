@@ -132,15 +132,8 @@ impl<'ast> ServiceGenerator<'ast> {
 // using quote_in instead of tokens.append
 impl<'ast> Visitor<'ast> for ServiceGenerator<'ast> {
     fn visit_service_unit(&mut self, service: &'ast ast::ServiceUnit) {
-        let (mut commands, mut queries): (Vec<_>, Vec<_>) = service
-            .funcs
-            .iter()
-            .partition(|f| f.kind != ast::FunctionKind::Query);
-
-        commands.sort_by_key(|f| f.name.to_lowercase());
-        queries.sort_by_key(|f| f.name.to_lowercase());
-
-        for (entry_id, func) in commands.into_iter().chain(queries.into_iter()).enumerate() {
+        // `service`` is normalized here - funcs, events, extends are sorted
+        for (entry_id, func) in service.funcs.iter().enumerate() {
             self.entry_ids.insert(func.name.as_str(), entry_id as u16);
         }
 
