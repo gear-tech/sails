@@ -223,6 +223,8 @@ jobs:
     defaults:
       run:
         shell: bash
+    outputs:
+      r_tag: ${{ needs.prepare.outputs.r_tag }}
     env:
       R_NAME: Sails-RS v${{ needs.prepare.outputs.r_version }}
 
@@ -280,3 +282,11 @@ jobs:
             ./assets/no_svcs_prog/no_svcs_prog.wasm
             ./assets/no_svcs_prog/no_svcs_prog.idl
           token: ${{ secrets.GITHUB_TOKEN }}
+
+  binaries:
+    name: Build Binaries
+    needs: release
+    uses: ./.github/workflows/bin-release.yml
+    with:
+      tag: ${{ needs.release.outputs.r_tag }}
+    secrets: inherit

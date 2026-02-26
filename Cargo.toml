@@ -79,7 +79,7 @@ alloy-primitives = { version = "1.5", default-features = false }
 alloy-sol-types = { version = "1.5", default-features = false }
 anyhow = "1"
 askama = { version = "0.15", default-features = false }
-cargo-generate = "0.23"
+cargo-generate = { version = "0.23", features = ["vendored-libgit2", "vendored-openssl"] }
 cargo_metadata = "0.23"
 clap = "4.5"
 fs2 = "0.4.3"
@@ -119,3 +119,8 @@ tempfile = "3.19"
 tokio = "1.49"
 tokio-stream = "0.1"
 trybuild = "1"
+
+# The profile that 'dist' will build with
+[profile.dist]
+inherits = "release"
+lto = "thin"
