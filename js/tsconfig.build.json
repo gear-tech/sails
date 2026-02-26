@@ -1,7 +1,12 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "declaration": true
+    "declaration": true,
+    "paths": {
+      "sails-js-parser-idl-v2": ["../parser-idl-v2/src/index.ts"],
+      "sails-js-types": ["../types/src/index.ts"],
+      "sails-js-util": ["../util/src/index.ts"],
+    },
   },
-  "include": ["src"]
+  "include": ["src"],
 }

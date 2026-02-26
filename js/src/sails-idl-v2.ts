@@ -1,5 +1,6 @@
 import { GearApi, HexString, UserMessageSent } from '@gear-js/api';
 import { u8aToHex } from '@polkadot/util';
+
 import type {
   TypeDecl,
   IIdlDoc,
@@ -8,11 +9,10 @@ import type {
   IServiceUnit,
   IFuncParam,
   IServiceEvent,
-} from 'sails-js-types';
-import { SailsMessageHeader, InterfaceId } from 'sails-js-parser-idl-v2';
-
-import { QueryBuilderWithHeader } from './query-builder-with-header.js';
+} from './types.js';
 import { TransactionBuilderWithHeader } from './transaction-builder-with-header.js';
+import { QueryBuilderWithHeader } from './query-builder-with-header.js';
+import { SailsMessageHeader, InterfaceId } from './parser.js';
 import { TypeResolver } from './type-resolver-idl-v2.js';
 import { ZERO_ADDRESS } from './consts.js';
 

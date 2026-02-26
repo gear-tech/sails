@@ -26,6 +26,19 @@
       "import": "./lib/index.js",
       "require": "./lib/cjs/index.cjs",
       "types": "./lib/index.d.ts"
+    },
+    "./parser": {
+      "import": "./lib/parser.js",
+      "require": "./lib/cjs/parser.cjs",
+      "types": "./lib/parser.d.ts"
+    },
+    "./types": {
+      "types": "./lib/types.d.ts"
+    },
+    "./util": {
+      "import": "./lib/util.js",
+      "require": "./lib/cjs/util.cjs",
+      "types": "./lib/util.d.ts"
     }
   },
   "scripts": {
@@ -39,12 +52,6 @@
     "@polkadot/api": "^16.4.1",
     "@polkadot/util": "^13.5.1"
   },
-  "optionalDependencies": {
-    "sails-js-types": "workspace:*"
-  },
-  "dependencies": {
-    "sails-js-util": "workspace:*"
-  },
   "devDependencies": {
     "@gear-js/api": "0.44.2",
     "@polkadot/api": "16.4.6",
@@ -56,6 +63,7 @@
     "@rollup/plugin-node-resolve": "^16.0.3",
     "@types/node": "^24.10.1",
     "jest": "^30.2.0",
+    "rollup-plugin-dts": "^6.2.3",
     "rollup-plugin-typescript2": "^0.36.0",
     "sails-js-parser": "workspace:*",
     "sails-js-parser-idl-v2": "workspace:*",

@@ -1,11 +1,11 @@
 import { decodeAddress, GearApi, HexString } from '@gear-js/api';
-import { isHex, u8aConcat, u8aToHex } from '@polkadot/util';
 import { TypeRegistry } from '@polkadot/types';
+import { isHex, u8aConcat, u8aToHex } from '@polkadot/util';
 import { getPayloadMethod } from 'sails-js-util';
-import type { SailsMessageHeader } from 'sails-js-parser-idl-v2';
 
-import { throwOnErrorReply } from './utils.js';
 import { ZERO_ADDRESS } from './consts.js';
+import type { SailsMessageHeader } from './parser.js';
+import { throwOnErrorReply } from './utils.js';
 
 export class QueryBuilderWithHeader<ResultType = unknown> {
   private _prefixByteLength: number;

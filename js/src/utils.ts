@@ -1,6 +1,6 @@
 import { GearCoreErrorsSimpleReplyCode, ReplyCode } from '@gear-js/api';
-import { stringToU8a, compactAddLength } from '@polkadot/util';
 import { TypeRegistry } from '@polkadot/types';
+import { compactAddLength, stringToU8a } from '@polkadot/util';
 
 export function throwOnErrorReply(
   code: GearCoreErrorsSimpleReplyCode,

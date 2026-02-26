@@ -9,10 +9,10 @@ import {
   decodeAddress,
 } from '@gear-js/api';
 import { SignerOptions, SubmittableExtrinsic } from '@polkadot/api/types';
-import { IKeyringPair, ISubmittableResult } from '@polkadot/types/types';
 import { TypeRegistry, u128, u64 } from '@polkadot/types';
-import { getPayloadMethod } from 'sails-js-util';
+import { IKeyringPair, ISubmittableResult } from '@polkadot/types/types';
 import { u8aConcat } from '@polkadot/util';
+import { getPayloadMethod } from 'sails-js-util';
 
 import { ZERO_ADDRESS } from './consts.js';
 import { throwOnErrorReply as commonThrowOnErrorReply } from './utils.js';
