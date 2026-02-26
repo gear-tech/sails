@@ -59,6 +59,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          ref: ${{ inputs.tag }}
           persist-credentials: false
           submodules: recursive
       - name: Install dist
@@ -78,7 +79,7 @@ jobs:
       # but also really annoying to build CI around when it needs secrets to work right.)
       - id: plan
         run: |
-          dist ${{ (!github.event.pull_request && format('host --steps=create --tag={0}', github.ref_name)) || 'plan' }} --output-format=json > plan-dist-manifest.json
+          dist ${{ (!github.event.pull_request && format('host --steps=create --tag={0}', inputs.tag)) || 'plan' }} --output-format=json > plan-dist-manifest.json
           echo "dist ran successfully"
           cat plan-dist-manifest.json
           echo "manifest=$(jq -c "." plan-dist-manifest.json)" >> "$GITHUB_OUTPUT"
@@ -119,6 +120,7 @@ jobs:
           git config --global core.longpaths true
       - uses: actions/checkout@v6
         with:
+          ref: ${{ inputs.tag }}
           persist-credentials: false
           submodules: recursive
       - name: Install Rust non-interactively if not already installed
@@ -178,6 +180,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          ref: ${{ inputs.tag }}
           persist-credentials: false
           submodules: recursive
       - name: Install cached dist
@@ -228,6 +231,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          ref: ${{ inputs.tag }}
           persist-credentials: false
           submodules: recursive
       - name: Install cached dist
@@ -291,5 +295,6 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          ref: ${{ inputs.tag }}
           persist-credentials: false
           submodules: recursive

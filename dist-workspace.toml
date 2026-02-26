@@ -31,10 +31,13 @@ pr-run-mode = "plan"
 # Don't create a release; wait for the existing draft from rs-publish.yml
 create-release = false
 # Allow manual edits to the CI workflow name and triggers. 
-# This config is used specifically for managing the bin-release.yml file.
+# This config is used specifically for managing the .github/workflows/bin-release.yml file 
+# which is called by .github/workflows/rs-release.yml.
 # IMPORTANT: To regenerate or update the workflow, you must temporarily disable 'allow-dirty', 
-# run 'dist generate', and then re-enable it to preserve manual customizations 
-# (like making it a reusable workflow_call).
+# run 'dist generate', and then re-enable it to preserve manual customizations:
+# 1. Restore 'workflow_call' trigger instead of 'on: push'.
+# 2. Add 'ref: ${{ inputs.tag }}' to all 'actions/checkout' steps.
+# 3. Update 'dist plan' and 'dist host' commands to use '--tag=${{ inputs.tag }}'.
 allow-dirty = ["ci"]
 # Static link the C runtime on Windows for better portability
 msvc-crt-static = true
