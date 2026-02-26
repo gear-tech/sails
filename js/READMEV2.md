@@ -6,7 +6,7 @@
 
 ```javascript
 import { SailsProgram } from 'sails-js';
-import { SailsIdlParser } from 'sails-js-parser-idl-v2';
+import { SailsIdlParser } from 'sails-js/parser';
 
 const parser = new SailsIdlParser();
 await parser.init();

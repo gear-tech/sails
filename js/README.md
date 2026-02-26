@@ -7,11 +7,6 @@ This directory contains libraries for interacting with programs built using the 
 
 [`sails-js-parser`](./parser/README.md) - Parser library for IDL files, used to generate AST (utilized by the other two libraries).
 
-[`sails-js-parser-idl-v2`](./parser-idl-v2/README.md) - Parser library for Sails IDL v2 files, used to generate AST (utilized by the other two libraries).
-
-[`sails-js-types`](./types/README.md) - Library with types used across libraries.
-
-[`sails-js-util`](./util/README.md) - Utility functions used across libraries.
 
 # Installation
 
@@ -24,7 +19,7 @@ npm install sails-js
 
 # IDL v2
 
-Sails IDL v2 is now the recommended format for new projects. The legacy IDL format and the `sails-js-parser` package are deprecated and will be removed in a future release. For new projects, use `sails-js-parser-idl-v2` and follow the IDL v2 usage guide: [IDL v2 usage](./READMEV2.md).
+Sails IDL v2 is now the recommended format for new projects. The legacy IDL format and the `sails-js-parser` package are deprecated and will be removed in a future release. For new projects, use `sails-js` and follow the IDL v2 usage guide: [IDL v2 usage](./READMEV2.md).
 
 # Usage
 
