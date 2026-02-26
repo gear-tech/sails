@@ -7,7 +7,6 @@ import { SailsIdlParser } from 'sails-js-parser-idl-v2';
 
 import { SailsProgram, H256, NonZeroU32, NonZeroU8, ZERO_ADDRESS } from '..';
 
-
 let api: GearApi;
 let alice: KeyringPair;
 let charlie: KeyringPair;
@@ -40,7 +39,7 @@ beforeAll(async () => {
 
   // Parse IDL
   const idlString = readFileSync(DEMO_IDL_PATH, 'utf8');
-  const doc = parser.parse(idlString)
+  const doc = parser.parse(idlString);
 
   // Create Sails Program from parsed IDL doc
   program = new SailsProgram(doc);
@@ -142,7 +141,10 @@ describe('Sails with Parser v2 - Message Sending', () => {
   });
 
   test('send Dog service walk message', async () => {
-    const transaction = await program.services.Dog.extends.WalkerService.functions.Walk(2, 3).withAccount(alice).calculateGas();
+    const transaction = await program.services.Dog.extends.WalkerService.functions
+      .Walk(2, 3)
+      .withAccount(alice)
+      .calculateGas();
 
     const { msgId, blockHash, response } = await transaction.signAndSend();
 
@@ -300,7 +302,10 @@ describe('Sails with Parser v2 - Events', () => {
     });
 
     // Send a message that should trigger the event
-    const transaction = await program.services.Dog.extends.WalkerService.functions.Walk(-1, 2).withAccount(alice).calculateGas();
+    const transaction = await program.services.Dog.extends.WalkerService.functions
+      .Walk(-1, 2)
+      .withAccount(alice)
+      .calculateGas();
 
     const { response } = await transaction.signAndSend();
     const result = await response();
