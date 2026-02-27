@@ -244,13 +244,23 @@ describe('type-resolver-v2 enums', () => {
     });
     expect(
       program.registry
-        .createType('ComplexEnum', { Six: [['foo', 1], ['bar', 2], ['foobar', 3]] })
+        .createType('ComplexEnum', {
+          Six: [
+            ['foo', 1],
+            ['bar', 2],
+            ['foobar', 3],
+          ],
+        })
         .toJSON(),
-    ).toEqual({ six: [['foo', 1], ['bar', 2], ['foobar', 3]] });
+    ).toEqual({
+      six: [
+        ['foo', 1],
+        ['bar', 2],
+        ['foobar', 3],
+      ],
+    });
   });
 });
-
-
 
 describe('type-resolver-v2 generics', () => {
   test('generic struct and enum', () => {
@@ -287,16 +297,14 @@ describe('type-resolver-v2 generics', () => {
 
     expect(program.registry.createType('GenericEnum<u8,String>', 'One').toJSON()).toEqual({ one: null });
     expect(program.registry.createType('GenericEnum<u8,String>', { Two: 7 }).toJSON()).toEqual({ two: 7 });
-    expect(
-      program.registry.createType('GenericEnum<u8,String>', { Three: { p1: 7, p2: 'hello' } }).toJSON(),
-    ).toEqual({ three: { p1: 7, p2: 'hello' } });
+    expect(program.registry.createType('GenericEnum<u8,String>', { Three: { p1: 7, p2: 'hello' } }).toJSON()).toEqual({
+      three: { p1: 7, p2: 'hello' },
+    });
 
     expect(program.registry.createType('GenericEnum<Option<u8>,String>', 'One').toJSON()).toEqual({ one: null });
     expect(program.registry.createType('GenericEnum<Option<u8>,String>', { Two: 7 }).toJSON()).toEqual({ two: 7 });
     expect(
-      program.registry
-        .createType('GenericEnum<Option<u8>,String>', { Three: { p1: null, p2: 'hello' } })
-        .toJSON(),
+      program.registry.createType('GenericEnum<Option<u8>,String>', { Three: { p1: null, p2: 'hello' } }).toJSON(),
     ).toEqual({ three: { p1: null, p2: 'hello' } });
 
     expect(program.registry.createType('GenericEnum<Tuple<u8>,Array<String>>', 'One').toJSON()).toEqual({
@@ -311,13 +319,11 @@ describe('type-resolver-v2 generics', () => {
         .toJSON(),
     ).toEqual({ three: { p1: tupleU8Alt, p2: null } });
 
+    expect(program.registry.createType('GenericEnum<Array<Tuple<u8>>,Tuple<Array<String>>>', 'One').toJSON()).toEqual({
+      one: null,
+    });
     expect(
-      program.registry.createType('GenericEnum<Array<Tuple<u8>>,Tuple<Array<String>>>', 'One').toJSON(),
-    ).toEqual({ one: null });
-    expect(
-      program.registry
-        .createType('GenericEnum<Array<Tuple<u8>>,Tuple<Array<String>>>', { Two: arrayTupleU8 })
-        .toJSON(),
+      program.registry.createType('GenericEnum<Array<Tuple<u8>>,Tuple<Array<String>>>', { Two: arrayTupleU8 }).toJSON(),
     ).toEqual({ two: arrayTupleU8 });
     expect(
       program.registry

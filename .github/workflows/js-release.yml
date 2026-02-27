@@ -5,151 +5,368 @@ on:
     branches:
       - master
     paths:
-      - package.json
+      - js/package.json
+      - js/parser/package.json
+      - js/cli/package.json
+      - "js/types/**"
+      - "js/util/**"
+      - "js/parser-idl-v2/**"
+      - "js/src/**"
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
+  contents: write
   id-token: write
-  contents: read
 
 jobs:
-  check-release:
-    name: Check Release
+  detect-changes:
+    name: Detect Changes
     runs-on: ubuntu-latest
     outputs:
-      skip: ${{ steps.release.outputs.skip }}
-      version: ${{ steps.info.outputs.version }}
+      sails_js_version_changed: ${{ steps.versions.outputs.sails_js_version_changed }}
+      sails_js_parser_version_changed: ${{ steps.versions.outputs.sails_js_parser_version_changed }}
+      sails_js_cli_version_changed: ${{ steps.versions.outputs.sails_js_cli_version_changed }}
+      sails_js_code_changed: ${{ steps.code.outputs.sails_js_code_changed }}
+      sails_js_version: ${{ steps.versions.outputs.sails_js_version }}
+      sails_js_parser_version: ${{ steps.versions.outputs.sails_js_parser_version }}
+      sails_js_cli_version: ${{ steps.versions.outputs.sails_js_cli_version }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
-      - name: "Setup NodeJS 20.x"
-        uses: actions/setup-node@v4
+      - name: Setup NodeJS 20.x
+        uses: actions/setup-node@v6
         with:
           node-version: 20.x
 
-      - name: "Get info"
-        id: info
+      - name: Check version changes against npm registry
+        id: versions
         run: |
-          VERSION=$(jq -r '.version' package.json)
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          PREVIOUS_VERSION=$(npm show sails-js version || echo "0.0.0")
-          echo "prev_version=$PREVIOUS_VERSION" >> $GITHUB_OUTPUT
+          SAILS_JS_LOCAL=$(jq -r '.version' js/package.json)
+          SAILS_JS_PARSER_LOCAL=$(jq -r '.version' js/parser/package.json)
+          SAILS_JS_CLI_LOCAL=$(jq -r '.version' js/cli/package.json)
 
-      - name: "Compare versions"
-        id: release
-        run: |
-          if [ "${{ steps.info.outputs.version }}" == "${{ steps.info.outputs.prev_version }}" ]; then
-            echo "No new version to release"
-            echo "skip=true" >> $GITHUB_OUTPUT
-          else
-            echo "New version to release"
-            echo "skip=false" >> $GITHUB_OUTPUT
-          fi
+          echo "sails_js_version=$SAILS_JS_LOCAL" >> $GITHUB_OUTPUT
+          echo "sails_js_parser_version=$SAILS_JS_PARSER_LOCAL" >> $GITHUB_OUTPUT
+          echo "sails_js_cli_version=$SAILS_JS_CLI_LOCAL" >> $GITHUB_OUTPUT
 
-  release-npm:
-    name: Publish to NPM
-    needs: check-release
-    if: ${{ needs.check-release.outputs.skip != 'true' }}
+          SAILS_JS_NPM=$(npm show sails-js version 2>/dev/null || echo "0.0.0")
+          SAILS_JS_PARSER_NPM=$(npm show sails-js-parser version 2>/dev/null || echo "0.0.0")
+          SAILS_JS_CLI_NPM=$(npm show sails-js-cli version 2>/dev/null || echo "0.0.0")
+
+          [ "$SAILS_JS_LOCAL" != "$SAILS_JS_NPM" ] && echo "sails_js_version_changed=true" >> $GITHUB_OUTPUT || echo "sails_js_version_changed=false" >> $GITHUB_OUTPUT
+          [ "$SAILS_JS_PARSER_LOCAL" != "$SAILS_JS_PARSER_NPM" ] && echo "sails_js_parser_version_changed=true" >> $GITHUB_OUTPUT || echo "sails_js_parser_version_changed=false" >> $GITHUB_OUTPUT
+          [ "$SAILS_JS_CLI_LOCAL" != "$SAILS_JS_CLI_NPM" ] && echo "sails_js_cli_version_changed=true" >> $GITHUB_OUTPUT || echo "sails_js_cli_version_changed=false" >> $GITHUB_OUTPUT
+
+      - name: Check sails-js bundled code changes
+        id: code
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            sails_js_code_changed:
+              - 'js/types/**'
+              - 'js/util/**'
+              - 'js/parser-idl-v2/**'
+              - 'js/src/**'
+              - '!**/package.json'
+
+  build-sails-js:
+    name: Build sails-js
+    needs: detect-changes
+    if: |
+      needs.detect-changes.outputs.sails_js_version_changed == 'true' ||
+      needs.detect-changes.outputs.sails_js_code_changed == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
-      - name: "Setup NodeJS 20.x"
-        uses: actions/setup-node@v4
+      - name: Setup NodeJS 20.x
+        uses: actions/setup-node@v6
         with:
           node-version: 20.x
 
-      - name: "Install: pnpm"
+      - name: Install pnpm
         uses: pnpm/action-setup@v4
 
-      - name: "Prepare: install dependencies"
+      - name: Install dependencies
         run: pnpm install
 
-      - name: "Prepare: build pkgs"
-        run: pnpm build
+      - name: Download prebuilt WASM from Rust release
+        if: needs.detect-changes.outputs.sails_js_version_changed == 'true'
+        run: |
+          SAILS_RS_VERSION=$(jq -r '."sails-rs"' js/config.json)
+          mkdir -p ./target/wasm32-unknown-unknown/release
+          curl -fL \
+            "https://github.com/gear-tech/sails/releases/download/rs%2Fv${SAILS_RS_VERSION}/sails_idl_v2_parser.wasm" \
+            -o ./target/wasm32-unknown-unknown/release/sails_idl_v2_parser.wasm
 
-      - name: "Configure npm auth"
-        run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+      - name: Install wasm-opt
+        if: needs.detect-changes.outputs.sails_js_code_changed == 'true' && needs.detect-changes.outputs.sails_js_version_changed == 'false'
+        uses: ./.github/actions/install-wasm-utils
 
-      - name: "Publish sails-js-types"
-        working-directory: js/types
-        run: npm publish --access public
+      - name: Build WASM from source
+        if: needs.detect-changes.outputs.sails_js_code_changed == 'true' && needs.detect-changes.outputs.sails_js_version_changed == 'false'
+        run: |
+          cargo build -p sails-idl-parser-wasm --target wasm32-unknown-unknown --release
+          wasm-opt -O4 -o ./target/wasm32-unknown-unknown/release/sails_idl_v2_parser.wasm \
+            ./target/wasm32-unknown-unknown/release/sails_idl_parser_wasm.wasm
 
-      - name: "Publish sails-js-util"
-        working-directory: js/util
-        run: npm publish --access public
+      - name: Build sails-js and bundled dependencies
+        run: |
+          pnpm build:types
+          pnpm build:util
+          pnpm build:parser-idl-v2
+          pnpm build:sails
 
-      - name: "Publish sails-js-parser"
-        working-directory: js/parser
-        run: npm publish --access public
-
-      - name: "Publish sails-js"
+      - name: Pack sails-js
         working-directory: js
-        run: npm publish --access public
+        run: pnpm pack-build
 
-      - name: "Publish sails-js-cli"
-        working-directory: js/cli
-        run: npm publish --access public
+      - name: Upload sails-js artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: sails-js-tgz
+          path: js/sails-js.tgz
+          retention-days: 1
 
-  release-gh:
-    name: Create GH Release
-    needs: check-release
-    if: ${{ needs.check-release.outputs.skip != 'true' }}
+  build-sails-js-parser:
+    name: Build sails-js-parser
+    needs: detect-changes
+    if: needs.detect-changes.outputs.sails_js_parser_version_changed == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
-      - name: "Setup NodeJS 20.x"
-        uses: actions/setup-node@v4
+      - name: Setup NodeJS 20.x
+        uses: actions/setup-node@v6
         with:
           node-version: 20.x
 
-      - name: "Install: pnpm"
+      - name: Install pnpm
         uses: pnpm/action-setup@v4
 
-      - name: "Get release notes"
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build sails-js-types
+        run: pnpm build:types
+
+      - name: Build sails-js-parser
+        run: pnpm build:parser
+
+      - name: Pack sails-js-parser
+        working-directory: js/parser
+        run: pnpm pack-build
+
+      - name: Upload sails-js-parser artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: sails-js-parser-tgz
+          path: js/sails-js-parser.tgz
+          retention-days: 1
+
+  build-sails-js-cli:
+    name: Build sails-js-cli
+    needs: detect-changes
+    if: needs.detect-changes.outputs.sails_js_cli_version_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup NodeJS 20.x
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20.x
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Download prebuilt WASM from Rust release
+        run: |
+          SAILS_RS_VERSION=$(jq -r '."sails-rs"' js/config.json)
+          mkdir -p ./target/wasm32-unknown-unknown/release
+          curl -fL \
+            "https://github.com/gear-tech/sails/releases/download/rs%2Fv${SAILS_RS_VERSION}/sails_idl_v2_parser.wasm" \
+            -o ./target/wasm32-unknown-unknown/release/sails_idl_v2_parser.wasm
+
+      - name: Build all CLI dependencies in order
+        run: |
+          pnpm build:types
+          pnpm build:util
+          pnpm build:parser-idl-v2
+          pnpm build:sails
+          pnpm build:parser
+          pnpm build:cli
+
+      - name: Pack sails-js-cli
+        working-directory: js/cli
+        run: pnpm pack-build
+
+      - name: Upload sails-js-cli artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: sails-js-cli-tgz
+          path: js/sails-js-cli.tgz
+          retention-days: 1
+
+  publish-sails-js:
+    name: Publish sails-js to npm
+    needs:
+      - detect-changes
+      - build-sails-js
+    if: needs.detect-changes.outputs.sails_js_version_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup NodeJS 20.x
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20.x
+
+      - name: Download sails-js artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: sails-js-tgz
+          path: ./
+
+      - name: Configure npm auth
+        run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+
+      - name: Publish sails-js
+        run: npm publish ./sails-js.tgz --access public
+
+  publish-sails-js-parser:
+    name: Publish sails-js-parser to npm
+    needs:
+      - detect-changes
+      - build-sails-js-parser
+    if: needs.detect-changes.outputs.sails_js_parser_version_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup NodeJS 20.x
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20.x
+
+      - name: Download sails-js-parser artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: sails-js-parser-tgz
+          path: ./
+
+      - name: Configure npm auth
+        run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+
+      - name: Publish sails-js-parser
+        run: npm publish ./sails-js-parser.tgz --access public
+
+  publish-sails-js-cli:
+    name: Publish sails-js-cli to npm
+    needs:
+      - detect-changes
+      - build-sails-js-cli
+    if: needs.detect-changes.outputs.sails_js_cli_version_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup NodeJS 20.x
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20.x
+
+      - name: Download sails-js-cli artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: sails-js-cli-tgz
+          path: ./
+
+      - name: Configure npm auth
+        run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+
+      - name: Publish sails-js-cli
+        run: npm publish ./sails-js-cli.tgz --access public
+
+  release-draft:
+    name: Create Draft Release
+    needs:
+      - detect-changes
+      - build-sails-js
+    if: |
+      needs.detect-changes.outputs.sails_js_code_changed == 'true' &&
+      needs.detect-changes.outputs.sails_js_version_changed == 'false'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download sails-js artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: sails-js-tgz
+          path: ./
+
+      - name: Create Draft Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "js/dev-${{ github.sha }}"
+          name: "Sails-JS dev build (${{ github.sha }})"
+          draft: true
+          body: |
+            Development build from commit ${{ github.sha }}.
+            This is a draft release for testing bundled code changes before a version bump.
+            sails-js current version: ${{ needs.detect-changes.outputs.sails_js_version }}
+          files: |
+            ./sails-js.tgz
+
+  release-published:
+    name: Create Published GitHub Release
+    needs:
+      - detect-changes
+      - build-sails-js
+      - publish-sails-js
+    if: needs.detect-changes.outputs.sails_js_version_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Download sails-js artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: sails-js-tgz
+          path: ./
+
+      - name: Get release notes
         id: release_notes
         run: |
-          awk "/## ${VERSION}/{flag=1;next}/---/{flag=0} flag" ./js/CHANGELOG.md >> release_notes.txt
+          VERSION=${{ needs.detect-changes.outputs.sails_js_version }}
+          awk "/^## ${VERSION}/{flag=1; next} /^## /{flag=0} flag" ./js/CHANGELOG.md > release_notes.txt
           echo "release_notes<<EOF" >> $GITHUB_OUTPUT
           cat release_notes.txt >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
-          rm release_notes.txt
-        env:
-          VERSION: ${{ needs.check-release.outputs.version }}
 
-      - name: "Prepare: install dependencies"
-        run: pnpm install
-
-      - name: "Prepare: build pkgs"
-        run: pnpm build
-
-      - name: "Prepare: pack builds"
-        run: pnpm run pack
-
-      - name: "Create new tag"
+      - name: Create release tag
         run: |
-          git tag "$TAG_NAME"
-          git push origin "$TAG_NAME"
-        env:
-          TAG_NAME: "js/v${{ needs.check-release.outputs.version }}"
+          TAG_NAME="js/v${{ needs.detect-changes.outputs.sails_js_version }}"
+          if git ls-remote --tags origin "refs/tags/$TAG_NAME" | grep -q "$TAG_NAME"; then
+            echo "Tag $TAG_NAME already exists, skipping"
+          else
+            git tag "$TAG_NAME"
+            git push origin "$TAG_NAME"
+          fi
 
-      - name: "Create Release"
+      - name: Create Published Release
         uses: softprops/action-gh-release@v2
         with:
-          body: ${{ steps.release_notes.outputs.release_notes }}
-          tag_name: "js/v${{ needs.check-release.outputs.version }}"
-          name: "Sails-JS v${{ needs.check-release.outputs.version }}"
+          tag_name: "js/v${{ needs.detect-changes.outputs.sails_js_version }}"
+          name: "Sails-JS v${{ needs.detect-changes.outputs.sails_js_version }}"
+          draft: false
           make_latest: false
+          body: ${{ steps.release_notes.outputs.release_notes }}
           files: |
-            js/sails-js.tgz
-            js/sails-js-cli.tgz
-            js/sails-js-parser.tgz
-            js/sails-js-types.tgz
-            js/sails-js-util.tgz
+            ./sails-js.tgz

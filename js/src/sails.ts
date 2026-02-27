@@ -1,13 +1,13 @@
 import { GearApi, HexString, UserMessageSent } from '@gear-js/api';
 import { TypeRegistry } from '@polkadot/types/create';
 import { u8aToHex } from '@polkadot/util';
-import { ISailsIdlParser, ISailsProgram, ISailsService, ISailsTypeDef } from 'sails-js-types';
-
-import { getFnNamePrefix, getServiceNamePrefix } from './prefix.js';
-import { TransactionBuilder } from './transaction-builder.js';
 import { getScaleCodecDef } from 'sails-js-util';
+
 import { ZERO_ADDRESS } from './consts.js';
+import { getFnNamePrefix, getServiceNamePrefix } from './prefix.js';
 import { QueryBuilder } from './query-builder.js';
+import { TransactionBuilder } from './transaction-builder.js';
+import { ISailsIdlParser, ISailsProgram, ISailsService, ISailsTypeDef } from './types.js';
 
 interface SailsService {
   readonly functions: Record<string, SailsServiceFunc>;

@@ -1,5 +1,6 @@
 {
   "name": "sails-js-parser-idl-v2",
+  "private": true,
   "version": "0.5.1",
   "description": "Sails-IDL v2 parser for TypeScript",
   "main": "lib/cjs/index.cjs",
@@ -34,8 +35,7 @@
   ],
   "scripts": {
     "prebuild": "rm -rf lib",
-    "build": "rollup --config rollup.config.js",
-    "pack-build": "pnpm pack --out ../sails-js-parser-idl-v2.tgz"
+    "build": "rollup --config rollup.config.js"
   },
   "dependencies": {
     "sails-js-types": "workspace:*"

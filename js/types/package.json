@@ -1,5 +1,6 @@
 {
   "name": "sails-js-types",
+  "private": true,
   "version": "0.5.1",
   "description": "Common types for sails-js libraries",
   "types": "lib/index.d.ts",
@@ -16,8 +17,7 @@
   },
   "scripts": {
     "prebuild": "rm -rf lib",
-    "build": "rollup --config rollup.config.js",
-    "pack-build": "pnpm pack --out ../sails-js-types.tgz"
+    "build": "rollup --config rollup.config.js"
   },
   "files": [
     "lib"
