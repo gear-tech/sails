@@ -22,7 +22,7 @@ gstd = { workspace = true, optional = true }
 gwasm-builder = { workspace = true, optional = true }
 hashbrown.workspace = true
 hex.workspace = true
-keccak-const = { workspace = true, optional = true }
+keccak-const.workspace = true
 mockall = { workspace = true, optional = true }
 parity-scale-codec = { workspace = true, features = ["derive"] }
 paste.workspace = true
@@ -31,6 +31,7 @@ sails-client-gen = { workspace = true, optional = true }
 sails-idl-gen = { workspace = true, optional = true }
 sails-idl-meta.workspace = true
 sails-macros = { workspace = true, optional = true }
+sails-reflect-hash.workspace = true
 scale-info = { workspace = true, features = ["derive", "docs"] }
 spin.workspace = true
 thiserror.workspace = true
@@ -56,7 +57,6 @@ ethexe = [
     "gstd?/ethexe",
     "dep:alloy-primitives",
     "dep:alloy-sol-types",
-    "dep:keccak-const",
     "sails-macros?/ethexe",
 ]
 gclient = ["dep:gclient", "dep:tokio-stream"]
@@ -65,5 +65,5 @@ gtest = ["std", "dep:gtest", "dep:log", "dep:tokio-stream"]
 idl-gen = ["dep:sails-idl-gen"]
 client-builder = ["std", "idl-gen", "dep:sails-client-gen", "dep:convert_case"]
 mockall = ["std", "dep:mockall"]
-std = ["futures/std"]
+std = ["futures/std", "sails-idl-gen?/std"]
 wasm-builder = ["dep:gwasm-builder"]

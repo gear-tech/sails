@@ -166,7 +166,7 @@ async fn ping_pong_low_level_works() {
     let demo_program = Program::from_file(&system, DEMO_WASM_PATH);
 
     // Use generated `io` module to create a program
-    let message_id = demo_program.send_bytes(ACTOR_ID, Default::encode_params());
+    let message_id = demo_program.send_bytes(ACTOR_ID, Default::encode_params_with_header(0, &()));
     let run_result = system.run_next_block();
     let gas_burned = *run_result
         .gas_burned
@@ -177,7 +177,7 @@ async fn ping_pong_low_level_works() {
 
     // Use generated `io` module for encoding/decoding calls and replies
     // and send/receive bytes using `gtest` native means
-    let ping_call_payload = Ping::encode_params_with_prefix("PingPong", "ping".into());
+    let ping_call_payload = Ping::encode_call(DemoClientProgram::ROUTE_ID_PING_PONG, "ping".into());
 
     let message_id = demo_program.send_bytes(ACTOR_ID, ping_call_payload);
     let run_result = system.run_next_block();
@@ -190,7 +190,8 @@ async fn ping_pong_low_level_works() {
 
     let ping_reply_payload = reply_log_record.payload();
 
-    let ping_reply = Ping::decode_reply_with_prefix("PingPong", ping_reply_payload).unwrap();
+    let ping_reply =
+        Ping::decode_reply(DemoClientProgram::ROUTE_ID_PING_PONG, ping_reply_payload).unwrap();
 
     assert_eq!(ping_reply, Ok("pong".to_string()));
 
@@ -232,46 +233,8 @@ async fn dog_barks() {
 
 #[tokio::test]
 async fn dog_walks() {
-    use demo_client::dog::{Dog as _, events::DogEvents};
-    // Arrange
-    let (env, code_id, _gas_limit) = create_env();
-
-    // Use generated client code for activating Demo program
-    // using the `new` constructor and the `send`/`recv` pair
-    // of methods
-    let demo_program = env
-        .deploy(code_id, vec![])
-        .new(None, Some((1, -1)))
-        .await
-        .unwrap();
-
-    let mut dog_client = demo_program.dog();
-    let dog_listener = dog_client.listener();
-    let mut dog_events = dog_listener.listen().await.unwrap();
-
-    // Act
-    dog_client.walk(10, 20).await.unwrap();
-
-    // Assert
-    let position = dog_client.position().await.unwrap();
-    let event = dog_events.next().await.unwrap();
-
-    assert_eq!(position, (11, 19));
-    assert_eq!(
-        (
-            demo_program.id(),
-            DogEvents::Walked {
-                from: (1, -1),
-                to: (11, 19)
-            }
-        ),
-        event
-    );
-}
-
-#[tokio::test]
-async fn dog_weights() {
     use demo_client::dog::Dog as _;
+    use demo_client::walker_service::{WalkerService as _, events::WalkerServiceEvents};
     // Arrange
     let (env, code_id, _gas_limit) = create_env();
 
@@ -285,8 +248,50 @@ async fn dog_weights() {
         .unwrap();
 
     let dog_client = demo_program.dog();
+    let mut walker_client = dog_client.walker_service();
+    let listener = walker_client.listener();
+    let mut events = listener.listen().await.unwrap();
 
-    let avg_weight = dog_client.avg_weight().await.unwrap();
+    // Act
+    walker_client.walk(10, 20).await.unwrap();
+
+    // Assert
+    let position = walker_client.position().await.unwrap();
+    let event = events.next().await.unwrap();
+
+    assert_eq!(position, (11, 19));
+    assert_eq!(
+        (
+            demo_program.id(),
+            WalkerServiceEvents::Walked {
+                from: (1, -1),
+                to: (11, 19)
+            }
+        ),
+        event
+    );
+}
+
+#[tokio::test]
+async fn dog_weights() {
+    use demo_client::dog::Dog as _;
+    use demo_client::mammal_service::MammalService as _;
+    // Arrange
+    let (env, code_id, _gas_limit) = create_env();
+
+    // Use generated client code for activating Demo program
+    // using the `new` constructor and the `send`/`recv` pair
+    // of methods
+    let demo_program = env
+        .deploy(code_id, vec![])
+        .new(None, Some((1, -1)))
+        .await
+        .unwrap();
+
+    let dog_client = demo_program.dog();
+    let mammal_client = dog_client.mammal_service();
+
+    let avg_weight = mammal_client.avg_weight().await.unwrap();
 
     assert_eq!(avg_weight, 42);
 }
@@ -447,11 +452,11 @@ fn counter_add_low_level_works() {
     let wasm_size = std::fs::metadata(DEMO_WASM_PATH).unwrap().len();
 
     // Use generated `io` module to create a program
-    demo_program.send_bytes(ACTOR_ID, Default::encode_params());
+    let _message_id = demo_program.send_bytes(ACTOR_ID, Default::encode_params_with_header(0, &()));
 
     // Use generated `io` module for encoding/decoding calls and replies
     // and send/receive bytes using `gtest` native means
-    let call_payload = Add::encode_params_with_prefix("Counter", 10);
+    let call_payload = Add::encode_call(DemoClientProgram::ROUTE_ID_COUNTER, 10);
 
     let message_id = demo_program.send_bytes(ACTOR_ID, call_payload);
     let run_result = system.run_next_block();
@@ -464,7 +469,7 @@ fn counter_add_low_level_works() {
 
     let reply_payload = reply_log_record.payload();
 
-    let reply = Add::decode_reply_with_prefix("Counter", reply_payload).unwrap();
+    let reply = Add::decode_reply(DemoClientProgram::ROUTE_ID_COUNTER, reply_payload).unwrap();
 
     assert_eq!(reply, 10);
 
@@ -543,7 +548,7 @@ async fn program_value_transfer_works() {
 
 #[test]
 fn chaos_service_panic_after_wait_works() {
-    use demo_client::io::Default;
+    use demo_client::{chaos::io::PanicAfterWait, io::Default};
     use gstd::errors::{ErrorReplyReason, SimpleExecutionError};
     use sails_rs::gtest::{Log, Program, System};
 
@@ -551,9 +556,12 @@ fn chaos_service_panic_after_wait_works() {
     system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails_rs=debug");
     system.mint_to(ACTOR_ID, 1_000_000_000_000_000);
     let program = Program::from_file(&system, DEMO_WASM_PATH);
-    program.send_bytes(ACTOR_ID, Default::encode_params());
+    program.send_bytes(ACTOR_ID, Default::encode_params_with_header(0, &()));
 
-    let msg_id = program.send_bytes(ACTOR_ID, ("Chaos", "PanicAfterWait").encode());
+    let msg_id = program.send_bytes(
+        ACTOR_ID,
+        PanicAfterWait::encode_call(DemoClientProgram::ROUTE_ID_CHAOS),
+    );
     system.run_next_block();
 
     let log = Log::builder().source(program.id()).dest(ACTOR_ID);
@@ -573,17 +581,22 @@ fn chaos_service_panic_after_wait_works() {
 
 #[test]
 fn chaos_service_timeout_wait() {
-    use demo_client::chaos::io::ReplyHookCounter;
-    use demo_client::io::Default;
+    use demo_client::{
+        chaos::io::{ReplyHookCounter, TimeoutWait},
+        io::Default,
+    };
     use sails_rs::gtest::{Log, Program, System};
 
     let system = System::new();
     system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails_rs=debug,redirect=debug");
     system.mint_to(ACTOR_ID, 1_000_000_000_000_000);
     let program = Program::from_file(&system, DEMO_WASM_PATH);
-    program.send_bytes(ACTOR_ID, Default::encode_params());
+    program.send_bytes(ACTOR_ID, Default::encode_params_with_header(0, &()));
 
-    program.send_bytes(ACTOR_ID, ("Chaos", "TimeoutWait").encode());
+    program.send_bytes(
+        ACTOR_ID,
+        TimeoutWait::encode_call(DemoClientProgram::ROUTE_ID_CHAOS),
+    );
     //#1
     system.run_next_block();
     //#2
@@ -599,12 +612,15 @@ fn chaos_service_timeout_wait() {
         decode(payload)
     };
 
-    let msg_id = program.send_bytes(ACTOR_ID, ("Chaos", "ReplyHookCounter").encode());
+    let msg_id = program.send_bytes(
+        ACTOR_ID,
+        ReplyHookCounter::encode_call(DemoClientProgram::ROUTE_ID_CHAOS),
+    );
 
     let run = system.run_next_block();
 
     let val = extract_reply(&run, msg_id, |p| {
-        ReplyHookCounter::decode_reply_with_prefix("Chaos", p).unwrap()
+        ReplyHookCounter::decode_reply(DemoClientProgram::ROUTE_ID_CHAOS, p).unwrap()
     });
     assert_eq!(val, 0, "handle_reply should not trigger before reply");
 
@@ -615,10 +631,13 @@ fn chaos_service_timeout_wait() {
         .unwrap();
     system.run_next_block();
 
-    let msg_id = program.send_bytes(ACTOR_ID, ("Chaos", "ReplyHookCounter").encode());
+    let msg_id = program.send_bytes(
+        ACTOR_ID,
+        ReplyHookCounter::encode_call(DemoClientProgram::ROUTE_ID_CHAOS),
+    );
     let run = system.run_next_block();
     let val = extract_reply(&run, msg_id, |p| {
-        ReplyHookCounter::decode_reply_with_prefix("Chaos", p).unwrap()
+        ReplyHookCounter::decode_reply(DemoClientProgram::ROUTE_ID_CHAOS, p).unwrap()
     });
     assert_eq!(
         val, 1,
@@ -660,4 +679,61 @@ async fn chaos_panic_does_not_affect_other_services() {
 
     let final_value = counter_client.value().await.unwrap();
     assert_eq!(final_value, INIT_VALUE + 5);
+}
+
+#[tokio::test]
+async fn inheritance_redefine_works() {
+    use demo_client::chain::Chain as _;
+    use demo_client::dog::Dog as _;
+    use demo_client::mammal_service::MammalService as _;
+    use demo_client::walker_service::WalkerService as _;
+
+    // Arrange
+    let (env, code_id, _gas_limit) = create_env();
+    let demo_program = env.deploy(code_id, vec![]).default().await.unwrap();
+
+    let mut chain_client = demo_program.chain();
+
+    // 1. Own method of ChainService
+    let chain_sound = chain_client.make_sound().await.unwrap();
+    assert_eq!(chain_sound, "Chain Woof!");
+
+    // 2. Shadowed (but accessible) method from DogService
+    let dog_sound = chain_client.dog().make_sound().await.unwrap();
+    assert_eq!(dog_sound, "Woof! Woof!");
+
+    // 3. Override check: Calling MammalService::MakeSound on DogService
+    // 3.1. By Entry ID (mammal_make_sound)
+    let mammal_sound = chain_client
+        .dog()
+        .mammal_service()
+        .make_sound()
+        .await
+        .unwrap();
+    assert_eq!(mammal_sound, "Chain Mammal Sound (via ID)");
+
+    // 3.2. By Function Name (avg_weight)
+    let weight = chain_client
+        .dog()
+        .mammal_service()
+        .avg_weight()
+        .await
+        .unwrap();
+    assert_eq!(weight, 99);
+
+    // 3.3. By Route (walker_walk)
+    chain_client
+        .dog()
+        .walker_service()
+        .walk(10, 10)
+        .await
+        .unwrap();
+
+    let pos = chain_client
+        .dog()
+        .walker_service()
+        .position()
+        .await
+        .unwrap();
+    assert_eq!(pos, (0, 0));
 }

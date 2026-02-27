@@ -1,77 +1,107 @@
+use crate::events_generator::EventsModuleGenerator;
+use crate::helpers::*;
+use crate::mock_generator::MockGenerator;
+use crate::type_generators::{TopLevelTypeGenerator, generate_type_decl_with_path};
 use convert_case::{Case, Casing};
 use genco::prelude::*;
 use rust::Tokens;
-use sails_idl_parser::{ast::visitor, ast::visitor::Visitor, ast::*};
-
-use crate::events_generator::EventsModuleGenerator;
-use crate::helpers::*;
-use crate::type_generators::generate_type_decl_with_path;
-
-/// Generates a trait with service methods
-pub(crate) struct ServiceCtorGenerator<'a> {
-    service_name: &'a str,
-    sails_path: &'a str,
-    trait_tokens: Tokens,
-    impl_tokens: Tokens,
-}
-
-impl<'a> ServiceCtorGenerator<'a> {
-    pub(crate) fn new(service_name: &'a str, sails_path: &'a str) -> Self {
-        Self {
-            service_name,
-            sails_path,
-            trait_tokens: Tokens::new(),
-            impl_tokens: Tokens::new(),
-        }
-    }
-
-    pub(crate) fn finalize(self) -> (Tokens, Tokens) {
-        (self.trait_tokens, self.impl_tokens)
-    }
-}
-
-impl<'ast> Visitor<'ast> for ServiceCtorGenerator<'_> {
-    fn visit_service(&mut self, _service: &'ast Service) {
-        let service_name_snake = &self.service_name.to_case(Case::Snake);
-        quote_in!(self.trait_tokens =>
-            fn $service_name_snake(&self) -> $(self.sails_path)::client::Service<$service_name_snake::$(self.service_name)Impl, Self::Env>;
-        );
-        quote_in!(self.impl_tokens =>
-            fn $service_name_snake(&self) -> $(self.sails_path)::client::Service<$service_name_snake::$(self.service_name)Impl, Self::Env> {
-                self.service(stringify!($(self.service_name)))
-            }
-        );
-    }
-}
+use sails_idl_parser_v2::{ast, visitor, visitor::Visitor};
+use std::collections::HashMap;
 
 /// Generates a service module with trait and struct implementation
-pub(crate) struct ServiceGenerator<'a> {
-    service_name: &'a str,
-    sails_path: &'a str,
+pub(crate) struct ServiceGenerator<'ast> {
+    service_name: &'ast str,
+    sails_path: &'ast str,
+    external_types: &'ast HashMap<&'ast str, &'ast str>,
+    mocks_feature_name: Option<&'ast str>,
     trait_tokens: Tokens,
     impl_tokens: Tokens,
     io_tokens: Tokens,
     events_tokens: Tokens,
+    types_tokens: Tokens,
+    mocks_tokens: Tokens,
+    interface_id: sails_idl_meta::InterfaceId,
+    entry_ids: HashMap<&'ast str, u16>,
+    no_derive_traits: bool,
 }
 
-impl<'a> ServiceGenerator<'a> {
-    pub(crate) fn new(service_name: &'a str, sails_path: &'a str) -> Self {
+impl<'ast> ServiceGenerator<'ast> {
+    pub(crate) fn new(
+        service_name: &'ast str,
+        sails_path: &'ast str,
+        external_types: &'ast HashMap<&'ast str, &'ast str>,
+        mocks_feature_name: Option<&'ast str>,
+        interface_id: sails_idl_meta::InterfaceId,
+        no_derive_traits: bool,
+    ) -> Self {
         Self {
             service_name,
             sails_path,
+            external_types,
+            mocks_feature_name,
             trait_tokens: Tokens::new(),
             impl_tokens: Tokens::new(),
             io_tokens: Tokens::new(),
             events_tokens: Tokens::new(),
+            types_tokens: Tokens::new(),
+            mocks_tokens: Tokens::new(),
+            interface_id,
+            entry_ids: HashMap::new(),
+            no_derive_traits,
         }
     }
 
     pub(crate) fn finalize(self) -> Tokens {
         let service_name_snake = &self.service_name.to_case(Case::Snake);
+        let mock_tokens = if let Some(mocks_feature_name) = self.mocks_feature_name {
+            quote! {
+                $['\n']
+                #[cfg(feature = $(quoted(mocks_feature_name)))]
+                #[cfg(not(target_arch = "wasm32"))]
+                pub mod mockall {
+                    use super::*;
+                    use $(self.sails_path)::mockall::*;
+                    $(self.mocks_tokens)
+                }
+            }
+        } else {
+            quote!()
+        };
+
+        let bytes = self.interface_id.as_bytes().iter().copied();
+        let interface_id_tokens = quote! {
+            const INTERFACE_ID: $(self.sails_path)::InterfaceId = $(self.sails_path)::InterfaceId::from_bytes_8([ $(for b in bytes join (, ) => $b) ]);
+        };
+
+        let has_io = !self.io_tokens.is_empty();
+        let has_events = !self.events_tokens.is_empty();
+        let has_types = !self.types_tokens.is_empty();
+
+        let io_module = if has_io {
+            quote! {
+                $['\n']
+                pub mod io {
+                    use super::*;
+                    $(self.io_tokens)
+                }
+            }
+        } else {
+            quote!()
+        };
+
+        let allow_unused = if !has_io && !has_events && !has_types {
+            quote!(#[allow(unused_imports)])
+        } else {
+            quote!()
+        };
+
         quote! {
             $['\n']
+            $allow_unused
             pub mod $service_name_snake {
                 use super::*;
+
+                $(self.types_tokens)
 
                 pub trait $(self.service_name) {
                     type Env: $(self.sails_path)::client::GearEnv;
@@ -80,62 +110,119 @@ impl<'a> ServiceGenerator<'a> {
 
                 pub struct $(self.service_name)Impl;
 
+                impl $(self.sails_path)::client::Identifiable for $(self.service_name)Impl {
+                    $interface_id_tokens
+                }
+
                 impl<E: $(self.sails_path)::client::GearEnv> $(self.service_name) for $(self.sails_path)::client::Service<$(self.service_name)Impl, E> {
                     type Env = E;
                     $(self.impl_tokens)
                 }
 
-                $['\n']
-                pub mod io {
-                    use super::*;
-                    $(self.io_tokens)
-                }
+                $io_module
 
                 $(self.events_tokens)
+
+                $(mock_tokens)
             }
         }
     }
 }
 
 // using quote_in instead of tokens.append
-impl<'ast> Visitor<'ast> for ServiceGenerator<'_> {
-    fn visit_service(&mut self, service: &'ast Service) {
-        visitor::accept_service(service, self);
+impl<'ast> Visitor<'ast> for ServiceGenerator<'ast> {
+    fn visit_service_unit(&mut self, service: &'ast ast::ServiceUnit) {
+        // `service`` is normalized here - funcs, events, extends are sorted
+        for (entry_id, func) in service.funcs.iter().enumerate() {
+            self.entry_ids.insert(func.name.as_str(), entry_id as u16);
+        }
 
-        if !service.events().is_empty() {
-            let mut events_mod_gen = EventsModuleGenerator::new(self.service_name, self.sails_path);
-            events_mod_gen.visit_service(service);
+        for (idx, event) in service.events.iter().enumerate() {
+            self.entry_ids.insert(event.name.as_str(), idx as u16);
+        }
+
+        visitor::accept_service_unit(service, self);
+
+        for service_ident in &service.extends {
+            let name = &service_ident.name;
+            let method_name = name.to_case(Case::Snake);
+            let impl_name = name.to_case(Case::Pascal);
+            let mod_name = name.to_case(Case::Snake);
+
+            quote_in! { self.trait_tokens =>
+                $['\r'] fn $(&method_name)(&self) -> $(self.sails_path)::client::Service<super::$(mod_name.as_str())::$(impl_name.as_str())Impl, Self::Env>;
+            };
+
+            quote_in! { self.impl_tokens =>
+                $['\r'] fn $(&method_name)(&self) -> $(self.sails_path)::client::Service<super::$(mod_name.as_str())::$(impl_name.as_str())Impl, Self::Env> {
+                    self.base_service()
+                }
+            };
+        }
+
+        let mut mock_gen = MockGenerator::new(self.service_name, self.sails_path);
+        mock_gen.visit_service_unit(service);
+        self.mocks_tokens.extend(mock_gen.finalize());
+
+        if !service.events.is_empty() {
+            let mut events_mod_gen = EventsModuleGenerator::new(
+                self.service_name,
+                self.sails_path,
+                self.entry_ids.clone(),
+            );
+            events_mod_gen.visit_service_unit(service);
             self.events_tokens = events_mod_gen.finalize();
         }
     }
 
-    fn visit_service_func(&mut self, func: &'ast ServiceFunc) {
-        let mutability = if func.is_query() { "" } else { "mut" };
-        let fn_name = func.name();
+    fn visit_type(&mut self, t: &'ast ast::Type) {
+        if self.external_types.contains_key(t.name.as_str()) {
+            return;
+        }
+
+        let mut type_gen =
+            TopLevelTypeGenerator::new(&t.name, self.sails_path, self.no_derive_traits);
+        type_gen.visit_type(t);
+        self.types_tokens.extend(type_gen.finalize());
+    }
+
+    fn visit_service_func(&mut self, func: &'ast ast::ServiceFunc) {
+        let self_ref = if func.kind == ast::FunctionKind::Query {
+            "&self"
+        } else {
+            "&mut self"
+        };
+        let fn_name = &func.name;
         let fn_name_snake = &fn_name.to_case(Case::Snake);
 
-        let params_with_types = &fn_args_with_types(func.params());
-        let args = encoded_args(func.params());
+        let params_with_types = &fn_args_with_types_path(&func.params, "");
+        let args = encoded_args(&func.params);
 
-        for doc in func.docs() {
-            quote_in! { self.trait_tokens =>
-                $['\r'] $("///") $doc
-            };
-        }
+        generate_doc_comments(&mut self.trait_tokens, &func.docs);
+
         quote_in! { self.trait_tokens =>
-            $['\r'] fn $fn_name_snake (&$mutability self, $params_with_types) -> $(self.sails_path)::client::PendingCall<io::$fn_name, Self::Env>;
+            $['\r'] fn $fn_name_snake ($self_ref, $params_with_types) -> $(self.sails_path)::client::PendingCall<io::$fn_name, Self::Env>;
         };
 
         quote_in! {self.impl_tokens =>
-            $['\r'] fn $fn_name_snake (&$mutability self, $params_with_types) -> $(self.sails_path)::client::PendingCall<io::$fn_name, Self::Env> {
+            $['\r'] fn $fn_name_snake ($self_ref, $params_with_types) -> $(self.sails_path)::client::PendingCall<io::$fn_name, Self::Env> {
                 self.pending_call($args)
             }
         };
 
-        let output_type_decl_code = generate_type_decl_with_path(func.output(), "super".to_owned());
-        let params_with_types_super = &fn_args_with_types_path(func.params(), "super");
+        let output_type_decl_code = if let Some(throws_type) = &func.throws {
+            let ok_type = generate_type_decl_with_path(&func.output, "super");
+            let err_type = generate_type_decl_with_path(throws_type, "super");
+            format!("super::Result<{ok_type}, {err_type}>")
+        } else {
+            generate_type_decl_with_path(&func.output, "super")
+        };
+
+        let params_with_types_super = &fn_args_with_types_path(&func.params, "super");
+        let entry_id = self.entry_ids.get(func.name.as_str()).copied().unwrap_or(0);
+
         quote_in! { self.io_tokens =>
-            $(self.sails_path)::io_struct_impl!($fn_name ($params_with_types_super) -> $output_type_decl_code);
+            $(self.sails_path)::io_struct_impl!($fn_name ($params_with_types_super) -> $output_type_decl_code, $entry_id, <super::$(self.service_name)Impl as $(self.sails_path)::client::Identifiable>::INTERFACE_ID);
         };
     }
 }

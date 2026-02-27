@@ -9,12 +9,14 @@ pub use gstd::handle_signal;
 #[doc(hidden)]
 pub use gstd::{async_init, async_main, handle_reply_with_hook, message_loop};
 pub use gstd::{debug, exec, msg};
+use sails_idl_meta::{InterfaceId, MethodMeta};
 #[doc(hidden)]
 pub use sails_macros::{event, export, program, service};
 pub use syscalls::Syscall;
 
 use crate::{
     errors::{Error, Result, RtlError},
+    meta::SailsMessageHeader,
     prelude::{any::TypeId, *},
     utils::MaybeUninitBufferWriter,
 };
@@ -62,7 +64,7 @@ pub fn unknown_input_panic(message: &str, input: &[u8]) -> ! {
     }
 }
 
-struct HexSlice<T: AsRef<[u8]>>(T);
+pub struct HexSlice<T: AsRef<[u8]>>(pub T);
 
 impl<T: AsRef<[u8]>> core::fmt::Display for HexSlice<T> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -94,47 +96,61 @@ impl<T: AsRef<[u8]>> core::fmt::Debug for HexSlice<T> {
     }
 }
 
-pub trait InvocationIo {
-    const ROUTE: &'static [u8];
+pub trait InvocationIo: MethodMeta {
     type Params: Decode;
-    const ASYNC: bool;
-
-    fn check_asyncness(payload: impl AsRef<[u8]>) -> Result<bool> {
-        let value = payload.as_ref();
-        if !value.starts_with(Self::ROUTE) {
-            return Err(Error::Rtl(RtlError::InvocationPrefixMismatches));
-        }
-
-        Ok(Self::ASYNC)
-    }
 
     fn decode_params(payload: impl AsRef<[u8]>) -> Result<Self::Params> {
         let mut value = payload.as_ref();
-        if !value.starts_with(Self::ROUTE) {
+        let header: SailsMessageHeader = Decode::decode(&mut value).map_err(Error::Codec)?;
+        if header.interface_id() != Self::INTERFACE_ID {
             return Err(Error::Rtl(RtlError::InvocationPrefixMismatches));
         }
-        value = &value[Self::ROUTE.len()..];
-        Decode::decode(&mut value).map_err(Error::Codec)
+        if header.entry_id() != Self::ENTRY_ID {
+            return Err(Error::Rtl(RtlError::InvocationPrefixMismatches));
+        }
+        let value: Self::Params = Decode::decode(&mut value).map_err(Error::Codec)?;
+        Ok(value)
     }
 
     fn with_optimized_encode<T: Encode, R>(
         value: &T,
-        prefix: &[u8],
+        route_idx: u8,
         f: impl FnOnce(&[u8]) -> R,
     ) -> R {
-        let size = prefix.len() + Self::ROUTE.len() + Encode::encoded_size(value);
+        Self::with_optimized_encode_with_id(Self::INTERFACE_ID, Self::ENTRY_ID, value, route_idx, f)
+    }
+
+    fn with_optimized_encode_with_id<T: Encode, R>(
+        interface_id: InterfaceId,
+        entry_id: u16,
+        value: &T,
+        route_idx: u8,
+        f: impl FnOnce(&[u8]) -> R,
+    ) -> R {
+        let header = SailsMessageHeader::v1(interface_id, entry_id, route_idx);
+        let size = 16 + Encode::encoded_size(value);
         stack_buffer::with_byte_buffer(size, |buffer| {
             let mut buffer_writer = MaybeUninitBufferWriter::new(buffer);
-
-            buffer_writer.write(prefix);
-            buffer_writer.write(Self::ROUTE);
+            Encode::encode_to(&header, &mut buffer_writer);
             Encode::encode_to(value, &mut buffer_writer);
-
             buffer_writer.with_buffer(f)
         })
     }
+}
 
-    fn is_empty_tuple<T: 'static>() -> bool {
-        TypeId::of::<T>() == TypeId::of::<()>()
-    }
+pub fn with_optimized_encode<T: Encode, R>(
+    value: &T,
+    // prefix: &[u8],
+    f: impl FnOnce(&[u8]) -> R,
+) -> R {
+    let size = Encode::encoded_size(value);
+    stack_buffer::with_byte_buffer(size, |buffer| {
+        let mut buffer_writer = MaybeUninitBufferWriter::new(buffer);
+        Encode::encode_to(value, &mut buffer_writer);
+        buffer_writer.with_buffer(f)
+    })
+}
+
+pub fn is_empty_tuple<T: 'static>() -> bool {
+    TypeId::of::<T>() == TypeId::of::<()>()
 }

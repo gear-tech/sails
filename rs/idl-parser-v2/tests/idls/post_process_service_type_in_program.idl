@@ -1,0 +1,20 @@
+program MyProgram {
+    types {
+        struct ProgramType {
+            val: ServiceType, // Invalid: ServiceType is defined in MyService
+        }
+    }
+    constructors { New(); }
+    services { MyService: MyService }
+}
+
+service MyService {
+    types {
+        struct ServiceType {
+            val: u32,
+        }
+    }
+    functions {
+        DoSomething(p1: ServiceType) -> u32; // Valid usage
+    }
+}

@@ -58,23 +58,26 @@ impl MyService {
 }
 
 #[allow(dead_code)]
-#[derive(Debug, Decode, TypeInfo)]
+#[derive(Debug, Decode, TypeInfo, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
+#[reflect_hash(crate = sails_rs::sails_reflect_hash)]
 pub struct TupleStruct(bool);
 
-#[derive(Debug, Decode, TypeInfo)]
+#[derive(Debug, Decode, TypeInfo, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
+#[reflect_hash(crate = sails_rs::sails_reflect_hash)]
 pub struct DoThatParam {
     pub p1: NonZeroU32,
     pub p2: ActorId,
     pub p3: ManyVariants,
 }
 
-#[derive(Debug, Decode, TypeInfo)]
+#[derive(Debug, Decode, TypeInfo, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
+#[reflect_hash(crate = sails_rs::sails_reflect_hash)]
 pub enum ManyVariants {
     One,
     Two(u32),
@@ -84,9 +87,10 @@ pub enum ManyVariants {
     Six((u32,)),
 }
 
-#[derive(Debug, Encode, TypeInfo)]
+#[derive(Debug, Encode, TypeInfo, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
+#[reflect_hash(crate = sails_rs::sails_reflect_hash)]
 pub enum ManyVariantsReply {
     One,
     Two,

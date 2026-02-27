@@ -21,11 +21,14 @@ env:
   GITHUB_USER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
   # crates in order of dependency (topological order), first the ones that are not dependent on any other
   SAILS_CRATES: |
+    sails-reflect-hash-derive
+    sails-reflect-hash
     sails-idl-meta
     sails-idl-parser
     sails-idl-gen
     sails-sol-gen
     sails-client-gen
+    sails-client-gen-js
     sails-macros-core
     sails-macros
     sails-rs
@@ -130,6 +133,12 @@ jobs:
           mkdir -p ./assets/sails_idl_parser
           wasm-opt -O4 -o ./assets/sails_idl_parser/sails_idl_parser.wasm ./target/wasm32-unknown-unknown/release/sails_idl_parser.wasm
 
+      - name: Build IDL v2 Parser for WASM
+        run: |
+          cargo build -p sails-idl-parser-wasm --target wasm32-unknown-unknown --release
+          mkdir -p ./assets/sails_idl_parser
+          wasm-opt -O4 -o ./assets/sails_idl_parser/sails_idl_v2_parser.wasm ./target/wasm32-unknown-unknown/release/sails_idl_parser_wasm.wasm
+
       - name: Build Demo
         run: |
           cargo build -p demo --release
@@ -214,6 +223,8 @@ jobs:
     defaults:
       run:
         shell: bash
+    outputs:
+      r_tag: ${{ needs.prepare.outputs.r_tag }}
     env:
       R_NAME: Sails-RS v${{ needs.prepare.outputs.r_version }}
 
@@ -265,8 +276,17 @@ jobs:
           fail_on_unmatched_files: true
           files: |
             ./assets/sails_idl_parser/sails_idl_parser.wasm
+            ./assets/sails_idl_parser/sails_idl_v2_parser.wasm
             ./assets/demo/demo.wasm
             ./assets/demo/demo.idl
             ./assets/no_svcs_prog/no_svcs_prog.wasm
             ./assets/no_svcs_prog/no_svcs_prog.idl
           token: ${{ secrets.GITHUB_TOKEN }}
+
+  binaries:
+    name: Build Binaries
+    needs: release
+    uses: ./.github/workflows/bin-release.yml
+    with:
+      tag: ${{ needs.release.outputs.r_tag }}
+    secrets: inherit

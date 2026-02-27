@@ -30,11 +30,15 @@ members = [
     "rs",
     "rs/cli",
     "rs/client-gen",
+    "rs/client-gen-js",
     "rs/idl-gen",
     "rs/idl-meta",
     "rs/idl-parser",
+    "rs/idl-parser-v2",
+    "rs/idl-parser-wasm",
     "rs/macros",
     "rs/macros/core",
+    "rs/reflect-hash",
     "rs/sol-gen",
     "benchmarks/alloc-stress",
     "benchmarks/compute-stress",
@@ -48,10 +52,13 @@ members = [
 # The order matches with publishing order.
 sails-idl-meta = { path = "rs/idl-meta" }
 sails-idl-parser = { path = "rs/idl-parser" }
+sails-idl-parser-v2 = { path = "rs/idl-parser-v2", default-features = false }
 sails-idl-gen = { path = "rs/idl-gen" }
 sails-client-gen = { path = "rs/client-gen" }
+sails-client-gen-js = { path = "rs/client-gen-js" }
 sails-macros-core = { path = "rs/macros/core" }
 sails-macros = { path = "rs/macros" }
+sails-reflect-hash = { path = "rs/reflect-hash" }
 sails-rs = { path = "rs" }
 sails-sol-gen = { path = "rs/sol-gen" }
 # Renamed sails-rs for `proxy` demo
@@ -71,8 +78,8 @@ gwasm-builder = { version = "=1.10.0", package = "gear-wasm-builder" }
 alloy-primitives = { version = "1.5", default-features = false }
 alloy-sol-types = { version = "1.5", default-features = false }
 anyhow = "1"
-askama = "0.15"
-cargo-generate = "0.23"
+askama = { version = "0.15", default-features = false }
+cargo-generate = { version = "0.23", features = ["vendored-libgit2", "vendored-openssl"] }
 cargo_metadata = "0.23"
 clap = "4.5"
 fs2 = "0.4.3"
@@ -94,14 +101,16 @@ mockall = "0.14"
 pin-project-lite = "0.2"
 parity-scale-codec = { version = "=3.7.5", default-features = false }
 paste = "1.0"
+pest = { version = "2", default-features = false }
+pest_derive = { version = "2", default-features = false }
 prettyplease = "0.2"
 proc-macro-error = "1.0"
 proc-macro2 = { version = "1", default-features = false }
 rustdoc-types = "=0.56.0"
 quote = "1.0"
 scale-info = { version = "2.11", default-features = false }
-serde = "1.0"
-serde-json = { package = "serde_json", version = "1.0" }
+serde = { version = "1.0", default-features = false }
+serde-json = { package = "serde_json", version = "1.0", default-features = false }
 spin = { version = "0.10", default-features = false, features = ["spin_mutex"] }
 syn = "2.0"
 thiserror = { version = "2.0", default-features = false }
@@ -110,3 +119,8 @@ tempfile = "3.19"
 tokio = "1.49"
 tokio-stream = "0.1"
 trybuild = "1"
+
+# The profile that 'dist' will build with
+[profile.dist]
+inherits = "release"
+lto = "thin"

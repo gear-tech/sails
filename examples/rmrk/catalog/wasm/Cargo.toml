@@ -7,6 +7,7 @@ edition.workspace = true
 rmrk-catalog-app = { path = "../app" }
 
 [build-dependencies]
-sails-idl-gen.workspace = true
-sails-rs = { workspace = true, features = ["wasm-builder"] }
+# TODO: Switch to new IDL generator crate
+# sails-idl-gen.workspace = true
+sails-rs = { workspace = true, features = ["build"] }
 rmrk-catalog-app = { path = "../app" }                       # Used for generating IDL (service metadata)

@@ -1,4 +1,3 @@
 fn main() {
     sails_rs::build_client::<{{ app_crate_name }}::{{ program_struct_name }}>();
 }
-

@@ -9,8 +9,8 @@ fn works_with_basics() {
     let input = quote! {
         impl SomeService {
             #[export]
-            pub async fn do_this(&mut self, p1: u32, p2: String) -> u32 {
-                p1
+            pub async fn do_this(&mut self, p1: u32, p2: String) -> String {
+                format!("{p1}: ") + &p2
             }
 
             #[export]
@@ -319,6 +319,81 @@ fn works_with_export() {
     };
 
     let result = gservice(TokenStream::new(), input).to_string();
+    let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
+
+    insta::assert_snapshot!(result);
+}
+
+#[test]
+fn works_with_mixed_methods() {
+    let args = quote! {
+        extends = BaseService
+    };
+    let input = quote! {
+        impl InheritedService {
+            #[export]
+            pub fn own_first(&self) -> u32 { 1 } // Should be entry_id 0
+
+            #[export(overrides = BaseService)]
+            pub fn foo(&self) -> u32 { 200 } // Override, no entry_id in this service
+
+            #[export]
+            pub fn own_second(&self) -> u32 { 2 } // Should be entry_id 1
+        }
+    };
+
+    let result = gservice(args, input).to_string();
+    let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
+
+    insta::assert_snapshot!(result);
+}
+
+#[test]
+fn works_with_overrides() {
+    let args = quote! {
+        extends = BaseService
+    };
+    let input = quote! {
+        impl InheritedService {
+            #[export(overrides = BaseService)]
+            pub fn foo(&self) -> u32 {
+                200
+            }
+
+            #[export(overrides = BaseService, entry_id = 1)]
+            pub fn bar(&self) -> u32 {
+                300
+            }
+        }
+    };
+
+    let result = gservice(args, input).to_string();
+    let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
+
+    insta::assert_snapshot!(result);
+}
+
+#[test]
+fn works_with_all_override_variants() {
+    let args = quote!();
+    let input = quote! {
+        #[service(extends = BaseService)]
+        impl InheritedService {
+            // Variant 1: By entry_id (renamed function)
+            #[export(overrides = BaseService, entry_id = 0)]
+            pub fn renamed_by_id(&self) -> u32 { 1 }
+
+            // Variant 2: By route (renamed function)
+            #[export(overrides = BaseService, route = "MethodTwo")]
+            pub fn renamed_by_route(&self) -> u32 { 2 }
+
+            // Variant 3: By name (default)
+            #[export(overrides = BaseService)]
+            pub fn method_three(&self) -> u32 { 3 }
+        }
+    };
+
+    let result = gservice(args, input).to_string();
     let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
 
     insta::assert_snapshot!(result);

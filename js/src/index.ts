@@ -1,7 +1,11 @@
-export { getServiceNamePrefix, getFnNamePrefix, getCtorNamePrefix } from './prefix.js';
-export { IMethodReturnType, TransactionBuilder } from './transaction-builder.js';
-export { QueryBuilder } from './query-builder.js';
-export { throwOnErrorReply } from './utils.js';
 export { ZERO_ADDRESS } from './consts.js';
+export { getCtorNamePrefix, getFnNamePrefix, getServiceNamePrefix } from './prefix.js';
 export * from './primitives/index.js';
+export { QueryBuilderWithHeader } from './query-builder-with-header.js';
+export { QueryBuilder } from './query-builder.js';
+export { SailsProgram, SailsService } from './sails-idl-v2.js';
 export { Sails } from './sails.js';
+export { TransactionBuilderWithHeader } from './transaction-builder-with-header.js';
+export { IMethodReturnType, TransactionBuilder } from './transaction-builder.js';
+export { TypeResolver } from './type-resolver-idl-v2.js';
+export { throwOnErrorReply } from './utils.js';

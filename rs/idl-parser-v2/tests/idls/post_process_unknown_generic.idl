@@ -1,0 +1,10 @@
+program MyProgram {
+    constructors { New(); }
+    services { MyService: MyService }
+}
+
+service MyService {
+    functions {
+        DoSomething(p1: Option<UnknownGeneric>) -> u32;
+    }
+}

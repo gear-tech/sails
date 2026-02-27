@@ -10,7 +10,7 @@
     ".": {
       "require": "./lib/cjs/index.cjs",
       "import": "./lib/index.js",
-      "types": "./index.d.ts"
+      "types": "./lib/index.d.ts"
     }
   },
   "files": [
@@ -24,7 +24,7 @@
   "homepage": "https://github.com/gear-tech/sails/tree/master/js#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://githib.com/gear-tech/sails.git",
+    "url": "git+https://github.com/gear-tech/sails.git",
     "directory": "js/parser"
   },
   "keywords": [

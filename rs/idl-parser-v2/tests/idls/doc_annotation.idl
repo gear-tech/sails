@@ -1,0 +1,26 @@
+/// 1. This is a program doc comment.
+@doc: 2. This is also a program doc comment.
+program DocProgram {
+    constructors {
+        /// 1. This is a ctor doc comment.
+        @doc: 2. This is also a ctor doc comment.
+        New();
+    }
+
+    services {
+        MyService
+    }
+
+    types {
+        /// 1. This is a struct doc comment.
+        @doc: 2. This is also a struct doc comment.
+        struct MyStruct {
+            /// 1. This is a field doc comment.
+            @doc: 2. This is also a field doc comment.
+            field: u32,
+        }
+    }
+}
+
+service MyService {
+}
