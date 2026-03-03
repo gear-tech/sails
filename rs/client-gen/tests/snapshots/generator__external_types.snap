@@ -10,6 +10,7 @@ use my_crate::sails::{client::*, collections::*, prelude::*};
 
 pub mod service {
     use super::*;
+
     #[derive(Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = my_crate::sails::scale_codec)]
     #[scale_info(crate = my_crate::sails::scale_info)]
@@ -21,6 +22,7 @@ pub mod service {
         Variant4(u8, u32),
         Variant5 { f1: String, f2: Vec<u8> },
     }
+
     pub trait Service {
         type Env: my_crate::sails::client::GearEnv;
         fn do_that(
@@ -33,11 +35,14 @@ pub mod service {
             p2: MyParam,
         ) -> my_crate::sails::client::PendingCall<io::DoThis, Self::Env>;
     }
+
     pub struct ServiceImpl;
+
     impl my_crate::sails::client::Identifiable for ServiceImpl {
         const INTERFACE_ID: my_crate::sails::InterfaceId =
             my_crate::sails::InterfaceId::from_bytes_8([82, 241, 49, 169, 231, 31, 0, 230]);
     }
+
     impl<E: my_crate::sails::client::GearEnv> Service
         for my_crate::sails::client::Service<ServiceImpl, E>
     {

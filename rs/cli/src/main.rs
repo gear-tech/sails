@@ -4,6 +4,7 @@ use sails_cli::{
     idlgen::CrateIdlGenerator, program::ProgramGenerator, program_new, solgen::SolidityGenerator,
 };
 use sails_client_gen::ClientGenerator;
+use sails_client_gen_js::JsClientGenerator;
 use std::{error::Error, path::PathBuf};
 
 #[derive(Parser)]
@@ -59,7 +60,7 @@ enum SailsCommands {
         eth: bool,
     },
 
-    /// Generate client code from IDL
+    /// Generate Rust client code from IDL
     #[command(name = "client-rs")]
     ClientRs {
         /// Path to the IDL file
@@ -80,6 +81,17 @@ enum SailsCommands {
         /// Derive only necessary [`parity_scale_codec::Encode`], [`parity_scale_codec::Decode`] and [`scale_info::TypeInfo`] traits for the generated types
         #[arg(long)]
         no_derive_traits: bool,
+    },
+
+    /// Generate JS client code from IDL
+    #[command(name = "client-js")]
+    ClientJs {
+        /// Path to the IDL file
+        #[arg(value_hint = clap::ValueHint::FilePath)]
+        idl_path: PathBuf,
+        /// Path to the output JS client file
+        #[arg(value_hint = clap::ValueHint::FilePath)]
+        out_path: Option<PathBuf>,
     },
 
     /// Generate IDL from Cargo manifest
@@ -180,6 +192,11 @@ fn main() -> Result<(), i32> {
                 client_gen = client_gen.with_no_derive_traits();
             }
             let out_path = out_path.unwrap_or_else(|| idl_path.with_extension("rs"));
+            client_gen.generate_to(out_path)
+        }
+        SailsCommands::ClientJs { idl_path, out_path } => {
+            let client_gen = JsClientGenerator::from_idl_path(idl_path.as_ref());
+            let out_path = out_path.unwrap_or_else(|| idl_path.with_extension("ts"));
             client_gen.generate_to(out_path)
         }
         SailsCommands::IdlGen {

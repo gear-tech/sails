@@ -43,6 +43,18 @@ pub struct IdlDoc {
     pub services: Vec<ServiceUnit>,
 }
 
+impl IdlDoc {
+    #[cfg(feature = "serde")]
+    pub fn to_json_string(&self) -> Result<String, serde_json::Error> {
+        serde_json::to_string(self)
+    }
+
+    #[cfg(feature = "serde")]
+    pub fn to_json_string_pretty(&self) -> Result<String, serde_json::Error> {
+        serde_json::to_string_pretty(self)
+    }
+}
+
 /// AST node describing a `program` block.
 ///
 /// A program is an entry point that:
@@ -244,7 +256,7 @@ impl ServiceUnit {
     /// Stabilize ordering for deterministic output and comparisons.
     pub fn normalize(&mut self) {
         self.events.sort_by_key(|e| e.name.to_lowercase());
-        self.funcs.sort_by_key(|f| (f.kind, f.name.to_lowercase()));
+        self.funcs.sort_by_key(|f| f.name.to_lowercase());
         self.extends.sort_by_key(|e| e.name.to_lowercase());
     }
 }
@@ -417,6 +429,16 @@ impl TypeDecl {
             }
             _ => None,
         }
+    }
+
+    #[cfg(feature = "serde")]
+    pub fn to_json_string(&self) -> Result<String, serde_json::Error> {
+        serde_json::to_string(self)
+    }
+
+    #[cfg(feature = "serde")]
+    pub fn to_json_string_pretty(&self) -> Result<String, serde_json::Error> {
+        serde_json::to_string_pretty(self)
     }
 }
 
@@ -598,6 +620,18 @@ pub struct Type {
     pub annotations: Vec<(String, Option<String>)>,
 }
 
+impl Type {
+    #[cfg(feature = "serde")]
+    pub fn to_json_string(&self) -> Result<String, serde_json::Error> {
+        serde_json::to_string(self)
+    }
+
+    #[cfg(feature = "serde")]
+    pub fn to_json_string_pretty(&self) -> Result<String, serde_json::Error> {
+        serde_json::to_string_pretty(self)
+    }
+}
+
 /// Generic type parameter in a type definition.
 ///
 /// - `name` is the declared identifier of the parameter (e.g. `T`);
@@ -673,6 +707,16 @@ impl StructDef {
     /// Returns `true` if the struct is tuple-like (all fields are unnamed).
     pub fn is_tuple(&self) -> bool {
         self.fields.iter().all(|f| f.name.is_none())
+    }
+
+    #[cfg(feature = "serde")]
+    pub fn to_json_string(&self) -> Result<String, serde_json::Error> {
+        serde_json::to_string(self)
+    }
+
+    #[cfg(feature = "serde")]
+    pub fn to_json_string_pretty(&self) -> Result<String, serde_json::Error> {
+        serde_json::to_string_pretty(self)
     }
 }
 

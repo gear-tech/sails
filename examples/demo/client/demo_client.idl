@@ -25,15 +25,15 @@ service Counter@0x579d6daba41b7d82 {
     }
 }
 
-service MammalService@0xff6b93e1961026fe {
+service MammalService@0xf181833573ac05bf {
     functions {
-        MakeSound() -> String;
         @query
         AvgWeight() -> u32;
+        MakeSound() -> String;
     }
 }
 
-service WalkerService@0xee1536b55170bf0a {
+service WalkerService@0x06b6750e36f0fda7 {
     events {
         Walked {
             from: (i32, i32),
@@ -41,16 +41,16 @@ service WalkerService@0xee1536b55170bf0a {
         },
     }
     functions {
-        Walk(dx: i32, dy: i32);
         @query
         Position() -> (i32, i32);
+        Walk(dx: i32, dy: i32);
     }
 }
 
-service Dog@0x18666e67a21917a1 {
+service Dog@0x061b5337bdb0e35b {
     extends {
-        MammalService@0xff6b93e1961026fe,
-        WalkerService@0xee1536b55170bf0a,
+        MammalService@0xf181833573ac05bf,
+        WalkerService@0x06b6750e36f0fda7,
     }
     events {
         Barked,
@@ -60,19 +60,19 @@ service Dog@0x18666e67a21917a1 {
     }
 }
 
-service References@0x3dab91b196478162 {
+service References@0xf7a1ff9d2e0a97e8 {
     functions {
         Add(v: u32) -> u32;
         AddByte(byte: u8) -> [u8];
-        GuessNum(number: u8) -> String throws String;
-        Incr() -> ReferenceCount;
-        SetNum(number: u8) throws String;
         @query
         Baked() -> String;
+        GuessNum(number: u8) -> String throws String;
+        Incr() -> ReferenceCount;
         @query
         LastByte() -> Option<u8>;
         @query
         Message() -> Option<String>;
+        SetNum(number: u8) throws String;
     }
     types {
         struct ReferenceCount(u32);
@@ -142,14 +142,14 @@ service Chaos@0xf0c8c80dfabf72d5 {
     }
 }
 
-service Validator@0xd5c8a89eeb4e96cb {
+service Validator@0x4e78bafffdb4fb1c {
     functions {
-        ValidateNonzero(value: u32) throws String;
-        ValidateRange(value: u32, min: u32, max: u32) -> u32 throws ValidationError;
         @query
         TotalErrors() -> u32;
         @query
         ValidateEven(value: u32) -> u32 throws ();
+        ValidateNonzero(value: u32) throws String;
+        ValidateRange(value: u32, min: u32, max: u32) -> u32 throws ValidationError;
     }
     types {
         enum ValidationError {
@@ -159,9 +159,9 @@ service Validator@0xd5c8a89eeb4e96cb {
     }
 }
 
-service Chain@0xd422c66e6021e0f9 {
+service Chain@0x01fcbe183e2199b0 {
     extends {
-        Dog@0x18666e67a21917a1,
+        Dog@0x061b5337bdb0e35b,
     }
     functions {
         MakeSound() -> String;
@@ -179,12 +179,12 @@ program DemoClient {
     services {
         PingPong@0x21bd9a9aa51da264,
         Counter@0x579d6daba41b7d82,
-        Dog@0x18666e67a21917a1,
-        References@0x3dab91b196478162,
+        Dog@0x061b5337bdb0e35b,
+        References@0xf7a1ff9d2e0a97e8,
         ThisThat@0x445bed6efbe8e6dd,
         ValueFee@0x41c1080b4e1e8dc5,
         Chaos@0xf0c8c80dfabf72d5,
-        Validator@0xd5c8a89eeb4e96cb,
-        Chain@0xd422c66e6021e0f9,
+        Validator@0x4e78bafffdb4fb1c,
+        Chain@0x01fcbe183e2199b0,
     }
 }

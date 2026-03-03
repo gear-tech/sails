@@ -2,6 +2,7 @@
 source: ethapp_with_events/tests/insta.rs
 expression: idl
 ---
+
 !@sails: 0.10.2
 
 service Svc1@0x349b842b767fb2ab {

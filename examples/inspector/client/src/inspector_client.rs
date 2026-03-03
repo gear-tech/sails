@@ -2,14 +2,18 @@
 #[allow(unused_imports)]
 use sails_rs::{client::*, collections::*, prelude::*};
 pub struct InspectorClientProgram;
+
 impl InspectorClientProgram {
     pub const ROUTE_ID_INSPECTOR: u8 = 1;
 }
+
 impl sails_rs::client::Program for InspectorClientProgram {}
+
 pub trait InspectorClient {
     type Env: sails_rs::client::GearEnv;
     fn inspector(&self) -> sails_rs::client::Service<inspector::InspectorImpl, Self::Env>;
 }
+
 impl<E: sails_rs::client::GearEnv> InspectorClient
     for sails_rs::client::Actor<InspectorClientProgram, E>
 {
@@ -31,6 +35,7 @@ pub trait InspectorClientCtors {
         target: ActorId,
     ) -> sails_rs::client::PendingCtor<InspectorClientProgram, io::NewWithResult, Self::Env>;
 }
+
 impl<E: sails_rs::client::GearEnv> InspectorClientCtors
     for sails_rs::client::Deployment<InspectorClientProgram, E>
 {
@@ -57,6 +62,7 @@ pub mod io {
 
 pub mod inspector {
     use super::*;
+
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
@@ -65,8 +71,16 @@ pub mod inspector {
         TooSmall,
         TooBig,
     }
+
     pub trait Inspector {
         type Env: sails_rs::client::GearEnv;
+        /// Proxy call to validator.validate_even(7)
+        fn test_even_panic(&self) -> sails_rs::client::PendingCall<io::TestEvenPanic, Self::Env>;
+        /// Try to deploy demo with error - should return Err
+        fn test_failing_demo_ctor(
+            &self,
+            demo_code_id: CodeId,
+        ) -> sails_rs::client::PendingCall<io::TestFailingDemoCtor, Self::Env>;
         /// Proxy call to validator.validate_nonzero(0)
         fn test_nonzero_panic(
             &mut self,
@@ -75,25 +89,30 @@ pub mod inspector {
         fn test_range_panic(
             &mut self,
         ) -> sails_rs::client::PendingCall<io::TestRangePanic, Self::Env>;
-        /// Proxy call to validator.validate_even(7)
-        fn test_even_panic(&self) -> sails_rs::client::PendingCall<io::TestEvenPanic, Self::Env>;
-        /// Try to deploy demo with error - should return Err
-        fn test_failing_demo_ctor(
-            &self,
-            demo_code_id: CodeId,
-        ) -> sails_rs::client::PendingCall<io::TestFailingDemoCtor, Self::Env>;
         /// Proxy call to validator.total_errors()
         fn test_total_errors(
             &self,
         ) -> sails_rs::client::PendingCall<io::TestTotalErrors, Self::Env>;
     }
+
     pub struct InspectorImpl;
+
     impl sails_rs::client::Identifiable for InspectorImpl {
         const INTERFACE_ID: sails_rs::InterfaceId =
-            sails_rs::InterfaceId::from_bytes_8([117, 191, 168, 67, 41, 36, 122, 235]);
+            sails_rs::InterfaceId::from_bytes_8([223, 121, 120, 228, 241, 209, 29, 221]);
     }
+
     impl<E: sails_rs::client::GearEnv> Inspector for sails_rs::client::Service<InspectorImpl, E> {
         type Env = E;
+        fn test_even_panic(&self) -> sails_rs::client::PendingCall<io::TestEvenPanic, Self::Env> {
+            self.pending_call(())
+        }
+        fn test_failing_demo_ctor(
+            &self,
+            demo_code_id: CodeId,
+        ) -> sails_rs::client::PendingCall<io::TestFailingDemoCtor, Self::Env> {
+            self.pending_call((demo_code_id,))
+        }
         fn test_nonzero_panic(
             &mut self,
         ) -> sails_rs::client::PendingCall<io::TestNonzeroPanic, Self::Env> {
@@ -104,15 +123,6 @@ pub mod inspector {
         ) -> sails_rs::client::PendingCall<io::TestRangePanic, Self::Env> {
             self.pending_call(())
         }
-        fn test_even_panic(&self) -> sails_rs::client::PendingCall<io::TestEvenPanic, Self::Env> {
-            self.pending_call(())
-        }
-        fn test_failing_demo_ctor(
-            &self,
-            demo_code_id: CodeId,
-        ) -> sails_rs::client::PendingCall<io::TestFailingDemoCtor, Self::Env> {
-            self.pending_call((demo_code_id,))
-        }
         fn test_total_errors(
             &self,
         ) -> sails_rs::client::PendingCall<io::TestTotalErrors, Self::Env> {
@@ -122,10 +132,10 @@ pub mod inspector {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(TestNonzeroPanic () -> super::Result<(), String>, 0, <super::InspectorImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws (), String);
-        sails_rs::io_struct_impl!(TestRangePanic () -> super::Result<u32, super::ValidationError>, 1, <super::InspectorImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws u32, super::ValidationError);
-        sails_rs::io_struct_impl!(TestEvenPanic () -> super::Result<u32, ()>, 2, <super::InspectorImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws u32, ());
-        sails_rs::io_struct_impl!(TestFailingDemoCtor (demo_code_id: CodeId) -> super::Result<ActorId, String>, 3, <super::InspectorImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws ActorId, String);
+        sails_rs::io_struct_impl!(TestEvenPanic () -> super::Result<u32, ()>, 0, <super::InspectorImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws u32, ());
+        sails_rs::io_struct_impl!(TestFailingDemoCtor (demo_code_id: CodeId) -> super::Result<ActorId, String>, 1, <super::InspectorImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws ActorId, String);
+        sails_rs::io_struct_impl!(TestNonzeroPanic () -> super::Result<(), String>, 2, <super::InspectorImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws (), String);
+        sails_rs::io_struct_impl!(TestRangePanic () -> super::Result<u32, super::ValidationError>, 3, <super::InspectorImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws u32, super::ValidationError);
         sails_rs::io_struct_impl!(TestTotalErrors () -> u32, 4, <super::InspectorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 }

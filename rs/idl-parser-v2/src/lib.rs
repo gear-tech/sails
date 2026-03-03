@@ -14,6 +14,7 @@ use alloc::{
 pub use sails_idl_meta as ast;
 
 pub mod error;
+#[cfg(feature = "ffi")]
 pub mod ffi {
     pub mod ast;
 }

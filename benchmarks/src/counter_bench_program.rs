@@ -2,16 +2,20 @@
 #[allow(unused_imports)]
 use sails_rs::{client::*, collections::*, prelude::*};
 pub struct CounterBenchProgram;
+
 impl CounterBenchProgram {
     pub const ROUTE_ID_COUNTER_BENCH: u8 = 1;
 }
+
 impl sails_rs::client::Program for CounterBenchProgram {}
+
 pub trait CounterBench {
     type Env: sails_rs::client::GearEnv;
     fn counter_bench(
         &self,
     ) -> sails_rs::client::Service<counter_bench::CounterBenchImpl, Self::Env>;
 }
+
 impl<E: sails_rs::client::GearEnv> CounterBench
     for sails_rs::client::Actor<CounterBenchProgram, E>
 {
@@ -28,6 +32,7 @@ pub trait CounterBenchCtors {
         self,
     ) -> sails_rs::client::PendingCtor<CounterBenchProgram, io::NewForBench, Self::Env>;
 }
+
 impl<E: sails_rs::client::GearEnv> CounterBenchCtors
     for sails_rs::client::Deployment<CounterBenchProgram, E>
 {
@@ -46,16 +51,20 @@ pub mod io {
 
 pub mod counter_bench {
     use super::*;
+
     pub trait CounterBench {
         type Env: sails_rs::client::GearEnv;
         fn inc(&mut self) -> sails_rs::client::PendingCall<io::Inc, Self::Env>;
         fn inc_async(&mut self) -> sails_rs::client::PendingCall<io::IncAsync, Self::Env>;
     }
+
     pub struct CounterBenchImpl;
+
     impl sails_rs::client::Identifiable for CounterBenchImpl {
         const INTERFACE_ID: sails_rs::InterfaceId =
             sails_rs::InterfaceId::from_bytes_8([149, 170, 24, 82, 218, 19, 238, 13]);
     }
+
     impl<E: sails_rs::client::GearEnv> CounterBench for sails_rs::client::Service<CounterBenchImpl, E> {
         type Env = E;
         fn inc(&mut self) -> sails_rs::client::PendingCall<io::Inc, Self::Env> {

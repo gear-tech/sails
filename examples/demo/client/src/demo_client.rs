@@ -9,6 +9,7 @@ use core::num::NonZeroU32;
 #[allow(unused_imports)]
 use sails_rs::{client::*, collections::*, prelude::*};
 pub struct DemoClientProgram;
+
 impl DemoClientProgram {
     pub const ROUTE_ID_PING_PONG: u8 = 1;
     pub const ROUTE_ID_COUNTER: u8 = 2;
@@ -20,7 +21,9 @@ impl DemoClientProgram {
     pub const ROUTE_ID_VALIDATOR: u8 = 8;
     pub const ROUTE_ID_CHAIN: u8 = 9;
 }
+
 impl sails_rs::client::Program for DemoClientProgram {}
+
 pub trait DemoClient {
     type Env: sails_rs::client::GearEnv;
     fn ping_pong(&self) -> sails_rs::client::Service<ping_pong::PingPongImpl, Self::Env>;
@@ -33,6 +36,7 @@ pub trait DemoClient {
     fn validator(&self) -> sails_rs::client::Service<validator::ValidatorImpl, Self::Env>;
     fn chain(&self) -> sails_rs::client::Service<chain::ChainImpl, Self::Env>;
 }
+
 impl<E: sails_rs::client::GearEnv> DemoClient for sails_rs::client::Actor<DemoClientProgram, E> {
     type Env = E;
     fn ping_pong(&self) -> sails_rs::client::Service<ping_pong::PingPongImpl, Self::Env> {
@@ -80,6 +84,7 @@ pub trait DemoClientCtors {
         value: u32,
     ) -> sails_rs::client::PendingCtor<DemoClientProgram, io::NewWithError, Self::Env>;
 }
+
 impl<E: sails_rs::client::GearEnv> DemoClientCtors
     for sails_rs::client::Deployment<DemoClientProgram, E>
 {
@@ -111,15 +116,19 @@ pub mod io {
 
 pub mod ping_pong {
     use super::*;
+
     pub trait PingPong {
         type Env: sails_rs::client::GearEnv;
         fn ping(&mut self, input: String) -> sails_rs::client::PendingCall<io::Ping, Self::Env>;
     }
+
     pub struct PingPongImpl;
+
     impl sails_rs::client::Identifiable for PingPongImpl {
         const INTERFACE_ID: sails_rs::InterfaceId =
             sails_rs::InterfaceId::from_bytes_8([33, 189, 154, 154, 165, 29, 162, 100]);
     }
+
     impl<E: sails_rs::client::GearEnv> PingPong for sails_rs::client::Service<PingPongImpl, E> {
         type Env = E;
         fn ping(&mut self, input: String) -> sails_rs::client::PendingCall<io::Ping, Self::Env> {
@@ -137,12 +146,22 @@ pub mod ping_pong {
     pub mod mockall {
         use super::*;
         use sails_rs::mockall::*;
-        mock! { pub PingPong {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl ping_pong::PingPong for PingPong { type Env = sails_rs::client::GstdEnv; fn ping (&mut self, input: String) -> sails_rs::client::PendingCall<ping_pong::io::Ping, sails_rs::client::GstdEnv>; } }
+        mock! {
+            pub PingPong {}
+
+            #[allow(refining_impl_trait)]
+            #[allow(clippy::type_complexity)]
+            impl ping_pong::PingPong for PingPong {
+                type Env = sails_rs::client::GstdEnv;
+                fn ping (&mut self, input: String) -> sails_rs::client::PendingCall<ping_pong::io::Ping, sails_rs::client::GstdEnv>;
+            }
+        }
     }
 }
 
 pub mod counter {
     use super::*;
+
     pub trait Counter {
         type Env: sails_rs::client::GearEnv;
         /// Add a value to the counter
@@ -152,11 +171,14 @@ pub mod counter {
         /// Get the current value
         fn value(&self) -> sails_rs::client::PendingCall<io::Value, Self::Env>;
     }
+
     pub struct CounterImpl;
+
     impl sails_rs::client::Identifiable for CounterImpl {
         const INTERFACE_ID: sails_rs::InterfaceId =
             sails_rs::InterfaceId::from_bytes_8([87, 157, 109, 171, 164, 27, 125, 130]);
     }
+
     impl<E: sails_rs::client::GearEnv> Counter for sails_rs::client::Service<CounterImpl, E> {
         type Env = E;
         fn add(&mut self, value: u32) -> sails_rs::client::PendingCall<io::Add, Self::Env> {
@@ -191,6 +213,7 @@ pub mod counter {
             #[codec(index = 1)]
             Subtracted(u32),
         }
+
         impl CounterEvents {
             pub fn entry_id(&self) -> u16 {
                 match self {
@@ -199,11 +222,14 @@ pub mod counter {
                 }
             }
         }
+
         impl sails_rs::client::Event for CounterEvents {}
+
         impl sails_rs::client::Identifiable for CounterEvents {
             const INTERFACE_ID: sails_rs::InterfaceId =
                 <CounterImpl as sails_rs::client::Identifiable>::INTERFACE_ID;
         }
+
         impl sails_rs::client::ServiceWithEvents for CounterImpl {
             type Event = CounterEvents;
         }
@@ -214,38 +240,51 @@ pub mod counter {
     pub mod mockall {
         use super::*;
         use sails_rs::mockall::*;
-        mock! { pub Counter {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl counter::Counter for Counter { type Env = sails_rs::client::GstdEnv; fn add (&mut self, value: u32) -> sails_rs::client::PendingCall<counter::io::Add, sails_rs::client::GstdEnv>;fn sub (&mut self, value: u32) -> sails_rs::client::PendingCall<counter::io::Sub, sails_rs::client::GstdEnv>;fn value (&self, ) -> sails_rs::client::PendingCall<counter::io::Value, sails_rs::client::GstdEnv>; } }
+        mock! {
+            pub Counter {}
+
+            #[allow(refining_impl_trait)]
+            #[allow(clippy::type_complexity)]
+            impl counter::Counter for Counter {
+                type Env = sails_rs::client::GstdEnv;
+                fn add (&mut self, value: u32) -> sails_rs::client::PendingCall<counter::io::Add, sails_rs::client::GstdEnv>;fn sub (&mut self, value: u32) -> sails_rs::client::PendingCall<counter::io::Sub, sails_rs::client::GstdEnv>;fn value (&self, ) -> sails_rs::client::PendingCall<counter::io::Value, sails_rs::client::GstdEnv>;
+            }
+        }
     }
 }
 
 pub mod mammal_service {
     use super::*;
+
     pub trait MammalService {
         type Env: sails_rs::client::GearEnv;
-        fn make_sound(&mut self) -> sails_rs::client::PendingCall<io::MakeSound, Self::Env>;
         fn avg_weight(&self) -> sails_rs::client::PendingCall<io::AvgWeight, Self::Env>;
+        fn make_sound(&mut self) -> sails_rs::client::PendingCall<io::MakeSound, Self::Env>;
     }
+
     pub struct MammalServiceImpl;
+
     impl sails_rs::client::Identifiable for MammalServiceImpl {
         const INTERFACE_ID: sails_rs::InterfaceId =
-            sails_rs::InterfaceId::from_bytes_8([255, 107, 147, 225, 150, 16, 38, 254]);
+            sails_rs::InterfaceId::from_bytes_8([241, 129, 131, 53, 115, 172, 5, 191]);
     }
+
     impl<E: sails_rs::client::GearEnv> MammalService
         for sails_rs::client::Service<MammalServiceImpl, E>
     {
         type Env = E;
-        fn make_sound(&mut self) -> sails_rs::client::PendingCall<io::MakeSound, Self::Env> {
+        fn avg_weight(&self) -> sails_rs::client::PendingCall<io::AvgWeight, Self::Env> {
             self.pending_call(())
         }
-        fn avg_weight(&self) -> sails_rs::client::PendingCall<io::AvgWeight, Self::Env> {
+        fn make_sound(&mut self) -> sails_rs::client::PendingCall<io::MakeSound, Self::Env> {
             self.pending_call(())
         }
     }
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(MakeSound () -> String, 0, <super::MammalServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(AvgWeight () -> u32, 1, <super::MammalServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(AvgWeight () -> u32, 0, <super::MammalServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(MakeSound () -> String, 1, <super::MammalServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(feature = "with_mocks")]
@@ -253,38 +292,51 @@ pub mod mammal_service {
     pub mod mockall {
         use super::*;
         use sails_rs::mockall::*;
-        mock! { pub MammalService {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl mammal_service::MammalService for MammalService { type Env = sails_rs::client::GstdEnv; fn make_sound (&mut self, ) -> sails_rs::client::PendingCall<mammal_service::io::MakeSound, sails_rs::client::GstdEnv>;fn avg_weight (&self, ) -> sails_rs::client::PendingCall<mammal_service::io::AvgWeight, sails_rs::client::GstdEnv>; } }
+        mock! {
+            pub MammalService {}
+
+            #[allow(refining_impl_trait)]
+            #[allow(clippy::type_complexity)]
+            impl mammal_service::MammalService for MammalService {
+                type Env = sails_rs::client::GstdEnv;
+                fn avg_weight (&self, ) -> sails_rs::client::PendingCall<mammal_service::io::AvgWeight, sails_rs::client::GstdEnv>;fn make_sound (&mut self, ) -> sails_rs::client::PendingCall<mammal_service::io::MakeSound, sails_rs::client::GstdEnv>;
+            }
+        }
     }
 }
 
 pub mod walker_service {
     use super::*;
+
     pub trait WalkerService {
         type Env: sails_rs::client::GearEnv;
-        fn walk(&mut self, dx: i32, dy: i32) -> sails_rs::client::PendingCall<io::Walk, Self::Env>;
         fn position(&self) -> sails_rs::client::PendingCall<io::Position, Self::Env>;
+        fn walk(&mut self, dx: i32, dy: i32) -> sails_rs::client::PendingCall<io::Walk, Self::Env>;
     }
+
     pub struct WalkerServiceImpl;
+
     impl sails_rs::client::Identifiable for WalkerServiceImpl {
         const INTERFACE_ID: sails_rs::InterfaceId =
-            sails_rs::InterfaceId::from_bytes_8([238, 21, 54, 181, 81, 112, 191, 10]);
+            sails_rs::InterfaceId::from_bytes_8([6, 182, 117, 14, 54, 240, 253, 167]);
     }
+
     impl<E: sails_rs::client::GearEnv> WalkerService
         for sails_rs::client::Service<WalkerServiceImpl, E>
     {
         type Env = E;
-        fn walk(&mut self, dx: i32, dy: i32) -> sails_rs::client::PendingCall<io::Walk, Self::Env> {
-            self.pending_call((dx, dy))
-        }
         fn position(&self) -> sails_rs::client::PendingCall<io::Position, Self::Env> {
             self.pending_call(())
+        }
+        fn walk(&mut self, dx: i32, dy: i32) -> sails_rs::client::PendingCall<io::Walk, Self::Env> {
+            self.pending_call((dx, dy))
         }
     }
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(Walk (dx: i32, dy: i32) -> (), 0, <super::WalkerServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(Position () -> (i32, i32, ), 1, <super::WalkerServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Position () -> (i32, i32, ), 0, <super::WalkerServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Walk (dx: i32, dy: i32) -> (), 1, <super::WalkerServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -297,6 +349,7 @@ pub mod walker_service {
             #[codec(index = 0)]
             Walked { from: (i32, i32), to: (i32, i32) },
         }
+
         impl WalkerServiceEvents {
             pub fn entry_id(&self) -> u16 {
                 match self {
@@ -304,11 +357,14 @@ pub mod walker_service {
                 }
             }
         }
+
         impl sails_rs::client::Event for WalkerServiceEvents {}
+
         impl sails_rs::client::Identifiable for WalkerServiceEvents {
             const INTERFACE_ID: sails_rs::InterfaceId =
                 <WalkerServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID;
         }
+
         impl sails_rs::client::ServiceWithEvents for WalkerServiceImpl {
             type Event = WalkerServiceEvents;
         }
@@ -319,12 +375,22 @@ pub mod walker_service {
     pub mod mockall {
         use super::*;
         use sails_rs::mockall::*;
-        mock! { pub WalkerService {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl walker_service::WalkerService for WalkerService { type Env = sails_rs::client::GstdEnv; fn walk (&mut self, dx: i32, dy: i32) -> sails_rs::client::PendingCall<walker_service::io::Walk, sails_rs::client::GstdEnv>;fn position (&self, ) -> sails_rs::client::PendingCall<walker_service::io::Position, sails_rs::client::GstdEnv>; } }
+        mock! {
+            pub WalkerService {}
+
+            #[allow(refining_impl_trait)]
+            #[allow(clippy::type_complexity)]
+            impl walker_service::WalkerService for WalkerService {
+                type Env = sails_rs::client::GstdEnv;
+                fn position (&self, ) -> sails_rs::client::PendingCall<walker_service::io::Position, sails_rs::client::GstdEnv>;fn walk (&mut self, dx: i32, dy: i32) -> sails_rs::client::PendingCall<walker_service::io::Walk, sails_rs::client::GstdEnv>;
+            }
+        }
     }
 }
 
 pub mod dog {
     use super::*;
+
     pub trait Dog {
         type Env: sails_rs::client::GearEnv;
         fn make_sound(&mut self) -> sails_rs::client::PendingCall<io::MakeSound, Self::Env>;
@@ -335,11 +401,14 @@ pub mod dog {
             &self,
         ) -> sails_rs::client::Service<super::walker_service::WalkerServiceImpl, Self::Env>;
     }
+
     pub struct DogImpl;
+
     impl sails_rs::client::Identifiable for DogImpl {
         const INTERFACE_ID: sails_rs::InterfaceId =
-            sails_rs::InterfaceId::from_bytes_8([24, 102, 110, 103, 162, 25, 23, 161]);
+            sails_rs::InterfaceId::from_bytes_8([6, 27, 83, 55, 189, 176, 227, 91]);
     }
+
     impl<E: sails_rs::client::GearEnv> Dog for sails_rs::client::Service<DogImpl, E> {
         type Env = E;
         fn make_sound(&mut self) -> sails_rs::client::PendingCall<io::MakeSound, Self::Env> {
@@ -374,6 +443,7 @@ pub mod dog {
             #[codec(index = 0)]
             Barked,
         }
+
         impl DogEvents {
             pub fn entry_id(&self) -> u16 {
                 match self {
@@ -381,11 +451,14 @@ pub mod dog {
                 }
             }
         }
+
         impl sails_rs::client::Event for DogEvents {}
+
         impl sails_rs::client::Identifiable for DogEvents {
             const INTERFACE_ID: sails_rs::InterfaceId =
                 <DogImpl as sails_rs::client::Identifiable>::INTERFACE_ID;
         }
+
         impl sails_rs::client::ServiceWithEvents for DogImpl {
             type Event = DogEvents;
         }
@@ -396,36 +469,50 @@ pub mod dog {
     pub mod mockall {
         use super::*;
         use sails_rs::mockall::*;
-        mock! { pub Dog {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl dog::Dog for Dog { type Env = sails_rs::client::GstdEnv; fn make_sound (&mut self, ) -> sails_rs::client::PendingCall<dog::io::MakeSound, sails_rs::client::GstdEnv>;fn mammal_service (&self, ) -> sails_rs::client::Service<super::mammal_service::MammalServiceImpl, sails_rs::client::GstdEnv>;fn walker_service (&self, ) -> sails_rs::client::Service<super::walker_service::WalkerServiceImpl, sails_rs::client::GstdEnv>; } }
+        mock! {
+            pub Dog {}
+
+            #[allow(refining_impl_trait)]
+            #[allow(clippy::type_complexity)]
+            impl dog::Dog for Dog {
+                type Env = sails_rs::client::GstdEnv;
+                fn make_sound (&mut self, ) -> sails_rs::client::PendingCall<dog::io::MakeSound, sails_rs::client::GstdEnv>;fn mammal_service (&self, ) -> sails_rs::client::Service<super::mammal_service::MammalServiceImpl, sails_rs::client::GstdEnv>;fn walker_service (&self, ) -> sails_rs::client::Service<super::walker_service::WalkerServiceImpl, sails_rs::client::GstdEnv>;
+            }
+        }
     }
 }
 
 pub mod references {
     use super::*;
+
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
     #[reflect_hash(crate = sails_rs)]
     pub struct ReferenceCount(pub u32);
+
     pub trait References {
         type Env: sails_rs::client::GearEnv;
         fn add(&mut self, v: u32) -> sails_rs::client::PendingCall<io::Add, Self::Env>;
         fn add_byte(&mut self, byte: u8) -> sails_rs::client::PendingCall<io::AddByte, Self::Env>;
+        fn baked(&self) -> sails_rs::client::PendingCall<io::Baked, Self::Env>;
         fn guess_num(
             &mut self,
             number: u8,
         ) -> sails_rs::client::PendingCall<io::GuessNum, Self::Env>;
         fn incr(&mut self) -> sails_rs::client::PendingCall<io::Incr, Self::Env>;
-        fn set_num(&mut self, number: u8) -> sails_rs::client::PendingCall<io::SetNum, Self::Env>;
-        fn baked(&self) -> sails_rs::client::PendingCall<io::Baked, Self::Env>;
         fn last_byte(&self) -> sails_rs::client::PendingCall<io::LastByte, Self::Env>;
         fn message(&self) -> sails_rs::client::PendingCall<io::Message, Self::Env>;
+        fn set_num(&mut self, number: u8) -> sails_rs::client::PendingCall<io::SetNum, Self::Env>;
     }
+
     pub struct ReferencesImpl;
+
     impl sails_rs::client::Identifiable for ReferencesImpl {
         const INTERFACE_ID: sails_rs::InterfaceId =
-            sails_rs::InterfaceId::from_bytes_8([61, 171, 145, 177, 150, 71, 129, 98]);
+            sails_rs::InterfaceId::from_bytes_8([247, 161, 255, 157, 46, 10, 151, 232]);
     }
+
     impl<E: sails_rs::client::GearEnv> References for sails_rs::client::Service<ReferencesImpl, E> {
         type Env = E;
         fn add(&mut self, v: u32) -> sails_rs::client::PendingCall<io::Add, Self::Env> {
@@ -433,6 +520,9 @@ pub mod references {
         }
         fn add_byte(&mut self, byte: u8) -> sails_rs::client::PendingCall<io::AddByte, Self::Env> {
             self.pending_call((byte,))
+        }
+        fn baked(&self) -> sails_rs::client::PendingCall<io::Baked, Self::Env> {
+            self.pending_call(())
         }
         fn guess_num(
             &mut self,
@@ -443,17 +533,14 @@ pub mod references {
         fn incr(&mut self) -> sails_rs::client::PendingCall<io::Incr, Self::Env> {
             self.pending_call(())
         }
-        fn set_num(&mut self, number: u8) -> sails_rs::client::PendingCall<io::SetNum, Self::Env> {
-            self.pending_call((number,))
-        }
-        fn baked(&self) -> sails_rs::client::PendingCall<io::Baked, Self::Env> {
-            self.pending_call(())
-        }
         fn last_byte(&self) -> sails_rs::client::PendingCall<io::LastByte, Self::Env> {
             self.pending_call(())
         }
         fn message(&self) -> sails_rs::client::PendingCall<io::Message, Self::Env> {
             self.pending_call(())
+        }
+        fn set_num(&mut self, number: u8) -> sails_rs::client::PendingCall<io::SetNum, Self::Env> {
+            self.pending_call((number,))
         }
     }
 
@@ -461,12 +548,12 @@ pub mod references {
         use super::*;
         sails_rs::io_struct_impl!(Add (v: u32) -> u32, 0, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
         sails_rs::io_struct_impl!(AddByte (byte: u8) -> Vec<u8>, 1, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(GuessNum (number: u8) -> super::Result<String, String>, 2, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws String, String);
-        sails_rs::io_struct_impl!(Incr () -> super::ReferenceCount, 3, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(SetNum (number: u8) -> super::Result<(), String>, 4, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws (), String);
-        sails_rs::io_struct_impl!(Baked () -> String, 5, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(LastByte () -> super::Option<u8, >, 6, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(Message () -> super::Option<String, >, 7, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Baked () -> String, 2, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(GuessNum (number: u8) -> super::Result<String, String>, 3, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws String, String);
+        sails_rs::io_struct_impl!(Incr () -> super::ReferenceCount, 4, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(LastByte () -> super::Option<u8, >, 5, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(Message () -> super::Option<String, >, 6, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(SetNum (number: u8) -> super::Result<(), String>, 7, <super::ReferencesImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws (), String);
     }
 
     #[cfg(feature = "with_mocks")]
@@ -474,12 +561,22 @@ pub mod references {
     pub mod mockall {
         use super::*;
         use sails_rs::mockall::*;
-        mock! { pub References {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl references::References for References { type Env = sails_rs::client::GstdEnv; fn add (&mut self, v: u32) -> sails_rs::client::PendingCall<references::io::Add, sails_rs::client::GstdEnv>;fn add_byte (&mut self, byte: u8) -> sails_rs::client::PendingCall<references::io::AddByte, sails_rs::client::GstdEnv>;fn guess_num (&mut self, number: u8) -> sails_rs::client::PendingCall<references::io::GuessNum, sails_rs::client::GstdEnv>;fn incr (&mut self, ) -> sails_rs::client::PendingCall<references::io::Incr, sails_rs::client::GstdEnv>;fn set_num (&mut self, number: u8) -> sails_rs::client::PendingCall<references::io::SetNum, sails_rs::client::GstdEnv>;fn baked (&self, ) -> sails_rs::client::PendingCall<references::io::Baked, sails_rs::client::GstdEnv>;fn last_byte (&self, ) -> sails_rs::client::PendingCall<references::io::LastByte, sails_rs::client::GstdEnv>;fn message (&self, ) -> sails_rs::client::PendingCall<references::io::Message, sails_rs::client::GstdEnv>; } }
+        mock! {
+            pub References {}
+
+            #[allow(refining_impl_trait)]
+            #[allow(clippy::type_complexity)]
+            impl references::References for References {
+                type Env = sails_rs::client::GstdEnv;
+                fn add (&mut self, v: u32) -> sails_rs::client::PendingCall<references::io::Add, sails_rs::client::GstdEnv>;fn add_byte (&mut self, byte: u8) -> sails_rs::client::PendingCall<references::io::AddByte, sails_rs::client::GstdEnv>;fn baked (&self, ) -> sails_rs::client::PendingCall<references::io::Baked, sails_rs::client::GstdEnv>;fn guess_num (&mut self, number: u8) -> sails_rs::client::PendingCall<references::io::GuessNum, sails_rs::client::GstdEnv>;fn incr (&mut self, ) -> sails_rs::client::PendingCall<references::io::Incr, sails_rs::client::GstdEnv>;fn last_byte (&self, ) -> sails_rs::client::PendingCall<references::io::LastByte, sails_rs::client::GstdEnv>;fn message (&self, ) -> sails_rs::client::PendingCall<references::io::Message, sails_rs::client::GstdEnv>;fn set_num (&mut self, number: u8) -> sails_rs::client::PendingCall<references::io::SetNum, sails_rs::client::GstdEnv>;
+            }
+        }
     }
 }
 
 pub mod this_that {
     use super::*;
+
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
@@ -518,6 +615,7 @@ pub mod this_that {
     #[scale_info(crate = sails_rs::scale_info)]
     #[reflect_hash(crate = sails_rs)]
     pub struct TupleStruct(pub bool);
+
     pub trait ThisThat {
         type Env: sails_rs::client::GearEnv;
         fn do_that(
@@ -535,11 +633,14 @@ pub mod this_that {
         fn that(&self) -> sails_rs::client::PendingCall<io::That, Self::Env>;
         fn this(&self) -> sails_rs::client::PendingCall<io::This, Self::Env>;
     }
+
     pub struct ThisThatImpl;
+
     impl sails_rs::client::Identifiable for ThisThatImpl {
         const INTERFACE_ID: sails_rs::InterfaceId =
             sails_rs::InterfaceId::from_bytes_8([68, 91, 237, 110, 251, 232, 230, 221]);
     }
+
     impl<E: sails_rs::client::GearEnv> ThisThat for sails_rs::client::Service<ThisThatImpl, E> {
         type Env = E;
         fn do_that(
@@ -582,12 +683,22 @@ pub mod this_that {
     pub mod mockall {
         use super::*;
         use sails_rs::mockall::*;
-        mock! { pub ThisThat {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl this_that::ThisThat for ThisThat { type Env = sails_rs::client::GstdEnv; fn do_that (&mut self, param: DoThatParam) -> sails_rs::client::PendingCall<this_that::io::DoThat, sails_rs::client::GstdEnv>;fn do_this (&mut self, p1: u32, p2: String, p3: (Option<H160, >, NonZeroU8, ), p4: TupleStruct) -> sails_rs::client::PendingCall<this_that::io::DoThis, sails_rs::client::GstdEnv>;fn noop (&mut self, ) -> sails_rs::client::PendingCall<this_that::io::Noop, sails_rs::client::GstdEnv>;fn that (&self, ) -> sails_rs::client::PendingCall<this_that::io::That, sails_rs::client::GstdEnv>;fn this (&self, ) -> sails_rs::client::PendingCall<this_that::io::This, sails_rs::client::GstdEnv>; } }
+        mock! {
+            pub ThisThat {}
+
+            #[allow(refining_impl_trait)]
+            #[allow(clippy::type_complexity)]
+            impl this_that::ThisThat for ThisThat {
+                type Env = sails_rs::client::GstdEnv;
+                fn do_that (&mut self, param: DoThatParam) -> sails_rs::client::PendingCall<this_that::io::DoThat, sails_rs::client::GstdEnv>;fn do_this (&mut self, p1: u32, p2: String, p3: (Option<H160, >, NonZeroU8, ), p4: TupleStruct) -> sails_rs::client::PendingCall<this_that::io::DoThis, sails_rs::client::GstdEnv>;fn noop (&mut self, ) -> sails_rs::client::PendingCall<this_that::io::Noop, sails_rs::client::GstdEnv>;fn that (&self, ) -> sails_rs::client::PendingCall<this_that::io::That, sails_rs::client::GstdEnv>;fn this (&self, ) -> sails_rs::client::PendingCall<this_that::io::This, sails_rs::client::GstdEnv>;
+            }
+        }
     }
 }
 
 pub mod value_fee {
     use super::*;
+
     pub trait ValueFee {
         type Env: sails_rs::client::GearEnv;
         /// Return flag if fee taken and remain value,
@@ -596,11 +707,14 @@ pub mod value_fee {
             &mut self,
         ) -> sails_rs::client::PendingCall<io::DoSomethingAndTakeFee, Self::Env>;
     }
+
     pub struct ValueFeeImpl;
+
     impl sails_rs::client::Identifiable for ValueFeeImpl {
         const INTERFACE_ID: sails_rs::InterfaceId =
             sails_rs::InterfaceId::from_bytes_8([65, 193, 8, 11, 78, 30, 141, 197]);
     }
+
     impl<E: sails_rs::client::GearEnv> ValueFee for sails_rs::client::Service<ValueFeeImpl, E> {
         type Env = E;
         fn do_something_and_take_fee(
@@ -625,6 +739,7 @@ pub mod value_fee {
             #[codec(index = 0)]
             Withheld(u128),
         }
+
         impl ValueFeeEvents {
             pub fn entry_id(&self) -> u16 {
                 match self {
@@ -632,11 +747,14 @@ pub mod value_fee {
                 }
             }
         }
+
         impl sails_rs::client::Event for ValueFeeEvents {}
+
         impl sails_rs::client::Identifiable for ValueFeeEvents {
             const INTERFACE_ID: sails_rs::InterfaceId =
                 <ValueFeeImpl as sails_rs::client::Identifiable>::INTERFACE_ID;
         }
+
         impl sails_rs::client::ServiceWithEvents for ValueFeeImpl {
             type Event = ValueFeeEvents;
         }
@@ -647,12 +765,22 @@ pub mod value_fee {
     pub mod mockall {
         use super::*;
         use sails_rs::mockall::*;
-        mock! { pub ValueFee {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl value_fee::ValueFee for ValueFee { type Env = sails_rs::client::GstdEnv; fn do_something_and_take_fee (&mut self, ) -> sails_rs::client::PendingCall<value_fee::io::DoSomethingAndTakeFee, sails_rs::client::GstdEnv>; } }
+        mock! {
+            pub ValueFee {}
+
+            #[allow(refining_impl_trait)]
+            #[allow(clippy::type_complexity)]
+            impl value_fee::ValueFee for ValueFee {
+                type Env = sails_rs::client::GstdEnv;
+                fn do_something_and_take_fee (&mut self, ) -> sails_rs::client::PendingCall<value_fee::io::DoSomethingAndTakeFee, sails_rs::client::GstdEnv>;
+            }
+        }
     }
 }
 
 pub mod chaos {
     use super::*;
+
     pub trait Chaos {
         type Env: sails_rs::client::GearEnv;
         fn panic_after_wait(&self) -> sails_rs::client::PendingCall<io::PanicAfterWait, Self::Env>;
@@ -661,11 +789,14 @@ pub mod chaos {
         ) -> sails_rs::client::PendingCall<io::ReplyHookCounter, Self::Env>;
         fn timeout_wait(&self) -> sails_rs::client::PendingCall<io::TimeoutWait, Self::Env>;
     }
+
     pub struct ChaosImpl;
+
     impl sails_rs::client::Identifiable for ChaosImpl {
         const INTERFACE_ID: sails_rs::InterfaceId =
             sails_rs::InterfaceId::from_bytes_8([240, 200, 200, 13, 250, 191, 114, 213]);
     }
+
     impl<E: sails_rs::client::GearEnv> Chaos for sails_rs::client::Service<ChaosImpl, E> {
         type Env = E;
         fn panic_after_wait(&self) -> sails_rs::client::PendingCall<io::PanicAfterWait, Self::Env> {
@@ -693,12 +824,22 @@ pub mod chaos {
     pub mod mockall {
         use super::*;
         use sails_rs::mockall::*;
-        mock! { pub Chaos {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl chaos::Chaos for Chaos { type Env = sails_rs::client::GstdEnv; fn panic_after_wait (&self, ) -> sails_rs::client::PendingCall<chaos::io::PanicAfterWait, sails_rs::client::GstdEnv>;fn reply_hook_counter (&self, ) -> sails_rs::client::PendingCall<chaos::io::ReplyHookCounter, sails_rs::client::GstdEnv>;fn timeout_wait (&self, ) -> sails_rs::client::PendingCall<chaos::io::TimeoutWait, sails_rs::client::GstdEnv>; } }
+        mock! {
+            pub Chaos {}
+
+            #[allow(refining_impl_trait)]
+            #[allow(clippy::type_complexity)]
+            impl chaos::Chaos for Chaos {
+                type Env = sails_rs::client::GstdEnv;
+                fn panic_after_wait (&self, ) -> sails_rs::client::PendingCall<chaos::io::PanicAfterWait, sails_rs::client::GstdEnv>;fn reply_hook_counter (&self, ) -> sails_rs::client::PendingCall<chaos::io::ReplyHookCounter, sails_rs::client::GstdEnv>;fn timeout_wait (&self, ) -> sails_rs::client::PendingCall<chaos::io::TimeoutWait, sails_rs::client::GstdEnv>;
+            }
+        }
     }
 }
 
 pub mod validator {
     use super::*;
+
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
@@ -707,8 +848,14 @@ pub mod validator {
         TooSmall,
         TooBig,
     }
+
     pub trait Validator {
         type Env: sails_rs::client::GearEnv;
+        fn total_errors(&self) -> sails_rs::client::PendingCall<io::TotalErrors, Self::Env>;
+        fn validate_even(
+            &self,
+            value: u32,
+        ) -> sails_rs::client::PendingCall<io::ValidateEven, Self::Env>;
         fn validate_nonzero(
             &mut self,
             value: u32,
@@ -719,19 +866,26 @@ pub mod validator {
             min: u32,
             max: u32,
         ) -> sails_rs::client::PendingCall<io::ValidateRange, Self::Env>;
-        fn total_errors(&self) -> sails_rs::client::PendingCall<io::TotalErrors, Self::Env>;
+    }
+
+    pub struct ValidatorImpl;
+
+    impl sails_rs::client::Identifiable for ValidatorImpl {
+        const INTERFACE_ID: sails_rs::InterfaceId =
+            sails_rs::InterfaceId::from_bytes_8([78, 120, 186, 255, 253, 180, 251, 28]);
+    }
+
+    impl<E: sails_rs::client::GearEnv> Validator for sails_rs::client::Service<ValidatorImpl, E> {
+        type Env = E;
+        fn total_errors(&self) -> sails_rs::client::PendingCall<io::TotalErrors, Self::Env> {
+            self.pending_call(())
+        }
         fn validate_even(
             &self,
             value: u32,
-        ) -> sails_rs::client::PendingCall<io::ValidateEven, Self::Env>;
-    }
-    pub struct ValidatorImpl;
-    impl sails_rs::client::Identifiable for ValidatorImpl {
-        const INTERFACE_ID: sails_rs::InterfaceId =
-            sails_rs::InterfaceId::from_bytes_8([213, 200, 168, 158, 235, 78, 150, 203]);
-    }
-    impl<E: sails_rs::client::GearEnv> Validator for sails_rs::client::Service<ValidatorImpl, E> {
-        type Env = E;
+        ) -> sails_rs::client::PendingCall<io::ValidateEven, Self::Env> {
+            self.pending_call((value,))
+        }
         fn validate_nonzero(
             &mut self,
             value: u32,
@@ -746,23 +900,14 @@ pub mod validator {
         ) -> sails_rs::client::PendingCall<io::ValidateRange, Self::Env> {
             self.pending_call((value, min, max))
         }
-        fn total_errors(&self) -> sails_rs::client::PendingCall<io::TotalErrors, Self::Env> {
-            self.pending_call(())
-        }
-        fn validate_even(
-            &self,
-            value: u32,
-        ) -> sails_rs::client::PendingCall<io::ValidateEven, Self::Env> {
-            self.pending_call((value,))
-        }
     }
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(ValidateNonzero (value: u32) -> super::Result<(), String>, 0, <super::ValidatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws (), String);
-        sails_rs::io_struct_impl!(ValidateRange (value: u32, min: u32, max: u32) -> super::Result<u32, super::ValidationError>, 1, <super::ValidatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws u32, super::ValidationError);
-        sails_rs::io_struct_impl!(TotalErrors () -> u32, 2, <super::ValidatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(ValidateEven (value: u32) -> super::Result<u32, ()>, 3, <super::ValidatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws u32, ());
+        sails_rs::io_struct_impl!(TotalErrors () -> u32, 0, <super::ValidatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(ValidateEven (value: u32) -> super::Result<u32, ()>, 1, <super::ValidatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws u32, ());
+        sails_rs::io_struct_impl!(ValidateNonzero (value: u32) -> super::Result<(), String>, 2, <super::ValidatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws (), String);
+        sails_rs::io_struct_impl!(ValidateRange (value: u32, min: u32, max: u32) -> super::Result<u32, super::ValidationError>, 3, <super::ValidatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws u32, super::ValidationError);
     }
 
     #[cfg(feature = "with_mocks")]
@@ -770,22 +915,35 @@ pub mod validator {
     pub mod mockall {
         use super::*;
         use sails_rs::mockall::*;
-        mock! { pub Validator {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl validator::Validator for Validator { type Env = sails_rs::client::GstdEnv; fn validate_nonzero (&mut self, value: u32) -> sails_rs::client::PendingCall<validator::io::ValidateNonzero, sails_rs::client::GstdEnv>;fn validate_range (&mut self, value: u32, min: u32, max: u32) -> sails_rs::client::PendingCall<validator::io::ValidateRange, sails_rs::client::GstdEnv>;fn total_errors (&self, ) -> sails_rs::client::PendingCall<validator::io::TotalErrors, sails_rs::client::GstdEnv>;fn validate_even (&self, value: u32) -> sails_rs::client::PendingCall<validator::io::ValidateEven, sails_rs::client::GstdEnv>; } }
+        mock! {
+            pub Validator {}
+
+            #[allow(refining_impl_trait)]
+            #[allow(clippy::type_complexity)]
+            impl validator::Validator for Validator {
+                type Env = sails_rs::client::GstdEnv;
+                fn total_errors (&self, ) -> sails_rs::client::PendingCall<validator::io::TotalErrors, sails_rs::client::GstdEnv>;fn validate_even (&self, value: u32) -> sails_rs::client::PendingCall<validator::io::ValidateEven, sails_rs::client::GstdEnv>;fn validate_nonzero (&mut self, value: u32) -> sails_rs::client::PendingCall<validator::io::ValidateNonzero, sails_rs::client::GstdEnv>;fn validate_range (&mut self, value: u32, min: u32, max: u32) -> sails_rs::client::PendingCall<validator::io::ValidateRange, sails_rs::client::GstdEnv>;
+            }
+        }
     }
 }
 
 pub mod chain {
     use super::*;
+
     pub trait Chain {
         type Env: sails_rs::client::GearEnv;
         fn make_sound(&mut self) -> sails_rs::client::PendingCall<io::MakeSound, Self::Env>;
         fn dog(&self) -> sails_rs::client::Service<super::dog::DogImpl, Self::Env>;
     }
+
     pub struct ChainImpl;
+
     impl sails_rs::client::Identifiable for ChainImpl {
         const INTERFACE_ID: sails_rs::InterfaceId =
-            sails_rs::InterfaceId::from_bytes_8([212, 34, 198, 110, 96, 33, 224, 249]);
+            sails_rs::InterfaceId::from_bytes_8([1, 252, 190, 24, 62, 33, 153, 176]);
     }
+
     impl<E: sails_rs::client::GearEnv> Chain for sails_rs::client::Service<ChainImpl, E> {
         type Env = E;
         fn make_sound(&mut self) -> sails_rs::client::PendingCall<io::MakeSound, Self::Env> {
@@ -806,6 +964,15 @@ pub mod chain {
     pub mod mockall {
         use super::*;
         use sails_rs::mockall::*;
-        mock! { pub Chain {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl chain::Chain for Chain { type Env = sails_rs::client::GstdEnv; fn make_sound (&mut self, ) -> sails_rs::client::PendingCall<chain::io::MakeSound, sails_rs::client::GstdEnv>;fn dog (&self, ) -> sails_rs::client::Service<super::dog::DogImpl, sails_rs::client::GstdEnv>; } }
+        mock! {
+            pub Chain {}
+
+            #[allow(refining_impl_trait)]
+            #[allow(clippy::type_complexity)]
+            impl chain::Chain for Chain {
+                type Env = sails_rs::client::GstdEnv;
+                fn make_sound (&mut self, ) -> sails_rs::client::PendingCall<chain::io::MakeSound, sails_rs::client::GstdEnv>;fn dog (&self, ) -> sails_rs::client::Service<super::dog::DogImpl, sails_rs::client::GstdEnv>;
+            }
+        }
     }
 }

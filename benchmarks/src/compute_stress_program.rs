@@ -2,16 +2,20 @@
 #[allow(unused_imports)]
 use sails_rs::{client::*, collections::*, prelude::*};
 pub struct ComputeStressProgram;
+
 impl ComputeStressProgram {
     pub const ROUTE_ID_COMPUTE_STRESS: u8 = 1;
 }
+
 impl sails_rs::client::Program for ComputeStressProgram {}
+
 pub trait ComputeStress {
     type Env: sails_rs::client::GearEnv;
     fn compute_stress(
         &self,
     ) -> sails_rs::client::Service<compute_stress::ComputeStressImpl, Self::Env>;
 }
+
 impl<E: sails_rs::client::GearEnv> ComputeStress
     for sails_rs::client::Actor<ComputeStressProgram, E>
 {
@@ -28,6 +32,7 @@ pub trait ComputeStressCtors {
         self,
     ) -> sails_rs::client::PendingCtor<ComputeStressProgram, io::NewForBench, Self::Env>;
 }
+
 impl<E: sails_rs::client::GearEnv> ComputeStressCtors
     for sails_rs::client::Deployment<ComputeStressProgram, E>
 {
@@ -46,6 +51,7 @@ pub mod io {
 
 pub mod compute_stress {
     use super::*;
+
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
@@ -53,6 +59,7 @@ pub mod compute_stress {
     pub struct ComputeStressResult {
         pub res: u32,
     }
+
     pub trait ComputeStress {
         type Env: sails_rs::client::GearEnv;
         fn compute_stress(
@@ -60,11 +67,14 @@ pub mod compute_stress {
             n: u32,
         ) -> sails_rs::client::PendingCall<io::ComputeStress, Self::Env>;
     }
+
     pub struct ComputeStressImpl;
+
     impl sails_rs::client::Identifiable for ComputeStressImpl {
         const INTERFACE_ID: sails_rs::InterfaceId =
             sails_rs::InterfaceId::from_bytes_8([254, 138, 70, 56, 122, 195, 121, 54]);
     }
+
     impl<E: sails_rs::client::GearEnv> ComputeStress
         for sails_rs::client::Service<ComputeStressImpl, E>
     {
