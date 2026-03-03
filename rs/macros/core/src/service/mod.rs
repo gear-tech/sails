@@ -228,12 +228,28 @@ impl FnBuilder<'_> {
         } else {
             None
         };
-        quote!(
-            #( #handler_docs_attrs )*
-            #payable_doc
-            #returns_value_doc
-            #handler_route_ident(#params_struct_ident, #result_type)
-        )
+
+        let original_result_type = shared::result_type(&self.impl_fn.sig);
+        let static_result_type = shared::replace_any_lifetime_with_static(original_result_type);
+
+        if self.unwrap_result
+            && let Type::Path(ref tp) = static_result_type
+            && let Some((ok_ty, err_ty)) = shared::extract_result_types(tp)
+        {
+            quote!(
+                #( #handler_docs_attrs )*
+                #payable_doc
+                #returns_value_doc
+                #handler_route_ident(#params_struct_ident, #ok_ty, #err_ty)
+            )
+        } else {
+            quote!(
+                #( #handler_docs_attrs )*
+                #payable_doc
+                #returns_value_doc
+                #handler_route_ident(#params_struct_ident, #result_type)
+            )
+        }
     }
 
     fn params_struct(

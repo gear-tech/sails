@@ -109,10 +109,9 @@ On the method's completion, its result is encoded and returned as a response to 
 > the application's balance to the caller's one. This can be done via using a dedicated
 > type, `CommandReply<T>`.
 
-Sometimes it is convenient to have a method that returns the `Result<T, E>` type,
-but not expose it to clients. This allows using the `?` operator
-in the method body. For this purpose, you can use the `#[export]` attribute macro with
-the `unwrap_result` parameter.
+Sometimes it is convenient to have a method that returns the `Result<T, E>` type.
+Sails automatically unfolds the `Result` and treats `Err` variant as a business error (panics internally with encoded error payload).
+This allows using the `?` operator in the method body.
 
 ```rust
 #[service]
@@ -129,9 +128,8 @@ impl MyService {
         CommandReply::new(()).with_value(amount)
     }
 
-    // This is a command returning `()` or panicking
-    #[export(unwrap_result)]
-    pub fn do_something_with_unwrap_result(&mut self, amount: u64) -> Result<(), String> {
+    // This is a command returning `()` or panicking with business error
+    pub fn do_something_returning_result(&mut self, amount: u64) -> Result<(), String> {
         do_something_returning_result()?;
         Ok(())
     }
@@ -536,6 +534,8 @@ applications. In other words, a single business transaction may involve several 
 transactions within different applications. This challenge is typically addressed using
 a pattern called `Saga`. You can find detailed documentation about this pattern [here](https://microservices.io/patterns/data/saga.html)
 and implementation guidelines [here](https://livebook.manning.com/book/microservices-patterns/chapter-4/142).
+
+> **Note on Sails Throws (`gr_panic`):** While Sails provides automatic state rollback and token refunding via `gr_panic` when a method returns `Err`, this atomicity only applies to the **current transaction**. In the Gear Protocol, every `await` point potentially finishes the current transaction and commits its state. Therefore, if your business logic spans across multiple `await` calls to different contracts, a failure will only rollback the state since the *last* `await`. To maintain consistency across the entire chain of cross-contract calls, the **Saga pattern** is required to orchestrate manual compensations.
 
 The process of addressing this issue in applications built with `Sails` is similar, but only
 the orchestration approach can be used, as `Sails` applications cannot catch events from each

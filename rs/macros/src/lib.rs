@@ -105,20 +105,16 @@ pub fn program(args: TokenStream, impl_tokens: TokenStream) -> TokenStream {
 
 /// Customizes how a service/program method is exposed based on specified arguments.
 ///
-/// The attribute accepts two optional arguments:
+/// The attribute accepts an optional argument:
 /// - `route` - Defines  a custom route for the method.
 ///    By default, every exposed service method is accessible via a route derived from its name,
 ///    converted to PascalCase. This argument allows you to override the default route with a
 ///    string of your choice.
-/// - `unwrap_result` - Indicates that the method's `Result<T, E>` return value should be unwrapped.
-///   If specified, the method will panic if the result is an `Err`.
 ///
 /// # Examples
 ///
 /// The following example demonstrates the use of the `export` attribute applied to the `do_something` method.
 /// - The `route` argument customizes the route to "Something" (convertered to PascalCase).
-/// - The `unwrap_result` argument ensures that the method's result is unwrapped, causing it to panic
-///   with the message "Something went wrong" if the result is an `Err`.
 ///
 /// ```rust
 /// mod my_service {
@@ -128,7 +124,7 @@ pub fn program(args: TokenStream, impl_tokens: TokenStream) -> TokenStream {
 ///
 ///    #[service]
 ///    impl MyService {
-///        #[export(route = "something", unwrap_result)]
+///        #[export(route = "something")]
 ///        pub fn do_something(&mut self) -> Result<u32, String> {
 ///            Err("Something went wrong".to_string())
 ///        }

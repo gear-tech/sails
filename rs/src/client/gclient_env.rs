@@ -3,6 +3,7 @@ use ::gclient::gear::runtime_types::pallet_gear_voucher::internal::VoucherId;
 use ::gclient::{EventListener, EventProcessor as _, GearApi};
 use core::task::ready;
 use futures::{Stream, StreamExt, stream};
+pub use gear_core_errors::{ErrorReplyReason, SimpleExecutionError};
 
 #[derive(Debug, thiserror::Error)]
 pub enum GclientError {
@@ -108,12 +109,24 @@ impl<T: ServiceCall> PendingCall<T, GclientEnv> {
         let (payload, params) = self.take_encoded_args_and_params();
 
         // Calculate reply
-        let reply_bytes =
-            query_calculate_reply(&self.env.api, self.destination, payload, params).await?;
-
-        // Decode reply
-        T::decode_reply_with_header(self.route_idx, reply_bytes)
-            .map_err(|err| gclient::Error::Codec(err).into())
+        match query_calculate_reply(&self.env.api, self.destination, payload, params).await {
+            Ok(reply_bytes) => match T::decode_reply_with_header(self.route_idx, reply_bytes) {
+                Ok(decoded) => Ok(decoded),
+                Err(err) => Err(gclient::Error::Codec(err).into()),
+            },
+            Err(GclientError::ReplyHasError(reason, payload)) => {
+                if matches!(
+                    reason,
+                    ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic)
+                ) && let Ok(decoded) = T::decode_error_with_header(self.route_idx, &payload)
+                {
+                    Ok(decoded)
+                } else {
+                    Err(GclientError::ReplyHasError(reason, payload))
+                }
+            }
+            Err(err) => Err(err),
+        }
     }
 }
 
@@ -140,13 +153,24 @@ impl<T: ServiceCall> Future for PendingCall<T, GclientEnv> {
                 Ok(decoded) => Poll::Ready(Ok(decoded)),
                 Err(err) => Poll::Ready(Err(gclient::Error::Codec(err).into())),
             },
+            Err(GclientError::ReplyHasError(reason, payload)) => {
+                if matches!(
+                    reason,
+                    ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic)
+                ) && let Ok(decoded) = T::decode_error_with_header(self.route_idx, &payload)
+                {
+                    Poll::Ready(Ok(decoded))
+                } else {
+                    Poll::Ready(Err(GclientError::ReplyHasError(reason, payload)))
+                }
+            }
             Err(err) => Poll::Ready(Err(err)),
         }
     }
 }
 
-impl<A, T: ServiceCall> Future for PendingCtor<A, T, GclientEnv> {
-    type Output = Result<Actor<A, GclientEnv>, <GclientEnv as GearEnv>::Error>;
+impl<A: 'static, T: CtorCall> Future for PendingCtor<A, T, GclientEnv> {
+    type Output = Result<T::Output<A, GclientEnv>, GclientError>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         if self.state.is_none() {
@@ -171,9 +195,18 @@ impl<A, T: ServiceCall> Future for PendingCtor<A, T, GclientEnv> {
             .unwrap_or_else(|| panic!("{PENDING_CTOR_INVALID_STATE}"));
         // Poll message future
         match ready!(message_future.poll(cx)) {
-            Ok((program_id, _)) => {
-                // Do not decode payload here
-                Poll::Ready(Ok(Actor::new(this.env.clone(), program_id)))
+            Ok((program_id, _payload)) => {
+                Poll::Ready(Ok(T::construct(this.env.clone(), Some(program_id), Ok(()))))
+            }
+            Err(GclientError::ReplyHasError(reason, payload)) => {
+                if matches!(
+                    reason,
+                    ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic)
+                ) && let Ok(biz_err) = T::decode_error(&payload)
+                {
+                    return Poll::Ready(Ok(T::construct(this.env.clone(), None, Err(biz_err))));
+                }
+                Poll::Ready(Err(GclientError::ReplyHasError(reason, payload)))
             }
             Err(err) => Poll::Ready(Err(err)),
         }
@@ -307,16 +340,41 @@ async fn calculate_gas_limit(
     gas_limit: Option<GasUnit>,
     value: ValueUnit,
 ) -> Result<u64, GclientError> {
-    let gas_limit = if let Some(gas_limit) = gas_limit {
-        gas_limit
-    } else {
-        // Calculate gas amount needed for handling the message
-        let gas_info = api
-            .calculate_handle_gas(None, program_id, payload.as_ref().to_vec(), value, true)
-            .await?;
-        gas_info.min_limit
-    };
-    Ok(gas_limit)
+    if let Some(gas_limit) = gas_limit {
+        return Ok(gas_limit);
+    }
+    let payload = payload.as_ref().to_vec();
+    // Calculate gas amount needed for handling the message
+    let gas_info_res = api
+        .calculate_handle_gas(None, program_id, payload.clone(), value, true)
+        .await;
+
+    match gas_info_res {
+        Ok(gas_info) => Ok(gas_info.min_limit),
+        Err(err) => {
+            if format!("{err:?}").contains("Panic occurred: 0x")
+                && let Ok(gas_limit) = api.block_gas_limit()
+            {
+                let origin: [u8; 32] = *api.account_id().as_ref();
+                let reply_info_res = api
+                    .calculate_reply_for_handle(
+                        Some(origin.into()),
+                        program_id,
+                        payload,
+                        gas_limit,
+                        value,
+                    )
+                    .await;
+
+                if let Ok(reply_info) = reply_info_res
+                    && let ReplyCode::Error(reason) = reply_info.code
+                {
+                    return Err(GclientError::ReplyHasError(reason, reply_info.payload));
+                }
+            }
+            Err(err.into())
+        }
+    }
 }
 
 async fn query_calculate_reply(

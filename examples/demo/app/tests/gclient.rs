@@ -25,6 +25,7 @@ async fn counter_add_works() {
         .new(Some(42), None)
         .with_gas_limit(gas_limit)
         .await
+        .unwrap()
         .unwrap();
 
     let initial_balance = gear_api.free_balance(admin_id).await.unwrap();
@@ -69,6 +70,7 @@ async fn counter_sub_works() {
         .new(Some(42), None)
         .with_gas_limit(gas_limit)
         .await
+        .unwrap()
         .unwrap();
 
     let mut counter_client = demo_program.counter();
@@ -172,6 +174,7 @@ async fn counter_query_works() {
         .new(Some(42), None)
         .with_gas_limit(gas_limit)
         .await
+        .unwrap()
         .unwrap();
 
     let counter_client = demo_program.counter();
@@ -199,6 +202,7 @@ async fn counter_query_with_message_works() {
         .new(Some(42), None)
         .with_gas_limit(gas_limit)
         .await
+        .unwrap()
         .unwrap();
 
     let counter_client = demo_program.counter();
@@ -226,6 +230,7 @@ async fn counter_query_not_enough_gas() {
         .new(Some(42), None)
         .with_gas_limit(gas_limit)
         .await
+        .unwrap()
         .unwrap();
 
     let counter_client = demo_program.counter();
@@ -260,6 +265,7 @@ async fn value_fee_works() {
         .deploy::<DemoClientProgram>(demo_code_id, vec![])
         .new(Some(42), None)
         .await
+        .unwrap()
         .unwrap();
 
     let initial_balance = gear_api.free_balance(admin_id).await.unwrap();
@@ -288,6 +294,106 @@ async fn value_fee_works() {
         initial_balance - balance > 10_000_000_000_000
             && initial_balance - balance < 10_700_000_000_000
     );
+}
+
+#[tokio::test]
+#[ignore = "requires run gear node on GEAR_PATH"]
+async fn validator_range_check_works() {
+    use demo_client::validator::{ValidationError, Validator as _};
+    let (env, demo_code_id, gas_limit, ..) = spin_up_node_with_demo_code().await;
+
+    let demo_program = env
+        .deploy::<DemoClientProgram>(demo_code_id, vec![])
+        .default()
+        .with_gas_limit(gas_limit)
+        .await
+        .unwrap();
+
+    let mut validator = demo_program.validator();
+
+    // Success
+    let res = validator.validate_range(10, 0, 100).await.unwrap();
+    assert_eq!(res, Ok(10));
+
+    let res = validator.validate_range(150, 0, 100).await.unwrap();
+    assert_eq!(res, Err(ValidationError::TooBig));
+}
+
+#[tokio::test]
+#[ignore = "requires run gear node on GEAR_PATH"]
+async fn validator_range_check_query_works() {
+    use demo_client::validator::{ValidationError, Validator as _};
+    let (env, demo_code_id, ..) = spin_up_node_with_demo_code().await;
+
+    let demo_program = env
+        .deploy::<DemoClientProgram>(demo_code_id, vec![])
+        .default()
+        .await
+        .unwrap();
+
+    let mut validator = demo_program.validator();
+
+    let res = validator.validate_range(150, 0, 100).query().await.unwrap();
+    assert_eq!(res, Err(ValidationError::TooBig));
+}
+
+#[tokio::test]
+#[ignore = "requires run gear node on GEAR_PATH"]
+async fn validator_nonzero_works() {
+    use demo_client::validator::Validator as _;
+    let (env, demo_code_id, ..) = spin_up_node_with_demo_code().await;
+
+    let demo_program = env
+        .deploy::<DemoClientProgram>(demo_code_id, vec![])
+        .default()
+        .await
+        .unwrap();
+
+    let mut validator = demo_program.validator();
+
+    let res = validator.validate_nonzero(0).await.unwrap();
+    assert_eq!(res, Err("Value is zero".to_string()));
+}
+
+#[tokio::test]
+#[ignore = "requires run gear node on GEAR_PATH"]
+async fn validator_even_works() {
+    use demo_client::validator::Validator as _;
+    let (env, demo_code_id, gas_limit, ..) = spin_up_node_with_demo_code().await;
+
+    let demo_program = env
+        .deploy::<DemoClientProgram>(demo_code_id, vec![])
+        .default()
+        .with_gas_limit(gas_limit)
+        .await
+        .unwrap();
+
+    let validator = demo_program.validator();
+
+    let res = validator.validate_even(10).await.unwrap();
+    assert_eq!(res, Ok(10));
+
+    let res = validator.validate_even(7).await.unwrap();
+    assert_eq!(res, Err(()));
+}
+
+#[tokio::test]
+#[ignore = "requires run gear node on GEAR_PATH"]
+async fn validator_constructor_error_works() {
+    let (env, demo_code_id, gas_limit, ..) = spin_up_node_with_demo_code().await;
+
+    // Use manual gas limit to skip RPC estimation and get full error from the block
+    let res = env
+        .deploy::<DemoClientProgram>(demo_code_id, vec![1])
+        .new_with_error(0)
+        .with_gas_limit(gas_limit)
+        .await
+        .unwrap();
+
+    match res {
+        Err(e) => assert_eq!(e, "Constructor failed"),
+        Ok(_) => panic!("Constructor should have failed"),
+    }
 }
 
 async fn spin_up_node_with_demo_code() -> (GclientEnv, CodeId, GasUnit, GearApi) {

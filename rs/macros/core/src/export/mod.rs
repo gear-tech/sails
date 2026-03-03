@@ -1,4 +1,3 @@
-use crate::shared;
 use args::ExportArgs;
 use proc_macro_error::abort;
 use proc_macro2::{Span, TokenStream};
@@ -17,9 +16,8 @@ pub fn export(attrs: TokenStream, impl_item_fn_tokens: TokenStream) -> TokenStre
         });
     ensure_pub_visibility(&fn_impl);
     ensure_single_export_or_route_on_impl(&fn_impl);
-    let args = syn::parse2::<ExportArgs>(attrs)
+    syn::parse2::<ExportArgs>(attrs)
         .unwrap_or_else(|_| abort!(fn_impl.span(), "`export` attribute cannot be parsed"));
-    ensure_returns_result_with_unwrap_result(fn_impl, args);
     impl_item_fn_tokens
 }
 
@@ -48,11 +46,6 @@ pub(crate) fn ensure_single_export_or_route_on_impl(fn_impl: &ImplItemFn) {
             "multiple `export` attributes on the same method are not allowed",
         )
     }
-}
-
-fn ensure_returns_result_with_unwrap_result(fn_impl: ImplItemFn, args: ExportArgs) {
-    // ensure Result type is returned if unwrap_result is set to true
-    _ = shared::unwrap_result_type(&fn_impl.sig, args.unwrap_result());
 }
 
 pub(crate) fn parse_export_args(attrs: &[Attribute]) -> Option<(ExportArgs, Span)> {

@@ -306,7 +306,7 @@ fn works_with_special_lifetimes_and_events() {
 fn works_with_export() {
     let input = quote! {
         impl SomeService {
-            #[export(route = "DoSomething", unwrap_result)]
+            #[export(route = "DoSomething")]
             pub async fn do_this(&mut self, p1: u32, p2: String) -> Result<(u32, String), String> {
                 Ok((p1, p2))
             }

@@ -27,7 +27,7 @@ impl ProgramBuilder {
     fn ctor_funcs(&self, resolver: &TypeResolver) -> Result<Vec<CtorFunc>> {
         any_funcs(&self.registry, self.ctors_type_id)?
             .map(|c| {
-                if c.fields.len() != 1 {
+                if c.fields.len() != 1 && c.fields.len() != 2 {
                     Err(Error::MetaIsInvalid(format!(
                         "ctor `{}` has invalid number of fields",
                         c.name
@@ -38,6 +38,17 @@ impl ProgramBuilder {
                         .registry
                         .resolve(params_type_id)
                         .ok_or(Error::TypeIdIsUnknown(params_type_id))?;
+                    let throws = if c.fields.len() == 2 {
+                        let throws_type_id = c.fields[1].ty.id;
+                        let throws = resolver
+                            .get(throws_type_id)
+                            .cloned()
+                            .ok_or(Error::TypeIdIsUnknown(throws_type_id))?;
+                        Some(throws)
+                    } else {
+                        None
+                    };
+
                     if let scale_info::TypeDef::Composite(params_type) = &params_type.type_def {
                         let params = params_type
                             .fields
@@ -62,6 +73,7 @@ impl ProgramBuilder {
                         Ok(CtorFunc {
                             name: c.name.to_string(),
                             params,
+                            throws,
                             docs: c.docs.iter().map(|s| s.to_string()).collect(),
                             annotations: vec![],
                         })
@@ -269,7 +281,7 @@ impl<'a> ServiceBuilder<'a> {
     fn commands(&self, resolver: &TypeResolver) -> Result<Vec<ServiceFunc>> {
         any_funcs(&self.registry, self.commands_type_id)?
             .map(|c| {
-                if c.fields.len() != 2 {
+                if c.fields.len() != 2 && c.fields.len() != 3 {
                     Err(Error::MetaIsInvalid(format!(
                         "command `{}` has invalid number of fields",
                         c.name
@@ -285,12 +297,19 @@ impl<'a> ServiceBuilder<'a> {
                         .get(output_type_id)
                         .cloned()
                         .ok_or(Error::TypeIdIsUnknown(output_type_id))?;
-                    let throws = None;
-                    // TODO: unwrap result param
-                    // if let Some((ok, err)) = TypeDecl::result_type_decl(&output) {
-                    //     output = ok;
-                    //     throws = Some(err);
-                    // };
+                    let throws = if c.fields.len() == 3 {
+                        let throws_type_id = c.fields[2].ty.id;
+                        let throws = resolver
+                            .get(throws_type_id)
+                            .cloned()
+                            .ok_or(Error::TypeIdIsUnknown(throws_type_id))?;
+                        Some(throws)
+                    } else {
+                        None
+                    };
+                    // TODO: Automatic unfolding of Result into 'throws' is currently disabled to prevent
+                    // hash mismatches with the service macro. We should re-enable this once hashing
+                    // is synchronized for all Result-like types.
                     if let scale_info::TypeDef::Composite(params_type) = &params_type.type_def {
                         let params = params_type
                             .fields
@@ -335,7 +354,7 @@ impl<'a> ServiceBuilder<'a> {
     fn queries(&self, resolver: &TypeResolver) -> Result<Vec<ServiceFunc>> {
         any_funcs(&self.registry, self.queries_type_id)?
             .map(|c| {
-                if c.fields.len() != 2 {
+                if c.fields.len() != 2 && c.fields.len() != 3 {
                     Err(Error::MetaIsInvalid(format!(
                         "query `{}` has invalid number of fields",
                         c.name
@@ -351,12 +370,19 @@ impl<'a> ServiceBuilder<'a> {
                         .get(output_type_id)
                         .cloned()
                         .ok_or(Error::TypeIdIsUnknown(output_type_id))?;
-                    let throws = None;
-                    // TODO: unwrap result param
-                    // if let Some((ok, err)) = TypeDecl::result_type_decl(&output) {
-                    //     output = ok;
-                    //     throws = Some(err);
-                    // };
+                    let throws = if c.fields.len() == 3 {
+                        let throws_type_id = c.fields[2].ty.id;
+                        let throws = resolver
+                            .get(throws_type_id)
+                            .cloned()
+                            .ok_or(Error::TypeIdIsUnknown(throws_type_id))?;
+                        Some(throws)
+                    } else {
+                        None
+                    };
+                    // TODO: Automatic unfolding of Result into 'throws' is currently disabled to prevent
+                    // hash mismatches with the service macro. We should re-enable this once hashing
+                    // is synchronized for all Result-like types.
                     if let scale_info::TypeDef::Composite(params_type) = &params_type.type_def {
                         let params = params_type
                             .fields
@@ -523,7 +549,7 @@ mod tests {
         #[derive(TypeInfo)]
         #[allow(unused)]
         enum TooManyArgsCtors {
-            CtorWithResult(ValidParams, String), // Should have exactly 1 field, not 2
+            CtorWithResult(ValidParams, String, bool), // Should have exactly 1 or 2 fields
         }
 
         #[derive(TypeInfo)]
@@ -619,6 +645,7 @@ mod tests {
                     name: "initial_value".to_string(),
                     type_decl: Primitive(PrimitiveType::U32)
                 }],
+                throws: None,
                 docs: vec![],
                 annotations: vec![]
             }]
@@ -1735,7 +1762,7 @@ mod tests {
         #[derive(TypeInfo)]
         #[allow(unused)]
         enum BadCommands2 {
-            ThreeFields(u32, String, bool),
+            FourFields(u32, String, bool, u32),
         }
 
         #[derive(TypeInfo)]
@@ -1747,7 +1774,7 @@ mod tests {
         #[derive(TypeInfo)]
         #[allow(unused)]
         enum BadQueries2 {
-            ThreeFields(u32, String, bool),
+            FourFields(u32, String, bool, u32),
         }
 
         let internal_check = |result: Result<Vec<ServiceUnit>>, expected_msg: &str| {
@@ -1768,11 +1795,11 @@ mod tests {
         );
         internal_check(
             test_service_units::<InvalidCommandsService2>("TestService"),
-            "command `ThreeFields` has invalid number of fields",
+            "command `FourFields` has invalid number of fields",
         );
         internal_check(
             test_service_units::<InvalidQueriesService2>("TestService"),
-            "query `ThreeFields` has invalid number of fields",
+            "query `FourFields` has invalid number of fields",
         );
     }
 

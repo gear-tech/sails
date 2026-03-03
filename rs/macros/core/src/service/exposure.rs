@@ -88,16 +88,44 @@ impl ServiceBuilder<'_> {
             .map(|ident| quote!(request.#ident));
 
         let (result_type, reply_with_value) = fn_builder.result_type_with_value();
-        let unwrap_token = fn_builder.unwrap_result.then(|| quote!(.unwrap()));
+
+        let raw_call = quote! { self.#handler_func_ident(#(#handler_func_params),*)#await_token };
+
+        let call = if fn_builder.unwrap_result {
+            let original_result_type = shared::result_type(&fn_builder.impl_fn.sig);
+            if let syn::Type::Path(tp) = &original_result_type
+                && let Some((_ok_ty, _err_ty)) = shared::extract_result_types(tp)
+            {
+                quote! {
+                    match #raw_call {
+                        Ok(v) => v,
+                        Err(e) => {
+                            let encoded = <#meta_module_ident::#params_struct_ident as #sails_path::gstd::InvocationIo>::with_optimized_encode_with_id(
+                                <#meta_module_ident::#params_struct_ident as #sails_path::meta::Identifiable>::INTERFACE_ID,
+                                <#meta_module_ident::#params_struct_ident as #sails_path::meta::MethodMeta>::ENTRY_ID,
+                                &e,
+                                self.route_idx,
+                                |encoded| encoded.to_vec()
+                            );
+                            #sails_path::gstd::Syscall::panic(&encoded)
+                        }
+                    }
+                }
+            } else {
+                quote! { #raw_call .unwrap() }
+            }
+        } else {
+            raw_call
+        };
 
         let handle_token = if reply_with_value {
             quote! {
-                let command_reply: CommandReply< #result_type > = self.#handler_func_ident(#(#handler_func_params),*)#await_token #unwrap_token.into();
+                let command_reply: CommandReply< #result_type > = #call .into();
                 let (result, value) = command_reply.to_tuple();
             }
         } else {
             quote! {
-                let result = self.#handler_func_ident(#(#handler_func_params),*)#await_token #unwrap_token;
+                let result = #call;
                 let value = 0u128;
             }
         };

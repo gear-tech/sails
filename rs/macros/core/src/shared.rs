@@ -56,29 +56,18 @@ pub(crate) fn result_type(handler_signature: &Signature) -> Type {
     }
 }
 
-pub(crate) fn unwrap_result_type(handler_signature: &Signature, unwrap_result: bool) -> Type {
+pub(crate) fn unwrap_result_type(handler_signature: &Signature) -> (Type, bool) {
     let result_type = result_type(handler_signature);
-    // process result type if set unwrap result
-    if unwrap_result {
-        {
-            extract_result_type_from_path(&result_type)
-                .unwrap_or_else(|| {
-                    abort!(
-                        result_type.span(),
-                        "`unwrap_result` can be applied to methods returns result only"
-                    )
-                })
-                .clone()
-        }
+    if let Some(ok_type) = extract_result_type_from_path(&result_type) {
+        (ok_type.clone(), true)
     } else {
-        result_type
+        (result_type, false)
     }
 }
 
 pub(crate) struct InvocationExport {
     pub span: Span,
     pub route: String,
-    pub unwrap_result: bool,
     pub export: bool,
     #[cfg(feature = "ethexe")]
     pub payable: bool,
@@ -89,7 +78,6 @@ pub(crate) struct InvocationExport {
 pub(crate) fn invocation_export(fn_impl: &ImplItemFn) -> Option<InvocationExport> {
     export::parse_export_args(&fn_impl.attrs).map(|(args, span)| {
         let ident = &fn_impl.sig.ident;
-        let unwrap_result = args.unwrap_result();
         #[cfg(feature = "ethexe")]
         let payable = args.payable();
 
@@ -100,7 +88,6 @@ pub(crate) fn invocation_export(fn_impl: &ImplItemFn) -> Option<InvocationExport
         InvocationExport {
             span,
             route,
-            unwrap_result,
             export: true,
             #[cfg(feature = "ethexe")]
             payable,
@@ -116,7 +103,6 @@ pub(crate) fn invocation_export_or_default(fn_impl: &ImplItemFn) -> InvocationEx
         InvocationExport {
             span: ident.span(),
             route: ident.to_string().to_case(Case::Pascal),
-            unwrap_result: false,
             export: false,
             #[cfg(feature = "ethexe")]
             payable: false,
@@ -282,6 +268,9 @@ pub(crate) fn extract_result_type_from_path(ty: &Type) -> Option<&Type> {
 /// Extract both `T` and `E` types from `Result<T, E>`
 pub(crate) fn extract_result_types(tp: &TypePath) -> Option<(&Type, &Type)> {
     if let Some(last) = tp.path.segments.last() {
+        // TODO: This currently only recognizes the literal name "Result" and exactly 2 generic arguments.
+        // It fails to see through aliases like `type MyResult<T> = Result<T, Error>`, leading
+        // to interface_id mismatches if idl-gen is smarter than this macro.
         if last.ident != "Result" {
             return None;
         }
@@ -325,7 +314,6 @@ impl<'a> FnBuilder<'a> {
     ) -> Self {
         let InvocationExport {
             route,
-            unwrap_result,
             export,
             #[cfg(feature = "ethexe")]
             payable,
@@ -342,7 +330,7 @@ impl<'a> FnBuilder<'a> {
             Ident::new(&format!("__{route}Params"), Span::call_site())
         };
         let (params_idents, params_types): (Vec<_>, Vec<_>) = extract_params(signature).unzip();
-        let result_type = unwrap_result_type(signature, unwrap_result);
+        let (result_type, unwrap_result) = unwrap_result_type(signature);
 
         Self {
             route,

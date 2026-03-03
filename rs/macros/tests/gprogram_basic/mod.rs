@@ -11,7 +11,7 @@ impl MyProgram {
         Self { counter }
     }
 
-    #[export(unwrap_result)]
+    #[export]
     pub fn new_forty_two() -> Result<Self, String> {
         Ok(Self { counter: 42 })
     }

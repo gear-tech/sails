@@ -11,6 +11,7 @@ mod mammal;
 mod ping;
 mod references;
 mod this_that;
+mod validator;
 mod value_fee;
 
 // Dog data is stored as a global variable. However, it has exactly the same lifetime
@@ -31,6 +32,7 @@ pub struct DemoProgram {
     // Counter data has the same lifetime as the program itself, i.e. it will
     // live as long as the program is available on the network.
     counter_data: RefCell<counter::CounterData>,
+    validator_data: RefCell<validator::ValidatorData>,
     ref_data: u8,
 }
 
@@ -47,12 +49,13 @@ impl DemoProgram {
         }
         Self {
             counter_data: RefCell::new(counter::CounterData::new(Default::default())),
+            validator_data: RefCell::new(validator::ValidatorData::new()),
             ref_data: 42,
         }
     }
 
     /// Another program constructor (called once at the very beginning of the program lifetime)
-    #[export(unwrap_result)]
+    #[export]
     pub fn new(counter: Option<u32>, dog_position: Option<(i32, i32)>) -> Result<Self, String> {
         unsafe {
             let dog_position = dog_position.unwrap_or_default();
@@ -63,12 +66,27 @@ impl DemoProgram {
         }
         Ok(Self {
             counter_data: RefCell::new(counter::CounterData::new(counter.unwrap_or_default())),
+            validator_data: RefCell::new(validator::ValidatorData::new()),
+            ref_data: 42,
+        })
+    }
+
+    pub fn new_with_error(value: u32) -> Result<Self, String> {
+        if value == 0 {
+            return Err("Constructor failed".to_string());
+        }
+        unsafe {
+            DOG_DATA = Some(RefCell::new(walker::WalkerData::new(0, 0)));
+        }
+        Ok(Self {
+            counter_data: RefCell::new(counter::CounterData::new(value)),
+            validator_data: RefCell::new(validator::ValidatorData::new()),
             ref_data: 42,
         })
     }
 
     // Exposing service with overriden route
-    #[export(route = "ping_pong", unwrap_result)]
+    #[export(route = "ping_pong")]
     pub fn ping(&self) -> Result<ping::PingService, String> {
         Ok(ping::PingService::default())
     }
@@ -97,6 +115,10 @@ impl DemoProgram {
 
     pub fn chaos(&self) -> chaos::ChaosService {
         chaos::ChaosService
+    }
+
+    pub fn validator(&self) -> validator::Validator<'_> {
+        validator::Validator::new(&self.validator_data)
     }
 
     pub fn chain(&self) -> inheritance::ChainService {

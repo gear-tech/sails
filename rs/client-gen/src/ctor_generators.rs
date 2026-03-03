@@ -1,4 +1,5 @@
 use crate::helpers::{encoded_args, fn_args_with_types_path, generate_doc_comments};
+use crate::type_generators::generate_type_decl_with_path;
 use convert_case::{Case, Casing};
 use genco::prelude::*;
 use rust::Tokens;
@@ -86,8 +87,16 @@ impl<'ast> Visitor<'ast> for CtorGenerator<'ast> {
 
         let params_with_types_super = &fn_args_with_types_path(&func.params, "super");
         let entry_id = self.entry_ids.get(func.name.as_str()).copied().unwrap_or(0);
+        let throws_token: Tokens = if let Some(throws_type) = &func.throws {
+            let ok_type = "()"; // Constructor always returns () on SCALE level
+            let err_type = generate_type_decl_with_path(throws_type, "super");
+            quote!(, throws $ok_type, $err_type)
+        } else {
+            quote!()
+        };
+
         quote_in! { self.io_tokens =>
-            $(self.sails_path)::io_struct_impl!($fn_name ($params_with_types_super) -> (), $entry_id);
+            $(self.sails_path)::io_struct_impl!($fn_name ($params_with_types_super) -> (), $entry_id$throws_token);
         };
     }
 }

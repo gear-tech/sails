@@ -143,12 +143,12 @@ fn generates_ctors_meta_with_docs() {
 fn generates_init_with_unwrap_result() {
     let input = quote! {
         impl MyProgram {
-            #[export(unwrap_result)]
+            #[export]
             pub async fn new(p1: u32, p2: String) -> Result<Self, String> {
                 Self { p1, p2 }
             }
 
-            #[export(unwrap_result)]
+            #[export]
             pub fn new2(p2: String, p1: u32) -> Result<Self, String> {
                 Self { p1, p2 }
             }
@@ -165,7 +165,7 @@ fn generates_init_with_unwrap_result() {
 fn generates_handle_for_services_with_unwrap_result() {
     let input = quote! {
         impl MyProgram {
-            #[export(route = "svc1", unwrap_result)]
+            #[export(route = "svc1")]
             pub fn service1(&self) -> Result<MyService, String> {
                 Ok(MyService)
             }
