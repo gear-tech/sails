@@ -20,3 +20,13 @@ fn test_type_naming_parity_generation() {
 
     assert_snapshot!("type_naming_parity_generation", generated);
 }
+
+#[test]
+fn test_aliases_generation() {
+    let idl = include_str!("idls/aliases.idl");
+    let generated = JsClientGenerator::from_idl(idl)
+        .generate()
+        .expect("generate ts client");
+
+    assert_snapshot!("aliases_generation", generated);
+}

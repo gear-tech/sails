@@ -1,7 +1,7 @@
 use super::{
-    Allocations, Annotation, CtorFunc, EnumDef, EnumVariant, ErrorCode, FuncParam, IdlDoc,
-    ProgramUnit, ServiceEvent, ServiceExpo, ServiceFunc, ServiceUnit, StructDef, StructField, Type,
-    TypeDecl, TypeDef, TypeParameter,
+    AliasDef, Allocations, Annotation, CtorFunc, EnumDef, EnumVariant, ErrorCode, FuncParam,
+    IdlDoc, ProgramUnit, ServiceEvent, ServiceExpo, ServiceFunc, ServiceUnit, StructDef,
+    StructField, Type, TypeDecl, TypeDef, TypeParameter,
 };
 use crate::ast;
 use crate::visitor::Visitor as RawVisitor;
@@ -48,6 +48,7 @@ pub struct Visitor {
     pub visit_enum_def: Option<unsafe extern "C" fn(context: *const (), def: *const EnumDef)>,
     pub visit_enum_variant:
         Option<unsafe extern "C" fn(context: *const (), variant: *const EnumVariant)>,
+    pub visit_alias_def: Option<unsafe extern "C" fn(context: *const (), def: *const AliasDef)>,
     pub visit_service_expo:
         Option<unsafe extern "C" fn(context: *const (), service_item: *const ServiceExpo)>,
     pub visit_type_parameter:
@@ -80,6 +81,7 @@ unsafe extern "C" {
     fn visit_struct_field(context: *const (), field: *const StructField);
     fn visit_enum_def(context: *const (), def: *const EnumDef);
     fn visit_enum_variant(context: *const (), variant: *const EnumVariant);
+    fn visit_alias_def(context: *const (), def: *const AliasDef);
     fn visit_service_expo(context: *const (), service_item: *const ServiceExpo);
     fn visit_type_parameter(context: *const (), type_param: *const TypeParameter);
     fn visit_type_def(context: *const (), type_def: *const TypeDef);
@@ -104,6 +106,7 @@ static VISITOR: Visitor = Visitor {
     visit_struct_field: Some(visit_struct_field),
     visit_enum_def: Some(visit_enum_def),
     visit_enum_variant: Some(visit_enum_variant),
+    visit_alias_def: Some(visit_alias_def),
     visit_service_expo: Some(visit_service_expo),
     visit_type_parameter: Some(visit_type_parameter),
     visit_type_def: Some(visit_type_def),
@@ -305,6 +308,15 @@ impl<'a, 'ast> RawVisitor<'ast> for VisitorWrapper<'a> {
         crate::visitor::accept_enum_variant(variant, self);
     }
 
+    fn visit_alias_def(&mut self, def: &'ast ast::AliasDef) {
+        if let Some(visit) = self.visitor.visit_alias_def {
+            let ffi_def = AliasDef::from_ast(def, &mut self.allocations);
+            unsafe { visit(self.context, &ffi_def) };
+            return;
+        }
+        crate::visitor::accept_alias_def(def, self);
+    }
+
     fn visit_service_expo(&mut self, service_item: &'ast ast::ServiceExpo) {
         if let Some(visit) = self.visitor.visit_service_expo {
             let ffi_item = ServiceExpo::from_ast(service_item, &mut self.allocations);
@@ -389,6 +401,7 @@ accept_impl!(struct_def, StructDef, ast::StructDef);
 accept_impl!(struct_field, StructField, ast::StructField);
 accept_impl!(enum_def, EnumDef, ast::EnumDef);
 accept_impl!(enum_variant, EnumVariant, ast::EnumVariant);
+accept_impl!(alias_def, AliasDef, ast::AliasDef);
 accept_impl!(service_expo, ServiceExpo, ast::ServiceExpo);
 accept_impl!(type_parameter, TypeParameter, ast::TypeParameter);
 accept_impl!(type_def, TypeDef, ast::TypeDef);

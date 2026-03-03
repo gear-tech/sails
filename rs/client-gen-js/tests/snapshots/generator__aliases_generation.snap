@@ -1,0 +1,80 @@
+---
+source: rs/client-gen-js/tests/generator.rs
+expression: generated
+---
+import {GearApi, HexString} from "@gear-js/api";
+import {TransactionBuilderWithHeader, TypeResolver} from "sails-js";
+import {InterfaceId, SailsMessageHeader} from "sails-js-parser-idl-v2";
+
+export class MyProgram {
+    private _typeResolver: TypeResolver;
+    constructor(
+        public api: GearApi,
+        private _programId?: `0x${string}`,
+    ) {
+        this._typeResolver = new TypeResolver([]);
+    }
+
+    private get registry() {
+        return this._typeResolver.registry;
+    }
+
+    public get programId(): HexString {
+        if (!this._programId) throw new Error("Program ID is not set");
+        return this._programId;
+    }
+
+    public get aliases(): Aliases {
+        return new Aliases(this.api, this.programId, 1);
+    }
+}
+
+export interface MyStruct { f1: number }
+
+export type MyU32 = number;
+
+export type MyStructAlias = MyStruct;
+
+export type MyResult<T, E> = { ok: T } | { err: E };
+
+export class Aliases {
+    private _typeResolver: TypeResolver;
+    constructor(
+        private _api: GearApi,
+        private _programId: HexString,
+        private _routeIdx: number = 0,
+    ) {
+        this._typeResolver = new TypeResolver([{"name":"MyStruct","kind":"struct","fields":[{"name":"f1","type":"u32"}]}, {"name":"MyU32","kind":"alias","target":"u32"}, {"name":"MyStructAlias","kind":"alias","target":{"kind":"named","name":"MyStruct"}}, {"name":"MyResult","type_params":[{"name":"T"},{"name":"E"}],"kind":"alias","target":{"kind":"named","name":"Result","generics":[{"kind":"named","name":"T"},{"kind":"named","name":"E"}]}}]);
+    }
+    private get registry() {
+        return this._typeResolver.registry;
+    }
+    public get interfaceId(): InterfaceId {
+        return InterfaceId.from("0x4721496bda152810");
+    }
+    public doSomething(p1: MyU32): TransactionBuilderWithHeader<MyStructAlias> {
+        return new TransactionBuilderWithHeader<MyStructAlias>(
+            this._api,
+            this.registry,
+            "send_message",
+            SailsMessageHeader.v1(this.interfaceId, 0, this._routeIdx),
+            p1,
+            this._typeResolver.getTypeDeclString({"kind":"named","name":"MyU32"}),
+            this._typeResolver.getTypeDeclString({"kind":"named","name":"MyStructAlias"}),
+            this._programId,
+        );
+    }
+
+    public getResult(): TransactionBuilderWithHeader<MyResult<number, string>> {
+        return new TransactionBuilderWithHeader<MyResult<number, string>>(
+            this._api,
+            this.registry,
+            "send_message",
+            SailsMessageHeader.v1(this.interfaceId, 1, this._routeIdx),
+            null,
+            null,
+            this._typeResolver.getTypeDeclString({"kind":"named","name":"MyResult","generics":["u32","String"]}),
+            this._programId,
+        );
+    }
+}

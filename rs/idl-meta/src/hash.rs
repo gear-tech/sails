@@ -81,6 +81,7 @@ fn hash_type(
             }
             hash.finalize()
         }
+        TypeDef::Alias(alias_def) => hash_type_decl(&alias_def.target, type_map, type_params)?,
     };
     Ok(bytes)
 }
@@ -529,5 +530,64 @@ mod tests {
             },
             map
         );
+    }
+
+    #[test]
+    fn hash_alias_identical_to_target() {
+        let mut map = BTreeMap::new();
+
+        // 1. Define target struct
+        let struct_ty = Type {
+            name: "TargetStruct".to_string(),
+            type_params: vec![],
+            def: TypeDef::Struct(StructDef {
+                fields: vec![StructField {
+                    name: Some("f1".to_string()),
+                    type_decl: TypeDecl::Primitive(PrimitiveType::U32),
+                    docs: vec![],
+                    annotations: vec![],
+                }],
+            }),
+            docs: vec![],
+            annotations: vec![],
+        };
+        map.insert("TargetStruct", &struct_ty);
+
+        // 2. Define alias to that struct
+        let alias_ty = Type {
+            name: "MyAlias".to_string(),
+            type_params: vec![],
+            def: TypeDef::Alias(AliasDef {
+                target: TypeDecl::Named {
+                    name: "TargetStruct".to_string(),
+                    generics: vec![],
+                },
+            }),
+            docs: vec![],
+            annotations: vec![],
+        };
+        map.insert("MyAlias", &alias_ty);
+
+        let struct_hash = hash_type_decl(
+            &TypeDecl::Named {
+                name: "TargetStruct".to_string(),
+                generics: vec![],
+            },
+            &map,
+            None,
+        )
+        .unwrap();
+
+        let alias_hash = hash_type_decl(
+            &TypeDecl::Named {
+                name: "MyAlias".to_string(),
+                generics: vec![],
+            },
+            &map,
+            None,
+        )
+        .unwrap();
+
+        assert_eq!(struct_hash, alias_hash);
     }
 }
