@@ -1,0 +1,20 @@
+service Aliases {
+    types {
+        struct MyStruct {
+            f1: u32,
+        }
+        alias MyU32 = u32;
+        alias MyStructAlias = MyStruct;
+        alias MyResult<T, E> = Result<T, E>;
+    }
+    functions {
+        DoSomething(p1: MyU32) -> MyStructAlias;
+        GetResult() -> MyResult<u32, String>;
+    }
+}
+
+program MyProgram {
+    services {
+        Aliases,
+    }
+}

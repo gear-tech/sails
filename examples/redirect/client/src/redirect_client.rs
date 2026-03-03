@@ -2,14 +2,18 @@
 #[allow(unused_imports)]
 use sails_rs::{client::*, collections::*, prelude::*};
 pub struct RedirectClientProgram;
+
 impl RedirectClientProgram {
     pub const ROUTE_ID_REDIRECT: u8 = 1;
 }
+
 impl sails_rs::client::Program for RedirectClientProgram {}
+
 pub trait RedirectClient {
     type Env: sails_rs::client::GearEnv;
     fn redirect(&self) -> sails_rs::client::Service<redirect::RedirectImpl, Self::Env>;
 }
+
 impl<E: sails_rs::client::GearEnv> RedirectClient
     for sails_rs::client::Actor<RedirectClientProgram, E>
 {
@@ -24,6 +28,7 @@ pub trait RedirectClientCtors {
     #[allow(clippy::wrong_self_convention)]
     fn new(self) -> sails_rs::client::PendingCtor<RedirectClientProgram, io::New, Self::Env>;
 }
+
 impl<E: sails_rs::client::GearEnv> RedirectClientCtors
     for sails_rs::client::Deployment<RedirectClientProgram, E>
 {
@@ -40,6 +45,7 @@ pub mod io {
 
 pub mod redirect {
     use super::*;
+
     pub trait Redirect {
         type Env: sails_rs::client::GearEnv;
         /// Exit from program with inheritor ID
@@ -50,11 +56,14 @@ pub mod redirect {
         /// Returns program ID of the current program
         fn get_program_id(&self) -> sails_rs::client::PendingCall<io::GetProgramId, Self::Env>;
     }
+
     pub struct RedirectImpl;
+
     impl sails_rs::client::Identifiable for RedirectImpl {
         const INTERFACE_ID: sails_rs::InterfaceId =
             sails_rs::InterfaceId::from_bytes_8([186, 88, 222, 225, 203, 117, 81, 30]);
     }
+
     impl<E: sails_rs::client::GearEnv> Redirect for sails_rs::client::Service<RedirectImpl, E> {
         type Env = E;
         fn exit(

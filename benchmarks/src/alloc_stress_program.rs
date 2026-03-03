@@ -2,14 +2,18 @@
 #[allow(unused_imports)]
 use sails_rs::{client::*, collections::*, prelude::*};
 pub struct AllocStressProgram;
+
 impl AllocStressProgram {
     pub const ROUTE_ID_ALLOC_STRESS: u8 = 1;
 }
+
 impl sails_rs::client::Program for AllocStressProgram {}
+
 pub trait AllocStress {
     type Env: sails_rs::client::GearEnv;
     fn alloc_stress(&self) -> sails_rs::client::Service<alloc_stress::AllocStressImpl, Self::Env>;
 }
+
 impl<E: sails_rs::client::GearEnv> AllocStress for sails_rs::client::Actor<AllocStressProgram, E> {
     type Env = E;
     fn alloc_stress(&self) -> sails_rs::client::Service<alloc_stress::AllocStressImpl, Self::Env> {
@@ -22,6 +26,7 @@ pub trait AllocStressCtors {
         self,
     ) -> sails_rs::client::PendingCtor<AllocStressProgram, io::NewForBench, Self::Env>;
 }
+
 impl<E: sails_rs::client::GearEnv> AllocStressCtors
     for sails_rs::client::Deployment<AllocStressProgram, E>
 {
@@ -40,6 +45,7 @@ pub mod io {
 
 pub mod alloc_stress {
     use super::*;
+
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
@@ -47,6 +53,7 @@ pub mod alloc_stress {
     pub struct AllocStressResult {
         pub inner: Vec<u8>,
     }
+
     pub trait AllocStress {
         type Env: sails_rs::client::GearEnv;
         fn alloc_stress(
@@ -54,11 +61,14 @@ pub mod alloc_stress {
             n: u32,
         ) -> sails_rs::client::PendingCall<io::AllocStress, Self::Env>;
     }
+
     pub struct AllocStressImpl;
+
     impl sails_rs::client::Identifiable for AllocStressImpl {
         const INTERFACE_ID: sails_rs::InterfaceId =
             sails_rs::InterfaceId::from_bytes_8([9, 48, 193, 195, 84, 117, 173, 52]);
     }
+
     impl<E: sails_rs::client::GearEnv> AllocStress for sails_rs::client::Service<AllocStressImpl, E> {
         type Env = E;
         fn alloc_stress(

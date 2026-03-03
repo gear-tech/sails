@@ -11,6 +11,7 @@ use sails_rs::{client::*, collections::*, prelude::*};
 
 pub mod basic {
     use super::*;
+
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
@@ -31,6 +32,7 @@ pub mod basic {
         Variant4(u8, u32),
         Variant5 { f1: String, f2: Vec<u8> },
     }
+
     pub trait Basic {
         type Env: sails_rs::client::GearEnv;
         fn do_that(
@@ -43,11 +45,14 @@ pub mod basic {
             p2: MyParam,
         ) -> sails_rs::client::PendingCall<io::DoThis, Self::Env>;
     }
+
     pub struct BasicImpl;
+
     impl sails_rs::client::Identifiable for BasicImpl {
         const INTERFACE_ID: sails_rs::InterfaceId =
             sails_rs::InterfaceId::from_bytes_8([82, 241, 49, 169, 231, 31, 0, 230]);
     }
+
     impl<E: sails_rs::client::GearEnv> Basic for sails_rs::client::Service<BasicImpl, E> {
         type Env = E;
         fn do_that(
@@ -76,6 +81,15 @@ pub mod basic {
     pub mod mockall {
         use super::*;
         use sails_rs::mockall::*;
-        mock! { pub Basic {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl basic::Basic for Basic { type Env = sails_rs::client::GstdEnv; fn do_that (&mut self, p1: (u8, u32, )) -> sails_rs::client::PendingCall<basic::io::DoThat, sails_rs::client::GstdEnv>;fn do_this (&mut self, p1: u32, p2: MyParam) -> sails_rs::client::PendingCall<basic::io::DoThis, sails_rs::client::GstdEnv>; } }
+        mock! {
+            pub Basic {}
+
+            #[allow(refining_impl_trait)]
+            #[allow(clippy::type_complexity)]
+            impl basic::Basic for Basic {
+                type Env = sails_rs::client::GstdEnv;
+                fn do_that (&mut self, p1: (u8, u32, )) -> sails_rs::client::PendingCall<basic::io::DoThat, sails_rs::client::GstdEnv>;fn do_this (&mut self, p1: u32, p2: MyParam) -> sails_rs::client::PendingCall<basic::io::DoThis, sails_rs::client::GstdEnv>;
+            }
+        }
     }
 }

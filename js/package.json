@@ -11,7 +11,7 @@
   "homepage": "https://github.com/gear-tech/sails/tree/master/js#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://githib.com/gear-tech/sails.git",
+    "url": "git+https://github.com/gear-tech/sails.git",
     "directory": "js"
   },
   "keywords": [
@@ -25,7 +25,20 @@
     ".": {
       "import": "./lib/index.js",
       "require": "./lib/cjs/index.cjs",
-      "types": "./index.d.ts"
+      "types": "./lib/index.d.ts"
+    },
+    "./parser": {
+      "import": "./lib/parser.js",
+      "require": "./lib/cjs/parser.cjs",
+      "types": "./lib/parser.d.ts"
+    },
+    "./types": {
+      "types": "./lib/types.d.ts"
+    },
+    "./util": {
+      "import": "./lib/util.js",
+      "require": "./lib/cjs/util.cjs",
+      "types": "./lib/util.d.ts"
     }
   },
   "scripts": {
@@ -39,12 +52,6 @@
     "@polkadot/api": "^16.4.1",
     "@polkadot/util": "^13.5.1"
   },
-  "optionalDependencies": {
-    "sails-js-types": "workspace:*"
-  },
-  "dependencies": {
-    "sails-js-util": "workspace:*"
-  },
   "devDependencies": {
     "@gear-js/api": "0.44.2",
     "@polkadot/api": "16.4.6",
@@ -52,9 +59,19 @@
     "@polkadot/types": "16.4.6",
     "@polkadot/util": "13.5.6",
     "@polkadot/wasm-crypto": "^7.5.1",
+    "@rollup/plugin-commonjs": "^29.0.0",
+    "@rollup/plugin-node-resolve": "^16.0.3",
+    "@types/node": "^24.10.1",
     "jest": "^30.2.0",
+    "rollup-plugin-dts": "^6.2.3",
+    "rollup-plugin-typescript2": "^0.36.0",
+    "sails-js-parser": "workspace:*",
+    "sails-js-parser-idl-v2": "workspace:*",
     "sails-js-types": "workspace:*",
-    "sails-js-parser": "workspace:*"
+    "sails-js-util": "workspace:*",
+    "ts-jest": "^29.4.5",
+    "tslib": "^2.8.1",
+    "typescript": "^5.9.3"
   },
   "files": [
     "lib"

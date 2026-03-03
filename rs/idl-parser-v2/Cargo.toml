@@ -15,6 +15,7 @@ crate-type = ["rlib"]
 [features]
 default = []
 std = ["pest/std", "pest_derive/std", "thiserror/std", "dep:xxhash-rust"]
+ffi = []
 
 [dependencies]
 thiserror.workspace = true

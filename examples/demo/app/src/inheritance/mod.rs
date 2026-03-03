@@ -27,8 +27,8 @@ impl ChainService {
         "Chain Woof!"
     }
 
-    // 1. By Entry ID: Name is resolved from base MammalService metadata (ID 0 is MakeSound)
-    #[export(overrides = MammalService, entry_id = 0)]
+    // 1. By Entry ID: Name is resolved from base MammalService metadata (ID 1 is MakeSound)
+    #[export(overrides = MammalService, entry_id = 1)]
     pub fn mammal_make_sound(&mut self) -> &'static str {
         "Chain Mammal Sound (via ID)"
     }

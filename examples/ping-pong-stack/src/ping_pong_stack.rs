@@ -2,16 +2,20 @@
 #[allow(unused_imports)]
 use sails_rs::{client::*, collections::*, prelude::*};
 pub struct PingPongStackProgram;
+
 impl PingPongStackProgram {
     pub const ROUTE_ID_PING_PONG_STACK: u8 = 1;
 }
+
 impl sails_rs::client::Program for PingPongStackProgram {}
+
 pub trait PingPongStack {
     type Env: sails_rs::client::GearEnv;
     fn ping_pong_stack(
         &self,
     ) -> sails_rs::client::Service<ping_pong_stack::PingPongStackImpl, Self::Env>;
 }
+
 impl<E: sails_rs::client::GearEnv> PingPongStack
     for sails_rs::client::Actor<PingPongStackProgram, E>
 {
@@ -32,6 +36,7 @@ pub trait PingPongStackCtors {
         self,
     ) -> sails_rs::client::PendingCtor<PingPongStackProgram, io::CreatePong, Self::Env>;
 }
+
 impl<E: sails_rs::client::GearEnv> PingPongStackCtors
     for sails_rs::client::Deployment<PingPongStackProgram, E>
 {
@@ -57,16 +62,20 @@ pub mod io {
 
 pub mod ping_pong_stack {
     use super::*;
+
     pub trait PingPongStack {
         type Env: sails_rs::client::GearEnv;
         fn ping(&mut self, countdown: u32) -> sails_rs::client::PendingCall<io::Ping, Self::Env>;
         fn start(&mut self, limit: u32) -> sails_rs::client::PendingCall<io::Start, Self::Env>;
     }
+
     pub struct PingPongStackImpl;
+
     impl sails_rs::client::Identifiable for PingPongStackImpl {
         const INTERFACE_ID: sails_rs::InterfaceId =
             sails_rs::InterfaceId::from_bytes_8([48, 181, 231, 61, 179, 133, 133, 236]);
     }
+
     impl<E: sails_rs::client::GearEnv> PingPongStack
         for sails_rs::client::Service<PingPongStackImpl, E>
     {

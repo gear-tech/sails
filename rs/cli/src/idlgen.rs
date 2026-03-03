@@ -114,7 +114,6 @@ impl<'a> PackageIdlGenerator<'a> {
 
     fn try_generate_for_package(&self, program_struct_path: &str) -> anyhow::Result<Utf8PathBuf> {
         // find `sails-rs` dependency
-        // find `sails-rs` dependency
         let sails_dep = self
             .program_package
             .dependencies
