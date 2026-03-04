@@ -103,7 +103,7 @@ mod tests {
 
         let env_next = env.clone().with_block_run_mode(BlockRunMode::Next);
         let prog1_next = RedirectClientProgram::client(prog1.id()).with_env(&env_next);
-        let _ = prog1_next.redirect().exit(prog2.id()).await.unwrap();
+        prog1_next.redirect().exit(prog2.id()).await.unwrap();
 
         let aggregator = AggregatorClientProgram::client(aggregator_id)
             .with_env(&env)
