@@ -1,11 +1,12 @@
 
 !@sails: 0.10.2
 
-service Aggregator@0x96909938c099d24a {
+service Aggregator@0xd08ae50ed92deb14 {
     functions {
-        /// Races two real calls and returns the first one.
+        /// Races a slow call (Chaos timeout) and a fast call (Counter).
+        /// Returns 1 if Counter wins, 2 if Chaos wins.
         @query
-        FetchFastest(target1: ActorId, target2: ActorId) -> Result<u32, String>;
+        FetchFastest(target: ActorId) -> Result<u32, String>;
         /// Fetches value from a specific address, handling potential errors.
         @query
         FetchFromAddress(target: ActorId) -> Result<u32, String>;
@@ -32,6 +33,6 @@ program AggregatorClient {
         New(target: ActorId);
     }
     services {
-        Aggregator@0x96909938c099d24a,
+        Aggregator@0xd08ae50ed92deb14,
     }
 }

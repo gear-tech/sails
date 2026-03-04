@@ -182,6 +182,7 @@ const _: () = {
     }
 
     impl<T: ServiceCall> PendingCall<T, GstdEnv> {
+        /// Sends the message and returns the `PendingCall` for subsequent `poll`/`await`.
         pub fn send_for_reply(mut self) -> Result<Self, Error> {
             if self.state.is_some() {
                 panic!("{PENDING_CALL_INVALID_STATE}");
@@ -390,7 +391,12 @@ const _: () = {
             }
         }
 
+        /// Sends the message and returns the `PendingCall` for subsequent `poll`/`await`.
         pub fn send_for_reply(mut self) -> Result<Self, Error> {
+            let _ = self
+                .args
+                .take()
+                .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
             let _ = self.send_one_way()?;
             Ok(self)
         }

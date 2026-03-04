@@ -28,11 +28,9 @@ mod tests {
 
         let env = GtestEnv::new(system, ACTOR_ID.into());
 
-        // Deploy Demo
         let demo_factory = env.deploy::<DemoClientProgram>(demo_code_id, vec![1]);
         let demo_program = demo_factory.default().await.unwrap();
 
-        // Deploy Aggregator
         let aggregator_factory = env.deploy::<AggregatorClientProgram>(aggregator_code_id, vec![2]);
         let aggregator_program = aggregator_factory.new(demo_program.id()).await.unwrap();
 
@@ -68,11 +66,9 @@ mod tests {
             .with_env(&env)
             .aggregator();
 
-        // Fallback wins
         let val: u32 = aggregator.fetch_with_fallback(true).await.unwrap().unwrap();
         assert_eq!(val, 999);
 
-        // Real value wins
         let val: u32 = aggregator
             .fetch_with_fallback(false)
             .await
@@ -88,12 +84,8 @@ mod tests {
             .with_env(&env)
             .aggregator();
 
-        let val: u32 = aggregator
-            .fetch_fastest(demo_id, demo_id)
-            .await
-            .unwrap()
-            .unwrap();
-        assert_eq!(val, 0);
+        let winner: u32 = aggregator.fetch_fastest(demo_id).await.unwrap().unwrap();
+        assert_eq!(winner, 1);
     }
 
     #[tokio::test]
@@ -157,7 +149,6 @@ mod tests {
         let res = aggregator
             .fetch_from_address(ActorId::zero())
             .await
-            .unwrap()
             .unwrap();
         assert!(res.is_err());
         assert!(res.unwrap_err().contains("Timeout"));

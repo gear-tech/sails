@@ -1,6 +1,6 @@
 #![no_std]
 
-use demo_client::{DemoClient, DemoClientProgram, counter::Counter};
+use demo_client::{DemoClient, DemoClientProgram, chaos::Chaos, counter::Counter};
 use futures::{FutureExt, future};
 use redirect_client::{redirect::Redirect as _, *};
 use sails_rs::{client::*, prelude::*};
@@ -72,23 +72,32 @@ impl AggregatorService {
         }
     }
 
-    /// Races two real calls and returns the first one.
+    /// Races a slow call (Chaos timeout) and a fast call (Counter).
+    /// Returns 1 if Counter wins, 2 if Chaos wins.
     #[export]
-    pub async fn fetch_fastest(&self, target1: ActorId, target2: ActorId) -> Result<u32, String> {
-        let call1 = DemoClientProgram::client(target1)
-            .counter()
-            .value()
+    pub async fn fetch_fastest(&self, target: ActorId) -> Result<u32, String> {
+        let demo = DemoClientProgram::client(target);
+
+        let slow_call = demo
+            .chaos()
+            .timeout_wait()
             .send_for_reply()
             .map_err(|e| e.to_string())?;
-        let call2 = DemoClientProgram::client(target2)
+        let fast_call = demo
             .counter()
             .value()
             .send_for_reply()
             .map_err(|e| e.to_string())?;
 
-        match future::select(call1.fuse(), call2.fuse()).await {
-            future::Either::Left((res, _)) => res.map_err(|e| e.to_string()),
-            future::Either::Right((res, _)) => res.map_err(|e| e.to_string()),
+        match future::select(slow_call.fuse(), fast_call.fuse()).await {
+            future::Either::Left((res, _)) => {
+                res.map_err(|e| e.to_string())?;
+                Ok(2)
+            }
+            future::Either::Right((res, _)) => {
+                res.map_err(|e| e.to_string())?;
+                Ok(1)
+            }
         }
     }
 

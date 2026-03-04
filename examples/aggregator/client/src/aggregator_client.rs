@@ -54,11 +54,11 @@ pub mod aggregator {
 
     pub trait Aggregator {
         type Env: sails_rs::client::GearEnv;
-        /// Races two real calls and returns the first one.
+        /// Races a slow call (Chaos timeout) and a fast call (Counter).
+        /// Returns 1 if Counter wins, 2 if Chaos wins.
         fn fetch_fastest(
             &self,
-            target1: ActorId,
-            target2: ActorId,
+            target: ActorId,
         ) -> sails_rs::client::PendingCall<io::FetchFastest, Self::Env>;
         /// Fetches value from a specific address, handling potential errors.
         fn fetch_from_address(
@@ -89,17 +89,16 @@ pub mod aggregator {
 
     impl sails_rs::client::Identifiable for AggregatorImpl {
         const INTERFACE_ID: sails_rs::InterfaceId =
-            sails_rs::InterfaceId::from_bytes_8([150, 144, 153, 56, 192, 153, 210, 74]);
+            sails_rs::InterfaceId::from_bytes_8([208, 138, 229, 14, 217, 45, 235, 20]);
     }
 
     impl<E: sails_rs::client::GearEnv> Aggregator for sails_rs::client::Service<AggregatorImpl, E> {
         type Env = E;
         fn fetch_fastest(
             &self,
-            target1: ActorId,
-            target2: ActorId,
+            target: ActorId,
         ) -> sails_rs::client::PendingCall<io::FetchFastest, Self::Env> {
-            self.pending_call((target1, target2))
+            self.pending_call((target,))
         }
         fn fetch_from_address(
             &self,
@@ -134,7 +133,7 @@ pub mod aggregator {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(FetchFastest (target1: ActorId, target2: ActorId) -> super::Result<u32, String, >, 0, <super::AggregatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(FetchFastest (target: ActorId) -> super::Result<u32, String, >, 0, <super::AggregatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
         sails_rs::io_struct_impl!(FetchFromAddress (target: ActorId) -> super::Result<u32, String, >, 1, <super::AggregatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
         sails_rs::io_struct_impl!(FetchRedirectId (target: ActorId) -> super::Result<ActorId, String, >, 2, <super::AggregatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
         sails_rs::io_struct_impl!(FetchSummary () -> super::Result<(u32, u32, ), String, >, 3, <super::AggregatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
