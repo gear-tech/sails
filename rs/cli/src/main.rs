@@ -1,7 +1,8 @@
 use clap::{Parser, Subcommand};
 use convert_case::{Case, Casing};
 use sails_cli::{
-    idlgen::CrateIdlGenerator, program::ProgramGenerator, program_new, solgen::SolidityGenerator,
+    idlgen::CrateIdlGenerator, program::ProgramGenerator, program_new,
+    sol_client_gen::SolClientGenerator, solgen::SolidityGenerator,
 };
 use sails_client_gen::ClientGenerator;
 use sails_client_gen_js::JsClientGenerator;
@@ -72,6 +73,26 @@ enum SailsCommands {
         /// Generate module with mocks with specified feature name
         #[arg(long)]
         mocks: Option<String>,
+        /// Custom path to the sails-rs crate
+        #[arg(long)]
+        sails_crate: Option<String>,
+        /// Map type from IDL to crate path, separated by `=`, example `-T Part=crate::parts::Part`
+        #[arg(long, short = 'T', value_parser = parse_key_val::<String, String>)]
+        external_types: Vec<(String, String)>,
+        /// Derive only necessary [`parity_scale_codec::Encode`], [`parity_scale_codec::Decode`] and [`scale_info::TypeInfo`] traits for the generated types
+        #[arg(long)]
+        no_derive_traits: bool,
+    },
+
+    /// Generate Rust Solidity-protocol client code from IDL
+    #[command(name = "client-sol-rs")]
+    ClientSolRs {
+        /// Path to the IDL file
+        #[arg(value_hint = clap::ValueHint::FilePath)]
+        idl_path: PathBuf,
+        /// Path to the output Rust client file
+        #[arg(value_hint = clap::ValueHint::FilePath)]
+        out_path: Option<PathBuf>,
         /// Custom path to the sails-rs crate
         #[arg(long)]
         sails_crate: Option<String>,
@@ -199,6 +220,20 @@ fn main() -> Result<(), i32> {
             let out_path = out_path.unwrap_or_else(|| idl_path.with_extension("ts"));
             client_gen.generate_to(out_path)
         }
+        SailsCommands::ClientSolRs {
+            idl_path,
+            out_path,
+            sails_crate,
+            external_types,
+            no_derive_traits,
+        } => SolClientGenerator::new(
+            idl_path,
+            out_path,
+            sails_crate,
+            external_types,
+            no_derive_traits,
+        )
+        .generate(),
         SailsCommands::IdlGen {
             manifest_path,
             target_dir,

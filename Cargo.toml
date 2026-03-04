@@ -30,6 +30,7 @@ members = [
     "rs",
     "rs/cli",
     "rs/client-gen",
+    "rs/sol-client-gen",
     "rs/client-gen-js",
     "rs/idl-gen",
     "rs/idl-meta",
@@ -55,6 +56,7 @@ sails-idl-parser = { path = "rs/idl-parser" }
 sails-idl-parser-v2 = { path = "rs/idl-parser-v2", default-features = false }
 sails-idl-gen = { path = "rs/idl-gen" }
 sails-client-gen = { path = "rs/client-gen" }
+sails-sol-client-gen = { path = "rs/sol-client-gen" }
 sails-client-gen-js = { path = "rs/client-gen-js" }
 sails-macros-core = { path = "rs/macros/core" }
 sails-macros = { path = "rs/macros" }

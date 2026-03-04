@@ -7113,6 +7113,7 @@ dependencies = [
  "rustdoc-types",
  "sails-client-gen",
  "sails-client-gen-js",
+ "sails-sol-client-gen",
  "sails-sol-gen",
  "serde_json",
  "toml_edit 0.25.3+spec-1.1.0",
@@ -7279,11 +7280,26 @@ dependencies = [
  "sails-idl-meta",
  "sails-macros",
  "sails-reflect-hash",
+ "sails-sol-client-gen",
  "scale-info",
  "spin 0.10.0",
  "thiserror 2.0.18",
  "tokio",
  "tokio-stream",
+]
+
+[[package]]
+name = "sails-sol-client-gen"
+version = "0.10.2"
+dependencies = [
+ "alloy-sol-types",
+ "anyhow",
+ "convert_case 0.11.0",
+ "genco",
+ "insta",
+ "parity-scale-codec",
+ "sails-idl-meta",
+ "sails-idl-parser-v2",
 ]
 
 [[package]]

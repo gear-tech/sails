@@ -24,6 +24,7 @@ clap = { workspace = true, features = ["derive"] }
 convert_case.workspace = true
 rustdoc-types.workspace = true
 sails-client-gen.workspace = true
+sails-sol-client-gen.workspace = true
 sails-client-gen-js.workspace = true
 serde-json.workspace = true
 toml_edit.workspace = true

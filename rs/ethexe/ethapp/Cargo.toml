@@ -11,4 +11,5 @@ sails-rs = { workspace = true, features = ["ethexe", "wasm-builder"] }
 
 [dev-dependencies]
 sails-rs = { workspace = true, features = ["ethexe", "gtest"] }
+sails-sol-client-gen = { path = "../../sol-client-gen" }
 tokio = { workspace = true, features = ["rt", "macros"] }

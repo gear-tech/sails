@@ -749,6 +749,27 @@ method.
 Bear in mind that working with the generated client requires the `sails_rs` crate to
 be in dependencies.
 
+For Solidity protocol in `ethexe` environments, use the dedicated Rust generator path:
+
+```bash
+cargo sails client-rs --idl-path ./my_program.idl --out-path ./src/my_program_client.rs
+cargo sails client-sol-rs --idl-path ./my_program.idl --out-path ./src/my_program_sol_client.rs
+```
+
+- `client-rs` generates a client for Sails header protocol.
+- `client-sol-rs` generates a client for Solidity protocol (`selector + ABI`).
+
+Build script usage is also supported via `sails-sol-client-gen` directly (or through
+`sails_rs::sol_client_gen` re-export when using `sails-rs` with builder features):
+
+```rust
+let idl_path = PathBuf::from("./my_program.idl");
+sails_rs::sol_client_gen::ClientGenerator::from_idl_path(&idl_path)
+    .with_sails_crate("sails_rs")
+    .generate_to("./src/my_program_sol_client.rs")
+    .unwrap();
+```
+
 ##
 
 #### License

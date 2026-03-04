@@ -1,0 +1,385 @@
+!@sails: 0.9.2
+!@author: tester
+!@version: 2.0.0
+!@description: Comprehensive IDL for testing all features of Sails IDL v2
+
+// Global annotations from IDL_V2_SPEC.md
+!@git: https://github.com/sails-project/sails
+
+program FullCoverageProgram {
+    constructors {
+        /// Default program constructor
+        Default();
+        /// Constructor with owner and initial config
+        WithOwner(owner: actor, initial_config: ProgramConfig);
+    }
+
+    services {
+        /// Exported Canvas service
+        Canvas: Canvas,
+        /// Exported PingPong service
+        PingPong,
+        /// Exported Counter service
+        Counter,
+        /// Exported References service
+        References,
+        /// Exported ThisThat service
+        ThisThat,
+        /// Exported ValueFee service
+        ValueFee,
+        /// Exported RmrkCatalog service
+        RmrkCatalog,
+        /// Exported NonZeroParams service
+        NonZeroParams,
+        /// Exported ServiceWithEvents service
+        ServiceWithEvents,
+        /// Exported Basic service
+        Basic,
+        /// Exported AnotherService service
+        AnotherService,
+        /// Exported MyComplexService service
+        MyComplexService,
+    }
+
+    types {
+        struct ProgramConfig {
+            initial_value: u32,
+            admin: actor,
+            is_active: bool,
+        }
+        enum ProgramError {
+            InvalidOwner,
+            ConfigError(String),
+        }
+    }
+}
+
+/// Canvas service from test.idl
+service Canvas {
+    extends {
+        Ownable, // Assuming Ownable is defined elsewhere or will be included
+        Tippable, // Assuming Tippable is defined elsewhere or will be included
+        Pausable, // Assuming Pausable is defined elsewhere or will be included
+    }
+    events {
+        StatusChanged(Point<u32>),
+        Jubilee {
+            /// Amount of alive points.
+            @indexed
+            amount: u64,
+            bits: [u8], // Using slice for bitvec example
+        },
+        E1,
+    }
+    functions {
+        /// Sets color for the point.
+        ColorPoint(point: Point<u32>, color: Color) throws ColorError;
+        /// Kills the point.
+        KillPoint(point: Point<u32>) -> bool throws String;
+        /// Returns known points.
+        @query
+        Points(offset: u32, len: u32) -> [(Point<u32>, PointStatus)] throws String;
+        /// Returns status set for given point.
+        @query
+        PointStatus(point: Point<u32>) -> Option<PointStatus>;
+    }
+    types {
+        struct Point<T> {
+            x: T,
+            y: T,
+        }
+        struct Color {
+            color: [u8; 4],
+            space: ColorSpace,
+        }
+        enum ColorSpace {
+            RGB,
+            HSV,
+            CMYK,
+        }
+        enum PointStatus {
+            Colored {
+                author: actor,
+                color: Color,
+            },
+            Dead,
+        }
+        enum ColorError {
+            InvalidSource,
+            DeadPoint,
+        }
+    }
+}
+
+/// PingPong service from demo.idl
+service PingPong {
+    functions {
+        Ping(input: String) -> String throws String;
+    }
+}
+
+/// Counter service from demo.idl
+service Counter {
+    events {
+        /// Emitted when a new value is added to the counter
+        Added(u32),
+        /// Emitted when a value is subtracted from the counter
+        Subtracted(u32),
+    }
+    functions {
+        /// Add a value to the counter
+        Add(value: u32) -> u32;
+        /// Substract a value from the counter
+        Sub(value: u32) -> u32;
+        /// Get the current value
+        @query
+        Value() -> u32;
+    }
+}
+
+/// Dog service from demo.idl (simplified)
+service Dog {
+    events {
+        Barked,
+        Walked {
+            from: (i32, i32),
+            to: (i32, i32),
+        },
+    }
+    functions {
+        MakeSound() -> String;
+        Walk(dx: i32, dy: i32);
+        @query
+        AvgWeight() -> u32;
+        @query
+        Position() -> (i32, i32);
+    }
+}
+
+/// References service from demo.idl
+service References {
+    functions {
+        Add(v: u32) -> u32;
+        AddByte(byte: u8) -> [u8];
+        GuessNum(number: u8) -> String throws String;
+        Incr() -> ReferenceCount;
+        SetNum(number: u8) throws String;
+        @query
+        Baked() -> String;
+        @query
+        LastByte() -> Option<u8>;
+        @query
+        Message() -> Option<String>;
+    }
+    types {
+        struct ReferenceCount(u32);
+    }
+}
+
+/// ThisThat service from demo.idl
+service ThisThat {
+    functions {
+        DoThat(param: DoThatParam) -> (actor, u32, ManyVariantsReply) throws (String,); // NonZeroU32 becomes u32
+        DoThis(p1: u32, p2: String, p3: (Option<H160>, u8), p4: TupleStruct) -> (String, u32); // NonZeroU8 becomes u8
+        Noop();
+        @query
+        That() -> String throws String;
+        @query
+        This() -> u32;
+    }
+    types {
+        struct DoThatParam {
+            p1: u32, // NonZeroU32 becomes u32
+            p2: actor,
+            p3: ManyVariants,
+        }
+        enum ManyVariants {
+            One,
+            Two(u32),
+            Three(Option<U256>),
+            Four {
+                a: u32,
+                b: Option<u16>,
+            },
+            Five(String, H256),
+            Six((u32,)),
+        }
+        enum ManyVariantsReply {
+            One,
+            Two,
+            Three,
+            Four,
+            Five,
+            Six,
+        }
+        struct TupleStruct(bool);
+    }
+}
+
+/// ValueFee service from demo.idl
+service ValueFee {
+    events {
+        Withheld(u128),
+    }
+    functions {
+        /// Return flag if fee taken and remain value,
+        /// using special type `CommandReply<T>`
+        DoSomethingAndTakeFee() -> bool;
+    }
+}
+
+/// Pausable Service from test.idl
+service Pausable {
+    events {
+        Paused,
+        Unpaused,
+    }
+    functions {
+        Pause();
+        Unpause();
+    }
+    types {
+        struct PausedError;
+    }
+}
+
+/// Ownable Service (placeholder from test.idl extends)
+service Ownable {
+    functions {
+        GetOwner() -> actor;
+    }
+}
+
+/// Tippable Service (placeholder from test.idl extends)
+service Tippable {
+    functions {
+        Tip(amount: u128);
+    }
+}
+
+// Additional complex types from generator tests
+service NonZeroParams {
+    functions {
+        DoThis(p1: U256, p2: MyParam) -> u64;
+    }
+    types {
+        struct MyParam {
+            f1: U256,
+            f2: [u8],
+            f3: Option<(u64, U256)>,
+        }
+    }
+}
+
+service ServiceWithEvents {
+    events {
+        Event1(u32),
+        Event2 {
+            field1: String,
+            field2: u64,
+        },
+    }
+    functions {
+        DoThis(p1: U256, p2: MyParam) -> u64;
+    }
+    types {
+        struct MyParam {
+            f1: U256,
+            f2: [u8],
+            f3: Option<(u64, U256)>,
+        }
+    }
+}
+
+service Basic {
+    functions {
+        DoThis(p1: u32, p2: MyParam) -> u16;
+        DoThat(p1: (u8, u32)) -> u8;
+    }
+    types {
+        struct MyParam {
+            f1: u32,
+            f2: [String],
+            f3: Option<(u8, u32)>,
+        }
+        enum MyParam2 {
+            Variant1,
+            Variant2(u32),
+            Variant3(u32),
+            Variant4(u8, u32),
+            Variant5 { f1: String, f2: [u8] },
+        }
+    }
+}
+
+service AnotherService {
+    functions {
+        Ping() -> String;
+        ProcessValues(data: [U256]) throws ProgramError;
+    }
+    types {
+        enum ProgramError {
+            InvalidOwner,
+            ConfigError(String),
+        }
+    }
+}
+
+service MyComplexService {
+    functions {
+        Initialize(start_data: ProgramGlobalInfo, max_size: u32) throws ProgramError; // NonZeroU32 becomes u32
+        GetData(key: String) -> ProgramScopedData throws ProgramError;
+        GetInfo() -> ProgramGlobalInfo;
+        GetActorIds(count: u32) -> [actor];
+        ProcessGenericData(input_data: GenericData<u32, String>, list_of_generics: [GenericData<actor, U256>], optional_generic_result: Option<GenericResult<bool>>) -> GenericData<bool, u8>;
+        UpdateStatus(id: u64, new_status: ServiceStatus, metadata: Option<String>) -> GenericResult<u32>;
+    }
+    types {
+        struct ProgramGlobalInfo {
+            id: actor,
+            config_version: u32,
+            map_of_data: [(String, ProgramScopedData)],
+            optional_value: Option<u64>,
+            result_status: Result<(u32, bool), ProgramError>,
+            values_vec: [u8],
+            non_zero_id: u16, // NonZeroU16 becomes u16
+            h256_hash: H256,
+        }
+        struct ProgramScopedData {
+            name: String,
+            value: U256,
+            sub_id: u32,
+        }
+        enum ErrorType { // Renamed to ProgramError to avoid conflict
+            InvalidInput,
+            NotFound(String),
+            AccessDenied { id: actor, reason: String },
+        }
+        struct GenericData<T, U> {
+            value_t: T,
+            value_u: U,
+            description: String,
+        }
+        enum GenericResult<V> {
+            Success(V),
+            Failure(ProgramError), // Using ProgramError
+        }
+        struct ServiceLocalConfig {
+            enabled: bool,
+            retry_count: u8, // NonZeroU8 becomes u8
+            actor_list: [actor],
+        }
+        enum ServiceStatus {
+            Active(ServiceLocalConfig),
+            Paused,
+            Error(ProgramError), // Using ProgramError
+        }
+        enum ProgramError {
+            InvalidOwner,
+            ConfigError(String),
+        }
+    }
+}
+
+service RmrkCatalog {
+}

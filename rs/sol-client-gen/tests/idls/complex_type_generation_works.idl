@@ -1,0 +1,103 @@
+program ComplexTypesProgram {
+    constructors {
+        NewProgram(initial_count: u32, id_prefix: string);
+    }
+    services {
+        MyComplexService,
+        AnotherService,
+    }
+}
+
+service MyComplexService {
+    functions {
+        Initialize(
+            start_data: ProgramGlobalInfo,
+            max_size: NonZeroU32
+        ) -> Result<(), ErrorType>;
+
+        GetData(key: string) -> Result<ProgramScopedData, ErrorType>;
+
+        @query
+        GetInfo() -> ProgramGlobalInfo;
+
+        @query
+        GetActorIds(count: u32) -> [ActorId];
+
+        ProcessGenericData(
+            input_data: GenericData<u32, string>,
+            list_of_generics: [GenericData<ActorId, U256>],
+            optional_generic_result: Option<GenericResult<bool>>
+        ) -> GenericData<bool, u8>;
+
+        UpdateStatus(
+            id: u64,
+            new_status: ServiceStatus,
+            metadata: Option<string>
+        ) -> GenericResult<u32>;
+    }
+    types {
+        struct ServiceLocalConfig {
+            enabled: bool,
+            retry_count: NonZeroU8,
+            actor_list: [ActorId],
+        }
+
+        enum ServiceStatus {
+            Active(ServiceLocalConfig),
+            Paused,
+            Error(ErrorType),
+        }
+
+        struct ProgramGlobalInfo {
+            id: ActorId,
+            config_version: u32,
+            map_of_data: [(string, ProgramScopedData)],
+            optional_value: Option<u64>,
+            result_status: Result<(u32, bool), ErrorType>,
+            values_vec: [u8],
+            non_zero_id: NonZeroU16,
+            h256_hash: H256,
+        }
+
+        struct ProgramScopedData {
+            name: string,
+            value: U256,
+            sub_id: u32,
+        }
+
+        enum ErrorType {
+            InvalidInput,
+            NotFound(string),
+            AccessDenied { id: ActorId, reason: string },
+        }
+
+        struct GenericData<T, U> {
+            value_t: T,
+            value_u: U,
+            description: string,
+        }
+
+        enum GenericResult<V> {
+            Success(V),
+            Failure(ErrorType),
+        }
+
+        struct NonZeroU8(u8);
+        struct NonZeroU16(u16);
+        struct NonZeroU32(u32);
+    }
+}
+
+service AnotherService {
+    functions {
+        Ping() -> string;
+        ProcessValues(data: [U256]) -> Result<(), ErrorType>;
+    }
+    types {
+        enum ErrorType {
+            InvalidInput,
+            NotFound(string),
+            AccessDenied { id: ActorId, reason: string },
+        }
+    }
+}

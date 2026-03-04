@@ -27,6 +27,10 @@ use std::{
 /// sails_rs::generate_idl_to_file::<redirect_app::RedirectProgram>(&idl_path).unwrap();
 /// // Generate client code from IDL file
 /// ClientGenerator::from_idl_path(&idl_path).generate_to(&client_path).unwrap();
+/// // Generate Solidity-protocol Rust client code from the same IDL file
+/// sails_rs::sol_client_gen::ClientGenerator::from_idl_path(&idl_path)
+///     .generate_to(PathBuf::from(&out_dir).join("src").join("eth_client.rs"))
+///     .unwrap();
 /// ```
 pub fn build_client<P: ProgramMeta>() -> (Option<PathBuf>, Option<PathBuf>) {
     ClientBuilder::<P>::from_env().build()

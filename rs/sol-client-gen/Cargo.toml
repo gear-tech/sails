@@ -1,0 +1,22 @@
+[package]
+name = "sails-sol-client-gen"
+description = "Rust Solidity-protocol client generator for the Sails framework"
+documentation = "https://docs.rs/sails-sol-client-gen"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+convert_case.workspace = true
+alloy-sol-types.workspace = true
+genco.workspace = true
+parity-scale-codec.workspace = true
+sails-idl-meta = { workspace = true, features = ["ast"] }
+sails-idl-parser-v2 = { workspace = true, features = ["std"] }
+
+[dev-dependencies]
+insta.workspace = true

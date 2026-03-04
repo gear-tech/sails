@@ -28,6 +28,7 @@ parity-scale-codec = { workspace = true, features = ["derive"] }
 paste.workspace = true
 pin-project-lite.workspace = true
 sails-client-gen = { workspace = true, optional = true }
+sails-sol-client-gen = { workspace = true, optional = true }
 sails-idl-gen = { workspace = true, optional = true }
 sails-idl-meta.workspace = true
 sails-macros = { workspace = true, optional = true }
@@ -63,7 +64,7 @@ gclient = ["dep:gclient", "dep:tokio-stream"]
 gstd = ["dep:gstd", "dep:gear-core", "dep:sails-macros"]
 gtest = ["std", "dep:gtest", "dep:log", "dep:tokio-stream"]
 idl-gen = ["dep:sails-idl-gen"]
-client-builder = ["std", "idl-gen", "dep:sails-client-gen", "dep:convert_case"]
+client-builder = ["std", "idl-gen", "dep:sails-client-gen", "dep:sails-sol-client-gen", "dep:convert_case"]
 mockall = ["std", "dep:mockall"]
 std = ["futures/std", "sails-idl-gen?/std"]
 wasm-builder = ["dep:gwasm-builder"]

@@ -1,0 +1,17 @@
+service Svc1 {
+    functions {
+        DoThis(p1: u32, p2: string) -> u32;
+        DoThisPayable(p1: u32) -> u32;
+    }
+}
+
+program EthApp {
+    constructors {
+        CreatePrg();
+        CreatePayable();
+    }
+    services {
+        Svc1,
+    }
+}
+
