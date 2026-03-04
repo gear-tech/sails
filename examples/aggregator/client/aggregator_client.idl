@@ -1,0 +1,38 @@
+
+!@sails: 0.10.2
+
+service Aggregator@0xd08ae50ed92deb14 {
+    functions {
+        /// Races a slow call (Chaos timeout) and a fast call (Counter).
+        /// Returns 1 if Counter wins, 2 if Chaos wins.
+        @query
+        FetchFastest(target: ActorId) -> Result<u32, String>;
+        /// Fetches value from a specific address, handling potential errors.
+        @query
+        FetchFromAddress(target: ActorId) -> Result<u32, String>;
+        /// Fetches target's program ID with redirection enabled.
+        @query
+        FetchRedirectId(target: ActorId) -> Result<ActorId, String>;
+        /// Fetches two values concurrently using `future::join`.
+        @query
+        FetchSummary() -> Result<(u32, u32), String>;
+        /// Fetches the counter value.
+        @query
+        FetchValue() -> Result<u32, String>;
+        /// Demonstrates `future::select` between a real call and a fallback.
+        @query
+        FetchWithFallback(use_fallback: bool) -> Result<u32, String>;
+        /// Intentionally panics by calling send_for_reply twice.
+        @query
+        TestPollAfterCompletion();
+    }
+}
+
+program AggregatorClient {
+    constructors {
+        New(target: ActorId);
+    }
+    services {
+        Aggregator@0xd08ae50ed92deb14,
+    }
+}

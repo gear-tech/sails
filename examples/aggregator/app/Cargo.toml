@@ -1,0 +1,27 @@
+[package]
+name = "aggregator-app"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+sails-rs.workspace = true
+demo-client = { path = "../../demo/client" }
+redirect-client = { path = "../../redirect/client" }
+futures = { workspace = true }
+
+[build-dependencies]
+sails-rs = { workspace = true, features = ["wasm-builder"] }
+
+[features]
+poll = ["sails-rs/poll"]
+
+[dev-dependencies]
+demo = { path = "../../demo/app" }
+redirect-app = { path = "../../redirect/app" }
+aggregator-client = { path = "../client" }
+sails-rs = { workspace = true, features = ["gtest"] }
+tokio = { workspace = true, features = ["rt", "macros"] }

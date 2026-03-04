@@ -47,6 +47,9 @@ jobs:
       - name: Run Tests
         run: cargo test --workspace --all-targets --locked --no-fail-fast -- --include-ignored
 
+      - name: Run Aggregator Tests with `poll` Feature
+        run: cargo test -p aggregator-app --all-targets --locked --no-fail-fast --features poll
+
       - name: Run Tests on the `sails-rs` package with `ethexe` Feature
         run: cargo test -p sails-rs --all-targets --locked --no-fail-fast --features ethexe
 

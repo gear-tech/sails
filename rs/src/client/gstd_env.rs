@@ -181,6 +181,25 @@ const _: () = {
         }
     }
 
+    impl<T: ServiceCall> PendingCall<T, GstdEnv> {
+        /// Sends the message and returns the `PendingCall` for subsequent `poll`/`await`.
+        pub fn send_for_reply(mut self) -> Result<Self, Error> {
+            if self.state.is_some() {
+                panic!("{PENDING_CALL_INVALID_STATE}");
+            }
+            let args = self
+                .args
+                .take()
+                .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
+            let payload = T::encode_params_with_header(self.route_idx, &args);
+            let params = self.params.get_or_insert_default();
+            let destination = self.destination;
+            let future = send_for_reply(destination, payload, params)?;
+            self.state = Some(future);
+            Ok(self)
+        }
+    }
+
     impl<T: ServiceCall> Future for PendingCall<T, GstdEnv> {
         type Output = Result<T::Reply, <GstdEnv as GearEnv>::Error>;
 
@@ -370,6 +389,16 @@ const _: () = {
                 args: None,
                 state: Some(future::ready(res.map(|v| v.encode()))),
             }
+        }
+
+        /// Sends the message and returns the `PendingCall` for subsequent `poll`/`await`.
+        pub fn send_for_reply(mut self) -> Result<Self, Error> {
+            let _ = self
+                .args
+                .take()
+                .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
+            let _ = self.send_one_way()?;
+            Ok(self)
         }
     }
 
