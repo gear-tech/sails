@@ -1,7 +1,7 @@
 
 !@sails: 0.10.2
 
-service Aggregator@0x79770c9ce26f2fd1 {
+service Aggregator@0x84dd6877e243f962 {
     functions {
         /// Races two real calls and returns the first one.
         @query
@@ -9,6 +9,9 @@ service Aggregator@0x79770c9ce26f2fd1 {
         /// Fetches value from a specific address, handling potential errors.
         @query
         FetchFromAddress(target: ActorId) -> Result<u32, String>;
+        /// Fetches target's program ID with redirection enabled.
+        @query
+        FetchRedirectId(target: ActorId) -> ActorId;
         /// Fetches two values concurrently using `future::join`.
         @query
         FetchSummary() -> (u32, u32);
@@ -29,6 +32,6 @@ program AggregatorClient {
         New(target: ActorId);
     }
     services {
-        Aggregator@0x79770c9ce26f2fd1,
+        Aggregator@0x84dd6877e243f962,
     }
 }

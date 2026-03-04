@@ -63,6 +63,8 @@ dependencies = [
  "demo",
  "demo-client",
  "futures",
+ "redirect-app",
+ "redirect-client",
  "sails-rs",
  "tokio",
 ]

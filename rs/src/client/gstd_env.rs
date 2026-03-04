@@ -186,9 +186,14 @@ const _: () = {
             if self.state.is_some() {
                 panic!("{PENDING_CALL_INVALID_STATE}");
             }
-            let (payload, mut params) = self.take_encoded_args_and_params();
+            let args = self
+                .args
+                .take()
+                .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
+            let payload = T::encode_params_with_header(self.route_idx, &args);
+            let params = self.params.get_or_insert_default();
             let destination = self.destination;
-            let future = send_for_reply(destination, payload, &mut params)?;
+            let future = send_for_reply(destination, payload, params)?;
             self.state = Some(future);
             Ok(self)
         }
@@ -385,7 +390,8 @@ const _: () = {
             }
         }
 
-        pub fn send_for_reply(self) -> Result<Self, Error> {
+        pub fn send_for_reply(mut self) -> Result<Self, Error> {
+            let _ = self.send_one_way()?;
             Ok(self)
         }
     }
