@@ -181,6 +181,19 @@ const _: () = {
         }
     }
 
+    impl<T: ServiceCall> PendingCall<T, GstdEnv> {
+        pub fn send_for_reply(mut self) -> Result<Self, Error> {
+            if self.state.is_some() {
+                panic!("{PENDING_CALL_INVALID_STATE}");
+            }
+            let (payload, mut params) = self.take_encoded_args_and_params();
+            let destination = self.destination;
+            let future = send_for_reply(destination, payload, &mut params)?;
+            self.state = Some(future);
+            Ok(self)
+        }
+    }
+
     impl<T: ServiceCall> Future for PendingCall<T, GstdEnv> {
         type Output = Result<T::Reply, <GstdEnv as GearEnv>::Error>;
 
@@ -370,6 +383,10 @@ const _: () = {
                 args: None,
                 state: Some(future::ready(res.map(|v| v.encode()))),
             }
+        }
+
+        pub fn send_for_reply(self) -> Result<Self, Error> {
+            Ok(self)
         }
     }
 

@@ -56,6 +56,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "aggregator-app"
+version = "0.10.2"
+dependencies = [
+ "aggregator-client",
+ "demo",
+ "demo-client",
+ "futures",
+ "sails-rs",
+ "tokio",
+]
+
+[[package]]
+name = "aggregator-client"
+version = "0.10.2"
+dependencies = [
+ "aggregator-app",
+ "sails-rs",
+]
+
+[[package]]
 name = "ahash"
 version = "0.8.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
