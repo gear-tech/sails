@@ -1,26 +1,26 @@
 
 !@sails: 0.10.2
 
-service Aggregator@0x84dd6877e243f962 {
+service Aggregator@0x96909938c099d24a {
     functions {
         /// Races two real calls and returns the first one.
         @query
-        FetchFastest(target1: ActorId, target2: ActorId) -> u32;
+        FetchFastest(target1: ActorId, target2: ActorId) -> Result<u32, String>;
         /// Fetches value from a specific address, handling potential errors.
         @query
         FetchFromAddress(target: ActorId) -> Result<u32, String>;
         /// Fetches target's program ID with redirection enabled.
         @query
-        FetchRedirectId(target: ActorId) -> ActorId;
+        FetchRedirectId(target: ActorId) -> Result<ActorId, String>;
         /// Fetches two values concurrently using `future::join`.
         @query
-        FetchSummary() -> (u32, u32);
+        FetchSummary() -> Result<(u32, u32), String>;
         /// Fetches the counter value.
         @query
-        FetchValue() -> u32;
+        FetchValue() -> Result<u32, String>;
         /// Demonstrates `future::select` between a real call and a fallback.
         @query
-        FetchWithFallback(use_fallback: bool) -> u32;
+        FetchWithFallback(use_fallback: bool) -> Result<u32, String>;
         /// Intentionally panics by calling send_for_reply twice.
         @query
         TestPollAfterCompletion();
@@ -32,6 +32,6 @@ program AggregatorClient {
         New(target: ActorId);
     }
     services {
-        Aggregator@0x84dd6877e243f962,
+        Aggregator@0x96909938c099d24a,
     }
 }

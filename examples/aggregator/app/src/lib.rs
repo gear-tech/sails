@@ -1,7 +1,7 @@
 #![no_std]
 
 use demo_client::{DemoClient, DemoClientProgram, counter::Counter};
-use futures::{future, FutureExt};
+use futures::{FutureExt, future};
 use redirect_client::{redirect::Redirect as _, *};
 use sails_rs::{client::*, prelude::*};
 
@@ -22,76 +22,110 @@ impl AggregatorService {
 impl AggregatorService {
     /// Fetches the counter value.
     #[export]
-    pub async fn fetch_value(&self) -> u32 {
-        self.counter.value().send_for_reply().expect("Send failed").await.expect("Await failed")
+    pub async fn fetch_value(&self) -> Result<u32, String> {
+        self.counter
+            .value()
+            .send_for_reply()
+            .map_err(|e| e.to_string())?
+            .await
+            .map_err(|e| e.to_string())
     }
 
     /// Fetches two values concurrently using `future::join`.
     #[export]
-    pub async fn fetch_summary(&self) -> (u32, u32) {
-        let call1 = self.counter.value().send_for_reply().expect("First send failed");
-        let call2 = self.counter.value().send_for_reply().expect("Second send failed");
+    pub async fn fetch_summary(&self) -> Result<(u32, u32), String> {
+        let call1 = self
+            .counter
+            .value()
+            .send_for_reply()
+            .map_err(|e| e.to_string())?;
+        let call2 = self
+            .counter
+            .value()
+            .send_for_reply()
+            .map_err(|e| e.to_string())?;
 
         let (res1, res2) = future::join(call1, call2).await;
-        
-        let val1: u32 = res1.expect("First await failed");
-        let val2: u32 = res2.expect("Second await failed");
-        (val1, val2)
+
+        let val1 = res1.map_err(|e| e.to_string())?;
+        let val2 = res2.map_err(|e| e.to_string())?;
+        Ok((val1, val2))
     }
 
     /// Demonstrates `future::select` between a real call and a fallback.
     #[export]
-    pub async fn fetch_with_fallback(&self, use_fallback: bool) -> u32 {
-        let call = self.counter.value().send_for_reply().expect("Send failed");
-        
+    pub async fn fetch_with_fallback(&self, use_fallback: bool) -> Result<u32, String> {
+        let call = self
+            .counter
+            .value()
+            .send_for_reply()
+            .map_err(|e| e.to_string())?;
+
         if use_fallback {
             let fallback = future::ready(Ok::<u32, sails_rs::errors::Error>(999));
             match future::select(call, fallback.boxed()).await {
-                future::Either::Left((res, _)) => res.expect("Call failed"),
-                future::Either::Right((res, _)) => res.expect("Fallback failed"),
+                future::Either::Left((res, _)) => res.map_err(|e| e.to_string()),
+                future::Either::Right((res, _)) => res.map_err(|e| e.to_string()),
             }
         } else {
-            call.await.expect("Await failed")
+            call.await.map_err(|e| e.to_string())
         }
     }
 
     /// Races two real calls and returns the first one.
     #[export]
-    pub async fn fetch_fastest(&self, target1: ActorId, target2: ActorId) -> u32 {
-        let call1 = DemoClientProgram::client(target1).counter().value().send_for_reply().expect("Send 1 failed");
-        let call2 = DemoClientProgram::client(target2).counter().value().send_for_reply().expect("Send 2 failed");
+    pub async fn fetch_fastest(&self, target1: ActorId, target2: ActorId) -> Result<u32, String> {
+        let call1 = DemoClientProgram::client(target1)
+            .counter()
+            .value()
+            .send_for_reply()
+            .map_err(|e| e.to_string())?;
+        let call2 = DemoClientProgram::client(target2)
+            .counter()
+            .value()
+            .send_for_reply()
+            .map_err(|e| e.to_string())?;
 
         match future::select(call1.fuse(), call2.fuse()).await {
-            future::Either::Left((res, _)) => res.expect("Call 1 failed"),
-            future::Either::Right((res, _)) => res.expect("Call 2 failed"),
+            future::Either::Left((res, _)) => res.map_err(|e| e.to_string()),
+            future::Either::Right((res, _)) => res.map_err(|e| e.to_string()),
         }
     }
 
     /// Fetches target's program ID with redirection enabled.
     #[export]
-    pub async fn fetch_redirect_id(&self, target: ActorId) -> ActorId {
+    pub async fn fetch_redirect_id(&self, target: ActorId) -> Result<ActorId, String> {
         let redirect_program = RedirectClientProgram::client(target);
-        redirect_program.redirect()
+        redirect_program
+            .redirect()
             .get_program_id()
             .with_redirect_on_exit(true)
             .send_for_reply()
-            .expect("Send failed")
+            .map_err(|e| e.to_string())?
             .await
-            .expect("Await failed")
+            .map_err(|e| e.to_string())
     }
 
     /// Intentionally panics by calling send_for_reply twice.
     #[export]
     pub async fn test_poll_after_completion(&self) {
-        let call = self.counter.value().send_for_reply().expect("First send failed");
-        let _ = call.send_for_reply().expect("Second send failed");
+        let call = self
+            .counter
+            .value()
+            .send_for_reply()
+            .expect("First send failed");
+        call.send_for_reply().expect("Second send failed");
     }
 
     /// Fetches value from a specific address, handling potential errors.
     #[export]
     pub async fn fetch_from_address(&self, target: ActorId) -> Result<u32, String> {
         let demo = DemoClientProgram::client(target);
-        let call = demo.counter().value().send_for_reply().map_err(|e| e.to_string())?;
+        let call = demo
+            .counter()
+            .value()
+            .send_for_reply()
+            .map_err(|e| e.to_string())?;
         call.await.map_err(|e| e.to_string())
     }
 }

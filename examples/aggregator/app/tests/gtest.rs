@@ -1,8 +1,13 @@
 #[cfg(feature = "poll")]
 mod tests {
-    use aggregator_client::{AggregatorClient, AggregatorClientCtors, AggregatorClientProgram, aggregator::Aggregator as _};
+    use aggregator_client::{
+        AggregatorClient, AggregatorClientCtors, AggregatorClientProgram,
+        aggregator::Aggregator as _,
+    };
     use demo_client::{DemoClientCtors, DemoClientProgram};
-    use redirect_client::{RedirectClient, RedirectClientCtors, RedirectClientProgram, redirect::Redirect as _};
+    use redirect_client::{
+        RedirectClient, RedirectClientCtors, RedirectClientProgram, redirect::Redirect as _,
+    };
     use sails_rs::{ActorId, client::*};
 
     const ACTOR_ID: u64 = 42;
@@ -37,41 +42,57 @@ mod tests {
     #[tokio::test]
     async fn fetch_value_works() {
         let (env, _, aggregator_id) = setup().await;
-        let aggregator = AggregatorClientProgram::client(aggregator_id).with_env(&env).aggregator();
-        
-        let val: u32 = aggregator.fetch_value().await.unwrap();
+        let aggregator = AggregatorClientProgram::client(aggregator_id)
+            .with_env(&env)
+            .aggregator();
+
+        let val: u32 = aggregator.fetch_value().await.unwrap().unwrap();
         assert_eq!(val, 0);
     }
 
     #[tokio::test]
     async fn fetch_summary_works() {
         let (env, _, aggregator_id) = setup().await;
-        let aggregator = AggregatorClientProgram::client(aggregator_id).with_env(&env).aggregator();
+        let aggregator = AggregatorClientProgram::client(aggregator_id)
+            .with_env(&env)
+            .aggregator();
 
-        let summary: (u32, u32) = aggregator.fetch_summary().await.unwrap();
+        let summary: (u32, u32) = aggregator.fetch_summary().await.unwrap().unwrap();
         assert_eq!(summary, (0, 0));
     }
 
     #[tokio::test]
     async fn fetch_with_fallback_works() {
         let (env, _, aggregator_id) = setup().await;
-        let aggregator = AggregatorClientProgram::client(aggregator_id).with_env(&env).aggregator();
+        let aggregator = AggregatorClientProgram::client(aggregator_id)
+            .with_env(&env)
+            .aggregator();
 
         // Fallback wins
-        let val: u32 = aggregator.fetch_with_fallback(true).await.unwrap();
+        let val: u32 = aggregator.fetch_with_fallback(true).await.unwrap().unwrap();
         assert_eq!(val, 999);
 
         // Real value wins
-        let val: u32 = aggregator.fetch_with_fallback(false).await.unwrap();
+        let val: u32 = aggregator
+            .fetch_with_fallback(false)
+            .await
+            .unwrap()
+            .unwrap();
         assert_eq!(val, 0);
     }
 
     #[tokio::test]
     async fn fetch_fastest_works() {
         let (env, demo_id, aggregator_id) = setup().await;
-        let aggregator = AggregatorClientProgram::client(aggregator_id).with_env(&env).aggregator();
+        let aggregator = AggregatorClientProgram::client(aggregator_id)
+            .with_env(&env)
+            .aggregator();
 
-        let val: u32 = aggregator.fetch_fastest(demo_id, demo_id).await.unwrap();
+        let val: u32 = aggregator
+            .fetch_fastest(demo_id, demo_id)
+            .await
+            .unwrap()
+            .unwrap();
         assert_eq!(val, 0);
     }
 
@@ -79,41 +100,46 @@ mod tests {
     async fn redirect_on_exit_works() {
         let (env, _, aggregator_id) = setup().await;
         let system = env.system();
-        
+
         let redirect_code_id = system.submit_code(redirect_app::WASM_BINARY);
-        
-        // Deploy two Redirect programs
+
         let factory1 = env.deploy::<RedirectClientProgram>(redirect_code_id, vec![1]);
         let prog1 = factory1.new().await.unwrap();
-        
+
         let factory2 = env.deploy::<RedirectClientProgram>(redirect_code_id, vec![2]);
         let prog2 = factory2.new().await.unwrap();
 
-        // Configure first program to exit and redirect to second
         let env_next = env.clone().with_block_run_mode(BlockRunMode::Next);
         let prog1_next = RedirectClientProgram::client(prog1.id()).with_env(&env_next);
         let _ = prog1_next.redirect().exit(prog2.id()).await.unwrap();
 
-        let aggregator = AggregatorClientProgram::client(aggregator_id).with_env(&env).aggregator();
+        let aggregator = AggregatorClientProgram::client(aggregator_id)
+            .with_env(&env)
+            .aggregator();
 
-        // Aggregator calls prog1, which redirects to prog2
-        let result: ActorId = aggregator.fetch_redirect_id(prog1.id()).await.unwrap();
-        
+        let result: ActorId = aggregator
+            .fetch_redirect_id(prog1.id())
+            .await
+            .unwrap()
+            .unwrap();
+
         assert_eq!(result, prog2.id());
     }
 
     #[tokio::test]
     async fn poll_after_completion_panics() {
         let (env, _, aggregator_id) = setup().await;
-        let aggregator = AggregatorClientProgram::client(aggregator_id).with_env(&env).aggregator();
+        let aggregator = AggregatorClientProgram::client(aggregator_id)
+            .with_env(&env)
+            .aggregator();
 
         let res = aggregator.test_poll_after_completion().await;
-        
+
         match res {
             Err(GtestError::ReplyHasError(reason, payload)) => {
                 let reason_str = format!("{:?}", reason);
                 assert!(reason_str.contains("UserspacePanic"));
-                
+
                 let payload_str = String::from_utf8_lossy(&payload);
                 assert!(payload_str.contains("PendingCall polled after completion"));
             }
@@ -124,9 +150,15 @@ mod tests {
     #[tokio::test]
     async fn fetch_from_address_handles_timeout() {
         let (env, _, aggregator_id) = setup().await;
-        let aggregator = AggregatorClientProgram::client(aggregator_id).with_env(&env).aggregator();
+        let aggregator = AggregatorClientProgram::client(aggregator_id)
+            .with_env(&env)
+            .aggregator();
 
-        let res = aggregator.fetch_from_address(ActorId::zero()).await.unwrap();
+        let res = aggregator
+            .fetch_from_address(ActorId::zero())
+            .await
+            .unwrap()
+            .unwrap();
         assert!(res.is_err());
         assert!(res.unwrap_err().contains("Timeout"));
     }

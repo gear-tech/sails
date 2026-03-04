@@ -89,7 +89,7 @@ pub mod aggregator {
 
     impl sails_rs::client::Identifiable for AggregatorImpl {
         const INTERFACE_ID: sails_rs::InterfaceId =
-            sails_rs::InterfaceId::from_bytes_8([132, 221, 104, 119, 226, 67, 249, 98]);
+            sails_rs::InterfaceId::from_bytes_8([150, 144, 153, 56, 192, 153, 210, 74]);
     }
 
     impl<E: sails_rs::client::GearEnv> Aggregator for sails_rs::client::Service<AggregatorImpl, E> {
@@ -134,12 +134,12 @@ pub mod aggregator {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(FetchFastest (target1: ActorId, target2: ActorId) -> u32, 0, <super::AggregatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(FetchFastest (target1: ActorId, target2: ActorId) -> super::Result<u32, String, >, 0, <super::AggregatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
         sails_rs::io_struct_impl!(FetchFromAddress (target: ActorId) -> super::Result<u32, String, >, 1, <super::AggregatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(FetchRedirectId (target: ActorId) -> ActorId, 2, <super::AggregatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(FetchSummary () -> (u32, u32, ), 3, <super::AggregatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(FetchValue () -> u32, 4, <super::AggregatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(FetchWithFallback (use_fallback: bool) -> u32, 5, <super::AggregatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(FetchRedirectId (target: ActorId) -> super::Result<ActorId, String, >, 2, <super::AggregatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(FetchSummary () -> super::Result<(u32, u32, ), String, >, 3, <super::AggregatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(FetchValue () -> super::Result<u32, String, >, 4, <super::AggregatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(FetchWithFallback (use_fallback: bool) -> super::Result<u32, String, >, 5, <super::AggregatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
         sails_rs::io_struct_impl!(TestPollAfterCompletion () -> (), 6, <super::AggregatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 }
