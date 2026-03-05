@@ -133,12 +133,24 @@ impl<'ast> ServiceGenerator<'ast> {
 impl<'ast> Visitor<'ast> for ServiceGenerator<'ast> {
     fn visit_service_unit(&mut self, service: &'ast ast::ServiceUnit) {
         // `service`` is normalized here - funcs, events, extends are sorted
-        for (entry_id, func) in service.funcs.iter().enumerate() {
-            self.entry_ids.insert(func.name.as_str(), entry_id as u16);
+        for (idx, func) in service.funcs.iter().enumerate() {
+            let entry_id = func
+                .annotations
+                .iter()
+                .find(|(k, _)| k == "entry-id")
+                .and_then(|(_, v)| v.as_ref()?.parse::<u16>().ok())
+                .unwrap_or(idx as u16);
+            self.entry_ids.insert(func.name.as_str(), entry_id);
         }
 
         for (idx, event) in service.events.iter().enumerate() {
-            self.entry_ids.insert(event.name.as_str(), idx as u16);
+            let entry_id = event
+                .annotations
+                .iter()
+                .find(|(k, _)| k == "entry-id")
+                .and_then(|(_, v)| v.as_ref()?.parse::<u16>().ok())
+                .unwrap_or(idx as u16);
+            self.entry_ids.insert(event.name.as_str(), entry_id);
         }
 
         visitor::accept_service_unit(service, self);
