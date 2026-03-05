@@ -233,14 +233,27 @@ impl<'a> ServiceInterfaceId<'a> {
             })?;
             ext.interface_id = Some(*id);
         }
-        let id = service.interface_id().map_err(Error::Validation)?;
-        if let Some(current_id) = service.name.interface_id
-            && current_id != id
-        {
-            return Err(Error::Validation(format!(
-                "service `{name}` computed interface_id {id} is not equal to {current_id} in IDL"
-            )));
-        }
+
+        let is_partial = service.annotations.iter().any(|(k, _)| k == "partial");
+
+        let id = if is_partial {
+            service.name.interface_id.ok_or_else(|| {
+                Error::Validation(format!(
+                    "service `{name}` is marked as `@partial` but does not have an explicit `interface_id` (e.g. `service {name}@0x...`)"
+                ))
+            })?
+        } else {
+            let id = service.interface_id().map_err(Error::Validation)?;
+            if let Some(current_id) = service.name.interface_id
+                && current_id != id
+            {
+                return Err(Error::Validation(format!(
+                    "service `{name}` computed interface_id {id} is not equal to {current_id} in IDL"
+                )));
+            }
+            id
+        };
+
         service.name.interface_id = Some(id);
         self.computed.insert(name.to_string(), id);
         Ok(id)
