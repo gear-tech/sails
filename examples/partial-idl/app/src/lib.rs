@@ -12,6 +12,7 @@ pub enum PartialIdlEvents {
     ThirdDone(String),
 }
 
+#[derive(Default)]
 pub struct PartialIdlService;
 
 impl PartialIdlService {
@@ -43,6 +44,7 @@ impl PartialIdlService {
     }
 }
 
+#[derive(Default)]
 pub struct PartialIdlProgram;
 
 #[sails_rs::program]

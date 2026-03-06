@@ -227,6 +227,8 @@ Service event is represented as an enum variant with an associated payload.
 Events in `events { ... }` are modeled as `Enum Variant` describing fields of the event,
 so the same machinery as for enums can be reused.
 
+- `@entry-id: <number>` allows overriding the automatic positional index (which starts from 0 for the first member).
+
 ### Service functions
 
 Service function entry
@@ -253,6 +255,10 @@ Example of a partial IDL:
 ```js
 @partial
 service PartialService@0x1234567890abcdef {
+    events {
+        @entry-id: 2
+        SomethingHappened(String);
+    }
     functions {
         @entry-id: 5
         SomeMethod() -> bool;
