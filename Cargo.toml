@@ -40,6 +40,7 @@ members = [
     "rs/macros/core",
     "rs/reflect-hash",
     "rs/sol-gen",
+    "rs/sol-client-gen",
     "benchmarks/alloc-stress",
     "benchmarks/compute-stress",
     "benchmarks/counter-bench",
@@ -61,6 +62,7 @@ sails-macros = { path = "rs/macros" }
 sails-reflect-hash = { path = "rs/reflect-hash" }
 sails-rs = { path = "rs" }
 sails-sol-gen = { path = "rs/sol-gen" }
+sails-sol-client-gen = { path = "rs/sol-client-gen" }
 # Renamed sails-rs for `proxy` demo
 sails-rename = { package = "sails-rs", path = "rs" }
 
@@ -113,6 +115,7 @@ serde = { version = "1.0", default-features = false }
 serde-json = { package = "serde_json", version = "1.0", default-features = false }
 spin = { version = "0.10", default-features = false, features = ["spin_mutex"] }
 syn = "2.0"
+syn-solidity = "1.5"
 thiserror = { version = "2.0", default-features = false }
 toml_edit = "0.25"
 tempfile = "3.19"
@@ -124,3 +127,5 @@ trybuild = "1"
 [profile.dist]
 inherits = "release"
 lto = "thin"
+
+

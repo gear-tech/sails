@@ -1,0 +1,22 @@
+
+!@sails: 0.10.2
+
+service Svc1@0xf5e1a647def351ec {
+    functions {
+        DoThis(p1: u32, _p2: String) -> u32;
+        /// #[payable]
+        DoThisPayable(p1: u32) -> u32;
+        @query
+        This(p1: ActorId) -> ActorId;
+    }
+}
+
+program Ethapp {
+    constructors {
+        CreatePayable();
+        CreatePrg();
+    }
+    services {
+        Svc1@0xf5e1a647def351ec,
+    }
+}

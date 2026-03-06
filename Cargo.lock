@@ -7113,6 +7113,7 @@ dependencies = [
  "rustdoc-types",
  "sails-client-gen",
  "sails-client-gen-js",
+ "sails-sol-client-gen",
  "sails-sol-gen",
  "serde_json",
  "toml_edit 0.25.3+spec-1.1.0",
@@ -7284,6 +7285,18 @@ dependencies = [
  "thiserror 2.0.18",
  "tokio",
  "tokio-stream",
+]
+
+[[package]]
+name = "sails-sol-client-gen"
+version = "0.10.2"
+dependencies = [
+ "anyhow",
+ "convert_case 0.11.0",
+ "genco",
+ "insta",
+ "proc-macro2",
+ "syn-solidity",
 ]
 
 [[package]]

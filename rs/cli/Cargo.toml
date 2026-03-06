@@ -28,3 +28,4 @@ sails-client-gen-js.workspace = true
 serde-json.workspace = true
 toml_edit.workspace = true
 sails-sol-gen.workspace = true
+sails-sol-client-gen.workspace = true

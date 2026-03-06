@@ -3,8 +3,9 @@ use convert_case::{Case, Casing};
 use sails_cli::{
     idlgen::CrateIdlGenerator, program::ProgramGenerator, program_new, solgen::SolidityGenerator,
 };
-use sails_client_gen::ClientGenerator;
+use sails_client_gen::ClientGenerator as IdlClientGenerator;
 use sails_client_gen_js::JsClientGenerator;
+use sails_sol_client_gen::ClientGenerator as SolClientGenerator;
 use std::{error::Error, path::PathBuf};
 
 #[derive(Parser)]
@@ -81,6 +82,23 @@ enum SailsCommands {
         /// Derive only necessary [`parity_scale_codec::Encode`], [`parity_scale_codec::Decode`] and [`scale_info::TypeInfo`] traits for the generated types
         #[arg(long)]
         no_derive_traits: bool,
+    },
+
+    /// Generate Rust client code from Solidity source (.sol)
+    #[command(name = "client-sol-rs")]
+    ClientSolRs {
+        /// Path to the Solidity source file
+        #[arg(value_hint = clap::ValueHint::FilePath)]
+        sol_path: PathBuf,
+        /// Contract/interface name from Solidity source
+        #[arg(long, short = 'n')]
+        contract_name: Option<String>,
+        /// Path to the output Rust client file
+        #[arg(value_hint = clap::ValueHint::FilePath)]
+        out_path: Option<PathBuf>,
+        /// Generate no_std Rust client
+        #[arg(long)]
+        no_std: bool,
     },
 
     /// Generate JS client code from IDL
@@ -178,7 +196,7 @@ fn main() -> Result<(), i32> {
             external_types,
             no_derive_traits,
         } => {
-            let mut client_gen = ClientGenerator::from_idl_path(idl_path.as_ref());
+            let mut client_gen = IdlClientGenerator::from_idl_path(idl_path.as_ref());
             if let Some(mocks) = mocks.as_ref() {
                 client_gen = client_gen.with_mocks(mocks);
             }
@@ -192,6 +210,22 @@ fn main() -> Result<(), i32> {
                 client_gen = client_gen.with_no_derive_traits();
             }
             let out_path = out_path.unwrap_or_else(|| idl_path.with_extension("rs"));
+            client_gen.generate_to(out_path)
+        }
+        SailsCommands::ClientSolRs {
+            sol_path,
+            contract_name,
+            out_path,
+            no_std,
+        } => {
+            let mut client_gen = SolClientGenerator::from_sol_path(sol_path.as_ref());
+            if let Some(contract_name) = contract_name.as_ref() {
+                client_gen = client_gen.with_contract_name(contract_name);
+            }
+            if no_std {
+                client_gen = client_gen.with_no_std(true);
+            }
+            let out_path = out_path.unwrap_or_else(|| sol_path.with_extension("rs"));
             client_gen.generate_to(out_path)
         }
         SailsCommands::ClientJs { idl_path, out_path } => {
