@@ -33,6 +33,8 @@ Examples
 - `@doc: some comments` (shortcut: `///`)
 - `@indexed`
 - `@query`
+- `@partial` (used for service subset generation)
+- `@entry-id: <number>` (explicit entry identifier)
 
 ## Comments
 
@@ -225,6 +227,8 @@ Service event is represented as an enum variant with an associated payload.
 Events in `events { ... }` are modeled as `Enum Variant` describing fields of the event,
 so the same machinery as for enums can be reused.
 
+- `@entry-id: <number>` allows overriding the automatic positional index (which starts from 0 for the first member).
+
 ### Service functions
 
 Service function entry
@@ -239,7 +243,30 @@ Service function entry
 - `output` is the return type (use `PrimitiveType::Void` for `()` / no value);
 - `throws` is an optional error type after the `throws` keyword;
 - `@query` marks read-only / query functions as defined by the spec;
+- `@entry-id: <number>` allows overriding the automatic positional index (which starts from 0 for the first member);
 - may contain documentation comments and annotations.
+
+### Partial Service Subset
+
+The `@partial` annotation allows defining a subset of an original service. This is useful when generating a client for only specific methods of a large contract. When using `@partial`, the service **MUST** have an explicit `interface_id` (e.g., `service Name@0x...`).
+
+Example of a partial IDL:
+
+```js
+@partial
+service PartialService@0x1234567890abcdef {
+    events {
+        @entry-id: 2
+        SomethingHappened(String);
+    }
+    functions {
+        @entry-id: 5
+        SomeMethod() -> bool;
+    }
+}
+```
+
+In this case, the generator will use the provided `interface_id` and `entry_id: 5`, ensuring compatibility with the original contract regardless of how many other methods it has.
 
 ### Example
 

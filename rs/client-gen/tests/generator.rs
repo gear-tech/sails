@@ -66,6 +66,13 @@ fn test_external_types() {
     insta::assert_snapshot!(code);
 }
 
+#[test]
+fn test_partial_idl_with_entry_id() {
+    let idl = include_str!("idls/partial.idl");
+
+    insta::assert_snapshot!(gen_client(idl));
+}
+
 fn gen_client(program: &str) -> String {
     ClientGenerator::from_idl(program)
         .with_mocks("with_mocks")

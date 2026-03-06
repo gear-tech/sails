@@ -1,0 +1,17 @@
+@partial
+service Canvas@0x1234567890abcdef {
+  functions {
+    @entry-id: 3
+    PointStatus(point: Point) -> Option<PointStatus>;
+  }
+  types {
+    struct Point {
+        x: u32,
+        y: u32,
+    }
+    enum PointStatus {
+        Active,
+        Inactive,
+    }
+  }
+}
