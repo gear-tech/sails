@@ -5927,6 +5927,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "partial-idl-app"
+version = "0.1.0"
+dependencies = [
+ "partial-idl-client",
+ "sails-rs",
+ "tokio",
+]
+
+[[package]]
+name = "partial-idl-client"
+version = "0.1.0"
+dependencies = [
+ "partial-idl-app",
+ "sails-rs",
+]
+
+[[package]]
 name = "password-hash"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

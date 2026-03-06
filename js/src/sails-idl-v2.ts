@@ -207,9 +207,7 @@ export class SailsProgram {
     const program = this._doc.program;
     const funcs: Record<string, ISailsCtorFuncParams> = {};
 
-    for (const [idx, func] of program.ctors.entries()) {
-      const entryIdAnn = func.annotations?.find(([k]) => k === 'entry-id');
-      const entry_id = entryIdAnn ? Number(entryIdAnn[1]) : idx;
+    for (const [entry_id, func] of program.ctors.entries()) {
       const header = SailsMessageHeader.v1(InterfaceId.zero(), entry_id, 0);
       const params = func.params.map((p: IFuncParam) => ({
         name: p.name,
