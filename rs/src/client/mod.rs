@@ -532,6 +532,266 @@ macro_rules! io_struct_impl {
     };
 }
 
+#[macro_export]
+macro_rules! io_struct_sol_impl {
+    (
+        $name:ident, $entry_id:expr, $interface_id:expr, {
+            type Params = $params:ty;
+            type AbiParams = $abi_params:ty;
+            into_abi_params = |$params_value:ident| $into_abi_params_body:expr;
+            type Reply = $reply:ty;
+            type AbiReply = $abi_reply:ty;
+            from_abi_reply = |$reply_value:ident| $from_abi_reply_body:expr;
+            call = selector($signature:expr);
+            reply = $reply_kind:ident;
+        }
+    ) => {
+        pub struct $name(());
+        impl $name {
+            fn into_abi_params($params_value: &$params) -> $abi_params {
+                $into_abi_params_body
+            }
+
+            fn from_abi_reply($reply_value: $abi_reply) -> $reply {
+                $from_abi_reply_body
+            }
+
+            /// Encodes the full call using the custom Solidity ABI metadata for this IO type.
+            pub fn encode_call(
+                route_idx: u8,
+                params: &<$name as $crate::client::ServiceCall>::Params,
+            ) -> Vec<u8> {
+                <$name as $crate::client::ServiceCall>::encode_params_with_header(route_idx, params)
+            }
+
+            /// Decodes the reply using the custom Solidity ABI metadata for this IO type.
+            pub fn decode_reply(
+                route_idx: u8,
+                payload: impl AsRef<[u8]>,
+            ) -> Result<
+                <$name as $crate::client::ServiceCall>::Reply,
+                $crate::scale_codec::Error,
+            > {
+                <$name as $crate::client::ServiceCall>::decode_reply_with_header(route_idx, payload)
+            }
+        }
+        impl $crate::client::Identifiable for $name {
+            const INTERFACE_ID: $crate::meta::InterfaceId = $interface_id;
+        }
+        impl $crate::client::MethodMeta for $name {
+            const ENTRY_ID: u16 = $entry_id;
+        }
+        impl $crate::client::ServiceCall for $name {
+            type Params = $params;
+            type Reply = $reply;
+
+            fn encode_params_with_header(
+                _route_idx: u8,
+                value: &Self::Params,
+            ) -> Vec<u8> {
+                let abi_value: $abi_params = Self::into_abi_params(value);
+                $crate::io_struct_sol_impl!(@encode_call selector($signature), abi_value)
+            }
+
+            fn decode_reply_with_header(
+                _route_idx: u8,
+                payload: impl AsRef<[u8]>,
+            ) -> Result<Self::Reply, $crate::scale_codec::Error> {
+                $crate::io_struct_sol_impl!(@decode_reply $reply_kind, $abi_reply, payload, Self::from_abi_reply)
+            }
+        }
+    };
+    (
+        $name:ident, $entry_id:expr, {
+            type Params = $params:ty;
+            type AbiParams = $abi_params:ty;
+            into_abi_params = |$params_value:ident| $into_abi_params_body:expr;
+            type Reply = $reply:ty;
+            type AbiReply = $abi_reply:ty;
+            from_abi_reply = |$reply_value:ident| $from_abi_reply_body:expr;
+            call = selector($signature:expr);
+            reply = $reply_kind:ident;
+        }
+    ) => {
+        $crate::io_struct_sol_impl!(
+            $name,
+            $entry_id,
+            $crate::meta::InterfaceId::zero(),
+            {
+                type Params = $params;
+                type AbiParams = $abi_params;
+                into_abi_params = |$params_value| $into_abi_params_body;
+                type Reply = $reply;
+                type AbiReply = $abi_reply;
+                from_abi_reply = |$reply_value| $from_abi_reply_body;
+                call = selector($signature);
+                reply = $reply_kind;
+            }
+        );
+    };
+    (
+        $name:ident, $entry_id:expr, $interface_id:expr, {
+            type Params = $params:ty;
+            type AbiParams = $abi_params:ty;
+            into_abi_params = |$params_value:ident| $into_abi_params_body:expr;
+            type Reply = $reply:ty;
+            type AbiReply = $abi_reply:ty;
+            from_abi_reply = |$reply_value:ident| $from_abi_reply_body:expr;
+            call = constructor;
+            reply = $reply_kind:ident;
+        }
+    ) => {
+        pub struct $name(());
+        impl $name {
+            fn into_abi_params($params_value: &$params) -> $abi_params {
+                $into_abi_params_body
+            }
+
+            fn from_abi_reply($reply_value: $abi_reply) -> $reply {
+                $from_abi_reply_body
+            }
+
+            /// Encodes the full call using the custom Solidity ABI metadata for this IO type.
+            pub fn encode_call(
+                route_idx: u8,
+                params: &<$name as $crate::client::ServiceCall>::Params,
+            ) -> Vec<u8> {
+                <$name as $crate::client::ServiceCall>::encode_params_with_header(route_idx, params)
+            }
+
+            /// Decodes the reply using the custom Solidity ABI metadata for this IO type.
+            pub fn decode_reply(
+                route_idx: u8,
+                payload: impl AsRef<[u8]>,
+            ) -> Result<
+                <$name as $crate::client::ServiceCall>::Reply,
+                $crate::scale_codec::Error,
+            > {
+                <$name as $crate::client::ServiceCall>::decode_reply_with_header(route_idx, payload)
+            }
+        }
+        impl $crate::client::Identifiable for $name {
+            const INTERFACE_ID: $crate::meta::InterfaceId = $interface_id;
+        }
+        impl $crate::client::MethodMeta for $name {
+            const ENTRY_ID: u16 = $entry_id;
+        }
+        impl $crate::client::ServiceCall for $name {
+            type Params = $params;
+            type Reply = $reply;
+
+            fn encode_params_with_header(
+                _route_idx: u8,
+                value: &Self::Params,
+            ) -> Vec<u8> {
+                let abi_value: $abi_params = Self::into_abi_params(value);
+                $crate::io_struct_sol_impl!(@encode_call constructor, abi_value)
+            }
+
+            fn decode_reply_with_header(
+                _route_idx: u8,
+                payload: impl AsRef<[u8]>,
+            ) -> Result<Self::Reply, $crate::scale_codec::Error> {
+                $crate::io_struct_sol_impl!(@decode_reply $reply_kind, $abi_reply, payload, Self::from_abi_reply)
+            }
+        }
+    };
+    (
+        $name:ident, $entry_id:expr, {
+            type Params = $params:ty;
+            type AbiParams = $abi_params:ty;
+            into_abi_params = |$params_value:ident| $into_abi_params_body:expr;
+            type Reply = $reply:ty;
+            type AbiReply = $abi_reply:ty;
+            from_abi_reply = |$reply_value:ident| $from_abi_reply_body:expr;
+            call = constructor;
+            reply = $reply_kind:ident;
+        }
+    ) => {
+        $crate::io_struct_sol_impl!(
+            $name,
+            $entry_id,
+            $crate::meta::InterfaceId::zero(),
+            {
+                type Params = $params;
+                type AbiParams = $abi_params;
+                into_abi_params = |$params_value| $into_abi_params_body;
+                type Reply = $reply;
+                type AbiReply = $abi_reply;
+                from_abi_reply = |$reply_value| $from_abi_reply_body;
+                call = constructor;
+                reply = $reply_kind;
+            }
+        );
+    };
+    (
+        $name:ident, $entry_id:expr, $interface_id:expr, { $($service_call_body:tt)* }
+    ) => {
+        pub struct $name(());
+        impl $name {
+            /// Encodes the full call using the custom `ServiceCall` implementation for this IO type.
+            pub fn encode_call(
+                route_idx: u8,
+                params: &<$name as $crate::client::ServiceCall>::Params,
+            ) -> Vec<u8> {
+                <$name as $crate::client::ServiceCall>::encode_params_with_header(route_idx, params)
+            }
+
+            /// Decodes the reply using the custom `ServiceCall` implementation for this IO type.
+            pub fn decode_reply(
+                route_idx: u8,
+                payload: impl AsRef<[u8]>,
+            ) -> Result<
+                <$name as $crate::client::ServiceCall>::Reply,
+                $crate::scale_codec::Error,
+            > {
+                <$name as $crate::client::ServiceCall>::decode_reply_with_header(route_idx, payload)
+            }
+        }
+        impl $crate::client::Identifiable for $name {
+            const INTERFACE_ID: $crate::meta::InterfaceId = $interface_id;
+        }
+        impl $crate::client::MethodMeta for $name {
+            const ENTRY_ID: u16 = $entry_id;
+        }
+        impl $crate::client::ServiceCall for $name {
+            $($service_call_body)*
+        }
+    };
+    (
+        $name:ident, $entry_id:expr, { $($service_call_body:tt)* }
+    ) => {
+        $crate::io_struct_sol_impl!(
+            $name,
+            $entry_id,
+            $crate::meta::InterfaceId::zero(),
+            { $($service_call_body)* }
+        );
+    };
+    (@encode_call selector($signature:expr), $abi_value:ident) => {{
+        let selector = $crate::solidity::selector($signature);
+        let encoded_args = $crate::alloy_sol_types::SolValue::abi_encode_sequence(&$abi_value);
+        [selector.as_slice(), encoded_args.as_slice()].concat()
+    }};
+    (@encode_call constructor, $abi_value:ident) => {{
+        $crate::alloy_sol_types::SolValue::abi_encode_sequence(&$abi_value)
+    }};
+    (@decode_reply unit, $abi_reply:ty, $payload:ident, $from_abi_reply:path) => {{
+        let _ = $payload;
+        Ok($from_abi_reply(()))
+    }};
+    (@decode_reply value, $abi_reply:ty, $payload:ident, $from_abi_reply:path) => {{
+        <$abi_reply as $crate::alloy_sol_types::SolValue>::abi_decode($payload.as_ref())
+            .map($from_abi_reply)
+            .map_err(|_| "Failed to ABI decode Solidity reply".into())
+    }};
+    (@decode_reply sequence, $abi_reply:ty, $payload:ident, $from_abi_reply:path) => {{
+        <$abi_reply as $crate::alloy_sol_types::SolValue>::abi_decode_sequence($payload.as_ref())
+            .map($from_abi_reply)
+            .map_err(|_| "Failed to ABI decode Solidity reply".into())
+    }};
+}
+
 #[allow(unused_macros)]
 macro_rules! str_scale_encode {
     ($s:ident) => {{
@@ -652,6 +912,17 @@ mod tests {
     io_struct_impl!(Add (value: u32) -> u32, 0, InterfaceId::from_bytes_8([1, 2, 3, 4, 5, 6, 7, 8]));
     // Define Value with 2-arg macro (Ctor/Legacy mode)
     io_struct_impl!(Value () -> u32, 1);
+    #[cfg(feature = "ethexe")]
+    io_struct_sol_impl!(SolAdd, 7, InterfaceId::from_bytes_8([8, 7, 6, 5, 4, 3, 2, 1]), {
+        type Params = (Vec<u8>,);
+        type AbiParams = (Vec<u8>,);
+        into_abi_params = |value| value.clone();
+        type Reply = Vec<u8>;
+        type AbiReply = Vec<u8>;
+        from_abi_reply = |value| value;
+        call = selector("add(bytes)");
+        reply = value;
+    });
 
     #[test]
     fn test_io_struct_impl() {
@@ -700,5 +971,27 @@ mod tests {
         value_reply.extend_from_slice(&[123, 0, 0, 0]); // payload 123u32
         let decoded_value = Value::decode_reply(0, &value_reply).unwrap();
         assert_eq!(decoded_value, 123);
+    }
+
+    #[cfg(feature = "ethexe")]
+    #[test]
+    fn test_io_struct_sol_impl() {
+        let payload = SolAdd::encode_call(3, &(b"abc".to_vec(),));
+        let expected = [
+            crate::solidity::selector("add(bytes)").as_slice(),
+            crate::alloy_sol_types::SolValue::abi_encode_sequence(&(b"abc".to_vec(),)).as_slice(),
+        ]
+        .concat();
+        assert_eq!(payload, expected);
+
+        let decoded =
+            SolAdd::decode_reply(3, crate::alloy_sol_types::SolValue::abi_encode(&b"reply".to_vec()))
+                .unwrap();
+        assert_eq!(decoded, b"reply".to_vec());
+        assert_eq!(
+            SolAdd::INTERFACE_ID,
+            InterfaceId::from_bytes_8([8, 7, 6, 5, 4, 3, 2, 1])
+        );
+        assert_eq!(SolAdd::ENTRY_ID, 7);
     }
 }
