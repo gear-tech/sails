@@ -16,9 +16,6 @@ futures = { workspace = true }
 [build-dependencies]
 sails-rs = { workspace = true, features = ["wasm-builder"] }
 
-[features]
-poll = ["sails-rs/poll"]
-
 [dev-dependencies]
 demo = { path = "../../demo/app" }
 redirect-app = { path = "../../redirect/app" }
