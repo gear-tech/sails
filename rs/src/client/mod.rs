@@ -913,16 +913,21 @@ mod tests {
     // Define Value with 2-arg macro (Ctor/Legacy mode)
     io_struct_impl!(Value () -> u32, 1);
     #[cfg(feature = "ethexe")]
-    io_struct_sol_impl!(SolAdd, 7, InterfaceId::from_bytes_8([8, 7, 6, 5, 4, 3, 2, 1]), {
-        type Params = (Vec<u8>,);
-        type AbiParams = (Vec<u8>,);
-        into_abi_params = |value| value.clone();
-        type Reply = Vec<u8>;
-        type AbiReply = Vec<u8>;
-        from_abi_reply = |value| value;
-        call = selector("add(bytes)");
-        reply = value;
-    });
+    io_struct_sol_impl!(
+        SolAdd,
+        7,
+        InterfaceId::from_bytes_8([8, 7, 6, 5, 4, 3, 2, 1]),
+        {
+            type Params = (Vec<u8>,);
+            type AbiParams = (Vec<u8>,);
+            into_abi_params = |value| value.clone();
+            type Reply = Vec<u8>;
+            type AbiReply = Vec<u8>;
+            from_abi_reply = |value| value;
+            call = selector("add(bytes)");
+            reply = value;
+        }
+    );
 
     #[test]
     fn test_io_struct_impl() {
@@ -984,9 +989,11 @@ mod tests {
         .concat();
         assert_eq!(payload, expected);
 
-        let decoded =
-            SolAdd::decode_reply(3, crate::alloy_sol_types::SolValue::abi_encode(&b"reply".to_vec()))
-                .unwrap();
+        let decoded = SolAdd::decode_reply(
+            3,
+            crate::alloy_sol_types::SolValue::abi_encode(&b"reply".to_vec()),
+        )
+        .unwrap();
         assert_eq!(decoded, b"reply".to_vec());
         assert_eq!(
             SolAdd::INTERFACE_ID,

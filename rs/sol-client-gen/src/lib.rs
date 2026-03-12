@@ -45,7 +45,9 @@ impl<'a> ClientGenerator<'a, SolPath<'a>> {
 
     pub fn generate_to(self, out_path: impl AsRef<Path>) -> Result<()> {
         let out_path = out_path.as_ref();
-        let code = self.generate().context("failed to generate Solidity client")?;
+        let code = self
+            .generate()
+            .context("failed to generate Solidity client")?;
         fs::write(out_path, code)
             .with_context(|| format!("Failed to write generated client to {}", out_path.display()))
     }
@@ -76,7 +78,9 @@ impl<'a> ClientGenerator<'a, SolString<'a>> {
 
     pub fn generate_to(self, out_path: impl AsRef<Path>) -> Result<()> {
         let out_path = out_path.as_ref();
-        let code = self.generate().context("failed to generate Solidity client")?;
+        let code = self
+            .generate()
+            .context("failed to generate Solidity client")?;
         fs::write(out_path, code)
             .with_context(|| format!("Failed to write generated client to {}", out_path.display()))
     }
@@ -132,7 +136,7 @@ fn parse_contract(source: &str, wanted_contract_name: Option<&str>) -> Result<Co
     let selected = if let Some(name) = wanted_contract_name {
         contracts
             .iter()
-            .find(|c| c.name.to_string() == name)
+            .find(|c| c.name == name)
             .copied()
             .ok_or_else(|| {
                 let names = contracts
@@ -150,7 +154,9 @@ fn parse_contract(source: &str, wanted_contract_name: Option<&str>) -> Result<Co
             .map(|c| c.name.to_string())
             .collect::<Vec<_>>()
             .join(", ");
-        bail!("Multiple contracts/interfaces found. Please set `contract_name`. Available: {names}");
+        bail!(
+            "Multiple contracts/interfaces found. Please set `contract_name`. Available: {names}"
+        );
     };
 
     let mut constructor = None;
@@ -190,11 +196,16 @@ fn parse_contract(source: &str, wanted_contract_name: Option<&str>) -> Result<Co
                 let signature = format!(
                     "{}({})",
                     name,
-                    function.parameters.type_strings().collect::<Vec<_>>().join(",")
+                    function
+                        .parameters
+                        .type_strings()
+                        .collect::<Vec<_>>()
+                        .join(",")
                 );
                 let method_name = name.to_case(Case::Snake);
                 let io_name = name.to_case(Case::Pascal);
-                let signature_const = format!("{}_SIGNATURE", method_name.to_case(Case::UpperSnake));
+                let signature_const =
+                    format!("{}_SIGNATURE", method_name.to_case(Case::UpperSnake));
 
                 functions.push(FunctionSpec {
                     signature,
@@ -223,7 +234,7 @@ fn parse_contract(source: &str, wanted_contract_name: Option<&str>) -> Result<Co
     }
 
     Ok(ContractSpec {
-        rust_name: selected.name.to_string().to_case(Case::Pascal),
+        rust_name: selected.name.as_string().to_case(Case::Pascal),
         constructor,
         functions,
     })
@@ -326,8 +337,8 @@ fn generate_client_code(spec: &ContractSpec, with_no_std: bool) -> String {
         let function_param_types = param_types(&func.io.params);
         let params_type =
             rust_tuple_type(&function_param_types).expect("supported function params");
-        let abi_params_type = rust_abi_tuple_type(&function_param_types)
-            .expect("supported function abi params");
+        let abi_params_type =
+            rust_abi_tuple_type(&function_param_types).expect("supported function abi params");
         let abi_params_type_for_into = abi_params_type.clone();
         let reply_type = rust_reply_type(&func.io.returns).expect("supported function reply");
         let abi_reply_type =
@@ -339,10 +350,12 @@ fn generate_client_code(spec: &ContractSpec, with_no_std: bool) -> String {
             "value.clone()".to_string()
         };
         let decode_reply_kind = reply_decode_kind(&func.io.returns);
-        let from_abi_reply_expr = from_reply_expr(&func.io.returns).expect("supported function reply");
+        let from_abi_reply_expr =
+            from_reply_expr(&func.io.returns).expect("supported function reply");
         let method_args_signature =
             method_args_signature(&func.io.params).expect("supported function arg signature");
-        let method_args_tuple = args_tuple_expr(&func.io.params).expect("supported function arg tuple");
+        let method_args_tuple =
+            args_tuple_expr(&func.io.params).expect("supported function arg tuple");
 
         quote_in! { tokens =>
             sails_rs::io_struct_sol_impl!($io_name, $entry_id, {
@@ -376,14 +389,19 @@ fn generate_client_code(spec: &ContractSpec, with_no_std: bool) -> String {
         };
     }
 
-    let mut output = tokens.to_file_string().expect("Failed to emit generated tokens");
+    let mut output = tokens
+        .to_file_string()
+        .expect("Failed to emit generated tokens");
     if with_no_std {
         output.insert_str(
             0,
             "// Code generated by sails-sol-client-gen. DO NOT EDIT.\n#![no_std]\n\n",
         );
     } else {
-        output.insert_str(0, "// Code generated by sails-sol-client-gen. DO NOT EDIT.\n");
+        output.insert_str(
+            0,
+            "// Code generated by sails-sol-client-gen. DO NOT EDIT.\n",
+        );
     }
     output
 }
@@ -406,7 +424,9 @@ fn pretty_with_rustfmt(code: &str) -> String {
         .write_all(code.as_bytes())
         .expect("Failed to write to rustfmt");
 
-    let output = child.wait_with_output().expect("Failed to wait for rustfmt");
+    let output = child
+        .wait_with_output()
+        .expect("Failed to wait for rustfmt");
 
     if !output.status.success() {
         panic!(
@@ -423,7 +443,10 @@ fn extract_params(
     parameters: &syn_solidity::ParameterList,
     reserved_names: &[&str],
 ) -> Result<Vec<ParamSpec>> {
-    let mut used_names: HashSet<String> = reserved_names.iter().map(|name| (*name).to_string()).collect();
+    let mut used_names: HashSet<String> = reserved_names
+        .iter()
+        .map(|name| (*name).to_string())
+        .collect();
 
     parameters
         .types_and_names()
@@ -463,9 +486,9 @@ fn normalize_param_name(name: Option<&syn_solidity::SolIdent>, index: usize) -> 
     };
 
     match normalized.as_str() {
-        "self" | "crate" | "super" | "Self" | "fn" | "move" | "type" | "where" | "use"
-        | "pub" | "mod" | "enum" | "struct" | "trait" | "impl" | "let" | "match" | "loop"
-        | "for" | "while" | "async" | "await" | "dyn" => format!("r#{normalized}"),
+        "self" | "crate" | "super" | "Self" | "fn" | "move" | "type" | "where" | "use" | "pub"
+        | "mod" | "enum" | "struct" | "trait" | "impl" | "let" | "match" | "loop" | "for"
+        | "while" | "async" | "await" | "dyn" => format!("r#{normalized}"),
         _ => normalized,
     }
 }
@@ -475,8 +498,16 @@ fn collapse_digit_boundaries(input: &str) -> String {
     let mut chars = input.chars().peekable();
     while let Some(ch) = chars.next() {
         if ch == '_'
-            && result.chars().last().map(|c| c.is_ascii_alphanumeric()).unwrap_or(false)
-            && chars.peek().copied().map(|c| c.is_ascii_digit()).unwrap_or(false)
+            && result
+                .chars()
+                .last()
+                .map(|c| c.is_ascii_alphanumeric())
+                .unwrap_or(false)
+            && chars
+                .peek()
+                .copied()
+                .map(|c| c.is_ascii_digit())
+                .unwrap_or(false)
         {
             continue;
         }
@@ -528,11 +559,11 @@ fn args_tuple_expr(params: &[ParamSpec]) -> Result<String> {
 }
 
 fn rust_tuple_type(types: &[syn_solidity::Type]) -> Result<String> {
-    Ok(tuple_type(types, rust_public_type)?)
+    tuple_type(types, rust_public_type)
 }
 
 fn rust_abi_tuple_type(types: &[syn_solidity::Type]) -> Result<String> {
-    Ok(tuple_type(types, rust_abi_type)?)
+    tuple_type(types, rust_abi_type)
 }
 
 fn rust_reply_type(types: &[syn_solidity::Type]) -> Result<String> {
@@ -584,7 +615,9 @@ fn rust_public_type(ty: &syn_solidity::Type) -> Result<String> {
             32 => "i32".to_string(),
             64 => "i64".to_string(),
             128 => "i128".to_string(),
-            bits => bail!("Unsupported signed Solidity integer type `int{bits}` for generated client"),
+            bits => {
+                bail!("Unsupported signed Solidity integer type `int{bits}` for generated client")
+            }
         }),
         syn_solidity::Type::Array(array) => {
             let inner = rust_public_type(&array.ty)?;
@@ -593,11 +626,14 @@ fn rust_public_type(ty: &syn_solidity::Type) -> Result<String> {
                 None => format!("sails_rs::prelude::Vec<{inner}>"),
             })
         }
-        syn_solidity::Type::Tuple(tuple) => tuple_type(&tuple.types.iter().cloned().collect::<Vec<_>>(), rust_public_type),
-        syn_solidity::Type::Custom(_) => Ok("sails_rs::ActorId".to_string()),
-        syn_solidity::Type::Function(_) | syn_solidity::Type::Mapping(_) => bail!(
-            "Unsupported Solidity type `{ty}` in generated client"
+        syn_solidity::Type::Tuple(tuple) => tuple_type(
+            &tuple.types.iter().cloned().collect::<Vec<_>>(),
+            rust_public_type,
         ),
+        syn_solidity::Type::Custom(_) => Ok("sails_rs::ActorId".to_string()),
+        syn_solidity::Type::Function(_) | syn_solidity::Type::Mapping(_) => {
+            bail!("Unsupported Solidity type `{ty}` in generated client")
+        }
     }
 }
 
@@ -622,7 +658,9 @@ fn rust_abi_type(ty: &syn_solidity::Type) -> Result<String> {
             32 => "i32".to_string(),
             64 => "i64".to_string(),
             128 => "i128".to_string(),
-            bits => bail!("Unsupported signed Solidity integer type `int{bits}` for generated client"),
+            bits => {
+                bail!("Unsupported signed Solidity integer type `int{bits}` for generated client")
+            }
         }),
         syn_solidity::Type::Array(array) => {
             let inner = rust_abi_type(&array.ty)?;
@@ -631,11 +669,14 @@ fn rust_abi_type(ty: &syn_solidity::Type) -> Result<String> {
                 None => format!("sails_rs::prelude::Vec<{inner}>"),
             })
         }
-        syn_solidity::Type::Tuple(tuple) => tuple_type(&tuple.types.iter().cloned().collect::<Vec<_>>(), rust_abi_type),
-        syn_solidity::Type::Custom(_) => Ok("sails_rs::ActorId".to_string()),
-        syn_solidity::Type::Function(_) | syn_solidity::Type::Mapping(_) => bail!(
-            "Unsupported Solidity type `{ty}` in generated client"
+        syn_solidity::Type::Tuple(tuple) => tuple_type(
+            &tuple.types.iter().cloned().collect::<Vec<_>>(),
+            rust_abi_type,
         ),
+        syn_solidity::Type::Custom(_) => Ok("sails_rs::ActorId".to_string()),
+        syn_solidity::Type::Function(_) | syn_solidity::Type::Mapping(_) => {
+            bail!("Unsupported Solidity type `{ty}` in generated client")
+        }
     }
 }
 
@@ -645,7 +686,9 @@ fn needs_abi_conversion_for_tuple(types: &[syn_solidity::Type]) -> bool {
 
 fn needs_abi_conversion(ty: &syn_solidity::Type) -> bool {
     match ty {
-        syn_solidity::Type::Uint(_, size) => !matches!(size.map(|s| s.get()).unwrap_or(256), 8 | 16 | 32 | 64 | 128),
+        syn_solidity::Type::Uint(_, size) => {
+            !matches!(size.map(|s| s.get()).unwrap_or(256), 8 | 16 | 32 | 64 | 128)
+        }
         syn_solidity::Type::Array(array) => needs_abi_conversion(&array.ty),
         syn_solidity::Type::Tuple(tuple) => tuple.types.iter().any(needs_abi_conversion),
         _ => false,
@@ -695,10 +738,14 @@ fn borrowed_to_abi_expr(ty: &syn_solidity::Type, value_expr: &str) -> Result<Str
         }
         syn_solidity::Type::Tuple(tuple) => Ok(format!(
             "({})",
-            tuple.types
+            tuple
+                .types
                 .iter()
                 .enumerate()
-                .map(|(index, inner)| borrowed_to_abi_expr(inner, &format!("&{value_expr}.{index}")))
+                .map(|(index, inner)| borrowed_to_abi_expr(
+                    inner,
+                    &format!("&{value_expr}.{index}")
+                ))
                 .collect::<Result<Vec<_>>>()?
                 .join(", ")
         )),
@@ -726,7 +773,10 @@ fn from_abi_expr(ty: &syn_solidity::Type, value_expr: &str) -> Result<String> {
             })
         }
         syn_solidity::Type::Tuple(tuple) => Ok(match tuple.types.len() {
-            1 => format!("({},)", from_abi_expr(&tuple.types[0], &format!("{value_expr}.0"))?),
+            1 => format!(
+                "({},)",
+                from_abi_expr(&tuple.types[0], &format!("{value_expr}.0"))?
+            ),
             _ => format!(
                 "({})",
                 tuple
@@ -761,7 +811,9 @@ fn from_reply_expr(types: &[syn_solidity::Type]) -> Result<String> {
             }
         }
         _ => {
-            let tuple_ty = syn_solidity::Type::Tuple(syn_solidity::TypeTuple::from_iter(types.iter().cloned()));
+            let tuple_ty = syn_solidity::Type::Tuple(syn_solidity::TypeTuple::from_iter(
+                types.iter().cloned(),
+            ));
             if needs_abi_conversion(&tuple_ty) {
                 from_abi_expr(&tuple_ty, "value")
             } else {
