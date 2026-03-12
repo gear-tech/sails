@@ -112,7 +112,7 @@ impl<T: ServiceCall> PendingCall<T, GclientEnv> {
             query_calculate_reply(&self.env.api, self.destination, payload, params).await?;
 
         // Decode reply
-        T::decode_reply_with_header(self.route_idx, reply_bytes)
+        T::decode_reply(self.route_idx, reply_bytes)
             .map_err(|err| gclient::Error::Codec(err).into())
     }
 }
@@ -136,7 +136,7 @@ impl<T: ServiceCall> Future for PendingCall<T, GclientEnv> {
             .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
         // Poll message future
         match ready!(message_future.poll(cx)) {
-            Ok((_, payload)) => match T::decode_reply_with_header(self.route_idx, payload) {
+            Ok((_, payload)) => match T::decode_reply(self.route_idx, payload) {
                 Ok(decoded) => Poll::Ready(Ok(decoded)),
                 Err(err) => Poll::Ready(Err(gclient::Error::Codec(err).into())),
             },
@@ -157,7 +157,7 @@ impl<A, T: ServiceCall> Future for PendingCtor<A, T, GclientEnv> {
                 .args
                 .take()
                 .unwrap_or_else(|| panic!("{PENDING_CTOR_INVALID_STATE}"));
-            let payload = T::encode_params_with_header(0, &args);
+            let payload = T::encode_call(0, &args);
 
             let create_program_future =
                 create_program(self.env.api.clone(), self.code_id, salt, payload, params);

@@ -183,7 +183,7 @@ impl<S, E: GearEnv> Service<S, E> {
         &self,
         payload: impl AsRef<[u8]>,
     ) -> Result<T::Reply, parity_scale_codec::Error> {
-        T::decode_reply_with_header(self.route_idx, payload)
+        T::decode_reply(self.route_idx, payload)
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -293,7 +293,7 @@ impl<T: ServiceCall, E: GearEnv> PendingCall<T, E> {
             .args
             .take()
             .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
-        let payload = T::encode_params_with_header(self.route_idx, &args);
+        let payload = T::encode_call(self.route_idx, &args);
         let params = self.params.take().unwrap_or_default();
         (payload, params)
     }
@@ -334,10 +334,27 @@ impl<A, T: ServiceCall, E: GearEnv> PendingCtor<A, T, E> {
 }
 
 pub trait ServiceCall: MethodMeta {
-    type Params: Encode;
-    type Reply: Decode + 'static;
+    type Params;
+    type Reply: 'static;
 
-    fn encode_params_with_header(route_idx: u8, value: &Self::Params) -> Vec<u8> {
+    fn encode_call(route_idx: u8, value: &Self::Params) -> Vec<u8>;
+
+    fn decode_reply(
+        route_idx: u8,
+        payload: impl AsRef<[u8]>,
+    ) -> Result<Self::Reply, parity_scale_codec::Error>;
+
+    fn is_empty_tuple<T: 'static>() -> bool {
+        TypeId::of::<T>() == TypeId::of::<()>()
+    }
+}
+
+pub trait ScaleServiceCall: ServiceCall
+where
+    Self::Params: Encode,
+    Self::Reply: Decode + 'static,
+{
+    fn encode_scale_params_with_header(route_idx: u8, value: &Self::Params) -> Vec<u8> {
         let header = SailsMessageHeader::new(
             crate::meta::Version::v1(),
             crate::meta::HeaderLength::new(crate::meta::MINIMAL_HLEN).unwrap(),
@@ -350,7 +367,7 @@ pub trait ServiceCall: MethodMeta {
         result
     }
 
-    fn decode_reply_with_header(
+    fn decode_scale_reply_with_header(
         route_idx: u8,
         payload: impl AsRef<[u8]>,
     ) -> Result<Self::Reply, parity_scale_codec::Error> {
@@ -401,10 +418,15 @@ pub trait ServiceCall: MethodMeta {
             buffer_writer.with_buffer(f)
         })
     }
+}
 
-    fn is_empty_tuple<T: 'static>() -> bool {
-        TypeId::of::<T>() == TypeId::of::<()>()
-    }
+pub trait SolServiceCall: ServiceCall {
+    fn encode_sol_params_with_header(route_idx: u8, value: &Self::Params) -> Vec<u8>;
+
+    fn decode_sol_reply_with_header(
+        route_idx: u8,
+        payload: impl AsRef<[u8]>,
+    ) -> Result<Self::Reply, parity_scale_codec::Error>;
 }
 
 #[macro_export]
@@ -507,11 +529,11 @@ macro_rules! io_struct_impl {
         impl $name {
             /// Encodes the full call with the correct Sails header (Interface ID + Route Index + Entry ID).
             pub fn encode_call(route_idx: u8, $( $param: $ty, )* ) -> Vec<u8> {
-                <$name as ServiceCall>::encode_params_with_header(route_idx, &( $( $param, )* ))
+                <$name as ServiceCall>::encode_call(route_idx, &( $( $param, )* ))
             }
             /// Decodes the reply checking against the correct Sails header (Interface ID + Route Index + Entry ID).
             pub fn decode_reply(route_idx: u8, payload: impl AsRef<[u8]>) -> Result<$reply, $crate::scale_codec::Error> {
-                <$name as ServiceCall>::decode_reply_with_header(route_idx, payload)
+                <$name as ServiceCall>::decode_reply(route_idx, payload)
             }
         }
         impl Identifiable for $name {
@@ -523,7 +545,19 @@ macro_rules! io_struct_impl {
         impl ServiceCall for $name {
             type Params = ( $( $ty, )* );
             type Reply = $reply;
+
+            fn encode_call(route_idx: u8, value: &Self::Params) -> Vec<u8> {
+                <Self as $crate::client::ScaleServiceCall>::encode_scale_params_with_header(route_idx, value)
+            }
+
+            fn decode_reply(
+                route_idx: u8,
+                payload: impl AsRef<[u8]>,
+            ) -> Result<Self::Reply, $crate::scale_codec::Error> {
+                <Self as $crate::client::ScaleServiceCall>::decode_scale_reply_with_header(route_idx, payload)
+            }
         }
+        impl $crate::client::ScaleServiceCall for $name {}
     };
     (
         $name:ident ( $( $param:ident : $ty:ty ),* ) -> $reply:ty, $entry_id:expr
@@ -561,7 +595,7 @@ macro_rules! io_struct_sol_impl {
                 route_idx: u8,
                 params: &<$name as $crate::client::ServiceCall>::Params,
             ) -> Vec<u8> {
-                <$name as $crate::client::ServiceCall>::encode_params_with_header(route_idx, params)
+                <$name as $crate::client::ServiceCall>::encode_call(route_idx, params)
             }
 
             /// Decodes the reply using the custom Solidity ABI metadata for this IO type.
@@ -572,7 +606,7 @@ macro_rules! io_struct_sol_impl {
                 <$name as $crate::client::ServiceCall>::Reply,
                 $crate::scale_codec::Error,
             > {
-                <$name as $crate::client::ServiceCall>::decode_reply_with_header(route_idx, payload)
+                <$name as $crate::client::ServiceCall>::decode_reply(route_idx, payload)
             }
         }
         impl $crate::client::Identifiable for $name {
@@ -585,7 +619,28 @@ macro_rules! io_struct_sol_impl {
             type Params = $params;
             type Reply = $reply;
 
-            fn encode_params_with_header(
+            fn encode_call(
+                _route_idx: u8,
+                value: &Self::Params,
+            ) -> Vec<u8> {
+                <Self as $crate::client::SolServiceCall>::encode_sol_params_with_header(
+                    _route_idx,
+                    value,
+                )
+            }
+
+            fn decode_reply(
+                _route_idx: u8,
+                payload: impl AsRef<[u8]>,
+            ) -> Result<Self::Reply, $crate::scale_codec::Error> {
+                <Self as $crate::client::SolServiceCall>::decode_sol_reply_with_header(
+                    _route_idx,
+                    payload,
+                )
+            }
+        }
+        impl $crate::client::SolServiceCall for $name {
+            fn encode_sol_params_with_header(
                 _route_idx: u8,
                 value: &Self::Params,
             ) -> Vec<u8> {
@@ -593,7 +648,7 @@ macro_rules! io_struct_sol_impl {
                 $crate::io_struct_sol_impl!(@encode_call selector($signature), abi_value)
             }
 
-            fn decode_reply_with_header(
+            fn decode_sol_reply_with_header(
                 _route_idx: u8,
                 payload: impl AsRef<[u8]>,
             ) -> Result<Self::Reply, $crate::scale_codec::Error> {
@@ -656,7 +711,7 @@ macro_rules! io_struct_sol_impl {
                 route_idx: u8,
                 params: &<$name as $crate::client::ServiceCall>::Params,
             ) -> Vec<u8> {
-                <$name as $crate::client::ServiceCall>::encode_params_with_header(route_idx, params)
+                <$name as $crate::client::ServiceCall>::encode_call(route_idx, params)
             }
 
             /// Decodes the reply using the custom Solidity ABI metadata for this IO type.
@@ -667,7 +722,7 @@ macro_rules! io_struct_sol_impl {
                 <$name as $crate::client::ServiceCall>::Reply,
                 $crate::scale_codec::Error,
             > {
-                <$name as $crate::client::ServiceCall>::decode_reply_with_header(route_idx, payload)
+                <$name as $crate::client::ServiceCall>::decode_reply(route_idx, payload)
             }
         }
         impl $crate::client::Identifiable for $name {
@@ -680,7 +735,28 @@ macro_rules! io_struct_sol_impl {
             type Params = $params;
             type Reply = $reply;
 
-            fn encode_params_with_header(
+            fn encode_call(
+                _route_idx: u8,
+                value: &Self::Params,
+            ) -> Vec<u8> {
+                <Self as $crate::client::SolServiceCall>::encode_sol_params_with_header(
+                    _route_idx,
+                    value,
+                )
+            }
+
+            fn decode_reply(
+                _route_idx: u8,
+                payload: impl AsRef<[u8]>,
+            ) -> Result<Self::Reply, $crate::scale_codec::Error> {
+                <Self as $crate::client::SolServiceCall>::decode_sol_reply_with_header(
+                    _route_idx,
+                    payload,
+                )
+            }
+        }
+        impl $crate::client::SolServiceCall for $name {
+            fn encode_sol_params_with_header(
                 _route_idx: u8,
                 value: &Self::Params,
             ) -> Vec<u8> {
@@ -688,7 +764,7 @@ macro_rules! io_struct_sol_impl {
                 $crate::io_struct_sol_impl!(@encode_call constructor, abi_value)
             }
 
-            fn decode_reply_with_header(
+            fn decode_sol_reply_with_header(
                 _route_idx: u8,
                 payload: impl AsRef<[u8]>,
             ) -> Result<Self::Reply, $crate::scale_codec::Error> {
@@ -734,7 +810,7 @@ macro_rules! io_struct_sol_impl {
                 route_idx: u8,
                 params: &<$name as $crate::client::ServiceCall>::Params,
             ) -> Vec<u8> {
-                <$name as $crate::client::ServiceCall>::encode_params_with_header(route_idx, params)
+                <$name as $crate::client::ServiceCall>::encode_call(route_idx, params)
             }
 
             /// Decodes the reply using the custom `ServiceCall` implementation for this IO type.
@@ -745,7 +821,7 @@ macro_rules! io_struct_sol_impl {
                 <$name as $crate::client::ServiceCall>::Reply,
                 $crate::scale_codec::Error,
             > {
-                <$name as $crate::client::ServiceCall>::decode_reply_with_header(route_idx, payload)
+                <$name as $crate::client::ServiceCall>::decode_reply(route_idx, payload)
             }
         }
         impl $crate::client::Identifiable for $name {

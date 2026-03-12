@@ -190,7 +190,7 @@ const _: () = {
                     .args
                     .as_ref()
                     .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
-                let payload = T::encode_params_with_header(self.route_idx, &args);
+                let payload = T::encode_call(self.route_idx, &args);
                 let destination = self.destination;
                 let params = self.params.get_or_insert_default();
                 // Send message
@@ -211,8 +211,7 @@ const _: () = {
             match output {
                 // ok reply
                 Ok(payload) => {
-                    let res = T::decode_reply_with_header(self.route_idx, payload)
-                        .map_err(Error::Decode)?;
+                    let res = T::decode_reply(self.route_idx, payload).map_err(Error::Decode)?;
                     Poll::Ready(Ok(res))
                 }
                 // reply with ProgramExited
@@ -277,7 +276,7 @@ const _: () = {
                     .args
                     .as_ref()
                     .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
-                let payload = T::encode_params_with_header(0, args);
+                let payload = T::encode_call(0, args);
                 // Send message
                 #[cfg(not(feature = "ethexe"))]
                 let future = if let Some(gas_limit) = params.gas_limit {
@@ -349,8 +348,10 @@ pin_project_lite::pin_project! {
 
 #[cfg(not(target_arch = "wasm32"))]
 const _: () = {
-    impl<T: ServiceCall> PendingCall<T, GstdEnv>
+    impl<T> PendingCall<T, GstdEnv>
     where
+        T: ScaleServiceCall,
+        T::Params: Encode,
         T::Reply: Encode + Decode,
     {
         pub fn from_output(output: T::Reply) -> Self {
@@ -373,16 +374,23 @@ const _: () = {
         }
     }
 
-    impl<T: ServiceCall<Reply = O>, O> From<O> for PendingCall<T, GstdEnv>
+    impl<T, O> From<O> for PendingCall<T, GstdEnv>
     where
-        O: Encode + Decode,
+        T: ScaleServiceCall<Reply = O>,
+        T::Params: Encode,
+        O: Encode + Decode + 'static,
     {
         fn from(value: O) -> Self {
             PendingCall::from_output(value)
         }
     }
 
-    impl<T: ServiceCall> Future for PendingCall<T, GstdEnv> {
+    impl<T> Future for PendingCall<T, GstdEnv>
+    where
+        T: ScaleServiceCall,
+        T::Params: Encode,
+        T::Reply: Decode,
+    {
         type Output = Result<T::Reply, <GstdEnv as GearEnv>::Error>;
 
         fn poll(mut self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {
