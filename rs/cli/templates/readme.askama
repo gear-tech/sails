@@ -25,4 +25,3 @@ cargo test --release
 # License
 
 The source code is licensed under the [MIT license](LICENSE).
-

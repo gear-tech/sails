@@ -6,6 +6,7 @@ use sails_rs::{cell::RefCell, prelude::*};
 mod chaos;
 mod counter;
 mod dog;
+mod inheritance;
 mod mammal;
 mod ping;
 mod references;
@@ -97,6 +98,10 @@ impl DemoProgram {
     pub fn chaos(&self) -> chaos::ChaosService {
         chaos::ChaosService
     }
+
+    pub fn chain(&self) -> inheritance::ChainService {
+        inheritance::ChainService::new(dog::DogService::new(walker::WalkerService::new(dog_data())))
+    }
 }
 
 #[cfg(test)]
@@ -120,7 +125,7 @@ mod tests {
         let (data, value) = service_exposure.do_something_and_take_fee().to_tuple();
 
         // Assert
-        assert_eq!("ValueFee".encode().as_slice(), service_exposure.route());
+        assert_eq!(6, service_exposure.route_idx());
         assert!(data);
         assert_eq!(value, message_value - 10_000_000_000_000);
 
@@ -133,7 +138,7 @@ mod tests {
         let data = service_exposure.add(10);
 
         // Assert
-        assert_eq!("Counter".encode().as_slice(), service_exposure.route());
+        assert_eq!(2, service_exposure.route_idx());
         assert_eq!(52, data);
         let events = emitter.take_events();
         assert_eq!(events.len(), 1);

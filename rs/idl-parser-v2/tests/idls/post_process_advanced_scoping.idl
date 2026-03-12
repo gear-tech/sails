@@ -1,0 +1,35 @@
+program ScopingProgram {
+    types {
+        // This is like a type from the crate root
+        struct RootType { val: u32 }
+    }
+    constructors { New(); }
+    services {
+        ServiceA: ServiceA,
+        ServiceX: ServiceX
+    }
+}
+
+// This is like `mod A`
+service ServiceA {
+    types {
+        struct TypeA {
+            // Valid: uses a type from the "parent" program scope
+            root: RootType, 
+        }
+    }
+    functions {
+        // Invalid: Tries to use a type from a sibling service `ServiceX`
+        Func1(p1: TypeX) -> TypeA; 
+    }
+}
+
+// This is like the independent `mod X`
+service ServiceX {
+    types {
+        struct TypeX { val: bool }
+    }
+    functions {
+        Func2(p1: TypeX) -> u32; // Valid
+    }
+}

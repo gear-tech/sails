@@ -2,7 +2,7 @@ use core::marker::PhantomData;
 use sails_rs::prelude::*;
 
 #[derive(Default)]
-pub(super) struct MyServiceWithTraitBounds<'a, T> {
+pub(super) struct MyServiceWithTraitBounds<'a, T = u32> {
     _a: PhantomData<&'a T>,
 }
 

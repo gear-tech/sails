@@ -17,7 +17,7 @@ async fn do_something_works() {
     system.mint_to(ACTOR_ID, 100_000_000_000_000);
     // Submit program code into the system
     let program_code_id = system.submit_code({{ program_crate_name }}::WASM_BINARY);
-    
+
     // Create Sails Env
     let env = GtestEnv::new(system, ACTOR_ID.into());
 

@@ -1,24 +1,18 @@
-use alloc_stress::AllocStressProgram;
-use compute_stress::ComputeStressProgram;
 use convert_case::{Case, Casing};
-use counter_bench::CounterBenchProgram;
+use sails_client_gen::ClientGenerator;
 use std::{env, path::PathBuf};
 
-macro_rules! build_client {
-    ($program:ty, $clients_path:expr, $idls_path:expr) => {
-        let program_name = stringify!($program).to_case(Case::Snake);
-        let client_path = $clients_path
-            .clone()
-            .join(&program_name)
-            .with_extension("rs");
-        let idl_path = $idls_path.clone().join(&program_name).with_extension("idl");
-        sails_rs::ClientBuilder::<$program>::empty(program_name)
-            .with_idl_path(idl_path)
-            .with_client_path(client_path)
-            .build_idl()
-            .generate()
-            .unwrap();
-    };
+fn generate_client(
+    program_name_str: &str,
+    clients_path: &std::path::Path,
+    idls_path: &std::path::Path,
+) {
+    let program_name = program_name_str.to_case(Case::Snake);
+    let client_path = clients_path.join(&program_name).with_extension("rs");
+    let idl_path = idls_path.join(&program_name).with_extension("idl");
+    ClientGenerator::from_idl_path(&idl_path)
+        .generate_to(client_path)
+        .unwrap();
 }
 
 fn main() {
@@ -26,12 +20,7 @@ fn main() {
     let clients_path = PathBuf::from(&manifest_dir).join("src");
     let idls_path = PathBuf::from(&manifest_dir).join("idls");
 
-    // Generate IDL file for the `AllocStress` app and client code from IDL file
-    build_client!(AllocStressProgram, clients_path, idls_path);
-
-    // Generate IDL file for the `ComputeStress` app and client code from IDL file
-    build_client!(ComputeStressProgram, clients_path, idls_path);
-
-    // Generate IDL file for the `CounterBench` app and client code from IDL file
-    build_client!(CounterBenchProgram, clients_path, idls_path);
+    generate_client("alloc_stress_program", &clients_path, &idls_path);
+    generate_client("compute_stress_program", &clients_path, &idls_path);
+    generate_client("counter_bench_program", &clients_path, &idls_path);
 }

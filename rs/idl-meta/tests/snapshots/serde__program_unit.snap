@@ -1,0 +1,111 @@
+---
+source: rs/idl-meta/tests/serde.rs
+expression: serialized
+---
+{
+  "name": "Demo",
+  "ctors": [
+    {
+      "name": "Create",
+      "params": [
+        {
+          "name": "counter",
+          "type": {
+            "kind": "named",
+            "name": "Option",
+            "generics": [
+              "u32"
+            ]
+          }
+        },
+        {
+          "name": "dog_position",
+          "type": {
+            "kind": "named",
+            "name": "Option",
+            "generics": [
+              {
+                "kind": "tuple",
+                "types": [
+                  "i32",
+                  "i32"
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "docs": [
+        "Program constructor (called once at the very beginning of the program lifetime)"
+      ]
+    },
+    {
+      "name": "Default",
+      "params": [],
+      "docs": [
+        "Another program constructor",
+        "(called once at the very beginning of the program lifetime)"
+      ]
+    }
+  ],
+  "services": [
+    {
+      "name": "Ping",
+      "route_idx": 1
+    },
+    {
+      "name": "Counter",
+      "interface_id": "0x579d6daba41b7d82",
+      "route_idx": 2
+    },
+    {
+      "name": "Counter",
+      "interface_id": "0x579d6daba41b7d82",
+      "route": "Counter2",
+      "route_idx": 3,
+      "docs": [
+        "Another Counter service"
+      ]
+    }
+  ],
+  "types": [
+    {
+      "name": "DoThatParam",
+      "kind": "struct",
+      "fields": [
+        {
+          "name": "p1",
+          "type": "u32"
+        },
+        {
+          "name": "p2",
+          "type": "ActorId"
+        },
+        {
+          "name": "p3",
+          "type": {
+            "kind": "named",
+            "name": "ManyVariants"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TupleStruct",
+      "kind": "struct",
+      "fields": [
+        {
+          "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "UnitStruct",
+      "kind": "struct",
+      "fields": []
+    }
+  ],
+  "docs": [
+    "Demo Program"
+  ]
+}

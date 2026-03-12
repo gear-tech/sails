@@ -1,0 +1,6 @@
+@partial
+service Canvas {
+  functions {
+    PointStatus() -> bool;
+  }
+}

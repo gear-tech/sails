@@ -43,7 +43,7 @@ impl GstdParams {
     }
 }
 
-impl<T: CallCodec> PendingCall<T, GstdEnv> {
+impl<T: ServiceCall> PendingCall<T, GstdEnv> {
     /// Set `redirect_on_exit` flag to `true``
     ///
     /// This flag is used to redirect a message to a new program when the target program exits
@@ -103,7 +103,7 @@ impl GstdEnv {
     }
 }
 
-impl<T: CallCodec> PendingCall<T, GstdEnv> {
+impl<T: ServiceCall> PendingCall<T, GstdEnv> {
     pub fn send_one_way(&mut self) -> Result<MessageId, Error> {
         let (payload, params) = self.take_encoded_args_and_params();
         self.env.send_one_way(self.destination, payload, params)
@@ -181,7 +181,26 @@ const _: () = {
         }
     }
 
-    impl<T: CallCodec> Future for PendingCall<T, GstdEnv> {
+    impl<T: ServiceCall> PendingCall<T, GstdEnv> {
+        /// Sends the message and returns the `PendingCall` for subsequent `poll`/`await`.
+        pub fn send_for_reply(mut self) -> Result<Self, Error> {
+            if self.state.is_some() {
+                panic!("{PENDING_CALL_INVALID_STATE}");
+            }
+            let args = self
+                .args
+                .take()
+                .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
+            let payload = T::encode_params_with_header(self.route_idx, &args);
+            let params = self.params.get_or_insert_default();
+            let destination = self.destination;
+            let future = send_for_reply(destination, payload, params)?;
+            self.state = Some(future);
+            Ok(self)
+        }
+    }
+
+    impl<T: ServiceCall> Future for PendingCall<T, GstdEnv> {
         type Output = Result<T::Reply, <GstdEnv as GearEnv>::Error>;
 
         fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -190,7 +209,7 @@ const _: () = {
                     .args
                     .as_ref()
                     .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
-                let payload = T::encode_params_with_prefix(self.route, &args);
+                let payload = T::encode_params_with_header(self.route_idx, &args);
                 let destination = self.destination;
                 let params = self.params.get_or_insert_default();
                 // Send message
@@ -211,8 +230,8 @@ const _: () = {
             match output {
                 // ok reply
                 Ok(payload) => {
-                    let res =
-                        T::decode_reply_with_prefix(self.route, payload).map_err(Error::Decode)?;
+                    let res = T::decode_reply_with_header(self.route_idx, payload)
+                        .map_err(Error::Decode)?;
                     Poll::Ready(Ok(res))
                 }
                 // reply with ProgramExited
@@ -264,7 +283,7 @@ const _: () = {
         }
     }
 
-    impl<A, T: CallCodec> Future for PendingCtor<A, T, GstdEnv> {
+    impl<A, T: ServiceCall> Future for PendingCtor<A, T, GstdEnv> {
         type Output = Result<Actor<A, GstdEnv>, <GstdEnv as GearEnv>::Error>;
 
         fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -277,7 +296,7 @@ const _: () = {
                     .args
                     .as_ref()
                     .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
-                let payload = T::encode_params(args);
+                let payload = T::encode_params_with_header(0, args);
                 // Send message
                 #[cfg(not(feature = "ethexe"))]
                 let future = if let Some(gas_limit) = params.gas_limit {
@@ -313,7 +332,7 @@ const _: () = {
             }
             let this = self.as_mut().project();
             // SAFETY: checked in the code above.
-            let mut state = unsafe { this.state.as_pin_mut().unwrap_unchecked() };
+            let state = unsafe { this.state.as_pin_mut().unwrap_unchecked() };
             if let Projection::CreateProgram { future } = state.project() {
                 // Poll create program future
                 match ready!(future.poll(cx)) {
@@ -349,7 +368,7 @@ pin_project_lite::pin_project! {
 
 #[cfg(not(target_arch = "wasm32"))]
 const _: () = {
-    impl<T: CallCodec> PendingCall<T, GstdEnv>
+    impl<T: ServiceCall> PendingCall<T, GstdEnv>
     where
         T::Reply: Encode + Decode,
     {
@@ -365,15 +384,25 @@ const _: () = {
             PendingCall {
                 env: GstdEnv,
                 destination: ActorId::zero(),
-                route: "",
+                route_idx: 0,
                 params: None,
                 args: None,
                 state: Some(future::ready(res.map(|v| v.encode()))),
             }
         }
+
+        /// Sends the message and returns the `PendingCall` for subsequent `poll`/`await`.
+        pub fn send_for_reply(mut self) -> Result<Self, Error> {
+            let _ = self
+                .args
+                .take()
+                .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
+            let _ = self.send_one_way()?;
+            Ok(self)
+        }
     }
 
-    impl<T: CallCodec<Reply = O>, O> From<O> for PendingCall<T, GstdEnv>
+    impl<T: ServiceCall<Reply = O>, O> From<O> for PendingCall<T, GstdEnv>
     where
         O: Encode + Decode,
     {
@@ -382,7 +411,7 @@ const _: () = {
         }
     }
 
-    impl<T: CallCodec> Future for PendingCall<T, GstdEnv> {
+    impl<T: ServiceCall> Future for PendingCall<T, GstdEnv> {
         type Output = Result<T::Reply, <GstdEnv as GearEnv>::Error>;
 
         fn poll(mut self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -396,7 +425,7 @@ const _: () = {
         }
     }
 
-    impl<A, T: CallCodec> Future for PendingCtor<A, T, GstdEnv> {
+    impl<A, T: ServiceCall> Future for PendingCtor<A, T, GstdEnv> {
         type Output = Result<Actor<A, GstdEnv>, <GstdEnv as GearEnv>::Error>;
 
         fn poll(mut self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {

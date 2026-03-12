@@ -2,24 +2,37 @@
 source: ethapp_with_events/tests/insta.rs
 expression: idl
 ---
-constructor {
-  Create : ();
-};
 
-service Svc1 {
-  DoThis : (p1: u32, p2: str) -> u32;
-  query This : (p1: bool) -> bool;
+!@sails: 0.10.2
 
-  events {
-    DoThisEvent: struct {
-      /// Some u32 value
-      /// #[indexed]
-      p1: u32,
-      p2: str,
-    };
-  }
-};
+service Svc1@0x349b842b767fb2ab {
+    events {
+        DoThisEvent {
+            /// Some u32 value
+            /// #[indexed]
+            p1: u32,
+            p2: String,
+        },
+    }
+    functions {
+        DoThis(p1: u32, p2: String) -> u32;
+        @query
+        This(p1: bool) -> bool;
+    }
+}
 
-service Svc2 {
-  DoThis : (p1: u32, p2: str) -> u32;
-};
+service Svc2@0xc7f3ccbc102da928 {
+    functions {
+        DoThis(p1: u32, p2: String) -> u32;
+    }
+}
+
+program MyProgram {
+    constructors {
+        Create();
+    }
+    services {
+        Svc1@0x349b842b767fb2ab,
+        Svc2@0xc7f3ccbc102da928,
+    }
+}

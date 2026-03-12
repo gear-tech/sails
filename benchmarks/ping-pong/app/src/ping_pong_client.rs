@@ -3,6 +3,10 @@
 use sails_rs::{client::*, collections::*, prelude::*};
 pub struct PingPongProgram;
 
+impl PingPongProgram {
+    pub const ROUTE_ID_PING_PONG_SERVICE: u8 = 1;
+}
+
 impl sails_rs::client::Program for PingPongProgram {}
 
 pub trait PingPong {
@@ -17,10 +21,9 @@ impl<E: sails_rs::client::GearEnv> PingPong for sails_rs::client::Actor<PingPong
     fn ping_pong_service(
         &self,
     ) -> sails_rs::client::Service<ping_pong_service::PingPongServiceImpl, Self::Env> {
-        self.service(stringify!(PingPongService))
+        self.service(PingPongProgram::ROUTE_ID_PING_PONG_SERVICE)
     }
 }
-
 pub trait PingPongCtors {
     type Env: sails_rs::client::GearEnv;
     fn new_for_bench(
@@ -41,11 +44,22 @@ impl<E: sails_rs::client::GearEnv> PingPongCtors
 
 pub mod io {
     use super::*;
-    sails_rs::io_struct_impl!(NewForBench () -> ());
+    sails_rs::io_struct_impl!(NewForBench () -> (), 0);
 }
 
 pub mod ping_pong_service {
     use super::*;
+
+    #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
+    #[codec(crate = sails_rs::scale_codec)]
+    #[scale_info(crate = sails_rs::scale_info)]
+    #[reflect_hash(crate = sails_rs)]
+    pub enum PingPongPayload {
+        Start(ActorId),
+        Ping,
+        Pong,
+        Finished,
+    }
 
     pub trait PingPongService {
         type Env: sails_rs::client::GearEnv;
@@ -56,6 +70,11 @@ pub mod ping_pong_service {
     }
 
     pub struct PingPongServiceImpl;
+
+    impl sails_rs::client::Identifiable for PingPongServiceImpl {
+        const INTERFACE_ID: sails_rs::InterfaceId =
+            sails_rs::InterfaceId::from_bytes_8([106, 114, 150, 138, 76, 98, 231, 215]);
+    }
 
     impl<E: sails_rs::client::GearEnv> PingPongService
         for sails_rs::client::Service<PingPongServiceImpl, E>
@@ -71,15 +90,6 @@ pub mod ping_pong_service {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(Ping (payload: super::PingPongPayload) -> super::PingPongPayload);
+        sails_rs::io_struct_impl!(Ping (payload: super::PingPongPayload) -> super::PingPongPayload, 0, <super::PingPongServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
-}
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
-#[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
-pub enum PingPongPayload {
-    Start(ActorId),
-    Ping,
-    Pong,
-    Finished,
 }

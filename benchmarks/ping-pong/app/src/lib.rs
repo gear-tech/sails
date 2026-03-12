@@ -7,9 +7,10 @@ pub mod client {
 use client::{PingPong as _, ping_pong_service::PingPongService as _};
 use sails_rs::{client::*, prelude::*};
 
-#[derive(Debug, Clone, Copy, Decode, Encode, TypeInfo)]
+#[derive(Debug, Clone, Copy, Decode, Encode, TypeInfo, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
+#[reflect_hash(crate = sails_rs)]
 pub enum PingPongPayload {
     Start(ActorId),
     Ping,
@@ -27,13 +28,13 @@ impl PingPongService {
             PingPongPayload::Start(actor_id) => {
                 let mut api = client::PingPongProgram::client(actor_id).ping_pong_service();
                 let result = api
-                    .ping(client::PingPongPayload::Ping)
+                    .ping(client::ping_pong_service::PingPongPayload::Ping)
                     .await
                     .unwrap_or_else(|e| {
                         panic!("Failed to receiving successful ping result: {e:?}")
                     });
 
-                if matches!(result, client::PingPongPayload::Pong) {
+                if matches!(result, client::ping_pong_service::PingPongPayload::Pong) {
                     PingPongPayload::Finished
                 } else {
                     panic!("Unexpected payload received: {result:?}")

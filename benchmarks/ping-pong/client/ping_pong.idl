@@ -1,15 +1,25 @@
-type PingPongPayload = enum {
-  Start: actor_id,
-  Ping,
-  Pong,
-  Finished,
-};
 
-constructor {
-  NewForBench : ();
-};
+!@sails: 0.10.2
 
-service PingPongService {
-  Ping : (payload: PingPongPayload) -> PingPongPayload;
-};
+service PingPongService@0x6a72968a4c62e7d7 {
+    functions {
+        Ping(payload: PingPongPayload) -> PingPongPayload;
+    }
+    types {
+        enum PingPongPayload {
+            Start(ActorId),
+            Ping,
+            Pong,
+            Finished,
+        }
+    }
+}
 
+program PingPong {
+    constructors {
+        NewForBench();
+    }
+    services {
+        PingPongService@0x6a72968a4c62e7d7,
+    }
+}

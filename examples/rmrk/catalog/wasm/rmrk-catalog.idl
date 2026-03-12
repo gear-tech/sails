@@ -1,50 +1,59 @@
-type Error = enum {
-  PartIdCantBeZero,
-  BadConfig,
-  PartAlreadyExists,
-  ZeroLengthPassed,
-  PartDoesNotExist,
-  WrongPartFormat,
-  NotAllowedToCall,
-};
 
-type Part = enum {
-  Fixed: FixedPart,
-  Slot: SlotPart,
-};
+!@sails: 0.10.2
 
-type FixedPart = struct {
-  /// An optional zIndex of base part layer.
-  /// specifies the stack order of an element.
-  /// An element with greater stack order is always in front of an element with a lower stack order.
-  z: opt u32,
-  /// The metadata URI of the part.
-  metadata_uri: str,
-};
+service RmrkCatalog@0xb810a541ab5d5389 {
+    functions {
+        AddEquippables(part_id: u32, collection_ids: [ActorId]) -> Result<(u32, [ActorId]), Error>;
+        AddParts(parts: [(u32, Part)]) -> Result<[(u32, Part)], Error>;
+        @query
+        Equippable(part_id: u32, collection_id: ActorId) -> Result<bool, Error>;
+        @query
+        Part(part_id: u32) -> Option<Part>;
+        RemoveEquippable(part_id: u32, collection_id: ActorId) -> Result<(u32, ActorId), Error>;
+        RemoveParts(part_ids: [u32]) -> Result<[u32], Error>;
+        ResetEquippables(part_id: u32) -> Result<(), Error>;
+        SetEquippablesToAll(part_id: u32) -> Result<(), Error>;
+    }
+    types {
+        enum Error {
+            PartIdCantBeZero,
+            BadConfig,
+            PartAlreadyExists,
+            ZeroLengthPassed,
+            PartDoesNotExist,
+            WrongPartFormat,
+            NotAllowedToCall,
+        }
+        struct FixedPart {
+            /// An optional zIndex of base part layer.
+            /// specifies the stack order of an element.
+            /// An element with greater stack order is always in front of an element with a lower stack order.
+            z: Option<u32>,
+            /// The metadata URI of the part.
+            metadata_uri: String,
+        }
+        enum Part {
+            Fixed(FixedPart),
+            Slot(SlotPart),
+        }
+        struct SlotPart {
+            /// Array of whitelisted collections that can be equipped in the given slot. Used with slot parts only.
+            equippable: [ActorId],
+            /// An optional zIndex of base part layer.
+            /// specifies the stack order of an element.
+            /// An element with greater stack order is always in front of an element with a lower stack order.
+            z: Option<u32>,
+            /// The metadata URI of the part.
+            metadata_uri: String,
+        }
+    }
+}
 
-type SlotPart = struct {
-  /// Array of whitelisted collections that can be equipped in the given slot. Used with slot parts only.
-  equippable: vec actor_id,
-  /// An optional zIndex of base part layer.
-  /// specifies the stack order of an element.
-  /// An element with greater stack order is always in front of an element with a lower stack order.
-  z: opt u32,
-  /// The metadata URI of the part.
-  metadata_uri: str,
-};
-
-constructor {
-  New : ();
-};
-
-service RmrkCatalog {
-  AddEquippables : (part_id: u32, collection_ids: vec actor_id) -> result (struct { u32, vec actor_id }, Error);
-  AddParts : (parts: map (u32, Part)) -> result (map (u32, Part), Error);
-  RemoveEquippable : (part_id: u32, collection_id: actor_id) -> result (struct { u32, actor_id }, Error);
-  RemoveParts : (part_ids: vec u32) -> result (vec u32, Error);
-  ResetEquippables : (part_id: u32) -> result (null, Error);
-  SetEquippablesToAll : (part_id: u32) -> result (null, Error);
-  query Equippable : (part_id: u32, collection_id: actor_id) -> result (bool, Error);
-  query Part : (part_id: u32) -> opt Part;
-};
-
+program RmrkCatalog {
+    constructors {
+        New();
+    }
+    services {
+        RmrkCatalog@0xb810a541ab5d5389,
+    }
+}
