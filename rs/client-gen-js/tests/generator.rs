@@ -20,3 +20,13 @@ fn test_type_naming_parity_generation() {
 
     assert_snapshot!("type_naming_parity_generation", generated);
 }
+
+#[test]
+fn test_partial_idl_generation() {
+    let idl = include_str!("idls/partial.idl");
+    let generated = JsClientGenerator::from_idl(idl)
+        .generate()
+        .expect("generate ts client");
+
+    assert_snapshot!("partial_idl_generation", generated);
+}

@@ -371,7 +371,9 @@ export class SailsService implements ISailsService {
     const funcs: Record<string, SailsServiceFunc> = {};
     const queries: Record<string, SailsServiceQuery> = {};
 
-    for (const [entry_id, func] of service.funcs.entries()) {
+    for (const [idx, func] of service.funcs.entries()) {
+      const entryIdAnn = func.annotations?.find(([k]) => k === 'entry-id');
+      const entry_id = entryIdAnn ? Number(entryIdAnn[1]) : idx;
       const header = SailsMessageHeader.v1(InterfaceId.from(service.interface_id), entry_id, this.routeIdx);
       const params: ISailsFuncArg[] = func.params.map((p: IFuncParam) => ({
         name: p.name,
@@ -462,7 +464,9 @@ export class SailsService implements ISailsService {
     const events: Record<string, ISailsServiceEvent> = {};
     const interfaceIdu64: bigint = InterfaceId.from(service.interface_id).asU64();
 
-    for (const [entryId, event] of service.events.entries()) {
+    for (const [idx, event] of service.events.entries()) {
+      const entryIdAnn = event.annotations?.find(([k]) => k === 'entry-id');
+      const entryId = entryIdAnn ? Number(entryIdAnn[1]) : idx;
       const t = event.fields?.length ? this._typeResolver.getStructDef(event.fields) : 'Null';
       const typeStr = event.fields?.length ? this._typeResolver.getStructDef(event.fields, {}, true) : 'Null';
       events[event.name] = {

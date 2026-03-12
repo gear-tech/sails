@@ -41,17 +41,25 @@ impl<'a> ServiceGenerator<'a> {
         let hex_string = &js::import("@gear-js/api", "HexString");
         let type_resolver = &js::import("sails-js", "TypeResolver");
 
-        let func_tokens = service
-            .funcs
-            .iter()
-            .enumerate()
-            .map(|(entry_id, func)| self.render_func(func, entry_id as u16));
+        let func_tokens = service.funcs.iter().enumerate().map(|(idx, func)| {
+            let entry_id = func
+                .annotations
+                .iter()
+                .find(|(k, _)| k == "entry-id")
+                .and_then(|(_, v)| v.as_ref()?.parse::<u16>().ok())
+                .unwrap_or(idx as u16);
+            self.render_func(func, entry_id)
+        });
 
-        let event_tokens = service
-            .events
-            .iter()
-            .enumerate()
-            .map(|(entry_id, event)| self.render_event(event, entry_id as u16));
+        let event_tokens = service.events.iter().enumerate().map(|(idx, event)| {
+            let entry_id = event
+                .annotations
+                .iter()
+                .find(|(k, _)| k == "entry-id")
+                .and_then(|(_, v)| v.as_ref()?.parse::<u16>().ok())
+                .unwrap_or(idx as u16);
+            self.render_event(event, entry_id)
+        });
 
         let extend_tokens = service.extends.iter().map(|base| {
             let base_class_name = base.name.clone();

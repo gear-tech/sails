@@ -1,0 +1,15 @@
+@partial
+service PartialService@0x1234567890abcdef {
+  functions {
+    @entry-id: 5
+    First() -> bool;
+    @entry-id: 0
+    Second() -> u32;
+  }
+}
+
+program PartialProgram {
+  services {
+    PartialService
+  }
+}
