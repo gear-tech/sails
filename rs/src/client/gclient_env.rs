@@ -3,6 +3,7 @@ use ::gclient::gear::runtime_types::pallet_gear_voucher::internal::VoucherId;
 use ::gclient::{EventListener, EventProcessor as _, GearApi};
 use core::task::ready;
 use futures::{Stream, StreamExt, stream};
+pub use gear_core_errors::{ErrorReplyReason, SimpleExecutionError};
 
 #[derive(Debug, thiserror::Error)]
 pub enum GclientError {
@@ -108,12 +109,24 @@ impl<T: ServiceCall> PendingCall<T, GclientEnv> {
         let (payload, params) = self.take_encoded_args_and_params();
 
         // Calculate reply
-        let reply_bytes =
-            query_calculate_reply(&self.env.api, self.destination, payload, params).await?;
-
-        // Decode reply
-        T::decode_reply_with_header(self.route_idx, reply_bytes)
-            .map_err(|err| gclient::Error::Codec(err).into())
+        match query_calculate_reply(&self.env.api, self.destination, payload, params).await {
+            Ok(reply_bytes) => match T::decode_reply_with_header(self.route_idx, reply_bytes) {
+                Ok(decoded) => Ok(decoded),
+                Err(err) => Err(gclient::Error::Codec(err).into()),
+            },
+            Err(GclientError::ReplyHasError(reason, payload)) => {
+                if matches!(
+                    reason,
+                    ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic)
+                ) && let Ok(decoded) = T::decode_error_with_header(self.route_idx, &payload)
+                {
+                    Ok(decoded)
+                } else {
+                    Err(GclientError::ReplyHasError(reason, payload))
+                }
+            }
+            Err(err) => Err(err),
+        }
     }
 }
 
@@ -140,13 +153,24 @@ impl<T: ServiceCall> Future for PendingCall<T, GclientEnv> {
                 Ok(decoded) => Poll::Ready(Ok(decoded)),
                 Err(err) => Poll::Ready(Err(gclient::Error::Codec(err).into())),
             },
+            Err(GclientError::ReplyHasError(reason, payload)) => {
+                if matches!(
+                    reason,
+                    ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic)
+                ) && let Ok(decoded) = T::decode_error_with_header(self.route_idx, &payload)
+                {
+                    Poll::Ready(Ok(decoded))
+                } else {
+                    Poll::Ready(Err(GclientError::ReplyHasError(reason, payload)))
+                }
+            }
             Err(err) => Poll::Ready(Err(err)),
         }
     }
 }
 
-impl<A, T: ServiceCall> Future for PendingCtor<A, T, GclientEnv> {
-    type Output = Result<Actor<A, GclientEnv>, <GclientEnv as GearEnv>::Error>;
+impl<A: 'static, T: ServiceCall> Future for PendingCtor<A, T, GclientEnv> {
+    type Output = Result<A, <GclientEnv as GearEnv>::Error>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         if self.state.is_none() {
@@ -171,9 +195,26 @@ impl<A, T: ServiceCall> Future for PendingCtor<A, T, GclientEnv> {
             .unwrap_or_else(|| panic!("{PENDING_CTOR_INVALID_STATE}"));
         // Poll message future
         match ready!(message_future.poll(cx)) {
-            Ok((program_id, _)) => {
-                // Do not decode payload here
-                Poll::Ready(Ok(Actor::new(this.env.clone(), program_id)))
+            Ok((program_id, payload)) => {
+                let reply = T::decode_reply_with_header(0, payload)
+                    .map_err(|err| GclientError::Env(gclient::Error::Codec(err)))?;
+                Poll::Ready(Ok((this.mapper)(this.env.clone(), program_id, reply)))
+            }
+            Err(GclientError::ReplyHasError(reason, payload)) => {
+                if matches!(
+                    reason,
+                    ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic)
+                ) {
+                    let biz_err = T::decode_error_with_header(0, payload.as_slice())
+                        .map_err(|err| GclientError::Env(gclient::Error::Codec(err)))?;
+                    Poll::Ready(Ok((this.mapper)(
+                        this.env.clone(),
+                        ActorId::zero(),
+                        biz_err,
+                    )))
+                } else {
+                    Poll::Ready(Err(GclientError::ReplyHasError(reason, payload)))
+                }
             }
             Err(err) => Poll::Ready(Err(err)),
         }

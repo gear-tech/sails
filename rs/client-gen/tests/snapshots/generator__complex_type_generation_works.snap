@@ -44,23 +44,35 @@ impl<E: sails_rs::client::GearEnv> ComplexTypesProgram
 }
 pub trait ComplexTypesProgramCtors {
     type Env: sails_rs::client::GearEnv;
+    #[allow(clippy::type_complexity)]
     fn new_program(
         self,
         initial_count: u32,
         id_prefix: String,
-    ) -> sails_rs::client::PendingCtor<ComplexTypesProgramProgram, io::NewProgram, Self::Env>;
+    ) -> sails_rs::client::PendingCtor<
+        sails_rs::client::Actor<ComplexTypesProgramProgram, Self::Env>,
+        io::NewProgram,
+        Self::Env,
+    >;
 }
 
 impl<E: sails_rs::client::GearEnv> ComplexTypesProgramCtors
     for sails_rs::client::Deployment<ComplexTypesProgramProgram, E>
 {
     type Env = E;
+    #[allow(clippy::type_complexity)]
     fn new_program(
         self,
         initial_count: u32,
         id_prefix: String,
-    ) -> sails_rs::client::PendingCtor<ComplexTypesProgramProgram, io::NewProgram, Self::Env> {
-        self.pending_ctor((initial_count, id_prefix))
+    ) -> sails_rs::client::PendingCtor<
+        sails_rs::client::Actor<ComplexTypesProgramProgram, Self::Env>,
+        io::NewProgram,
+        Self::Env,
+    > {
+        self.pending_ctor((initial_count, id_prefix), |env, id, _| {
+            sails_rs::client::Actor::new(env, id)
+        })
     }
 }
 

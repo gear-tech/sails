@@ -187,6 +187,11 @@ pub struct CtorFunc {
     pub params: Vec<FuncParam>,
     #[cfg_attr(
         feature = "serde",
+        serde(default, skip_serializing_if = "Option::is_none")
+    )]
+    pub throws: Option<TypeDecl>,
+    #[cfg_attr(
+        feature = "serde",
         serde(default, skip_serializing_if = "Vec::is_empty")
     )]
     pub docs: Vec<String>,

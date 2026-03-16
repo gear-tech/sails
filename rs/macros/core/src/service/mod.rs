@@ -228,12 +228,25 @@ impl FnBuilder<'_> {
         } else {
             None
         };
-        quote!(
-            #( #handler_docs_attrs )*
-            #payable_doc
-            #returns_value_doc
-            #handler_route_ident(#params_struct_ident, #result_type)
-        )
+
+        if self.unwrap_result
+            && let Some(err_ty) = &self.error_type
+        {
+            let err_ty = shared::replace_any_lifetime_with_static(err_ty.clone());
+            quote!(
+                #( #handler_docs_attrs )*
+                #payable_doc
+                #returns_value_doc
+                #handler_route_ident(#params_struct_ident, #result_type, #err_ty)
+            )
+        } else {
+            quote!(
+                #( #handler_docs_attrs )*
+                #payable_doc
+                #returns_value_doc
+                #handler_route_ident(#params_struct_ident, #result_type)
+            )
+        }
     }
 
     fn params_struct(

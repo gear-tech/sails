@@ -131,6 +131,23 @@ service ValueFee@0x41c1080b4e1e8dc5 {
     }
 }
 
+service Validator@0x4e78bafffdb4fb1c {
+    functions {
+        @query
+        TotalErrors() -> u32;
+        @query
+        ValidateEven(value: u32) -> u32 throws ();
+        ValidateNonzero(value: u32) throws String;
+        ValidateRange(value: u32, min: u32, max: u32) -> u32 throws ValidationError;
+    }
+    types {
+        enum ValidationError {
+            TooSmall,
+            TooBig,
+        }
+    }
+}
+
 service Chaos@0xf0c8c80dfabf72d5 {
     functions {
         @query
@@ -157,6 +174,7 @@ program DemoClient {
         Default();
         /// Another program constructor (called once at the very beginning of the program lifetime)
         New(counter: Option<u32>, dog_position: Option<(i32, i32)>);
+        NewWithError(value: u32) throws String;
     }
     services {
         PingPong@0x6d0eb40dde4038f7,
@@ -165,6 +183,7 @@ program DemoClient {
         References@0xdac2abd57442a5fa,
         ThisThat@0x381e13fdd02d675f,
         ValueFee@0x41c1080b4e1e8dc5,
+        Validator@0x4e78bafffdb4fb1c,
         Chaos@0xf0c8c80dfabf72d5,
         Chain@0x01fcbe183e2199b0,
     }

@@ -26,21 +26,33 @@ pub trait AggregatorClientCtors {
     type Env: sails_rs::client::GearEnv;
     #[allow(clippy::new_ret_no_self)]
     #[allow(clippy::wrong_self_convention)]
+    #[allow(clippy::type_complexity)]
     fn new(
         self,
         target: ActorId,
-    ) -> sails_rs::client::PendingCtor<AggregatorClientProgram, io::New, Self::Env>;
+    ) -> sails_rs::client::PendingCtor<
+        sails_rs::client::Actor<AggregatorClientProgram, Self::Env>,
+        io::New,
+        Self::Env,
+    >;
 }
 
 impl<E: sails_rs::client::GearEnv> AggregatorClientCtors
     for sails_rs::client::Deployment<AggregatorClientProgram, E>
 {
     type Env = E;
+    #[allow(clippy::type_complexity)]
     fn new(
         self,
         target: ActorId,
-    ) -> sails_rs::client::PendingCtor<AggregatorClientProgram, io::New, Self::Env> {
-        self.pending_ctor((target,))
+    ) -> sails_rs::client::PendingCtor<
+        sails_rs::client::Actor<AggregatorClientProgram, Self::Env>,
+        io::New,
+        Self::Env,
+    > {
+        self.pending_ctor((target,), |env, id, _| {
+            sails_rs::client::Actor::new(env, id)
+        })
     }
 }
 

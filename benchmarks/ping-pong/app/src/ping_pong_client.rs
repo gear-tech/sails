@@ -26,19 +26,29 @@ impl<E: sails_rs::client::GearEnv> PingPong for sails_rs::client::Actor<PingPong
 }
 pub trait PingPongCtors {
     type Env: sails_rs::client::GearEnv;
+    #[allow(clippy::type_complexity)]
     fn new_for_bench(
         self,
-    ) -> sails_rs::client::PendingCtor<PingPongProgram, io::NewForBench, Self::Env>;
+    ) -> sails_rs::client::PendingCtor<
+        sails_rs::client::Actor<PingPongProgram, Self::Env>,
+        io::NewForBench,
+        Self::Env,
+    >;
 }
 
 impl<E: sails_rs::client::GearEnv> PingPongCtors
     for sails_rs::client::Deployment<PingPongProgram, E>
 {
     type Env = E;
+    #[allow(clippy::type_complexity)]
     fn new_for_bench(
         self,
-    ) -> sails_rs::client::PendingCtor<PingPongProgram, io::NewForBench, Self::Env> {
-        self.pending_ctor(())
+    ) -> sails_rs::client::PendingCtor<
+        sails_rs::client::Actor<PingPongProgram, Self::Env>,
+        io::NewForBench,
+        Self::Env,
+    > {
+        self.pending_ctor((), |env, id, _| sails_rs::client::Actor::new(env, id))
     }
 }
 

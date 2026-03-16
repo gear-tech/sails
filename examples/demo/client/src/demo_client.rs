@@ -17,8 +17,9 @@ impl DemoClientProgram {
     pub const ROUTE_ID_REFERENCES: u8 = 4;
     pub const ROUTE_ID_THIS_THAT: u8 = 5;
     pub const ROUTE_ID_VALUE_FEE: u8 = 6;
-    pub const ROUTE_ID_CHAOS: u8 = 7;
-    pub const ROUTE_ID_CHAIN: u8 = 8;
+    pub const ROUTE_ID_VALIDATOR: u8 = 7;
+    pub const ROUTE_ID_CHAOS: u8 = 8;
+    pub const ROUTE_ID_CHAIN: u8 = 9;
 }
 
 impl sails_rs::client::Program for DemoClientProgram {}
@@ -31,6 +32,7 @@ pub trait DemoClient {
     fn references(&self) -> sails_rs::client::Service<references::ReferencesImpl, Self::Env>;
     fn this_that(&self) -> sails_rs::client::Service<this_that::ThisThatImpl, Self::Env>;
     fn value_fee(&self) -> sails_rs::client::Service<value_fee::ValueFeeImpl, Self::Env>;
+    fn validator(&self) -> sails_rs::client::Service<validator::ValidatorImpl, Self::Env>;
     fn chaos(&self) -> sails_rs::client::Service<chaos::ChaosImpl, Self::Env>;
     fn chain(&self) -> sails_rs::client::Service<chain::ChainImpl, Self::Env>;
 }
@@ -55,6 +57,9 @@ impl<E: sails_rs::client::GearEnv> DemoClient for sails_rs::client::Actor<DemoCl
     fn value_fee(&self) -> sails_rs::client::Service<value_fee::ValueFeeImpl, Self::Env> {
         self.service(DemoClientProgram::ROUTE_ID_VALUE_FEE)
     }
+    fn validator(&self) -> sails_rs::client::Service<validator::ValidatorImpl, Self::Env> {
+        self.service(DemoClientProgram::ROUTE_ID_VALIDATOR)
+    }
     fn chaos(&self) -> sails_rs::client::Service<chaos::ChaosImpl, Self::Env> {
         self.service(DemoClientProgram::ROUTE_ID_CHAOS)
     }
@@ -65,30 +70,81 @@ impl<E: sails_rs::client::GearEnv> DemoClient for sails_rs::client::Actor<DemoCl
 pub trait DemoClientCtors {
     type Env: sails_rs::client::GearEnv;
     /// Program constructor (called once at the very beginning of the program lifetime)
-    fn default(self) -> sails_rs::client::PendingCtor<DemoClientProgram, io::Default, Self::Env>;
+    #[allow(clippy::type_complexity)]
+    fn default(
+        self,
+    ) -> sails_rs::client::PendingCtor<
+        sails_rs::client::Actor<DemoClientProgram, Self::Env>,
+        io::Default,
+        Self::Env,
+    >;
     /// Another program constructor (called once at the very beginning of the program lifetime)
     #[allow(clippy::new_ret_no_self)]
     #[allow(clippy::wrong_self_convention)]
+    #[allow(clippy::type_complexity)]
     fn new(
         self,
         counter: Option<u32>,
         dog_position: Option<(i32, i32)>,
-    ) -> sails_rs::client::PendingCtor<DemoClientProgram, io::New, Self::Env>;
+    ) -> sails_rs::client::PendingCtor<
+        sails_rs::client::Actor<DemoClientProgram, Self::Env>,
+        io::New,
+        Self::Env,
+    >;
+    #[allow(clippy::type_complexity)]
+    fn new_with_error(
+        self,
+        value: u32,
+    ) -> sails_rs::client::PendingCtor<
+        Result<sails_rs::client::Actor<DemoClientProgram, Self::Env>, String>,
+        io::NewWithError,
+        Self::Env,
+    >;
 }
 
 impl<E: sails_rs::client::GearEnv> DemoClientCtors
     for sails_rs::client::Deployment<DemoClientProgram, E>
 {
     type Env = E;
-    fn default(self) -> sails_rs::client::PendingCtor<DemoClientProgram, io::Default, Self::Env> {
-        self.pending_ctor(())
+    #[allow(clippy::type_complexity)]
+    fn default(
+        self,
+    ) -> sails_rs::client::PendingCtor<
+        sails_rs::client::Actor<DemoClientProgram, Self::Env>,
+        io::Default,
+        Self::Env,
+    > {
+        self.pending_ctor((), |env, id, _| sails_rs::client::Actor::new(env, id))
     }
+    #[allow(clippy::type_complexity)]
     fn new(
         self,
         counter: Option<u32>,
         dog_position: Option<(i32, i32)>,
-    ) -> sails_rs::client::PendingCtor<DemoClientProgram, io::New, Self::Env> {
-        self.pending_ctor((counter, dog_position))
+    ) -> sails_rs::client::PendingCtor<
+        sails_rs::client::Actor<DemoClientProgram, Self::Env>,
+        io::New,
+        Self::Env,
+    > {
+        self.pending_ctor((counter, dog_position), |env, id, _| {
+            sails_rs::client::Actor::new(env, id)
+        })
+    }
+    #[allow(clippy::type_complexity)]
+    fn new_with_error(
+        self,
+        value: u32,
+    ) -> sails_rs::client::PendingCtor<
+        Result<sails_rs::client::Actor<DemoClientProgram, Self::Env>, String>,
+        io::NewWithError,
+        Self::Env,
+    > {
+        self.pending_ctor(
+            (value,),
+            |env, id, res: <io::NewWithError as sails_rs::client::ServiceCall>::Reply| {
+                res.map(|_| sails_rs::client::Actor::new(env, id))
+            },
+        )
     }
 }
 
@@ -96,6 +152,7 @@ pub mod io {
     use super::*;
     sails_rs::io_struct_impl!(Default () -> (), 0);
     sails_rs::io_struct_impl!(New (counter: super::Option<u32, >, dog_position: super::Option<(i32, i32, ), >) -> (), 1);
+    sails_rs::io_struct_impl!(NewWithError (value: u32) -> (), 2, throws String);
 }
 
 pub mod ping_pong {
@@ -757,6 +814,97 @@ pub mod value_fee {
             impl value_fee::ValueFee for ValueFee {
                 type Env = sails_rs::client::GstdEnv;
                 fn do_something_and_take_fee (&mut self, ) -> sails_rs::client::PendingCall<value_fee::io::DoSomethingAndTakeFee, sails_rs::client::GstdEnv>;
+            }
+        }
+    }
+}
+
+pub mod validator {
+    use super::*;
+
+    #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
+    #[codec(crate = sails_rs::scale_codec)]
+    #[scale_info(crate = sails_rs::scale_info)]
+    #[reflect_hash(crate = sails_rs)]
+    pub enum ValidationError {
+        TooSmall,
+        TooBig,
+    }
+
+    pub trait Validator {
+        type Env: sails_rs::client::GearEnv;
+        fn total_errors(&self) -> sails_rs::client::PendingCall<io::TotalErrors, Self::Env>;
+        fn validate_even(
+            &self,
+            value: u32,
+        ) -> sails_rs::client::PendingCall<io::ValidateEven, Self::Env>;
+        fn validate_nonzero(
+            &mut self,
+            value: u32,
+        ) -> sails_rs::client::PendingCall<io::ValidateNonzero, Self::Env>;
+        fn validate_range(
+            &mut self,
+            value: u32,
+            min: u32,
+            max: u32,
+        ) -> sails_rs::client::PendingCall<io::ValidateRange, Self::Env>;
+    }
+
+    pub struct ValidatorImpl;
+
+    impl sails_rs::client::Identifiable for ValidatorImpl {
+        const INTERFACE_ID: sails_rs::InterfaceId =
+            sails_rs::InterfaceId::from_bytes_8([78, 120, 186, 255, 253, 180, 251, 28]);
+    }
+
+    impl<E: sails_rs::client::GearEnv> Validator for sails_rs::client::Service<ValidatorImpl, E> {
+        type Env = E;
+        fn total_errors(&self) -> sails_rs::client::PendingCall<io::TotalErrors, Self::Env> {
+            self.pending_call(())
+        }
+        fn validate_even(
+            &self,
+            value: u32,
+        ) -> sails_rs::client::PendingCall<io::ValidateEven, Self::Env> {
+            self.pending_call((value,))
+        }
+        fn validate_nonzero(
+            &mut self,
+            value: u32,
+        ) -> sails_rs::client::PendingCall<io::ValidateNonzero, Self::Env> {
+            self.pending_call((value,))
+        }
+        fn validate_range(
+            &mut self,
+            value: u32,
+            min: u32,
+            max: u32,
+        ) -> sails_rs::client::PendingCall<io::ValidateRange, Self::Env> {
+            self.pending_call((value, min, max))
+        }
+    }
+
+    pub mod io {
+        use super::*;
+        sails_rs::io_struct_impl!(TotalErrors () -> u32, 0, <super::ValidatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(ValidateEven (value: u32) -> u32, 1, <super::ValidatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws ());
+        sails_rs::io_struct_impl!(ValidateNonzero (value: u32) -> (), 2, <super::ValidatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws String);
+        sails_rs::io_struct_impl!(ValidateRange (value: u32, min: u32, max: u32) -> u32, 3, <super::ValidatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws super::ValidationError);
+    }
+
+    #[cfg(feature = "with_mocks")]
+    #[cfg(not(target_arch = "wasm32"))]
+    pub mod mockall {
+        use super::*;
+        use sails_rs::mockall::*;
+        mock! {
+            pub Validator {}
+
+            #[allow(refining_impl_trait)]
+            #[allow(clippy::type_complexity)]
+            impl validator::Validator for Validator {
+                type Env = sails_rs::client::GstdEnv;
+                fn total_errors (&self, ) -> sails_rs::client::PendingCall<validator::io::TotalErrors, sails_rs::client::GstdEnv>;fn validate_even (&self, value: u32) -> sails_rs::client::PendingCall<validator::io::ValidateEven, sails_rs::client::GstdEnv>;fn validate_nonzero (&mut self, value: u32) -> sails_rs::client::PendingCall<validator::io::ValidateNonzero, sails_rs::client::GstdEnv>;fn validate_range (&mut self, value: u32, min: u32, max: u32) -> sails_rs::client::PendingCall<validator::io::ValidateRange, sails_rs::client::GstdEnv>;
             }
         }
     }

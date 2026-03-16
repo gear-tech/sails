@@ -312,6 +312,7 @@ pub(crate) struct FnBuilder<'a> {
     params_idents: Vec<&'a Ident>,
     params_types: Vec<&'a Type>,
     pub result_type: Type,
+    pub error_type: Option<Type>,
     pub unwrap_result: bool,
     pub sails_path: &'a Path,
 }
@@ -342,7 +343,22 @@ impl<'a> FnBuilder<'a> {
             Ident::new(&format!("__{route}Params"), Span::call_site())
         };
         let (params_idents, params_types): (Vec<_>, Vec<_>) = extract_params(signature).unzip();
-        let result_type = unwrap_result_type(signature, unwrap_result);
+
+        let full_result_type = result_type(signature);
+        let (result_type, error_type) = if unwrap_result {
+            if let Type::Path(tp) = &full_result_type
+                && let Some((ok, err)) = extract_result_types(tp)
+            {
+                (ok.clone(), Some(err.clone()))
+            } else {
+                abort!(
+                    full_result_type.span(),
+                    "`unwrap_result` can be applied to methods returns result only"
+                )
+            }
+        } else {
+            (full_result_type, None)
+        };
 
         Self {
             route,
@@ -358,6 +374,7 @@ impl<'a> FnBuilder<'a> {
             params_idents,
             params_types,
             result_type,
+            error_type,
             unwrap_result,
             sails_path,
         }

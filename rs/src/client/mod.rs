@@ -85,8 +85,12 @@ impl<A, E: GearEnv> Deployment<A, E> {
         }
     }
 
-    pub fn pending_ctor<T: ServiceCall>(self, args: T::Params) -> PendingCtor<A, T, E> {
-        PendingCtor::new(self.env, self.code_id, self.salt, args)
+    pub fn pending_ctor<T: ServiceCall, O>(
+        self,
+        args: T::Params,
+        mapper: fn(E, ActorId, T::Reply) -> O,
+    ) -> PendingCtor<O, T, E> {
+        PendingCtor::new(self.env, self.code_id, self.salt, args, mapper)
     }
 }
 
@@ -306,7 +310,7 @@ pin_project_lite::pin_project! {
         params: Option<E::Params>,
         salt: Option<Vec<u8>>,
         args: Option<T::Params>,
-        _actor: PhantomData<A>,
+        mapper: fn(E, ActorId, T::Reply) -> A,
         #[pin]
         state: Option<E::MessageState>,
         program_id: Option<ActorId>,
@@ -314,14 +318,20 @@ pin_project_lite::pin_project! {
 }
 
 impl<A, T: ServiceCall, E: GearEnv> PendingCtor<A, T, E> {
-    pub fn new(env: E, code_id: CodeId, salt: Vec<u8>, args: T::Params) -> Self {
+    pub fn new(
+        env: E,
+        code_id: CodeId,
+        salt: Vec<u8>,
+        args: T::Params,
+        mapper: fn(E, ActorId, T::Reply) -> A,
+    ) -> Self {
         PendingCtor {
             env,
             code_id,
             params: None,
             salt: Some(salt),
             args: Some(args),
-            _actor: PhantomData,
+            mapper,
             state: None,
             program_id: None,
         }
@@ -336,6 +346,7 @@ impl<A, T: ServiceCall, E: GearEnv> PendingCtor<A, T, E> {
 pub trait ServiceCall: MethodMeta {
     type Params: Encode;
     type Reply: Decode + 'static;
+    type Error: Decode + 'static;
 
     fn encode_params_with_header(route_idx: u8, value: &Self::Params) -> Vec<u8> {
         let header = SailsMessageHeader::new(
@@ -350,12 +361,12 @@ pub trait ServiceCall: MethodMeta {
         result
     }
 
-    fn decode_reply_with_header(
+    fn decode_with_header<T: Decode + 'static>(
         route_idx: u8,
         payload: impl AsRef<[u8]>,
-    ) -> Result<Self::Reply, parity_scale_codec::Error> {
+    ) -> Result<T, parity_scale_codec::Error> {
         let mut value = payload.as_ref();
-        if Self::is_empty_tuple::<Self::Reply>() {
+        if Self::is_empty_tuple::<T>() {
             return Decode::decode(&mut value);
         }
         let header = SailsMessageHeader::decode(&mut value)?;
@@ -369,6 +380,20 @@ pub trait ServiceCall: MethodMeta {
             return Err("Invalid reply entry_id".into());
         }
         Decode::decode(&mut value)
+    }
+
+    fn decode_reply_with_header(
+        route_idx: u8,
+        payload: impl AsRef<[u8]>,
+    ) -> Result<Self::Reply, parity_scale_codec::Error> {
+        Self::decode_with_header::<Self::Reply>(route_idx, payload)
+    }
+
+    fn decode_error_with_header(
+        _route_idx: u8,
+        _payload: impl AsRef<[u8]>,
+    ) -> Result<Self::Reply, parity_scale_codec::Error> {
+        Err("Unexpected error status for non-throwing method".into())
     }
 
     fn with_optimized_encode<R>(
@@ -501,7 +526,7 @@ macro_rules! params_for_pending_impl {
 #[macro_export]
 macro_rules! io_struct_impl {
     (
-        $name:ident ( $( $param:ident : $ty:ty ),* ) -> $reply:ty, $entry_id:expr, $interface_id:expr
+        @impl_base $name:ident ( $( $param:ident : $ty:ty ),* ) -> $reply:ty, $entry_id:expr, $interface_id:expr
     ) => {
         pub struct $name(());
         impl $name {
@@ -520,10 +545,45 @@ macro_rules! io_struct_impl {
         impl MethodMeta for $name {
             const ENTRY_ID: u16 = $entry_id;
         }
+    };
+    (
+        $name:ident ( $( $param:ident : $ty:ty ),* ) -> $ok_ty:ty, $entry_id:expr, $interface_id:expr, throws $err_ty:ty
+    ) => {
+        $crate::io_struct_impl!(@impl_base $name ( $( $param : $ty ),* ) -> Result<$ok_ty, $err_ty>, $entry_id, $interface_id);
+        impl ServiceCall for $name {
+            type Params = ( $( $ty, )* );
+            type Reply = Result<$ok_ty, $err_ty>;
+            type Error = $err_ty;
+
+            fn decode_reply_with_header(
+                route_idx: u8,
+                payload: impl AsRef<[u8]>,
+            ) -> Result<Self::Reply, $crate::scale_codec::Error> {
+                Ok(Ok(Self::decode_with_header::<$ok_ty>(route_idx, payload)?))
+            }
+
+            fn decode_error_with_header(
+                route_idx: u8,
+                payload: impl AsRef<[u8]>,
+            ) -> Result<Self::Reply, $crate::scale_codec::Error> {
+                Ok(Err(Self::decode_with_header::<Self::Error>(route_idx, payload)?))
+            }
+        }
+    };
+    (
+        $name:ident ( $( $param:ident : $ty:ty ),* ) -> $reply:ty, $entry_id:expr, $interface_id:expr
+    ) => {
+        $crate::io_struct_impl!(@impl_base $name ( $( $param : $ty ),* ) -> $reply, $entry_id, $interface_id);
         impl ServiceCall for $name {
             type Params = ( $( $ty, )* );
             type Reply = $reply;
+            type Error = ();
         }
+    };
+    (
+        $name:ident ( $( $param:ident : $ty:ty ),* ) -> $reply:ty, $entry_id:expr, throws $err_ty:ty
+    ) => {
+        $crate::io_struct_impl!($name ( $( $param : $ty ),* ) -> $reply, $entry_id, $crate::meta::InterfaceId::zero(), throws $err_ty);
     };
     (
         $name:ident ( $( $param:ident : $ty:ty ),* ) -> $reply:ty, $entry_id:expr

@@ -72,22 +72,45 @@ impl<'ast> Visitor<'ast> for CtorGenerator<'ast> {
             };
         }
 
+        let (output_type, mapper) = if let Some(throws) = &func.throws {
+            let err_ty = crate::type_generators::generate_type_decl_with_path(throws, "super");
+            (
+                quote!(Result<$(self.sails_path)::client::Actor<$(self.program_name)Program, Self::Env>, $err_ty>),
+                quote!(|env, id, res: <io::$fn_name as $(self.sails_path)::client::ServiceCall>::Reply| res.map(|_| $(self.sails_path)::client::Actor::new(env, id))),
+            )
+        } else {
+            (
+                quote!($(self.sails_path)::client::Actor<$(self.program_name)Program, Self::Env>),
+                quote!(|env, id, _| $(self.sails_path)::client::Actor::new(env, id)),
+            )
+        };
+
         quote_in! { self.trait_ctors_tokens =>
             $['\r']
-            fn $fn_name_snake (self, $params_with_types) -> $(self.sails_path)::client::PendingCtor<$(self.program_name)Program, io::$fn_name, Self::Env>;
+            #[allow(clippy::type_complexity)]
+            fn $fn_name_snake (self, $params_with_types) -> $(self.sails_path)::client::PendingCtor<$(&output_type), io::$fn_name, Self::Env>;
         };
 
         quote_in! { self.ctor_tokens =>
             $['\r']
-            fn $fn_name_snake (self, $params_with_types) -> $(self.sails_path)::client::PendingCtor<$(self.program_name)Program, io::$fn_name, Self::Env> {
-                self.pending_ctor($args)
+            #[allow(clippy::type_complexity)]
+            fn $fn_name_snake (self, $params_with_types) -> $(self.sails_path)::client::PendingCtor<$output_type, io::$fn_name, Self::Env> {
+                self.pending_ctor($args, $mapper)
             }
         };
 
         let params_with_types_super = &fn_args_with_types_path(&func.params, "super");
         let entry_id = self.entry_ids.get(func.name.as_str()).copied().unwrap_or(0);
+
+        let (io_output_type, throws_part) = if let Some(throws) = &func.throws {
+            let err_ty = crate::type_generators::generate_type_decl_with_path(throws, "super");
+            ("()".to_string(), format!(", throws {err_ty}"))
+        } else {
+            ("()".to_string(), "".to_string())
+        };
+
         quote_in! { self.io_tokens =>
-            $(self.sails_path)::io_struct_impl!($fn_name ($params_with_types_super) -> (), $entry_id);
+            $(self.sails_path)::io_struct_impl!($fn_name ($params_with_types_super) -> $io_output_type, $entry_id$throws_part);
         };
     }
 }

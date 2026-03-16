@@ -14,6 +14,11 @@ use sails_idl_meta::{InterfaceId, MethodMeta};
 pub use sails_macros::{event, export, program, service};
 pub use syscalls::Syscall;
 
+/// Maximum payload size for structured panic.
+///
+/// If payload exceeds this limit, standard text panic is used.
+pub const MAX_PANIC_PAYLOAD_SIZE: usize = 1024;
+
 use crate::{
     errors::{Error, Result, RtlError},
     meta::SailsMessageHeader,
