@@ -55,7 +55,7 @@ impl DemoProgram {
     }
 
     /// Another program constructor (called once at the very beginning of the program lifetime)
-    #[export]
+    #[export(unwrap_result)]
     pub fn new(counter: Option<u32>, dog_position: Option<(i32, i32)>) -> Result<Self, String> {
         unsafe {
             let dog_position = dog_position.unwrap_or_default();

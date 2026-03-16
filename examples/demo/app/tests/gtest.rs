@@ -40,6 +40,7 @@ async fn counter_add_works() {
         .deploy(code_id, vec![])
         .new(Some(42), None)
         .await
+        .unwrap()
         .unwrap();
 
     let mut counter_client = demo_program.counter();
@@ -72,6 +73,7 @@ async fn counter_sub_works() {
         .deploy(code_id, vec![])
         .new(Some(42), None)
         .await
+        .unwrap()
         .unwrap();
 
     let mut counter_client = demo_program.counter();
@@ -105,6 +107,7 @@ async fn counter_query_works() {
         .deploy(code_id, vec![])
         .new(Some(42), None)
         .await
+        .unwrap()
         .unwrap();
 
     let counter_client = demo_program.counter();
@@ -131,6 +134,7 @@ async fn counter_query_not_enough_gas() {
         .deploy(code_id, vec![])
         .new(Some(42), None)
         .await
+        .unwrap()
         .unwrap();
 
     let counter_client = demo_program.counter();
@@ -215,6 +219,7 @@ async fn dog_barks() {
         .deploy(code_id, vec![])
         .new(None, Some((1, -1)))
         .await
+        .unwrap()
         .unwrap();
 
     let mut dog_client = demo_program.dog();
@@ -245,6 +250,7 @@ async fn dog_walks() {
         .deploy(code_id, vec![])
         .new(None, Some((1, -1)))
         .await
+        .unwrap()
         .unwrap();
 
     let dog_client = demo_program.dog();
@@ -286,6 +292,7 @@ async fn dog_weights() {
         .deploy(code_id, vec![])
         .new(None, Some((1, -1)))
         .await
+        .unwrap()
         .unwrap();
 
     let dog_client = demo_program.dog();
@@ -306,6 +313,7 @@ async fn references_add() {
         .deploy(code_id, vec![])
         .new(None, Some((1, -1)))
         .await
+        .unwrap()
         .unwrap();
 
     let mut client = demo_program.references();
@@ -325,6 +333,7 @@ async fn references_bytes() {
         .deploy(code_id, vec![])
         .new(None, Some((1, -1)))
         .await
+        .unwrap()
         .unwrap();
 
     let mut client = demo_program.references();
@@ -347,6 +356,7 @@ async fn references_guess_num() {
         .deploy(code_id, vec![])
         .new(None, Some((1, -1)))
         .await
+        .unwrap()
         .unwrap();
 
     let mut client = demo_program.references();
@@ -375,6 +385,7 @@ async fn counter_add_works_via_next_mode() {
         .deploy(code_id, vec![])
         .new(Some(42), None)
         .await
+        .unwrap()
         .unwrap();
 
     let mut counter_client = demo_program.counter();
@@ -409,7 +420,7 @@ async fn counter_add_works_via_manual_mode() {
     // Run next Block
     env.run_next_block();
 
-    let demo_program = pending_ctor.await.unwrap();
+    let demo_program = pending_ctor.await.unwrap().unwrap();
 
     let mut counter_client = demo_program.counter();
     // Listen to Counter events
@@ -490,6 +501,7 @@ async fn value_fee_works() {
         .deploy(code_id, vec![])
         .new(Some(42), None)
         .await
+        .unwrap()
         .unwrap();
 
     let initial_balance = env.system().balance_of(ActorId::from(ACTOR_ID));
@@ -527,6 +539,7 @@ async fn program_value_transfer_works() {
         .deploy(code_id, vec![])
         .new(Some(42), None)
         .await
+        .unwrap()
         .unwrap();
     let program_id = demo_program.id();
 
@@ -657,6 +670,7 @@ async fn chaos_panic_does_not_affect_other_services() {
         .deploy(code_id, vec![])
         .new(Some(INIT_VALUE), None)
         .await
+        .unwrap()
         .unwrap();
 
     let mut counter_client = demo_program.counter();

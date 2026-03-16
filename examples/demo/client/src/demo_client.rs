@@ -87,7 +87,7 @@ pub trait DemoClientCtors {
         counter: Option<u32>,
         dog_position: Option<(i32, i32)>,
     ) -> sails_rs::client::PendingCtor<
-        sails_rs::client::Actor<DemoClientProgram, Self::Env>,
+        Result<sails_rs::client::Actor<DemoClientProgram, Self::Env>, String>,
         io::New,
         Self::Env,
     >;
@@ -122,7 +122,7 @@ impl<E: sails_rs::client::GearEnv> DemoClientCtors
         counter: Option<u32>,
         dog_position: Option<(i32, i32)>,
     ) -> sails_rs::client::PendingCtor<
-        sails_rs::client::Actor<DemoClientProgram, Self::Env>,
+        Result<sails_rs::client::Actor<DemoClientProgram, Self::Env>, String>,
         io::New,
         Self::Env,
     > {
@@ -144,7 +144,7 @@ impl<E: sails_rs::client::GearEnv> DemoClientCtors
 pub mod io {
     use super::*;
     sails_rs::io_struct_impl!(Default () -> (), 0);
-    sails_rs::io_struct_impl!(New (counter: super::Option<u32, >, dog_position: super::Option<(i32, i32, ), >) -> (), 1);
+    sails_rs::io_struct_impl!(New (counter: super::Option<u32, >, dog_position: super::Option<(i32, i32, ), >) -> (), 1, throws String);
     sails_rs::io_struct_impl!(NewWithError (value: u32) -> (), 2, throws String);
 }
 
