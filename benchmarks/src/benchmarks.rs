@@ -325,28 +325,28 @@ fn create_env() -> GtestEnv {
     GtestEnv::new(system, DEFAULT_USER_ALICE.into())
 }
 
-async fn deploy_for_bench<
-    P: Program + 'static,
+async fn deploy_for_bench<P, IO, F>(env: &GtestEnv, wasm_path: &str, f: F) -> Actor<P, GtestEnv>
+where
+    P: Program,
     IO: ServiceCall,
-    F: FnOnce(Deployment<P, GtestEnv>) -> PendingCtor<Actor<P, GtestEnv>, IO, GtestEnv>,
->(
-    env: &GtestEnv,
-    wasm_path: &str,
-    f: F,
-) -> Actor<P, GtestEnv> {
+    <IO as sails_rs::client::ServiceCall>::Output: PendingCtorOutput<P, sails_rs::client::GtestEnv>,
+    F: FnOnce(Deployment<P, GtestEnv>) -> PendingCtor<P, IO, GtestEnv>,
+{
     let code_id = env.system().submit_local_code_file(wasm_path);
     deploy_code_for_bench(env, code_id, f).await
 }
 
-async fn deploy_code_for_bench<
-    P: Program + 'static,
-    IO: ServiceCall,
-    F: FnOnce(Deployment<P, GtestEnv>) -> PendingCtor<Actor<P, GtestEnv>, IO, GtestEnv>,
->(
+async fn deploy_code_for_bench<P, IO, F>(
     env: &GtestEnv,
     code_id: CodeId,
     f: F,
-) -> Actor<P, GtestEnv> {
+) -> Actor<P, GtestEnv>
+where
+    P: Program,
+    IO: ServiceCall,
+    <IO as sails_rs::client::ServiceCall>::Output: PendingCtorOutput<P, sails_rs::client::GtestEnv>,
+    F: FnOnce(Deployment<P, GtestEnv>) -> PendingCtor<P, IO, GtestEnv>,
+{
     let salt = COUNTER_SALT
         .fetch_add(1, std::sync::atomic::Ordering::SeqCst)
         .to_le_bytes()
@@ -357,7 +357,10 @@ async fn deploy_code_for_bench<
         .with_value(100_000_000_000_000)
         .await
         .expect("failed to initialize the program");
-    program
+    <<IO as sails_rs::client::ServiceCall>::Output as PendingCtorOutput<
+        P,
+        sails_rs::client::GtestEnv,
+    >>::actor(program)
 }
 
 fn extract_reply_and_gas(system: &System, message_id: MessageId) -> (Vec<u8>, u64) {

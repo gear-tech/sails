@@ -26,50 +26,30 @@ pub trait InspectorClientCtors {
     type Env: sails_rs::client::GearEnv;
     #[allow(clippy::new_ret_no_self)]
     #[allow(clippy::wrong_self_convention)]
-    #[allow(clippy::type_complexity)]
     fn new(
         self,
         target: ActorId,
-    ) -> sails_rs::client::PendingCtor<
-        sails_rs::client::Actor<InspectorClientProgram, Self::Env>,
-        io::New,
-        Self::Env,
-    >;
-    #[allow(clippy::type_complexity)]
+    ) -> sails_rs::client::PendingCtor<InspectorClientProgram, io::New, Self::Env>;
     fn new_with_result(
         self,
         target: ActorId,
-    ) -> sails_rs::client::PendingCtor<
-        Result<sails_rs::client::Actor<InspectorClientProgram, Self::Env>, String>,
-        io::NewWithResult,
-        Self::Env,
-    >;
+    ) -> sails_rs::client::PendingCtor<InspectorClientProgram, io::NewWithResult, Self::Env>;
 }
 
 impl<E: sails_rs::client::GearEnv> InspectorClientCtors
     for sails_rs::client::Deployment<InspectorClientProgram, E>
 {
     type Env = E;
-    #[allow(clippy::type_complexity)]
     fn new(
         self,
         target: ActorId,
-    ) -> sails_rs::client::PendingCtor<
-        sails_rs::client::Actor<InspectorClientProgram, Self::Env>,
-        io::New,
-        Self::Env,
-    > {
+    ) -> sails_rs::client::PendingCtor<InspectorClientProgram, io::New, Self::Env> {
         self.pending_ctor((target,))
     }
-    #[allow(clippy::type_complexity)]
     fn new_with_result(
         self,
         target: ActorId,
-    ) -> sails_rs::client::PendingCtor<
-        Result<sails_rs::client::Actor<InspectorClientProgram, Self::Env>, String>,
-        io::NewWithResult,
-        Self::Env,
-    > {
+    ) -> sails_rs::client::PendingCtor<InspectorClientProgram, io::NewWithResult, Self::Env> {
         self.pending_ctor((target,))
     }
 }
@@ -77,7 +57,7 @@ impl<E: sails_rs::client::GearEnv> InspectorClientCtors
 pub mod io {
     use super::*;
     sails_rs::io_struct_impl!(New (target: ActorId) -> (), 0);
-    sails_rs::io_struct_impl!(NewWithResult (target: ActorId) -> (), 1, throws String);
+    sails_rs::io_struct_impl!(NewWithResult (target: ActorId) -> () | String, 1);
 }
 
 pub mod inspector {
@@ -152,10 +132,10 @@ pub mod inspector {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(TestEvenPanic () -> u32, 0, <super::InspectorImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws ());
-        sails_rs::io_struct_impl!(TestFailingDemoCtor (demo_code_id: CodeId) -> ActorId, 1, <super::InspectorImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws String);
-        sails_rs::io_struct_impl!(TestNonzeroPanic () -> (), 2, <super::InspectorImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws String);
-        sails_rs::io_struct_impl!(TestRangePanic () -> u32, 3, <super::InspectorImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws super::ValidationError);
+        sails_rs::io_struct_impl!(TestEvenPanic () -> u32 | (), 0, <super::InspectorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(TestFailingDemoCtor (demo_code_id: CodeId) -> ActorId | String, 1, <super::InspectorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(TestNonzeroPanic () -> () | String, 2, <super::InspectorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(TestRangePanic () -> u32 | super::ValidationError, 3, <super::InspectorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
         sails_rs::io_struct_impl!(TestTotalErrors () -> u32, 4, <super::InspectorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 }

@@ -28,48 +28,28 @@ impl<E: sails_rs::client::GearEnv> PingPongStack
 }
 pub trait PingPongStackCtors {
     type Env: sails_rs::client::GearEnv;
-    #[allow(clippy::type_complexity)]
     fn create_ping(
         self,
         code_id: CodeId,
-    ) -> sails_rs::client::PendingCtor<
-        sails_rs::client::Actor<PingPongStackProgram, Self::Env>,
-        io::CreatePing,
-        Self::Env,
-    >;
-    #[allow(clippy::type_complexity)]
+    ) -> sails_rs::client::PendingCtor<PingPongStackProgram, io::CreatePing, Self::Env>;
     fn create_pong(
         self,
-    ) -> sails_rs::client::PendingCtor<
-        sails_rs::client::Actor<PingPongStackProgram, Self::Env>,
-        io::CreatePong,
-        Self::Env,
-    >;
+    ) -> sails_rs::client::PendingCtor<PingPongStackProgram, io::CreatePong, Self::Env>;
 }
 
 impl<E: sails_rs::client::GearEnv> PingPongStackCtors
     for sails_rs::client::Deployment<PingPongStackProgram, E>
 {
     type Env = E;
-    #[allow(clippy::type_complexity)]
     fn create_ping(
         self,
         code_id: CodeId,
-    ) -> sails_rs::client::PendingCtor<
-        sails_rs::client::Actor<PingPongStackProgram, Self::Env>,
-        io::CreatePing,
-        Self::Env,
-    > {
+    ) -> sails_rs::client::PendingCtor<PingPongStackProgram, io::CreatePing, Self::Env> {
         self.pending_ctor((code_id,))
     }
-    #[allow(clippy::type_complexity)]
     fn create_pong(
         self,
-    ) -> sails_rs::client::PendingCtor<
-        sails_rs::client::Actor<PingPongStackProgram, Self::Env>,
-        io::CreatePong,
-        Self::Env,
-    > {
+    ) -> sails_rs::client::PendingCtor<PingPongStackProgram, io::CreatePong, Self::Env> {
         self.pending_ctor(())
     }
 }

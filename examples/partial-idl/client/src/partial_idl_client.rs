@@ -30,28 +30,14 @@ pub trait PartialIdlClientCtors {
     type Env: sails_rs::client::GearEnv;
     #[allow(clippy::new_ret_no_self)]
     #[allow(clippy::wrong_self_convention)]
-    #[allow(clippy::type_complexity)]
-    fn new(
-        self,
-    ) -> sails_rs::client::PendingCtor<
-        sails_rs::client::Actor<PartialIdlClientProgram, Self::Env>,
-        io::New,
-        Self::Env,
-    >;
+    fn new(self) -> sails_rs::client::PendingCtor<PartialIdlClientProgram, io::New, Self::Env>;
 }
 
 impl<E: sails_rs::client::GearEnv> PartialIdlClientCtors
     for sails_rs::client::Deployment<PartialIdlClientProgram, E>
 {
     type Env = E;
-    #[allow(clippy::type_complexity)]
-    fn new(
-        self,
-    ) -> sails_rs::client::PendingCtor<
-        sails_rs::client::Actor<PartialIdlClientProgram, Self::Env>,
-        io::New,
-        Self::Env,
-    > {
+    fn new(self) -> sails_rs::client::PendingCtor<PartialIdlClientProgram, io::New, Self::Env> {
         self.pending_ctor(())
     }
 }

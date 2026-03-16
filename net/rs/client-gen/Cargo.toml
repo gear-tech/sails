@@ -19,7 +19,7 @@ itertools.workspace = true
 parity-scale-codec.workspace = true
 sails-idl-parser.workspace = true
 serde.workspace = true
-serde-json.workspace = true
+serde-json = { workspace = true, features = ["std"] }
 
 [dev-dependencies]
 insta.workspace = true

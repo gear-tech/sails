@@ -16,28 +16,14 @@ impl<E: sails_rs::client::GearEnv> NoSvcsProg for sails_rs::client::Actor<NoSvcs
 }
 pub trait NoSvcsProgCtors {
     type Env: sails_rs::client::GearEnv;
-    #[allow(clippy::type_complexity)]
-    fn create(
-        self,
-    ) -> sails_rs::client::PendingCtor<
-        sails_rs::client::Actor<NoSvcsProgProgram, Self::Env>,
-        io::Create,
-        Self::Env,
-    >;
+    fn create(self) -> sails_rs::client::PendingCtor<NoSvcsProgProgram, io::Create, Self::Env>;
 }
 
 impl<E: sails_rs::client::GearEnv> NoSvcsProgCtors
     for sails_rs::client::Deployment<NoSvcsProgProgram, E>
 {
     type Env = E;
-    #[allow(clippy::type_complexity)]
-    fn create(
-        self,
-    ) -> sails_rs::client::PendingCtor<
-        sails_rs::client::Actor<NoSvcsProgProgram, Self::Env>,
-        io::Create,
-        Self::Env,
-    > {
+    fn create(self) -> sails_rs::client::PendingCtor<NoSvcsProgProgram, io::Create, Self::Env> {
         self.pending_ctor(())
     }
 }

@@ -22,28 +22,18 @@ impl<E: sails_rs::client::GearEnv> AllocStress for sails_rs::client::Actor<Alloc
 }
 pub trait AllocStressCtors {
     type Env: sails_rs::client::GearEnv;
-    #[allow(clippy::type_complexity)]
     fn new_for_bench(
         self,
-    ) -> sails_rs::client::PendingCtor<
-        sails_rs::client::Actor<AllocStressProgram, Self::Env>,
-        io::NewForBench,
-        Self::Env,
-    >;
+    ) -> sails_rs::client::PendingCtor<AllocStressProgram, io::NewForBench, Self::Env>;
 }
 
 impl<E: sails_rs::client::GearEnv> AllocStressCtors
     for sails_rs::client::Deployment<AllocStressProgram, E>
 {
     type Env = E;
-    #[allow(clippy::type_complexity)]
     fn new_for_bench(
         self,
-    ) -> sails_rs::client::PendingCtor<
-        sails_rs::client::Actor<AllocStressProgram, Self::Env>,
-        io::NewForBench,
-        Self::Env,
-    > {
+    ) -> sails_rs::client::PendingCtor<AllocStressProgram, io::NewForBench, Self::Env> {
         self.pending_ctor(())
     }
 }

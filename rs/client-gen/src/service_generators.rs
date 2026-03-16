@@ -222,22 +222,19 @@ impl<'ast> Visitor<'ast> for ServiceGenerator<'ast> {
             }
         };
 
-        let (output_type_decl_code, throws_part) = if let Some(throws_type) = &func.throws {
+        let io_output_type = if let Some(throws_type) = &func.throws {
             let ok_type = generate_type_decl_with_path(&func.output, "super");
             let err_type = generate_type_decl_with_path(throws_type, "super");
-            (ok_type, quote!(, throws $err_type))
+            format!("{ok_type} | {err_type}")
         } else {
-            (
-                generate_type_decl_with_path(&func.output, "super"),
-                quote!(),
-            )
+            generate_type_decl_with_path(&func.output, "super")
         };
 
         let params_with_types_super = &fn_args_with_types_path(&func.params, "super");
         let entry_id = self.entry_ids.get(func.name.as_str()).copied().unwrap_or(0);
 
         quote_in! { self.io_tokens =>
-            $(self.sails_path)::io_struct_impl!($fn_name ($params_with_types_super) -> $output_type_decl_code, $entry_id, <super::$(self.service_name)Impl as $(self.sails_path)::client::Identifiable>::INTERFACE_ID$throws_part);
+            $(self.sails_path)::io_struct_impl!($fn_name ($params_with_types_super) -> $io_output_type, $entry_id, <super::$(self.service_name)Impl as $(self.sails_path)::client::Identifiable>::INTERFACE_ID);
         };
     }
 }

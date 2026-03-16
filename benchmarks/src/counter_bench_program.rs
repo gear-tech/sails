@@ -28,28 +28,18 @@ impl<E: sails_rs::client::GearEnv> CounterBench
 }
 pub trait CounterBenchCtors {
     type Env: sails_rs::client::GearEnv;
-    #[allow(clippy::type_complexity)]
     fn new_for_bench(
         self,
-    ) -> sails_rs::client::PendingCtor<
-        sails_rs::client::Actor<CounterBenchProgram, Self::Env>,
-        io::NewForBench,
-        Self::Env,
-    >;
+    ) -> sails_rs::client::PendingCtor<CounterBenchProgram, io::NewForBench, Self::Env>;
 }
 
 impl<E: sails_rs::client::GearEnv> CounterBenchCtors
     for sails_rs::client::Deployment<CounterBenchProgram, E>
 {
     type Env = E;
-    #[allow(clippy::type_complexity)]
     fn new_for_bench(
         self,
-    ) -> sails_rs::client::PendingCtor<
-        sails_rs::client::Actor<CounterBenchProgram, Self::Env>,
-        io::NewForBench,
-        Self::Env,
-    > {
+    ) -> sails_rs::client::PendingCtor<CounterBenchProgram, io::NewForBench, Self::Env> {
         self.pending_ctor(())
     }
 }

@@ -28,28 +28,18 @@ impl<E: sails_rs::client::GearEnv> ComputeStress
 }
 pub trait ComputeStressCtors {
     type Env: sails_rs::client::GearEnv;
-    #[allow(clippy::type_complexity)]
     fn new_for_bench(
         self,
-    ) -> sails_rs::client::PendingCtor<
-        sails_rs::client::Actor<ComputeStressProgram, Self::Env>,
-        io::NewForBench,
-        Self::Env,
-    >;
+    ) -> sails_rs::client::PendingCtor<ComputeStressProgram, io::NewForBench, Self::Env>;
 }
 
 impl<E: sails_rs::client::GearEnv> ComputeStressCtors
     for sails_rs::client::Deployment<ComputeStressProgram, E>
 {
     type Env = E;
-    #[allow(clippy::type_complexity)]
     fn new_for_bench(
         self,
-    ) -> sails_rs::client::PendingCtor<
-        sails_rs::client::Actor<ComputeStressProgram, Self::Env>,
-        io::NewForBench,
-        Self::Env,
-    > {
+    ) -> sails_rs::client::PendingCtor<ComputeStressProgram, io::NewForBench, Self::Env> {
         self.pending_ctor(())
     }
 }

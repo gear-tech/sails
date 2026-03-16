@@ -70,73 +70,39 @@ impl<E: sails_rs::client::GearEnv> DemoClient for sails_rs::client::Actor<DemoCl
 pub trait DemoClientCtors {
     type Env: sails_rs::client::GearEnv;
     /// Program constructor (called once at the very beginning of the program lifetime)
-    #[allow(clippy::type_complexity)]
-    fn default(
-        self,
-    ) -> sails_rs::client::PendingCtor<
-        sails_rs::client::Actor<DemoClientProgram, Self::Env>,
-        io::Default,
-        Self::Env,
-    >;
+    fn default(self) -> sails_rs::client::PendingCtor<DemoClientProgram, io::Default, Self::Env>;
     /// Another program constructor (called once at the very beginning of the program lifetime)
     #[allow(clippy::new_ret_no_self)]
     #[allow(clippy::wrong_self_convention)]
-    #[allow(clippy::type_complexity)]
     fn new(
         self,
         counter: Option<u32>,
         dog_position: Option<(i32, i32)>,
-    ) -> sails_rs::client::PendingCtor<
-        Result<sails_rs::client::Actor<DemoClientProgram, Self::Env>, String>,
-        io::New,
-        Self::Env,
-    >;
-    #[allow(clippy::type_complexity)]
+    ) -> sails_rs::client::PendingCtor<DemoClientProgram, io::New, Self::Env>;
     fn new_with_error(
         self,
         value: u32,
-    ) -> sails_rs::client::PendingCtor<
-        Result<sails_rs::client::Actor<DemoClientProgram, Self::Env>, String>,
-        io::NewWithError,
-        Self::Env,
-    >;
+    ) -> sails_rs::client::PendingCtor<DemoClientProgram, io::NewWithError, Self::Env>;
 }
 
 impl<E: sails_rs::client::GearEnv> DemoClientCtors
     for sails_rs::client::Deployment<DemoClientProgram, E>
 {
     type Env = E;
-    #[allow(clippy::type_complexity)]
-    fn default(
-        self,
-    ) -> sails_rs::client::PendingCtor<
-        sails_rs::client::Actor<DemoClientProgram, Self::Env>,
-        io::Default,
-        Self::Env,
-    > {
+    fn default(self) -> sails_rs::client::PendingCtor<DemoClientProgram, io::Default, Self::Env> {
         self.pending_ctor(())
     }
-    #[allow(clippy::type_complexity)]
     fn new(
         self,
         counter: Option<u32>,
         dog_position: Option<(i32, i32)>,
-    ) -> sails_rs::client::PendingCtor<
-        Result<sails_rs::client::Actor<DemoClientProgram, Self::Env>, String>,
-        io::New,
-        Self::Env,
-    > {
+    ) -> sails_rs::client::PendingCtor<DemoClientProgram, io::New, Self::Env> {
         self.pending_ctor((counter, dog_position))
     }
-    #[allow(clippy::type_complexity)]
     fn new_with_error(
         self,
         value: u32,
-    ) -> sails_rs::client::PendingCtor<
-        Result<sails_rs::client::Actor<DemoClientProgram, Self::Env>, String>,
-        io::NewWithError,
-        Self::Env,
-    > {
+    ) -> sails_rs::client::PendingCtor<DemoClientProgram, io::NewWithError, Self::Env> {
         self.pending_ctor((value,))
     }
 }
@@ -144,8 +110,8 @@ impl<E: sails_rs::client::GearEnv> DemoClientCtors
 pub mod io {
     use super::*;
     sails_rs::io_struct_impl!(Default () -> (), 0);
-    sails_rs::io_struct_impl!(New (counter: super::Option<u32, >, dog_position: super::Option<(i32, i32, ), >) -> (), 1, throws String);
-    sails_rs::io_struct_impl!(NewWithError (value: u32) -> (), 2, throws String);
+    sails_rs::io_struct_impl!(New (counter: super::Option<u32, >, dog_position: super::Option<(i32, i32, ), >) -> () | String, 1);
+    sails_rs::io_struct_impl!(NewWithError (value: u32) -> () | String, 2);
 }
 
 pub mod ping_pong {
@@ -880,9 +846,9 @@ pub mod validator {
     pub mod io {
         use super::*;
         sails_rs::io_struct_impl!(TotalErrors () -> u32, 0, <super::ValidatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(ValidateEven (value: u32) -> u32, 1, <super::ValidatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws ());
-        sails_rs::io_struct_impl!(ValidateNonzero (value: u32) -> (), 2, <super::ValidatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws String);
-        sails_rs::io_struct_impl!(ValidateRange (value: u32, min: u32, max: u32) -> u32, 3, <super::ValidatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID, throws super::ValidationError);
+        sails_rs::io_struct_impl!(ValidateEven (value: u32) -> u32 | (), 1, <super::ValidatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(ValidateNonzero (value: u32) -> () | String, 2, <super::ValidatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(ValidateRange (value: u32, min: u32, max: u32) -> u32 | super::ValidationError, 3, <super::ValidatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(feature = "with_mocks")]
