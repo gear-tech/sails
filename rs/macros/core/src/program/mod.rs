@@ -750,30 +750,32 @@ impl FnBuilder<'_> {
 
         let params_struct_ident = &self.params_struct_ident;
         let original_result_type = shared::result_type(&self.impl_fn.sig);
-        let call = if let syn::Type::Path(tp) = &original_result_type
-            && let Some((_ok_ty, _err_ty)) = shared::extract_result_types(tp)
-        {
-            quote! {
-                match #raw_call {
-                    Ok(v) => v,
-                    Err(e) => {
-                        let encoded = <meta_in_program::#params_struct_ident as #sails_path::gstd::InvocationIo>::with_optimized_encode_with_id(
-                            <meta_in_program::#params_struct_ident as #sails_path::meta::Identifiable>::INTERFACE_ID,
-                            <meta_in_program::#params_struct_ident as #sails_path::meta::MethodMeta>::ENTRY_ID,
-                            &e,
-                            0, // route_idx for ctors is always 0
-                            |encoded| encoded.to_vec()
-                        );
-                        if encoded.len() <= #sails_path::gstd::MAX_PANIC_PAYLOAD_SIZE {
-                            #sails_path::gstd::Syscall::panic(&encoded)
-                        } else {
-                            ::core::panic!("Error payload is too large to panic")
+        let call = if self.unwrap_result {
+            if let syn::Type::Path(tp) = &original_result_type
+                && let Some((_ok_ty, _err_ty)) = shared::extract_result_types(tp)
+            {
+                quote! {
+                    match #raw_call {
+                        Ok(v) => v,
+                        Err(e) => {
+                            let encoded = <meta_in_program::#params_struct_ident as #sails_path::gstd::InvocationIo>::with_optimized_encode_with_id(
+                                <meta_in_program::#params_struct_ident as #sails_path::meta::Identifiable>::INTERFACE_ID,
+                                <meta_in_program::#params_struct_ident as #sails_path::meta::MethodMeta>::ENTRY_ID,
+                                &e,
+                                0, // route_idx for ctors is always 0
+                                |encoded| encoded.to_vec()
+                            );
+                            if encoded.len() <= #sails_path::gstd::MAX_PANIC_PAYLOAD_SIZE {
+                                #sails_path::gstd::Syscall::panic(&encoded)
+                            } else {
+                                ::core::panic!("Error payload is too large to panic")
+                            }
                         }
                     }
                 }
+            } else {
+                quote! { #raw_call .unwrap() }
             }
-        } else if self.unwrap_result {
-            quote! { #raw_call .unwrap() }
         } else {
             raw_call
         };
