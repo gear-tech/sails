@@ -50,9 +50,7 @@ impl<E: sails_rs::client::GearEnv> AggregatorClientCtors
         io::New,
         Self::Env,
     > {
-        self.pending_ctor((target,), |env, id, _| {
-            sails_rs::client::Actor::new(env, id)
-        })
+        self.pending_ctor((target,))
     }
 }
 

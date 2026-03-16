@@ -169,7 +169,9 @@ impl<T: ServiceCall> Future for PendingCall<T, GclientEnv> {
     }
 }
 
-impl<A: 'static, T: ServiceCall> Future for PendingCtor<A, T, GclientEnv> {
+impl<A: FromCtorReply<T, GclientEnv> + 'static, T: ServiceCall> Future
+    for PendingCtor<A, T, GclientEnv>
+{
     type Output = Result<A, <GclientEnv as GearEnv>::Error>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -198,7 +200,7 @@ impl<A: 'static, T: ServiceCall> Future for PendingCtor<A, T, GclientEnv> {
             Ok((program_id, payload)) => {
                 let reply = T::decode_reply_with_header(0, payload)
                     .map_err(|err| GclientError::Env(gclient::Error::Codec(err)))?;
-                Poll::Ready(Ok((this.mapper)(this.env.clone(), program_id, reply)))
+                Poll::Ready(Ok(A::from_reply(this.env.clone(), program_id, reply)))
             }
             Err(GclientError::ReplyHasError(reason, payload)) => {
                 if matches!(
@@ -207,7 +209,7 @@ impl<A: 'static, T: ServiceCall> Future for PendingCtor<A, T, GclientEnv> {
                 ) {
                     let biz_err = T::decode_error_with_header(0, payload.as_slice())
                         .map_err(|err| GclientError::Env(gclient::Error::Codec(err)))?;
-                    Poll::Ready(Ok((this.mapper)(
+                    Poll::Ready(Ok(A::from_reply(
                         this.env.clone(),
                         ActorId::zero(),
                         biz_err,

@@ -59,9 +59,7 @@ impl<E: sails_rs::client::GearEnv> InspectorClientCtors
         io::New,
         Self::Env,
     > {
-        self.pending_ctor((target,), |env, id, _| {
-            sails_rs::client::Actor::new(env, id)
-        })
+        self.pending_ctor((target,))
     }
     #[allow(clippy::type_complexity)]
     fn new_with_result(
@@ -72,12 +70,7 @@ impl<E: sails_rs::client::GearEnv> InspectorClientCtors
         io::NewWithResult,
         Self::Env,
     > {
-        self.pending_ctor(
-            (target,),
-            |env, id, res: <io::NewWithResult as sails_rs::client::ServiceCall>::Reply| {
-                res.map(|_| sails_rs::client::Actor::new(env, id))
-            },
-        )
+        self.pending_ctor((target,))
     }
 }
 

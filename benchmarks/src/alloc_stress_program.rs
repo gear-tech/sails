@@ -44,7 +44,7 @@ impl<E: sails_rs::client::GearEnv> AllocStressCtors
         io::NewForBench,
         Self::Env,
     > {
-        self.pending_ctor((), |env, id, _| sails_rs::client::Actor::new(env, id))
+        self.pending_ctor(())
     }
 }
 

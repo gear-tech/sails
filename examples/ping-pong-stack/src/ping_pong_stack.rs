@@ -60,9 +60,7 @@ impl<E: sails_rs::client::GearEnv> PingPongStackCtors
         io::CreatePing,
         Self::Env,
     > {
-        self.pending_ctor((code_id,), |env, id, _| {
-            sails_rs::client::Actor::new(env, id)
-        })
+        self.pending_ctor((code_id,))
     }
     #[allow(clippy::type_complexity)]
     fn create_pong(
@@ -72,7 +70,7 @@ impl<E: sails_rs::client::GearEnv> PingPongStackCtors
         io::CreatePong,
         Self::Env,
     > {
-        self.pending_ctor((), |env, id, _| sails_rs::client::Actor::new(env, id))
+        self.pending_ctor(())
     }
 }
 

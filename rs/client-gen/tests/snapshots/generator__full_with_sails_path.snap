@@ -153,9 +153,7 @@ impl<E: my_crate::sails::client::GearEnv> FullCoverageProgramCtors
         io::Default,
         Self::Env,
     > {
-        self.pending_ctor((), |env, id, _| {
-            my_crate::sails::client::Actor::new(env, id)
-        })
+        self.pending_ctor(())
     }
     #[allow(clippy::type_complexity)]
     fn with_owner(
@@ -167,9 +165,7 @@ impl<E: my_crate::sails::client::GearEnv> FullCoverageProgramCtors
         io::WithOwner,
         Self::Env,
     > {
-        self.pending_ctor((owner, initial_config), |env, id, _| {
-            my_crate::sails::client::Actor::new(env, id)
-        })
+        self.pending_ctor((owner, initial_config))
     }
 }
 

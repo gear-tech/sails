@@ -294,7 +294,7 @@ const _: () = {
         }
     }
 
-    impl<A: 'static, T: ServiceCall> Future for PendingCtor<A, T, GstdEnv> {
+    impl<A: FromCtorReply<T, GstdEnv> + 'static, T: ServiceCall> Future for PendingCtor<A, T, GstdEnv> {
         type Output = Result<A, <GstdEnv as GearEnv>::Error>;
 
         fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -350,7 +350,7 @@ const _: () = {
                     Ok((program_id, payload)) => {
                         let reply =
                             T::decode_reply_with_header(0, payload).map_err(Error::Decode)?;
-                        Poll::Ready(Ok((this.mapper)(this.env.clone(), program_id, reply)))
+                        Poll::Ready(Ok(A::from_reply(this.env.clone(), program_id, reply)))
                     }
                     Err(gstd::errors::Error::ErrorReply(
                         error_payload,
@@ -358,7 +358,7 @@ const _: () = {
                     )) => {
                         let reply = T::decode_error_with_header(0, error_payload.0.as_slice())
                             .map_err(Error::Decode)?;
-                        Poll::Ready(Ok((this.mapper)(this.env.clone(), ActorId::zero(), reply)))
+                        Poll::Ready(Ok(A::from_reply(this.env.clone(), ActorId::zero(), reply)))
                     }
                     Err(err) => Poll::Ready(Err(err.into())),
                 }
@@ -445,7 +445,7 @@ const _: () = {
         }
     }
 
-    impl<A: 'static, T: ServiceCall> Future for PendingCtor<A, T, GstdEnv> {
+    impl<A: FromCtorReply<T, GstdEnv> + 'static, T: ServiceCall> Future for PendingCtor<A, T, GstdEnv> {
         type Output = Result<A, <GstdEnv as GearEnv>::Error>;
 
         fn poll(mut self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -458,7 +458,7 @@ const _: () = {
                     let env = self.env.clone();
                     // Decode success reply from empty payload for simple ctors, or [0] for Result::Ok
                     let reply = T::Reply::decode(&mut &[0u8][..]).map_err(Error::Decode)?;
-                    Poll::Ready(Ok((self.mapper)(env, program_id, reply)))
+                    Poll::Ready(Ok(A::from_reply(env, program_id, reply)))
                 }
                 None => panic!("{PENDING_CTOR_INVALID_STATE}"),
             }

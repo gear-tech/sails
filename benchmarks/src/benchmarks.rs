@@ -326,9 +326,9 @@ fn create_env() -> GtestEnv {
 }
 
 async fn deploy_for_bench<
-    P: Program,
+    P: Program + 'static,
     IO: ServiceCall,
-    F: FnOnce(Deployment<P, GtestEnv>) -> PendingCtor<P, IO, GtestEnv>,
+    F: FnOnce(Deployment<P, GtestEnv>) -> PendingCtor<Actor<P, GtestEnv>, IO, GtestEnv>,
 >(
     env: &GtestEnv,
     wasm_path: &str,
@@ -339,9 +339,9 @@ async fn deploy_for_bench<
 }
 
 async fn deploy_code_for_bench<
-    P: Program,
+    P: Program + 'static,
     IO: ServiceCall,
-    F: FnOnce(Deployment<P, GtestEnv>) -> PendingCtor<P, IO, GtestEnv>,
+    F: FnOnce(Deployment<P, GtestEnv>) -> PendingCtor<Actor<P, GtestEnv>, IO, GtestEnv>,
 >(
     env: &GtestEnv,
     code_id: CodeId,

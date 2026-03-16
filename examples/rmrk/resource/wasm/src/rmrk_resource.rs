@@ -52,7 +52,7 @@ impl<E: sails_rs::client::GearEnv> RmrkResourceCtors
         io::New,
         Self::Env,
     > {
-        self.pending_ctor((), |env, id, _| sails_rs::client::Actor::new(env, id))
+        self.pending_ctor(())
     }
 }
 

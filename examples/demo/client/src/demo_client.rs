@@ -114,7 +114,7 @@ impl<E: sails_rs::client::GearEnv> DemoClientCtors
         io::Default,
         Self::Env,
     > {
-        self.pending_ctor((), |env, id, _| sails_rs::client::Actor::new(env, id))
+        self.pending_ctor(())
     }
     #[allow(clippy::type_complexity)]
     fn new(
@@ -126,9 +126,7 @@ impl<E: sails_rs::client::GearEnv> DemoClientCtors
         io::New,
         Self::Env,
     > {
-        self.pending_ctor((counter, dog_position), |env, id, _| {
-            sails_rs::client::Actor::new(env, id)
-        })
+        self.pending_ctor((counter, dog_position))
     }
     #[allow(clippy::type_complexity)]
     fn new_with_error(
@@ -139,12 +137,7 @@ impl<E: sails_rs::client::GearEnv> DemoClientCtors
         io::NewWithError,
         Self::Env,
     > {
-        self.pending_ctor(
-            (value,),
-            |env, id, res: <io::NewWithError as sails_rs::client::ServiceCall>::Reply| {
-                res.map(|_| sails_rs::client::Actor::new(env, id))
-            },
-        )
+        self.pending_ctor((value,))
     }
 }
 

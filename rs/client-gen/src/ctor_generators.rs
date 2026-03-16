@@ -72,17 +72,11 @@ impl<'ast> Visitor<'ast> for CtorGenerator<'ast> {
             };
         }
 
-        let (output_type, mapper) = if let Some(throws) = &func.throws {
+        let output_type = if let Some(throws) = &func.throws {
             let err_ty = crate::type_generators::generate_type_decl_with_path(throws, "super");
-            (
-                quote!(Result<$(self.sails_path)::client::Actor<$(self.program_name)Program, Self::Env>, $err_ty>),
-                quote!(|env, id, res: <io::$fn_name as $(self.sails_path)::client::ServiceCall>::Reply| res.map(|_| $(self.sails_path)::client::Actor::new(env, id))),
-            )
+            quote!(Result<$(self.sails_path)::client::Actor<$(self.program_name)Program, Self::Env>, $err_ty>)
         } else {
-            (
-                quote!($(self.sails_path)::client::Actor<$(self.program_name)Program, Self::Env>),
-                quote!(|env, id, _| $(self.sails_path)::client::Actor::new(env, id)),
-            )
+            quote!($(self.sails_path)::client::Actor<$(self.program_name)Program, Self::Env>)
         };
 
         quote_in! { self.trait_ctors_tokens =>
@@ -95,7 +89,7 @@ impl<'ast> Visitor<'ast> for CtorGenerator<'ast> {
             $['\r']
             #[allow(clippy::type_complexity)]
             fn $fn_name_snake (self, $params_with_types) -> $(self.sails_path)::client::PendingCtor<$output_type, io::$fn_name, Self::Env> {
-                self.pending_ctor($args, $mapper)
+                self.pending_ctor($args)
             }
         };
 

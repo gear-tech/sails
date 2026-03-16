@@ -85,12 +85,8 @@ impl<A, E: GearEnv> Deployment<A, E> {
         }
     }
 
-    pub fn pending_ctor<T: ServiceCall, O>(
-        self,
-        args: T::Params,
-        mapper: fn(E, ActorId, T::Reply) -> O,
-    ) -> PendingCtor<O, T, E> {
-        PendingCtor::new(self.env, self.code_id, self.salt, args, mapper)
+    pub fn pending_ctor<T: ServiceCall, O>(self, args: T::Params) -> PendingCtor<O, T, E> {
+        PendingCtor::new(self.env, self.code_id, self.salt, args)
     }
 }
 
@@ -303,6 +299,27 @@ impl<T: ServiceCall, E: GearEnv> PendingCall<T, E> {
     }
 }
 
+pub trait FromCtorReply<T: ServiceCall, E: GearEnv>: Sized {
+    fn from_reply(env: E, id: ActorId, reply: T::Reply) -> Self;
+}
+
+impl<P, T: ServiceCall, E: GearEnv> FromCtorReply<T, E> for Actor<P, E> {
+    fn from_reply(env: E, id: ActorId, _reply: T::Reply) -> Self {
+        Actor::new(env, id)
+    }
+}
+
+impl<P, T, E, Err> FromCtorReply<T, E> for Result<Actor<P, E>, Err>
+where
+    T: ServiceCall<Reply = Result<(), Err>, Error = Err>,
+    E: GearEnv,
+    Err: Decode + 'static,
+{
+    fn from_reply(env: E, id: ActorId, reply: T::Reply) -> Self {
+        reply.map(|_| Actor::new(env, id))
+    }
+}
+
 pin_project_lite::pin_project! {
     pub struct PendingCtor<A, T: ServiceCall, E: GearEnv> {
         env: E,
@@ -310,7 +327,7 @@ pin_project_lite::pin_project! {
         params: Option<E::Params>,
         salt: Option<Vec<u8>>,
         args: Option<T::Params>,
-        mapper: fn(E, ActorId, T::Reply) -> A,
+        _actor: PhantomData<A>,
         #[pin]
         state: Option<E::MessageState>,
         program_id: Option<ActorId>,
@@ -318,22 +335,16 @@ pin_project_lite::pin_project! {
 }
 
 impl<A, T: ServiceCall, E: GearEnv> PendingCtor<A, T, E> {
-    pub fn new(
-        env: E,
-        code_id: CodeId,
-        salt: Vec<u8>,
-        args: T::Params,
-        mapper: fn(E, ActorId, T::Reply) -> A,
-    ) -> Self {
+    pub fn new(env: E, code_id: CodeId, salt: Vec<u8>, args: T::Params) -> Self {
         PendingCtor {
             env,
             code_id,
             params: None,
             salt: Some(salt),
             args: Some(args),
-            mapper,
             state: None,
             program_id: None,
+            _actor: PhantomData,
         }
     }
 
