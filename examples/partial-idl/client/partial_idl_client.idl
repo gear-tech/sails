@@ -1,4 +1,4 @@
-!@sails: 0.10.2
+!@sails: 1.0.0-beta.1
 
 @partial
 service PartialIdlService@0x6f9649495e041ebc {

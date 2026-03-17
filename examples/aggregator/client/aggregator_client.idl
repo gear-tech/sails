@@ -1,5 +1,5 @@
 
-!@sails: 0.10.2
+!@sails: 1.0.0-beta.1
 
 service Aggregator@0x8e5b7b94507d0323 {
     functions {
