@@ -64,6 +64,7 @@ sails-client-gen = { path = "rs/client-gen" }
 sails-client-gen-js = { path = "rs/client-gen-js" }
 sails-macros-core = { path = "rs/macros/core" }
 sails-macros = { path = "rs/macros" }
+sails-reflect-hash-derive = { path = "rs/reflect-hash/derive" }
 sails-reflect-hash = { path = "rs/reflect-hash" }
 sails-rs = { path = "rs" }
 sails-sol-gen = { path = "rs/sol-gen" }
@@ -99,8 +100,8 @@ hex = { version = "0.4", default-features = false }
 insta = "1.46"
 itertools = "0.14"
 keccak-const = "0.2"
-lalrpop = { version = "=0.20", default-features = false }  # PIN version
-lalrpop-util = "=0.20"  # PIN version
+lalrpop = { version = "=0.20", default-features = false } # PIN version
+lalrpop-util = "=0.20" # PIN version
 log = { version = "0.4", default-features = false }
 logos = "0.16"
 mockall = "0.14"

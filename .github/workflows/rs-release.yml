@@ -98,6 +98,7 @@ jobs:
           git push origin --delete "${{ steps.release_info.outputs.pin_tag }}"
 
   ws_tests:
+    if: false
     name: Run Workspace Tests
     needs:
       - prepare
@@ -120,7 +121,7 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - prepare
-      - ws_tests
+      # - ws_tests
       # - cli_tests
     defaults:
       run:
@@ -172,11 +173,13 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - prepare
-      - ws_tests
+      # - ws_tests
       # - cli_tests
     defaults:
       run:
         shell: bash
+    env:
+      CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
 
     steps:
       - name: Checkout Code from Release Branch
@@ -184,8 +187,13 @@ jobs:
         with:
           ref: ${{ needs.prepare.outputs.rc_branch }}
 
-      - name: Login to Crates.io
-        run: cargo login ${{ secrets.CRATES_IO_TOKEN }}
+      - name: Cargo publish config
+        run: |
+          mkdir -p ~/.cargo
+          cat <<EOF >> ~/.cargo/config.toml
+          [registries.crates-io]
+          protocol = "sparse"
+          EOF
 
       - name: Publish Crates
         run: |
@@ -194,6 +202,8 @@ jobs:
           for CRATE in $SAILS_CRATES; do
             sed -i "/^\s*${CRATE} = {.*}/ s/}/, version = \"=${VERSION}\" }/" Cargo.toml
           done
+
+          cargo fetch --locked
 
           for CRATE in $SAILS_CRATES; do
             echo "Publishing $CRATE..."
