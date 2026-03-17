@@ -6,10 +6,12 @@ use sails_rs::{cell::RefCell, prelude::*};
 mod chaos;
 mod counter;
 mod dog;
+mod inheritance;
 mod mammal;
 mod ping;
 mod references;
 mod this_that;
+mod validator;
 mod value_fee;
 
 // Dog data is stored as a global variable. However, it has exactly the same lifetime
@@ -30,6 +32,7 @@ pub struct DemoProgram {
     // Counter data has the same lifetime as the program itself, i.e. it will
     // live as long as the program is available on the network.
     counter_data: RefCell<counter::CounterData>,
+    validator_data: RefCell<validator::ValidatorData>,
     ref_data: u8,
 }
 
@@ -46,6 +49,7 @@ impl DemoProgram {
         }
         Self {
             counter_data: RefCell::new(counter::CounterData::new(Default::default())),
+            validator_data: RefCell::new(validator::ValidatorData::new()),
             ref_data: 42,
         }
     }
@@ -62,6 +66,21 @@ impl DemoProgram {
         }
         Ok(Self {
             counter_data: RefCell::new(counter::CounterData::new(counter.unwrap_or_default())),
+            validator_data: RefCell::new(validator::ValidatorData::new()),
+            ref_data: 42,
+        })
+    }
+    #[export(unwrap_result)]
+    pub fn new_with_error(value: u32) -> Result<Self, String> {
+        if value == 0 {
+            return Err("Constructor failed".to_string());
+        }
+        unsafe {
+            DOG_DATA = Some(RefCell::new(walker::WalkerData::new(0, 0)));
+        }
+        Ok(Self {
+            counter_data: RefCell::new(counter::CounterData::new(value)),
+            validator_data: RefCell::new(validator::ValidatorData::new()),
             ref_data: 42,
         })
     }
@@ -94,8 +113,16 @@ impl DemoProgram {
         value_fee::FeeService::new(10_000_000_000_000)
     }
 
+    pub fn validator(&self) -> validator::Validator<'_> {
+        validator::Validator::new(&self.validator_data)
+    }
+
     pub fn chaos(&self) -> chaos::ChaosService {
         chaos::ChaosService
+    }
+
+    pub fn chain(&self) -> inheritance::ChainService {
+        inheritance::ChainService::new(dog::DogService::new(walker::WalkerService::new(dog_data())))
     }
 }
 
@@ -120,7 +147,7 @@ mod tests {
         let (data, value) = service_exposure.do_something_and_take_fee().to_tuple();
 
         // Assert
-        assert_eq!("ValueFee".encode().as_slice(), service_exposure.route());
+        assert_eq!(6, service_exposure.route_idx());
         assert!(data);
         assert_eq!(value, message_value - 10_000_000_000_000);
 
@@ -133,7 +160,7 @@ mod tests {
         let data = service_exposure.add(10);
 
         // Assert
-        assert_eq!("Counter".encode().as_slice(), service_exposure.route());
+        assert_eq!(2, service_exposure.route_idx());
         assert_eq!(52, data);
         let events = emitter.take_events();
         assert_eq!(events.len(), 1);

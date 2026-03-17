@@ -1,5 +1,6 @@
 {
   "name": "sails-js-types",
+  "private": true,
   "version": "0.5.1",
   "description": "Common types for sails-js libraries",
   "types": "lib/index.d.ts",
@@ -11,13 +12,12 @@
   "homepage": "https://github.com/gear-tech/sails/tree/master/js/types#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://githib.com/gear-tech/sails.git",
+    "url": "git+https://github.com/gear-tech/sails.git",
     "directory": "js/types"
   },
   "scripts": {
     "prebuild": "rm -rf lib",
-    "build": "rollup --config rollup.config.js",
-    "pack-build": "pnpm pack --out ../sails-js-types.tgz"
+    "build": "rollup --config rollup.config.js"
   },
   "files": [
     "lib"

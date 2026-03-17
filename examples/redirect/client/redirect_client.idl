@@ -1,11 +1,21 @@
-constructor {
-  New : ();
-};
 
-service Redirect {
-  /// Exit from program with inheritor ID
-  Exit : (inheritor_id: actor_id) -> null;
-  /// Returns program ID of the current program
-  query GetProgramId : () -> actor_id;
-};
+!@sails: 0.10.2
 
+service Redirect@0xba58dee1cb75511e {
+    functions {
+        /// Exit from program with inheritor ID
+        Exit(inheritor_id: ActorId);
+        /// Returns program ID of the current program
+        @query
+        GetProgramId() -> ActorId;
+    }
+}
+
+program RedirectClient {
+    constructors {
+        New();
+    }
+    services {
+        Redirect@0xba58dee1cb75511e,
+    }
+}

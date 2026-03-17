@@ -1,4 +1,4 @@
-import { writeFileSync, rmSync } from 'node:fs';
+import { writeFileSync, rmSync, mkdirSync } from 'node:fs';
 import commonjs from '@rollup/plugin-commonjs';
 import typescript from 'rollup-plugin-typescript2';
 import config from '../config.json' with { type: 'json' };
@@ -40,7 +40,9 @@ function writeCompressedWasmParser(type) {
     async closeBundle() {
       const base64Bytes = await getBase64Parser(config['sails-rs']);
 
+      mkdirSync('./lib', { recursive: true });
       if (type === 'cjs') {
+        mkdirSync('./lib/cjs', { recursive: true });
         writeFileSync(
           './lib/cjs/wasm-bytes.cjs',
           `Object.defineProperty(exports, '__esModule', { value: true });\n\nvar wasmParserBytes = '${base64Bytes}';\n\nexports.default = wasmParserBytes;`,

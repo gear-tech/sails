@@ -108,8 +108,9 @@ pub mod service {
     #[cfg(not(target_arch = "wasm32"))]
     pub mod events {
         use super::*;
-        #[derive(PartialEq, Debug, Encode, Decode)]
+        #[derive(PartialEq, Debug, Encode, Decode, ReflectHash)]
         #[codec(crate = sails_rs::scale_codec)]
+        #[reflect_hash(crate = sails_rs)]
         pub enum ServiceEvents {
             /// `This` Done
             ThisDone(u32),
@@ -129,17 +130,19 @@ pub mod service {
     }
 }
 /// ThisThatSvcAppTupleStruct docs
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
+#[reflect_hash(crate = sails_rs)]
 pub struct ThisThatSvcAppTupleStruct(
     /// field `bool`
     pub bool,
 );
 /// ThisThatSvcAppDoThatParam docs
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
+#[reflect_hash(crate = sails_rs)]
 pub struct ThisThatSvcAppDoThatParam {
     /// field `query`
     pub query: u32,
@@ -149,9 +152,10 @@ pub struct ThisThatSvcAppDoThatParam {
     pub p3: ThisThatSvcAppManyVariants,
 }
 /// ThisThatSvcAppManyVariants docs
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
+#[reflect_hash(crate = sails_rs)]
 pub enum ThisThatSvcAppManyVariants {
     /// variant `One`
     One,
@@ -165,9 +169,10 @@ pub enum ThisThatSvcAppManyVariants {
     Five((String, u32)),
     Six((u32,)),
 }
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
+#[reflect_hash(crate = sails_rs)]
 pub enum T {
     One,
 }

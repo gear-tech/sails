@@ -1,5 +1,6 @@
 {
   "name": "sails-js-util",
+  "private": true,
   "version": "0.5.1",
   "type": "module",
   "main": "lib/cjs/index.cjs",
@@ -16,7 +17,6 @@
   },
   "scripts": {
     "prebuild": "rm -rf lib",
-    "build": "npx rollup --config rollup.config.js",
-    "pack-build": "pnpm pack --out ../sails-js-util.tgz"
+    "build": "npx rollup --config rollup.config.js"
   }
 }

@@ -1,0 +1,142 @@
+---
+source: rs/idl-meta/tests/serde.rs
+expression: serialized
+---
+{
+  "name": "SomeType",
+  "type_params": [
+    {
+      "name": "T1"
+    },
+    {
+      "name": "T2"
+    }
+  ],
+  "kind": "enum",
+  "variants": [
+    {
+      "name": "Unit",
+      "fields": [],
+      "docs": [
+        "Unit-like Variant"
+      ]
+    },
+    {
+      "name": "Tuple",
+      "fields": [
+        {
+          "type": "u32"
+        }
+      ],
+      "docs": [
+        "Tuple-like Variant"
+      ]
+    },
+    {
+      "name": "TupleWithDocs",
+      "fields": [
+        {
+          "type": {
+            "kind": "named",
+            "name": "Option",
+            "generics": [
+              "u32"
+            ]
+          },
+          "docs": [
+            "Some docs"
+          ]
+        },
+        {
+          "type": {
+            "kind": "tuple",
+            "types": [
+              "u32",
+              "u32"
+            ]
+          },
+          "docs": [
+            "Some docs"
+          ]
+        }
+      ],
+      "docs": [
+        "Tuple-like Variant with field docs"
+      ]
+    },
+    {
+      "name": "Struct",
+      "fields": [
+        {
+          "name": "p1",
+          "type": {
+            "kind": "named",
+            "name": "Option",
+            "generics": [
+              "u32"
+            ]
+          }
+        },
+        {
+          "name": "p2",
+          "type": {
+            "kind": "tuple",
+            "types": [
+              "u32",
+              "u32"
+            ]
+          }
+        }
+      ],
+      "docs": [
+        "Struct-like Variant"
+      ]
+    },
+    {
+      "name": "GenericStruct",
+      "fields": [
+        {
+          "name": "p1",
+          "type": {
+            "kind": "named",
+            "name": "Option",
+            "generics": [
+              {
+                "kind": "named",
+                "name": "T1"
+              }
+            ]
+          }
+        },
+        {
+          "name": "p2",
+          "type": {
+            "kind": "tuple",
+            "types": [
+              {
+                "kind": "named",
+                "name": "T2"
+              },
+              {
+                "kind": "named",
+                "name": "T2"
+              }
+            ]
+          }
+        }
+      ],
+      "docs": [
+        "Generic Struct-like Variant"
+      ]
+    }
+  ],
+  "docs": [
+    "SomeType Enum"
+  ],
+  "annotations": [
+    [
+      "rusttype",
+      "sails-idl-meta::SomeType"
+    ]
+  ]
+}

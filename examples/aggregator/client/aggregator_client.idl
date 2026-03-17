@@ -1,0 +1,41 @@
+
+!@sails: 0.10.2
+
+service Aggregator@0x8e5b7b94507d0323 {
+    functions {
+        ComplexAdd() -> Result<u32, String>;
+        @query
+        FetchFastest(target: ActorId) -> Result<u32, String>;
+        @query
+        FetchFromAddress(target: ActorId) -> Result<u32, String>;
+        @query
+        FetchRedirectId(target: ActorId) -> Result<ActorId, String>;
+        @query
+        FetchSummary() -> Result<(u32, u32), String>;
+        @query
+        FetchValue() -> Result<u32, String>;
+        @query
+        FetchWithFallback(use_fallback: bool) -> Result<u32, String>;
+        @query
+        GetStatuses() -> [(MessageId, OpStatus)];
+        @query
+        TestPollAfterCompletion();
+    }
+    types {
+        enum OpStatus {
+            Started,
+            Step1,
+            Step2,
+            Finalized,
+        }
+    }
+}
+
+program AggregatorClient {
+    constructors {
+        New(target: ActorId);
+    }
+    services {
+        Aggregator@0x8e5b7b94507d0323,
+    }
+}

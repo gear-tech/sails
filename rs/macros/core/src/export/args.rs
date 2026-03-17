@@ -11,6 +11,8 @@ pub(crate) struct ExportArgs {
     unwrap_result: bool,
     #[cfg(feature = "ethexe")]
     payable: bool,
+    overrides: Option<Path>,
+    entry_id: Option<u16>,
 }
 
 impl ExportArgs {
@@ -26,6 +28,14 @@ impl ExportArgs {
     pub fn payable(&self) -> bool {
         self.payable
     }
+
+    pub fn overrides(&self) -> Option<&Path> {
+        self.overrides.as_ref()
+    }
+
+    pub fn entry_id(&self) -> Option<u16> {
+        self.entry_id
+    }
 }
 
 impl Parse for ExportArgs {
@@ -36,6 +46,8 @@ impl Parse for ExportArgs {
             unwrap_result: false,
             #[cfg(feature = "ethexe")]
             payable: false,
+            overrides: None,
+            entry_id: None,
         };
         for arg in punctuated {
             match arg {
@@ -49,6 +61,12 @@ impl Parse for ExportArgs {
                 ImportArg::Payable => {
                     args.payable = true;
                 }
+                ImportArg::Overrides(path) => {
+                    args.overrides = Some(path);
+                }
+                ImportArg::EntryId(entry_id) => {
+                    args.entry_id = Some(entry_id);
+                }
             }
         }
         Ok(args)
@@ -61,6 +79,8 @@ enum ImportArg {
     UnwrapResult(bool),
     #[cfg(feature = "ethexe")]
     Payable,
+    Overrides(Path),
+    EntryId(u16),
 }
 
 impl Parse for ImportArg {
@@ -93,6 +113,17 @@ impl Parse for ImportArg {
             }
             #[cfg(feature = "ethexe")]
             "payable" => Ok(Self::Payable),
+            "overrides" => {
+                input.parse::<Token![=]>()?;
+                let path = input.parse::<Path>()?;
+                Ok(Self::Overrides(path))
+            }
+            "entry_id" => {
+                input.parse::<Token![=]>()?;
+                let lit = input.parse::<syn::LitInt>()?;
+                let entry_id = lit.base10_parse::<u16>()?;
+                Ok(Self::EntryId(entry_id))
+            }
             _ => abort!(ident, "unknown argument: {}", ident),
         }
     }
@@ -112,6 +143,8 @@ mod tests {
             unwrap_result: true,
             #[cfg(feature = "ethexe")]
             payable: false,
+            overrides: None,
+            entry_id: None,
         };
 
         // act
@@ -130,6 +163,8 @@ mod tests {
             unwrap_result: true,
             #[cfg(feature = "ethexe")]
             payable: false,
+            overrides: None,
+            entry_id: None,
         };
 
         // act
@@ -148,6 +183,8 @@ mod tests {
             unwrap_result: false,
             #[cfg(feature = "ethexe")]
             payable: false,
+            overrides: None,
+            entry_id: None,
         };
 
         // act
@@ -166,6 +203,29 @@ mod tests {
             route: None,
             unwrap_result: false,
             payable: true,
+            overrides: None,
+            entry_id: None,
+        };
+
+        // act
+        let args = syn::parse2::<ExportArgs>(input).unwrap();
+
+        // arrange
+        assert_eq!(expected, args);
+    }
+
+    #[test]
+    fn export_parse_args_overrides() {
+        // arrange
+        let input = quote!(overrides = BaseService, entry_id = 42);
+        let expected_path: Path = syn::parse2(quote!(BaseService)).unwrap();
+        let expected = ExportArgs {
+            route: None,
+            unwrap_result: false,
+            #[cfg(feature = "ethexe")]
+            payable: false,
+            overrides: Some(expected_path),
+            entry_id: Some(42),
         };
 
         // act

@@ -1,0 +1,20 @@
+service ServiceWithEvents {
+    functions {
+        DoThis(p1: U256, p2: MyParam) -> u64;
+    }
+
+    events {
+        One(u64),
+        Two { id: u8, reference: u64 },
+        Three(MyParam),
+        Reset,
+    }
+
+    types {
+        struct MyParam {
+            f1: U256,
+            f2: [u8],
+            f3: Option<(u64, U256)>,
+        }
+    }
+}

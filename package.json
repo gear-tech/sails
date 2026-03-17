@@ -9,11 +9,12 @@
     "directory": "js"
   },
   "license": "GPL-3.0",
-  "packageManager": "pnpm@10.16.1",
+  "packageManager": "pnpm@10.30.2",
   "workspaces": [
     "js",
     "js/cli",
     "js/parser",
+    "js/parser-idl-v2",
     "js/types",
     "js/util",
     "js/example"
@@ -47,19 +48,20 @@
     "build:sails": "pnpm --filter sails-js build",
     "build:cli": "pnpm --filter sails-js-cli build",
     "build:parser": "pnpm --filter sails-js-parser build",
+    "build:parser-idl-v2": "pnpm --filter sails-js-parser-idl-v2 build",
     "build:types": "pnpm --filter sails-js-types build",
     "build:util": "pnpm --filter sails-js-util build",
     "build:example": "pnpm --filter sails-js-example build",
     "build": "pnpm --stream --reporter=append-only -r build",
     "pack": "pnpm --filter sails-js --filter \"sails-js-*\" -r pack --out js/%s.tgz",
     "bump:version": "bash ./js/scripts/bump-versions.sh",
-    "test": "pnpm --filter sails-js --filter sails-js-cli test",
+    "test": "pnpm --filter sails-js test",
     "test:js": "pnpm --filter sails-js test",
     "test:cli": "pnpm --filter sails-js-cli test",
     "publish": "pnpm -r publish --access public",
     "lint": "npx eslint -c eslint.config.mjs",
     "lint:fix": "npx eslint --fix",
     "format": "prettier --write \"js/**/src/**/*.ts\"",
-    "clean": "rm -rf node_modules js/{.,*}/node_modules js/cli/build js/{parser,.,types}/lib js/**/*.tgz pnpm-lock.yaml"
+    "clean": "rm -rf node_modules js/{.,*}/node_modules js/cli/build js/{parser,parser-idl-v2,.,types,util}/lib js/**/*.tgz pnpm-lock.yaml"
   }
 }

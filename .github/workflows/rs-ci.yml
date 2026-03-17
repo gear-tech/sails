@@ -1,27 +1,27 @@
-name: '[rs] CI'
+name: "[rs] CI"
 
 on:
   push:
     branches: [master]
     paths:
-      - '.cargo/**'
-      - '.github/workflows/rs-*.yml' # No biggie to trigger this on changes in rs-release.yml
-      - 'examples/**'
-      - 'rs/**'
-      - 'templates/**'
-      - 'Cargo.lock'
-      - 'Cargo.toml'
-      - 'rust-toolchain.toml'
+      - ".cargo/**"
+      - ".github/workflows/rs-*.yml" # No biggie to trigger this on changes in rs-release.yml
+      - "examples/**"
+      - "rs/**"
+      - "templates/**"
+      - "Cargo.lock"
+      - "Cargo.toml"
+      - "rust-toolchain.toml"
   pull_request:
     paths:
-      - '.cargo/**'
-      - '.github/workflows/rs-*.yml' # No biggie to trigger this on changes in rs-release.yml
-      - 'examples/**'
-      - 'rs/**'
-      - 'templates/**'
-      - 'Cargo.lock'
-      - 'Cargo.toml'
-      - 'rust-toolchain.toml'
+      - ".cargo/**"
+      - ".github/workflows/rs-*.yml" # No biggie to trigger this on changes in rs-release.yml
+      - "examples/**"
+      - "rs/**"
+      - "templates/**"
+      - "Cargo.lock"
+      - "Cargo.toml"
+      - "rust-toolchain.toml"
   workflow_dispatch:
 
 concurrency:

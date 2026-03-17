@@ -1,8 +1,10 @@
 use clap::{Parser, Subcommand};
+use convert_case::{Case, Casing};
 use sails_cli::{
     idlgen::CrateIdlGenerator, program::ProgramGenerator, program_new, solgen::SolidityGenerator,
 };
 use sails_client_gen::ClientGenerator;
+use sails_client_gen_js::JsClientGenerator;
 use std::{error::Error, path::PathBuf};
 
 #[derive(Parser)]
@@ -58,7 +60,7 @@ enum SailsCommands {
         eth: bool,
     },
 
-    /// Generate client code from IDL
+    /// Generate Rust client code from IDL
     #[command(name = "client-rs")]
     ClientRs {
         /// Path to the IDL file
@@ -81,6 +83,17 @@ enum SailsCommands {
         no_derive_traits: bool,
     },
 
+    /// Generate JS client code from IDL
+    #[command(name = "client-js")]
+    ClientJs {
+        /// Path to the IDL file
+        #[arg(value_hint = clap::ValueHint::FilePath)]
+        idl_path: PathBuf,
+        /// Path to the output JS client file
+        #[arg(value_hint = clap::ValueHint::FilePath)]
+        out_path: Option<PathBuf>,
+    },
+
     /// Generate IDL from Cargo manifest
     #[command(name = "idl")]
     IdlGen {
@@ -93,6 +106,9 @@ enum SailsCommands {
         /// Level of dependencies to look for program implementation. Default: 1
         #[arg(long)]
         deps_level: Option<usize>,
+        /// Name of the program in IDL
+        #[arg(long, short = 'n')]
+        program_name: Option<String>,
     },
 
     /// Generate Solidity ABI-contracts from IDL
@@ -178,11 +194,23 @@ fn main() -> Result<(), i32> {
             let out_path = out_path.unwrap_or_else(|| idl_path.with_extension("rs"));
             client_gen.generate_to(out_path)
         }
+        SailsCommands::ClientJs { idl_path, out_path } => {
+            let client_gen = JsClientGenerator::from_idl_path(idl_path.as_ref());
+            let out_path = out_path.unwrap_or_else(|| idl_path.with_extension("ts"));
+            client_gen.generate_to(out_path)
+        }
         SailsCommands::IdlGen {
             manifest_path,
             target_dir,
             deps_level,
-        } => CrateIdlGenerator::new(manifest_path, target_dir, deps_level).generate(),
+            program_name,
+        } => CrateIdlGenerator::new(
+            manifest_path,
+            target_dir,
+            deps_level,
+            program_name.map(|s| s.to_case(Case::Pascal)),
+        )
+        .generate(),
         SailsCommands::SolGen {
             idl_path,
             target_dir,

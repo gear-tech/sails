@@ -1,0 +1,20 @@
+[package]
+name = "sails-client-gen-js"
+description = "TypeScript client generator for the Sails framework"
+documentation = "https://docs.rs/sails-client-gen-js"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+convert_case.workspace = true
+genco.workspace = true
+sails-idl-parser-v2 = { workspace = true, features = ["std"] }
+sails-idl-meta = { workspace = true, features = ["serde"] }
+
+[dev-dependencies]
+insta.workspace = true

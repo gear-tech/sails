@@ -21,5 +21,5 @@ prettyplease = "0.2"
 proc-macro2 = { version = "1", default-features = false }
 quote = "1.0"
 syn = "2.0"
-tokio = "1.49"
+tokio = "1.50"
 trybuild = "1"

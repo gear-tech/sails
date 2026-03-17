@@ -25,6 +25,7 @@ async fn counter_add_works() {
         .new(Some(42), None)
         .with_gas_limit(gas_limit)
         .await
+        .unwrap()
         .unwrap();
 
     let initial_balance = gear_api.free_balance(admin_id).await.unwrap();
@@ -69,6 +70,7 @@ async fn counter_sub_works() {
         .new(Some(42), None)
         .with_gas_limit(gas_limit)
         .await
+        .unwrap()
         .unwrap();
 
     let mut counter_client = demo_program.counter();
@@ -112,7 +114,7 @@ async fn ping_pong_works() {
     // Use generated `io` module for encoding/decoding calls and replies
     // and send/receive bytes using `gclient` native means (env is just a wrapper)
     let ping_call_payload =
-        ping_pong::io::Ping::encode_params_with_prefix("PingPong", "ping".into());
+        ping_pong::io::Ping::encode_call(DemoClientProgram::ROUTE_ID_PING_PONG, "ping".into());
 
     // Act
     let ping_reply_payload = env
@@ -124,8 +126,11 @@ async fn ping_pong_works() {
         .await
         .unwrap();
 
-    let ping_reply =
-        ping_pong::io::Ping::decode_reply_with_prefix("PingPong", ping_reply_payload).unwrap();
+    let ping_reply = ping_pong::io::Ping::decode_reply(
+        DemoClientProgram::ROUTE_ID_PING_PONG,
+        ping_reply_payload,
+    )
+    .unwrap();
 
     // Assert
 
@@ -169,6 +174,7 @@ async fn counter_query_works() {
         .new(Some(42), None)
         .with_gas_limit(gas_limit)
         .await
+        .unwrap()
         .unwrap();
 
     let counter_client = demo_program.counter();
@@ -196,6 +202,7 @@ async fn counter_query_with_message_works() {
         .new(Some(42), None)
         .with_gas_limit(gas_limit)
         .await
+        .unwrap()
         .unwrap();
 
     let counter_client = demo_program.counter();
@@ -223,6 +230,7 @@ async fn counter_query_not_enough_gas() {
         .new(Some(42), None)
         .with_gas_limit(gas_limit)
         .await
+        .unwrap()
         .unwrap();
 
     let counter_client = demo_program.counter();
@@ -257,6 +265,7 @@ async fn value_fee_works() {
         .deploy::<DemoClientProgram>(demo_code_id, vec![])
         .new(Some(42), None)
         .await
+        .unwrap()
         .unwrap();
 
     let initial_balance = gear_api.free_balance(admin_id).await.unwrap();

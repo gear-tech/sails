@@ -1,0 +1,16 @@
+[package]
+name = "inspector-client"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "Package containing the client for the program allowing to interact with it"
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+sails-rs.workspace = true
+
+[build-dependencies]
+inspector-app = { path = "../app" }
+sails-rs = { workspace = true, features = ["build"] }

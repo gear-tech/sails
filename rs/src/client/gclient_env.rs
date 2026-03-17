@@ -3,6 +3,7 @@ use ::gclient::gear::runtime_types::pallet_gear_voucher::internal::VoucherId;
 use ::gclient::{EventListener, EventProcessor as _, GearApi};
 use core::task::ready;
 use futures::{Stream, StreamExt, stream};
+pub use gear_core_errors::{ErrorReplyReason, SimpleExecutionError};
 
 #[derive(Debug, thiserror::Error)]
 pub enum GclientError {
@@ -88,7 +89,7 @@ impl GearEnv for GclientEnv {
     type MessageState = Pin<Box<dyn Future<Output = Result<(ActorId, Vec<u8>), GclientError>>>>;
 }
 
-impl<T: CallCodec> PendingCall<T, GclientEnv> {
+impl<T: ServiceCall> PendingCall<T, GclientEnv> {
     pub async fn send_one_way(&mut self) -> Result<MessageId, GclientError> {
         let (payload, params) = self.take_encoded_args_and_params();
         self.env
@@ -104,21 +105,33 @@ impl<T: CallCodec> PendingCall<T, GclientEnv> {
         Ok(self)
     }
 
-    pub async fn query(mut self) -> Result<T::Reply, GclientError> {
+    pub async fn query(mut self) -> Result<T::Output, GclientError> {
         let (payload, params) = self.take_encoded_args_and_params();
 
         // Calculate reply
-        let reply_bytes =
-            query_calculate_reply(&self.env.api, self.destination, payload, params).await?;
-
-        // Decode reply
-        T::decode_reply_with_prefix(self.route, reply_bytes)
-            .map_err(|err| gclient::Error::Codec(err).into())
+        match query_calculate_reply(&self.env.api, self.destination, payload, params).await {
+            Ok(reply_bytes) => match T::decode_reply(self.route_idx, reply_bytes) {
+                Ok(reply) => Ok(reply),
+                Err(err) => Err(gclient::Error::Codec(err).into()),
+            },
+            Err(GclientError::ReplyHasError(reason, payload)) => {
+                if matches!(
+                    reason,
+                    ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic)
+                ) && let Ok(reply) = T::decode_error(self.route_idx, &payload)
+                {
+                    Ok(reply)
+                } else {
+                    Err(GclientError::ReplyHasError(reason, payload))
+                }
+            }
+            Err(err) => Err(err),
+        }
     }
 }
 
-impl<T: CallCodec> Future for PendingCall<T, GclientEnv> {
-    type Output = Result<T::Reply, <GclientEnv as GearEnv>::Error>;
+impl<T: ServiceCall> Future for PendingCall<T, GclientEnv> {
+    type Output = Result<T::Output, <GclientEnv as GearEnv>::Error>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         if self.state.is_none() {
@@ -136,17 +149,35 @@ impl<T: CallCodec> Future for PendingCall<T, GclientEnv> {
             .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
         // Poll message future
         match ready!(message_future.poll(cx)) {
-            Ok((_, payload)) => match T::decode_reply_with_prefix(self.route, payload) {
+            Ok((_, payload)) => match T::decode_reply(self.route_idx, payload) {
                 Ok(decoded) => Poll::Ready(Ok(decoded)),
                 Err(err) => Poll::Ready(Err(gclient::Error::Codec(err).into())),
             },
+            Err(GclientError::ReplyHasError(reason, payload)) => {
+                if matches!(
+                    reason,
+                    ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic)
+                ) && let Ok(reply) = T::decode_error(self.route_idx, &payload)
+                {
+                    Poll::Ready(Ok(reply))
+                } else {
+                    Poll::Ready(Err(GclientError::ReplyHasError(reason, payload)))
+                }
+            }
             Err(err) => Poll::Ready(Err(err)),
         }
     }
 }
 
-impl<A, T: CallCodec> Future for PendingCtor<A, T, GclientEnv> {
-    type Output = Result<Actor<A, GclientEnv>, <GclientEnv as GearEnv>::Error>;
+impl<A, T> Future for PendingCtor<A, T, GclientEnv>
+where
+    T: ServiceCall,
+    T::Output: PendingCtorOutput<A, GclientEnv>,
+{
+    type Output = Result<
+        <T::Output as PendingCtorOutput<A, GclientEnv>>::Output,
+        <GclientEnv as GearEnv>::Error,
+    >;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         if self.state.is_none() {
@@ -157,7 +188,7 @@ impl<A, T: CallCodec> Future for PendingCtor<A, T, GclientEnv> {
                 .args
                 .take()
                 .unwrap_or_else(|| panic!("{PENDING_CTOR_INVALID_STATE}"));
-            let payload = T::encode_params(&args);
+            let payload = T::encode_call(0, &args);
 
             let create_program_future =
                 create_program(self.env.api.clone(), self.code_id, salt, payload, params);
@@ -171,9 +202,21 @@ impl<A, T: CallCodec> Future for PendingCtor<A, T, GclientEnv> {
             .unwrap_or_else(|| panic!("{PENDING_CTOR_INVALID_STATE}"));
         // Poll message future
         match ready!(message_future.poll(cx)) {
-            Ok((program_id, _)) => {
-                // Do not decode payload here
-                Poll::Ready(Ok(Actor::new(this.env.clone(), program_id)))
+            Ok((program_id, payload)) => {
+                let reply = T::decode_reply(0, payload)
+                    .map_err(|err| GclientError::Env(gclient::Error::Codec(err)))?;
+                Poll::Ready(Ok(reply.map_result(this.env.clone(), program_id)))
+            }
+            Err(GclientError::ReplyHasError(reason, payload)) => {
+                if matches!(
+                    reason,
+                    ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic)
+                ) && let Ok(reply) = T::decode_error(0, &payload)
+                {
+                    Poll::Ready(Ok(reply.map_result(this.env.clone(), ActorId::zero())))
+                } else {
+                    Poll::Ready(Err(GclientError::ReplyHasError(reason, payload)))
+                }
             }
             Err(err) => Poll::Ready(Err(err)),
         }

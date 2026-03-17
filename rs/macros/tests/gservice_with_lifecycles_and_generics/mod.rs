@@ -1,7 +1,7 @@
 use core::marker::PhantomData;
 use sails_rs::prelude::*;
 
-pub(super) struct SomeService<'a, 'b, T, U> {
+pub(super) struct SomeService<'a, 'b, T = String, U = core::option::IntoIter<u32>> {
     _t: PhantomData<&'a T>,
     u: &'b mut U,
 }

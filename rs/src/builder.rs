@@ -7,7 +7,6 @@ use std::{
     ffi::OsStr,
     path::{Path, PathBuf},
     string::{String, ToString},
-    vec::Vec,
 };
 
 /// Shorthand function to be used in `build.rs`.
@@ -15,7 +14,7 @@ use std::{
 /// See [Builder::build()].
 ///
 /// Code
-/// ```rust
+/// ```rust,ignore
 /// use std::{env, path::PathBuf};
 ///
 /// let out_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
@@ -146,7 +145,7 @@ impl<P: ProgramMeta> ClientBuilder<P> {
 
     pub fn with_program_name(self, program_name: &str) -> Self {
         Self {
-            program_name: program_name.to_string(),
+            program_name: program_name.to_case(Case::Snake),
             ..self
         }
     }
@@ -165,10 +164,11 @@ impl<P: ProgramMeta> ClientBuilder<P> {
     ///
     /// Returns client code generator.
     pub fn build_idl<'a>(&'a self) -> ClientGenerator<'a, IdlPath<'a>> {
+        let program_name = self.program_name.to_case(Case::Pascal);
         let idl_path = self.idl_path.as_ref().expect("idl path not set");
         let client_path = self.client_path.as_ref().expect("client path not set");
         // Generate IDL file for the program
-        sails_idl_gen::generate_idl_to_file::<P>(idl_path.as_path())
+        sails_idl_gen::generate_idl_to_file::<P>(Some(program_name.as_str()), idl_path.as_path())
             .expect("Error generating IDL from program");
 
         ClientGenerator::from_idl_path(idl_path.as_path()).with_client_path(client_path.as_path())
@@ -180,10 +180,14 @@ impl<P: ProgramMeta> ClientBuilder<P> {
     /// - first `Option<PathBuf>` is path to the IDL file if generated.
     /// - second `Option<PathBuf>` is path to the client file if generated.
     pub fn build(self) -> (Option<PathBuf>, Option<PathBuf>) {
+        let program_name = self.program_name.to_case(Case::Pascal);
         if let Some(idl_path) = self.idl_path.as_ref() {
             // Generate IDL file for the program
-            sails_idl_gen::generate_idl_to_file::<P>(idl_path.as_path())
-                .expect("Error generating IDL from program");
+            sails_idl_gen::generate_idl_to_file::<P>(
+                Some(program_name.as_str()),
+                idl_path.as_path(),
+            )
+            .expect("Error generating IDL from program");
 
             if let Some(client_path) = self.client_path.as_ref() {
                 // Generate client code from IDL file
@@ -194,17 +198,14 @@ impl<P: ProgramMeta> ClientBuilder<P> {
             }
         } else if let Some(client_path) = self.client_path.as_ref() {
             // Generate IDL string for the program
-            let mut idl = Vec::new();
-            sails_idl_gen::generate_idl::<P>(&mut idl).expect("Error generating IDL from program");
-            let idl = String::from_utf8(idl).unwrap();
+            let mut idl = String::new();
+            sails_idl_gen::generate_idl::<P>(Some(program_name.as_str()), &mut idl)
+                .expect("Error generating IDL from program");
 
             // Generate client code from IDL string
             ClientGenerator::from_idl(&idl)
                 .with_no_std(self.no_std)
-                .generate_to(
-                    self.program_name.to_case(Case::Pascal).as_str(),
-                    client_path.as_path(),
-                )
+                .generate_to(client_path.as_path())
                 .expect("Error generating client from IDL");
         }
 

@@ -1,10 +1,10 @@
-name: '[rs] Run CLI Tests'
+name: "[rs] Run CLI Tests"
 
 on:
   workflow_call:
     inputs:
       sources_ref:
-        description: 'Sources Ref'
+        description: "Sources Ref"
         type: string
         required: false
 
@@ -46,5 +46,5 @@ jobs:
 
       - name: Generate IDL from MyDemo via CLI
         run: |
-          ./target/debug/cargo-sails sails idl --manifest-path ~/tmp/my-demo/Cargo.toml
+          ./target/debug/cargo-sails sails idl --manifest-path ~/tmp/my-demo/Cargo.toml --program-name MyDemoClient
           diff ~/tmp/my-demo/target/my-demo-app.idl ~/tmp/my-demo/client/my_demo_client.idl

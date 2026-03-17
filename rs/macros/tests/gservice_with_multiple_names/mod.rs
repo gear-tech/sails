@@ -1,5 +1,6 @@
 use sails_rs::prelude::*;
 
+#[derive(Debug, Default)]
 pub(super) struct MyService;
 
 // Service
@@ -23,6 +24,7 @@ pub(super) struct MyDoThisParams {
     pub(super) p2: String,
 }
 
+#[derive(Debug, Default)]
 pub(super) struct MyOtherService;
 
 // Service with different name
@@ -42,6 +44,8 @@ impl MyOtherService {
 
 pub mod yet_another_service {
     use super::*;
+
+    #[derive(Debug, Default)]
     pub struct MyService;
     // Service with duplicate name in another module
     #[service]

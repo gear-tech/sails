@@ -1,0 +1,18 @@
+service TypeNames {
+    functions {
+        @query
+        Read(value: Option<Result<[(u32, ActorId)], u128>>) -> Result<Alias<Option<u32>>, string>;
+    }
+
+    types {
+        struct Alias<T>(T);
+    }
+}
+
+program TypeNamesProgram {
+    constructors {}
+    services {
+        TypeNames,
+    }
+}
+
