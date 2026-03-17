@@ -57,7 +57,7 @@ dependencies = [
 
 [[package]]
 name = "aggregator-app"
-version = "0.10.2"
+version = "1.0.0-beta.1"
 dependencies = [
  "aggregator-client",
  "demo",
@@ -71,7 +71,7 @@ dependencies = [
 
 [[package]]
 name = "aggregator-client"
-version = "0.10.2"
+version = "1.0.0-beta.1"
 dependencies = [
  "aggregator-app",
  "sails-rs",
@@ -111,7 +111,7 @@ dependencies = [
 
 [[package]]
 name = "alloc-stress"
-version = "0.10.2"
+version = "1.0.0-beta.1"
 dependencies = [
  "sails-rs",
 ]
@@ -779,7 +779,7 @@ checksum = "2af50177e190e07a26ab74f8b1efbfe2ef87da2116221318cb1c2e82baf7de06"
 
 [[package]]
 name = "benchmarks"
-version = "0.10.2"
+version = "1.0.0-beta.1"
 dependencies = [
  "alloc-stress",
  "anyhow",
@@ -1465,7 +1465,7 @@ checksum = "2382f75942f4b3be3690fe4f86365e9c853c1587d6ee58212cebf6e2a9ccd101"
 
 [[package]]
 name = "compute-stress"
-version = "0.10.2"
+version = "1.0.0-beta.1"
 dependencies = [
  "sails-rs",
 ]
@@ -1640,7 +1640,7 @@ dependencies = [
 
 [[package]]
 name = "counter-bench"
-version = "0.10.2"
+version = "1.0.0-beta.1"
 dependencies = [
  "sails-rs",
 ]
@@ -4566,7 +4566,7 @@ dependencies = [
 
 [[package]]
 name = "inspector-app"
-version = "0.10.2"
+version = "1.0.0-beta.1"
 dependencies = [
  "demo",
  "demo-client",
@@ -4577,7 +4577,7 @@ dependencies = [
 
 [[package]]
 name = "inspector-client"
-version = "0.10.2"
+version = "1.0.0-beta.1"
 dependencies = [
  "inspector-app",
  "sails-rs",
@@ -6158,14 +6158,14 @@ checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 
 [[package]]
 name = "ping-pong-bench-app"
-version = "0.10.2"
+version = "1.0.0-beta.1"
 dependencies = [
  "sails-rs",
 ]
 
 [[package]]
 name = "ping-pong-bench-client"
-version = "0.10.2"
+version = "1.0.0-beta.1"
 dependencies = [
  "ping-pong-bench-app",
  "sails-client-gen",
@@ -7196,7 +7196,7 @@ dependencies = [
 
 [[package]]
 name = "sails-cli"
-version = "0.10.2"
+version = "1.0.0-beta.1"
 dependencies = [
  "anyhow",
  "askama",
@@ -7214,7 +7214,7 @@ dependencies = [
 
 [[package]]
 name = "sails-client-gen"
-version = "0.10.2"
+version = "1.0.0-beta.1"
 dependencies = [
  "anyhow",
  "convert_case 0.11.0",
@@ -7227,7 +7227,7 @@ dependencies = [
 
 [[package]]
 name = "sails-client-gen-js"
-version = "0.10.2"
+version = "1.0.0-beta.1"
 dependencies = [
  "anyhow",
  "convert_case 0.11.0",
@@ -7239,7 +7239,7 @@ dependencies = [
 
 [[package]]
 name = "sails-idl-gen"
-version = "0.10.2"
+version = "1.0.0-beta.1"
 dependencies = [
  "askama",
  "convert_case 0.11.0",
@@ -7255,7 +7255,7 @@ dependencies = [
 
 [[package]]
 name = "sails-idl-meta"
-version = "0.10.2"
+version = "1.0.0-beta.1"
 dependencies = [
  "askama",
  "gprimitives",
@@ -7270,7 +7270,7 @@ dependencies = [
 
 [[package]]
 name = "sails-idl-parser"
-version = "0.10.2"
+version = "1.0.0-beta.1"
 dependencies = [
  "itertools 0.14.0",
  "lalrpop",
@@ -7281,7 +7281,7 @@ dependencies = [
 
 [[package]]
 name = "sails-idl-parser-v2"
-version = "0.10.2"
+version = "1.0.0-beta.1"
 dependencies = [
  "paste",
  "pest",
@@ -7292,7 +7292,7 @@ dependencies = [
 
 [[package]]
 name = "sails-idl-parser-wasm"
-version = "0.10.2"
+version = "1.0.0-beta.1"
 dependencies = [
  "sails-idl-meta",
  "sails-idl-parser-v2",
@@ -7300,7 +7300,7 @@ dependencies = [
 
 [[package]]
 name = "sails-macros"
-version = "0.10.2"
+version = "1.0.0-beta.1"
 dependencies = [
  "parity-scale-codec",
  "proc-macro-error",
@@ -7313,7 +7313,7 @@ dependencies = [
 
 [[package]]
 name = "sails-macros-core"
-version = "0.10.2"
+version = "1.0.0-beta.1"
 dependencies = [
  "convert_case 0.11.0",
  "insta",
@@ -7327,7 +7327,7 @@ dependencies = [
 
 [[package]]
 name = "sails-reflect-hash"
-version = "0.10.2"
+version = "1.0.0-beta.1"
 dependencies = [
  "gprimitives",
  "keccak-const",
@@ -7336,7 +7336,7 @@ dependencies = [
 
 [[package]]
 name = "sails-reflect-hash-derive"
-version = "0.10.2"
+version = "1.0.0-beta.1"
 dependencies = [
  "proc-macro-crate 3.5.0",
  "proc-macro2",
@@ -7346,7 +7346,7 @@ dependencies = [
 
 [[package]]
 name = "sails-rs"
-version = "0.10.2"
+version = "1.0.0-beta.1"
 dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
@@ -7382,7 +7382,7 @@ dependencies = [
 
 [[package]]
 name = "sails-sol-gen"
-version = "0.10.2"
+version = "1.0.0-beta.1"
 dependencies = [
  "anyhow",
  "convert_case 0.11.0",

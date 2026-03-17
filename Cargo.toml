@@ -1,5 +1,5 @@
 [workspace.package]
-version = "0.10.2"
+version = "1.0.0-beta.1"
 authors = ["Gear Technologies"]
 edition = "2024"
 license = "GPL-3.0"

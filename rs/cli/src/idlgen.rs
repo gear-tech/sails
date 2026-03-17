@@ -1,5 +1,5 @@
-use anyhow::Context;
-use cargo_metadata::{Package, PackageId, camino::*};
+use anyhow::{Context, bail};
+use cargo_metadata::{Package, PackageId, camino::*, semver::VersionReq};
 use convert_case::{Case, Casing};
 use std::{
     collections::{HashMap, HashSet},
@@ -51,6 +51,9 @@ impl CrateIdlGenerator {
             .iter()
             .filter(|&p| p.name == "sails-rs")
             .collect::<Vec<_>>();
+        if sails_packages.is_empty() {
+            bail!("`sails-rs` package not found");
+        }
 
         let target_dir = self
             .target_dir
@@ -124,7 +127,7 @@ impl<'a> PackageIdlGenerator<'a> {
         let sails_package = self
             .sails_packages
             .iter()
-            .find(|p| sails_dep.req.matches(&p.version))
+            .find(|p| sails_dep.req == VersionReq::STAR || sails_dep.req.matches(&p.version))
             .context(format!(
                 "failed to find `sails-rs` package with matching version {}",
                 &sails_dep.req
