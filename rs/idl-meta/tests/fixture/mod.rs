@@ -390,6 +390,7 @@ pub fn ctor_func() -> CtorFunc {
             "Program constructor (called once at the very beginning of the program lifetime)"
                 .to_string(),
         ],
+        throws: None,
         annotations: vec![],
     }
 }
@@ -406,6 +407,7 @@ pub fn program_unit() -> ProgramUnit {
                     "Another program constructor".to_string(),
                     "(called once at the very beginning of the program lifetime)".to_string(),
                 ],
+                throws: None,
                 annotations: vec![],
             },
         ],
@@ -464,6 +466,7 @@ pub fn program_unit() -> ProgramUnit {
             type_tuple_struct(),
             type_unit_struct(),
         ],
+
         docs: vec!["Demo Program".to_string()],
         annotations: vec![],
     }

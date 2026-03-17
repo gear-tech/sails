@@ -86,8 +86,16 @@ impl<'ast> Visitor<'ast> for CtorGenerator<'ast> {
 
         let params_with_types_super = &fn_args_with_types_path(&func.params, "super");
         let entry_id = self.entry_ids.get(func.name.as_str()).copied().unwrap_or(0);
+
+        let io_output_type = if let Some(throws) = &func.throws {
+            let err_ty = crate::type_generators::generate_type_decl_with_path(throws, "super");
+            format!("() | {err_ty}")
+        } else {
+            "()".to_string()
+        };
+
         quote_in! { self.io_tokens =>
-            $(self.sails_path)::io_struct_impl!($fn_name ($params_with_types_super) -> (), $entry_id);
+            $(self.sails_path)::io_struct_impl!($fn_name ($params_with_types_super) -> $io_output_type, $entry_id);
         };
     }
 }

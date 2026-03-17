@@ -14,7 +14,7 @@ path = "src/bin/bench_analyzer.rs"
 anyhow.workspace = true
 clap = { version = "4.0", features = ["derive"] }
 serde = { workspace = true, features = ["derive"] }
-serde-json.workspace = true
+serde-json = { workspace = true, features = ["std"] }
 fs2.workspace = true
 sails-rs.workspace = true
 itertools.workspace = true

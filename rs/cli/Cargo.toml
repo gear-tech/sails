@@ -25,6 +25,6 @@ convert_case.workspace = true
 rustdoc-types.workspace = true
 sails-client-gen.workspace = true
 sails-client-gen-js.workspace = true
-serde-json.workspace = true
+serde-json = { workspace = true, features = ["std"] }
 toml_edit.workspace = true
 sails-sol-gen.workspace = true

@@ -19,7 +19,7 @@ program {{ name }} {
             {%- for p in f.params %}
             {%- if loop.first %}{{ p }}{% else %}, {{ p }}{% endif -%}
             {%- endfor -%}
-        );
+        ){% if f.throws.is_some() %} throws {{ f.throws.as_ref().unwrap() }}{% endif %};
 
         {%- endfor %}
     }

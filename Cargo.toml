@@ -31,6 +31,8 @@ members = [
     "examples/aggregator/client",
     "examples/partial-idl/app",
     "examples/partial-idl/client",
+    "examples/inspector/app",
+    "examples/inspector/client",
     "rs",
     "rs/cli",
     "rs/client-gen",

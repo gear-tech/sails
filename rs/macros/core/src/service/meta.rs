@@ -258,19 +258,26 @@ struct FnHashBuilder<'a> {
     route: &'a str,
     arg_types: &'a [&'a Type],
     result_type: Type,
-    unwrap_result: bool,
+    error_type: Option<Type>,
     override_name: Option<TokenStream>,
 }
 
 impl<'a> FnHashBuilder<'a> {
     fn from_handler(handler: &'a FnBuilder<'a>, sails_path: &'a Path) -> Self {
+        let (result_type, _) = handler.result_type_with_value();
+        let result_type = shared::replace_any_lifetime_with_static(result_type.clone());
+        let error_type = handler
+            .error_type
+            .as_ref()
+            .map(|et| shared::replace_any_lifetime_with_static(et.clone()));
+
         Self {
             sails_path,
             is_query: handler.is_query(),
             route: &handler.route,
             arg_types: handler.params_types(),
-            result_type: handler.result_type_with_static_lifetime(),
-            unwrap_result: handler.unwrap_result,
+            result_type,
+            error_type,
             override_name: None,
         }
     }
@@ -284,15 +291,12 @@ impl<'a> FnHashBuilder<'a> {
         let sails_path = self.sails_path;
 
         let arg_types = self.arg_types;
+        let result_type = &self.result_type;
 
-        let result_tokens = if self.unwrap_result
-            && let Type::Path(ref tp) = self.result_type
-            && let Some((ok_ty, err_ty)) = shared::extract_result_types(tp)
-        {
+        let result_tokens = if let Some(error_type) = &self.error_type {
             // Result type: RES_HASH = b"res" || T::HASH || b"throws" || E::HASH
-            quote!( -> #ok_ty | #err_ty )
+            quote!( -> #result_type | #error_type )
         } else {
-            let result_type = &self.result_type;
             // Other types: RES_HASH = b"res" || REFLECT_HASH
             quote!( -> #result_type )
         };

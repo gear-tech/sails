@@ -40,6 +40,7 @@ async fn counter_add_works() {
         .deploy(code_id, vec![])
         .new(Some(42), None)
         .await
+        .unwrap()
         .unwrap();
 
     let mut counter_client = demo_program.counter();
@@ -72,6 +73,7 @@ async fn counter_sub_works() {
         .deploy(code_id, vec![])
         .new(Some(42), None)
         .await
+        .unwrap()
         .unwrap();
 
     let mut counter_client = demo_program.counter();
@@ -105,6 +107,7 @@ async fn counter_query_works() {
         .deploy(code_id, vec![])
         .new(Some(42), None)
         .await
+        .unwrap()
         .unwrap();
 
     let counter_client = demo_program.counter();
@@ -131,6 +134,7 @@ async fn counter_query_not_enough_gas() {
         .deploy(code_id, vec![])
         .new(Some(42), None)
         .await
+        .unwrap()
         .unwrap();
 
     let counter_client = demo_program.counter();
@@ -166,7 +170,7 @@ async fn ping_pong_low_level_works() {
     let demo_program = Program::from_file(&system, DEMO_WASM_PATH);
 
     // Use generated `io` module to create a program
-    let message_id = demo_program.send_bytes(ACTOR_ID, Default::encode_params_with_header(0, &()));
+    let message_id = demo_program.send_bytes(ACTOR_ID, Default::encode_call(0));
     let run_result = system.run_next_block();
     let gas_burned = *run_result
         .gas_burned
@@ -215,6 +219,7 @@ async fn dog_barks() {
         .deploy(code_id, vec![])
         .new(None, Some((1, -1)))
         .await
+        .unwrap()
         .unwrap();
 
     let mut dog_client = demo_program.dog();
@@ -245,6 +250,7 @@ async fn dog_walks() {
         .deploy(code_id, vec![])
         .new(None, Some((1, -1)))
         .await
+        .unwrap()
         .unwrap();
 
     let dog_client = demo_program.dog();
@@ -286,6 +292,7 @@ async fn dog_weights() {
         .deploy(code_id, vec![])
         .new(None, Some((1, -1)))
         .await
+        .unwrap()
         .unwrap();
 
     let dog_client = demo_program.dog();
@@ -306,6 +313,7 @@ async fn references_add() {
         .deploy(code_id, vec![])
         .new(None, Some((1, -1)))
         .await
+        .unwrap()
         .unwrap();
 
     let mut client = demo_program.references();
@@ -325,6 +333,7 @@ async fn references_bytes() {
         .deploy(code_id, vec![])
         .new(None, Some((1, -1)))
         .await
+        .unwrap()
         .unwrap();
 
     let mut client = demo_program.references();
@@ -347,6 +356,7 @@ async fn references_guess_num() {
         .deploy(code_id, vec![])
         .new(None, Some((1, -1)))
         .await
+        .unwrap()
         .unwrap();
 
     let mut client = demo_program.references();
@@ -375,6 +385,7 @@ async fn counter_add_works_via_next_mode() {
         .deploy(code_id, vec![])
         .new(Some(42), None)
         .await
+        .unwrap()
         .unwrap();
 
     let mut counter_client = demo_program.counter();
@@ -409,7 +420,7 @@ async fn counter_add_works_via_manual_mode() {
     // Run next Block
     env.run_next_block();
 
-    let demo_program = pending_ctor.await.unwrap();
+    let demo_program = pending_ctor.await.unwrap().unwrap();
 
     let mut counter_client = demo_program.counter();
     // Listen to Counter events
@@ -452,7 +463,7 @@ fn counter_add_low_level_works() {
     let wasm_size = std::fs::metadata(DEMO_WASM_PATH).unwrap().len();
 
     // Use generated `io` module to create a program
-    let _message_id = demo_program.send_bytes(ACTOR_ID, Default::encode_params_with_header(0, &()));
+    let _message_id = demo_program.send_bytes(ACTOR_ID, Default::encode_call(0));
 
     // Use generated `io` module for encoding/decoding calls and replies
     // and send/receive bytes using `gtest` native means
@@ -490,6 +501,7 @@ async fn value_fee_works() {
         .deploy(code_id, vec![])
         .new(Some(42), None)
         .await
+        .unwrap()
         .unwrap();
 
     let initial_balance = env.system().balance_of(ActorId::from(ACTOR_ID));
@@ -527,6 +539,7 @@ async fn program_value_transfer_works() {
         .deploy(code_id, vec![])
         .new(Some(42), None)
         .await
+        .unwrap()
         .unwrap();
     let program_id = demo_program.id();
 
@@ -556,7 +569,7 @@ fn chaos_service_panic_after_wait_works() {
     system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails_rs=debug");
     system.mint_to(ACTOR_ID, 1_000_000_000_000_000);
     let program = Program::from_file(&system, DEMO_WASM_PATH);
-    program.send_bytes(ACTOR_ID, Default::encode_params_with_header(0, &()));
+    program.send_bytes(ACTOR_ID, Default::encode_call(0));
 
     let msg_id = program.send_bytes(
         ACTOR_ID,
@@ -591,7 +604,7 @@ fn chaos_service_timeout_wait() {
     system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails_rs=debug,redirect=debug");
     system.mint_to(ACTOR_ID, 1_000_000_000_000_000);
     let program = Program::from_file(&system, DEMO_WASM_PATH);
-    program.send_bytes(ACTOR_ID, Default::encode_params_with_header(0, &()));
+    program.send_bytes(ACTOR_ID, Default::encode_call(0));
 
     program.send_bytes(
         ACTOR_ID,
@@ -657,6 +670,7 @@ async fn chaos_panic_does_not_affect_other_services() {
         .deploy(code_id, vec![])
         .new(Some(INIT_VALUE), None)
         .await
+        .unwrap()
         .unwrap();
 
     let mut counter_client = demo_program.counter();
@@ -736,4 +750,76 @@ async fn inheritance_redefine_works() {
         .await
         .unwrap();
     assert_eq!(pos, (0, 0));
+}
+
+#[tokio::test]
+async fn validator_range_check_works() {
+    use demo_client::validator::{ValidationError, Validator as _};
+
+    let (env, code_id, _gas_limit) = create_env();
+    let demo_program = env.deploy(code_id, vec![]).default().await.unwrap();
+
+    let mut validator_client = demo_program.validator();
+
+    // Success case
+    let res = validator_client.validate_range(10, 0, 100).await.unwrap();
+    assert_eq!(res, Ok(10));
+    assert_eq!(validator_client.total_errors().await.unwrap(), 0);
+
+    // Error case (throws)
+    let res = validator_client.validate_range(150, 0, 100).await.unwrap();
+    assert_eq!(res, Err(ValidationError::TooBig));
+
+    assert_eq!(validator_client.total_errors().await.unwrap(), 0);
+}
+
+#[tokio::test]
+async fn validator_range_check_query_works() {
+    use demo_client::validator::{ValidationError, Validator as _};
+
+    let (env, code_id, _gas_limit) = create_env();
+    let demo_program = env.deploy(code_id, vec![]).default().await.unwrap();
+
+    let mut validator_client = demo_program.validator();
+
+    let res = validator_client
+        .validate_range(150, 0, 100)
+        .query()
+        .unwrap();
+    assert_eq!(res, Err(ValidationError::TooBig));
+}
+
+#[tokio::test]
+async fn validator_nonzero_works() {
+    use demo_client::validator::Validator as _;
+    let (env, code_id, _gas_limit) = create_env();
+    let demo_program = env.deploy(code_id, vec![]).default().await.unwrap();
+
+    let mut validator_client = demo_program.validator();
+
+    // Success case (Ok(()))
+    let res = validator_client.validate_nonzero(10).await.unwrap();
+    assert_eq!(res, Ok(()));
+
+    // Error case (Err(String))
+    let res = validator_client.validate_nonzero(0).await.unwrap();
+    assert_eq!(res, Err("Value is zero".to_string()));
+    assert_eq!(validator_client.total_errors().await.unwrap(), 0);
+}
+
+#[tokio::test]
+async fn validator_even_works() {
+    use demo_client::validator::Validator as _;
+    let (env, code_id, _gas_limit) = create_env();
+    let demo_program = env.deploy(code_id, vec![]).default().await.unwrap();
+
+    let validator_client = demo_program.validator();
+
+    // Success case
+    let res = validator_client.validate_even(10).await.unwrap();
+    assert_eq!(res, Ok(10));
+
+    // Error case (Err(()))
+    let res = validator_client.validate_even(7).await.unwrap();
+    assert_eq!(res, Err(()));
 }

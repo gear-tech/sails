@@ -110,9 +110,11 @@ On the method's completion, its result is encoded and returned as a response to 
 > type, `CommandReply<T>`.
 
 Sometimes it is convenient to have a method that returns the `Result<T, E>` type,
-but not expose it to clients. This allows using the `?` operator
+but not expose it to clients as a part of the return type. This allows using the `?` operator
 in the method body. For this purpose, you can use the `#[export]` attribute macro with
 the `unwrap_result` parameter.
+
+If `unwrap_result` is used with a method or constructor returning `Result<T, E>`, the error variant `E` will be exposed to clients as a business error (throwing call).
 
 ```rust
 #[service]
@@ -129,7 +131,7 @@ impl MyService {
         CommandReply::new(()).with_value(amount)
     }
 
-    // This is a command returning `()` or panicking
+    // This is a command returning `()` and exposing `String` as a business error (throws String)
     #[export(unwrap_result)]
     pub fn do_something_with_unwrap_result(&mut self, amount: u64) -> Result<(), String> {
         do_something_returning_result()?;
@@ -145,6 +147,18 @@ impl MyService {
     // This is an inner method, not accessible via remote calls
     pub fn do_something_inner(&mut self, p1: u32, p2: String) -> &'static [u8] {
         ...
+    }
+}
+
+#[program]
+impl MyProgram {
+    // This is a constructor that can return a business error to the client
+    #[export(unwrap_result)]
+    pub fn new(counter: u32) -> Result<Self, String> {
+        if counter > 100 {
+            return Err("Counter too high".into());
+        }
+        Ok(Self { ... })
     }
 }
 ```
