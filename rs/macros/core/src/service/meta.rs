@@ -258,20 +258,18 @@ struct FnHashBuilder<'a> {
     route: &'a str,
     arg_types: &'a [&'a Type],
     result_type: Type,
-    unwrap_result: bool,
+    error_type: Option<Type>,
     override_name: Option<TokenStream>,
 }
 
 impl<'a> FnHashBuilder<'a> {
     fn from_handler(handler: &'a FnBuilder<'a>, sails_path: &'a Path) -> Self {
-        let original_result_type = shared::result_type(&handler.impl_fn.sig);
-        let static_result_type = shared::replace_any_lifetime_with_static(original_result_type);
-        let (result_type, _) =
-            if let Some(ty) = shared::extract_reply_type_with_value(&static_result_type) {
-                (ty.clone(), true)
-            } else {
-                (static_result_type, false)
-            };
+        let (result_type, _) = handler.result_type_with_value();
+        let result_type = shared::replace_any_lifetime_with_static(result_type.clone());
+        let error_type = handler
+            .error_type
+            .as_ref()
+            .map(|et| shared::replace_any_lifetime_with_static(et.clone()));
 
         Self {
             sails_path,
@@ -279,7 +277,7 @@ impl<'a> FnHashBuilder<'a> {
             route: &handler.route,
             arg_types: handler.params_types(),
             result_type,
-            unwrap_result: handler.unwrap_result,
+            error_type,
             override_name: None,
         }
     }
@@ -293,15 +291,12 @@ impl<'a> FnHashBuilder<'a> {
         let sails_path = self.sails_path;
 
         let arg_types = self.arg_types;
+        let result_type = &self.result_type;
 
-        let result_tokens = if self.unwrap_result
-            && let Type::Path(ref tp) = self.result_type
-            && let Some((ok_ty, err_ty)) = shared::extract_result_types(tp)
-        {
+        let result_tokens = if let Some(error_type) = &self.error_type {
             // Result type: RES_HASH = b"res" || T::HASH || b"throws" || E::HASH
-            quote!( -> #ok_ty | #err_ty )
+            quote!( -> #result_type | #error_type )
         } else {
-            let result_type = &self.result_type;
             // Other types: RES_HASH = b"res" || REFLECT_HASH
             quote!( -> #result_type )
         };
