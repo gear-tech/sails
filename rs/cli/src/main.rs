@@ -5,6 +5,9 @@ use sails_client_gen::ClientGenerator;
 use sails_client_gen_js::JsClientGenerator;
 use std::{error::Error, path::PathBuf};
 
+const SAILBOAT: &str = "\u{26F5}";
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 #[derive(Parser)]
 #[command(bin_name = "cargo")]
 enum CliCommand {
@@ -121,6 +124,7 @@ where
 }
 
 fn main() -> Result<(), i32> {
+    println!("{SAILBOAT} Sails CLI {VERSION}");
     let CliCommand::Sails(command) = CliCommand::parse();
 
     let result = match command {
