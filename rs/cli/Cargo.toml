@@ -11,6 +11,12 @@ rust-version.workspace = true
 [package.metadata.dist]
 dist = true
 
+[package.metadata.binstall]
+pkg-url = "{ repo }/releases/download/rs%2Fv{ version }/{ name }-{ target }{ archive-suffix }"
+
+[package.metadata.binstall.overrides.x86_64-pc-windows-msvc]
+pkg-fmt = "zip"
+
 [[bin]]
 name = "cargo-sails"
 path = "src/main.rs"
