@@ -31,7 +31,7 @@ impl Syscall {
         gstd::msg::source()
     }
 
-    pub fn message_value() -> u128 {
+    pub fn message_value() -> ValueUnit {
         gstd::msg::value()
     }
 
@@ -65,8 +65,12 @@ impl Syscall {
         gstd::exec::block_timestamp()
     }
 
-    pub fn value_available() -> u128 {
+    pub fn value_available() -> ValueUnit {
         gstd::exec::value_available()
+    }
+
+    pub fn gas_available() -> GasUnit {
+        gstd::exec::gas_available()
     }
 
     pub fn env_vars() -> gstd::EnvVars {
@@ -106,7 +110,7 @@ syscall_unimplemented!(
     message_id() -> MessageId,
     message_size() -> usize,
     message_source() -> ActorId,
-    message_value() -> u128,
+    message_value() -> ValueUnit,
     reply_to() -> Result<MessageId, gcore::errors::Error>,
     reply_code() -> Result<ReplyCode, gcore::errors::Error>,
     signal_from() -> Result<MessageId, gcore::errors::Error>,
@@ -114,7 +118,8 @@ syscall_unimplemented!(
     program_id() -> ActorId,
     block_height() -> u32,
     block_timestamp() -> u64,
-    value_available() -> u128,
+    value_available() -> ValueUnit,
+    gas_available() -> GasUnit,
     env_vars() -> gstd::EnvVars,
 );
 
@@ -174,7 +179,7 @@ const _: () = {
         message_id() -> MessageId,
         message_size() -> usize,
         message_source() -> ActorId,
-        message_value() -> u128,
+        message_value() -> ValueUnit,
         reply_to() -> Result<MessageId, gcore::errors::Error>,
         reply_code() -> Result<ReplyCode, gcore::errors::Error>,
         signal_from() -> Result<MessageId, gcore::errors::Error>,
@@ -182,7 +187,8 @@ const _: () = {
         program_id() -> ActorId,
         block_height() -> u32,
         block_timestamp() -> u64,
-        value_available() -> u128,
+        value_available() -> ValueUnit,
+        gas_available() -> GasUnit,
     );
 
     impl Default for SyscallState {
@@ -202,6 +208,7 @@ const _: () = {
                 block_height: 0,
                 block_timestamp: 0,
                 value_available: 0,
+                gas_available: 0,
             }
         }
     }
