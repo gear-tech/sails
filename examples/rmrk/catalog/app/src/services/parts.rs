@@ -7,7 +7,7 @@ pub type PartId = u32;
 
 #[derive(Decode, Encode, TypeInfo, Clone, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
+#[type_info(crate = sails_rs::type_info)]
 #[reflect_hash(crate = sails_rs)]
 pub enum Part {
     Fixed(FixedPart),
@@ -16,7 +16,7 @@ pub enum Part {
 
 #[derive(Decode, Encode, TypeInfo, Clone, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
+#[type_info(crate = sails_rs::type_info)]
 #[reflect_hash(crate = sails_rs)]
 pub struct FixedPart {
     /// An optional zIndex of base part layer.
@@ -30,7 +30,7 @@ pub struct FixedPart {
 
 #[derive(Decode, Encode, TypeInfo, Clone, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
+#[type_info(crate = sails_rs::type_info)]
 #[reflect_hash(crate = sails_rs)]
 pub struct SlotPart {
     /// Array of whitelisted collections that can be equipped in the given slot. Used with slot parts only.

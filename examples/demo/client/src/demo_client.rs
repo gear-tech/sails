@@ -487,7 +487,7 @@ pub mod references {
 
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = sails_rs::scale_codec)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[type_info(crate = sails_rs::type_info)]
     #[reflect_hash(crate = sails_rs)]
     pub struct ReferenceCount(pub u32);
 
@@ -579,7 +579,7 @@ pub mod this_that {
 
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = sails_rs::scale_codec)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[type_info(crate = sails_rs::type_info)]
     #[reflect_hash(crate = sails_rs)]
     pub struct DoThatParam {
         pub p1: NonZeroU32,
@@ -588,7 +588,7 @@ pub mod this_that {
     }
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = sails_rs::scale_codec)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[type_info(crate = sails_rs::type_info)]
     #[reflect_hash(crate = sails_rs)]
     pub enum ManyVariants {
         One,
@@ -600,7 +600,7 @@ pub mod this_that {
     }
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = sails_rs::scale_codec)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[type_info(crate = sails_rs::type_info)]
     #[reflect_hash(crate = sails_rs)]
     pub enum ManyVariantsReply {
         One,
@@ -612,7 +612,7 @@ pub mod this_that {
     }
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = sails_rs::scale_codec)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[type_info(crate = sails_rs::type_info)]
     #[reflect_hash(crate = sails_rs)]
     pub struct TupleStruct(pub bool);
 
@@ -783,7 +783,7 @@ pub mod validator {
 
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = sails_rs::scale_codec)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[type_info(crate = sails_rs::type_info)]
     #[reflect_hash(crate = sails_rs)]
     pub enum ValidationError {
         TooSmall,

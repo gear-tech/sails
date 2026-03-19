@@ -253,7 +253,7 @@ impl FnBuilder<'_> {
         &self,
         service_path: &TypePath,
         scale_codec_path: &Path,
-        scale_info_path: &Path,
+        type_info_path: &Path,
     ) -> TokenStream {
         let sails_path = self.sails_path;
         let params_struct_ident = &self.params_struct_ident;
@@ -293,7 +293,7 @@ impl FnBuilder<'_> {
         quote!(
             #[derive(#sails_path::Decode, #sails_path::TypeInfo)]
             #[codec(crate = #scale_codec_path )]
-            #[scale_info(crate = #scale_info_path )]
+            #[type_info(crate = #type_info_path )]
             pub struct #params_struct_ident {
                 #(pub(super) #params_struct_members,)*
             }

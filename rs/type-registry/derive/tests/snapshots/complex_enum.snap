@@ -1,0 +1,72 @@
+---
+source: rs/type-registry/derive/src/lib.rs
+expression: formatted
+---
+#[automatically_derived]
+impl ::sails_type_registry::TypeInfo for Complex {
+    type Identity = Self;
+    fn type_info(
+        registry: &mut ::sails_type_registry::Registry,
+    ) -> ::sails_type_registry::ty::Type {
+        let mut type_builder = ::sails_type_registry::builder::TypeBuilder::new()
+            .module_path(::core::module_path!())
+            .name("Complex")
+            .docs(
+                ::sails_type_registry::prelude::alloc::vec![
+                    "Multiline".to_string(),
+                    "Enum docs".to_string(),
+                ],
+            );
+        type_builder
+            .variant()
+            .add_variant("V1")
+            .docs(::sails_type_registry::prelude::alloc::vec!["Variant 1".to_string()])
+            .field(
+                "field1",
+                {
+                    let id = registry.register_type::<u32>();
+                    let field_type = ::sails_type_registry::ty::FieldType::Id(id);
+                    registry.expand_aliases(&field_type)
+                },
+            )
+            .type_name(
+                ::sails_type_registry::prelude::alloc::string::String::from(
+                    ::core::stringify!(u32),
+                ),
+            )
+            .field_docs(::sails_type_registry::prelude::alloc::vec![])
+            .field_annotation(
+                ::sails_type_registry::ty::Annotation::new_with_value("rename", "val"),
+            )
+            .add_variant("V2")
+            .docs(::sails_type_registry::prelude::alloc::vec!["Variant 2".to_string()])
+            .unnamed_field({
+                let id = registry.register_type::<u64>();
+                let field_type = ::sails_type_registry::ty::FieldType::Id(id);
+                registry.expand_aliases(&field_type)
+            })
+            .type_name(
+                ::sails_type_registry::prelude::alloc::string::String::from(
+                    ::core::stringify!(u64),
+                ),
+            )
+            .field_docs(::sails_type_registry::prelude::alloc::vec![])
+            .unnamed_field({
+                let id = registry.register_type::<String>();
+                let field_type = ::sails_type_registry::ty::FieldType::Id(id);
+                registry.expand_aliases(&field_type)
+            })
+            .type_name(
+                ::sails_type_registry::prelude::alloc::string::String::from(
+                    ::core::stringify!(String),
+                ),
+            )
+            .field_docs(::sails_type_registry::prelude::alloc::vec![])
+            .add_variant("V3")
+            .docs(
+                ::sails_type_registry::prelude::alloc::vec!["Unit variant".to_string()],
+            )
+            .annotation(::sails_type_registry::ty::Annotation::new("unit"))
+            .build()
+    }
+}

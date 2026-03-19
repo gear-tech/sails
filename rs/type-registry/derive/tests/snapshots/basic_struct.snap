@@ -1,0 +1,63 @@
+---
+source: rs/type-registry/derive/src/lib.rs
+expression: formatted
+---
+#[automatically_derived]
+impl ::sails_type_registry::TypeInfo for Basic {
+    type Identity = Self;
+    fn type_info(
+        registry: &mut ::sails_type_registry::Registry,
+    ) -> ::sails_type_registry::ty::Type {
+        let mut type_builder = ::sails_type_registry::builder::TypeBuilder::new()
+            .module_path(::core::module_path!())
+            .name("Basic")
+            .docs(
+                ::sails_type_registry::prelude::alloc::vec![
+                    "Documentation for basic struct".to_string(),
+                ],
+            );
+        type_builder = type_builder
+            .annotation(::sails_type_registry::ty::Annotation::new("skip"));
+        type_builder
+            .composite()
+            .field(
+                "a",
+                {
+                    let id = registry.register_type::<u32>();
+                    let field_type = ::sails_type_registry::ty::FieldType::Id(id);
+                    registry.expand_aliases(&field_type)
+                },
+            )
+            .type_name(
+                ::sails_type_registry::prelude::alloc::string::String::from(
+                    ::core::stringify!(u32),
+                ),
+            )
+            .docs(
+                ::sails_type_registry::prelude::alloc::vec![
+                    "Field documentation".to_string(),
+                ],
+            )
+            .annotation(
+                ::sails_type_registry::ty::Annotation::new_with_value(
+                    "name",
+                    "custom_field",
+                ),
+            )
+            .field(
+                "b",
+                {
+                    let id = registry.register_type::<String>();
+                    let field_type = ::sails_type_registry::ty::FieldType::Id(id);
+                    registry.expand_aliases(&field_type)
+                },
+            )
+            .type_name(
+                ::sails_type_registry::prelude::alloc::string::String::from(
+                    ::core::stringify!(String),
+                ),
+            )
+            .docs(::sails_type_registry::prelude::alloc::vec![])
+            .build()
+    }
+}

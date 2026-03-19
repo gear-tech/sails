@@ -49,7 +49,7 @@ pub mod rmrk_catalog {
 
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = sails_rs::scale_codec)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[type_info(crate = sails_rs::type_info)]
     #[reflect_hash(crate = sails_rs)]
     pub enum Error {
         PartIdCantBeZero,
@@ -62,7 +62,7 @@ pub mod rmrk_catalog {
     }
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = sails_rs::scale_codec)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[type_info(crate = sails_rs::type_info)]
     #[reflect_hash(crate = sails_rs)]
     pub struct FixedPart {
         /// An optional zIndex of base part layer.
@@ -74,7 +74,7 @@ pub mod rmrk_catalog {
     }
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = sails_rs::scale_codec)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[type_info(crate = sails_rs::type_info)]
     #[reflect_hash(crate = sails_rs)]
     pub enum Part {
         Fixed(FixedPart),
@@ -82,7 +82,7 @@ pub mod rmrk_catalog {
     }
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = sails_rs::scale_codec)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[type_info(crate = sails_rs::type_info)]
     #[reflect_hash(crate = sails_rs)]
     pub struct SlotPart {
         /// Array of whitelisted collections that can be equipped in the given slot. Used with slot parts only.

@@ -274,7 +274,7 @@ mod inherited_service_meta {
     };
     #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[type_info(crate = sails_rs::type_info)]
     pub struct __MethodThreeParams {}
     impl sails_rs::meta::Identifiable for __MethodThreeParams {
         const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::BaseService as sails_rs::meta::Identifiable>::INTERFACE_ID;
@@ -293,7 +293,7 @@ mod inherited_service_meta {
     }
     #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[type_info(crate = sails_rs::type_info)]
     pub struct __RenamedByRouteParams {}
     impl sails_rs::meta::Identifiable for __RenamedByRouteParams {
         const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::BaseService as sails_rs::meta::Identifiable>::INTERFACE_ID;
@@ -312,7 +312,7 @@ mod inherited_service_meta {
     }
     #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[type_info(crate = sails_rs::type_info)]
     pub struct __RenamedByIdParams {}
     impl sails_rs::meta::Identifiable for __RenamedByIdParams {
         const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::BaseService as sails_rs::meta::Identifiable>::INTERFACE_ID;
@@ -324,13 +324,13 @@ mod inherited_service_meta {
         type Params = Self;
     }
     #[derive(sails_rs::TypeInfo)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[type_info(crate = sails_rs::type_info)]
     pub enum CommandsMeta {}
     #[derive(sails_rs::TypeInfo)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[type_info(crate = sails_rs::type_info)]
     pub enum QueriesMeta {}
     #[derive(sails_rs::TypeInfo)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[type_info(crate = sails_rs::type_info)]
     pub enum NoEvents {}
     pub type EventsMeta = NoEvents;
 }

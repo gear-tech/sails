@@ -46,6 +46,8 @@ members = [
     "rs/macros/core",
     "rs/reflect-hash",
     "rs/sol-gen",
+    "rs/type-registry",
+    "rs/type-registry/derive",
     "benchmarks/alloc-stress",
     "benchmarks/compute-stress",
     "benchmarks/counter-bench",
@@ -68,6 +70,8 @@ sails-reflect-hash-derive = { path = "rs/reflect-hash/derive" }
 sails-reflect-hash = { path = "rs/reflect-hash" }
 sails-rs = { path = "rs" }
 sails-sol-gen = { path = "rs/sol-gen" }
+sails-type-registry = { path = "rs/type-registry" }
+sails-type-registry-derive = { path = "rs/type-registry/derive" }
 # Renamed sails-rs for `proxy` demo
 sails-rename = { package = "sails-rs", path = "rs" }
 
@@ -114,7 +118,6 @@ proc-macro-error = "1.0"
 proc-macro2 = { version = "1", default-features = false }
 rustdoc-types = "=0.56.0"
 quote = "1.0"
-scale-info = { version = "2.11", default-features = false }
 serde = { version = "1.0", default-features = false }
 serde-json = { package = "serde_json", version = "1.0", default-features = false }
 spin = { version = "0.10", default-features = false, features = ["spin_mutex"] }

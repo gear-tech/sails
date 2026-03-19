@@ -6,7 +6,6 @@ extern crate alloc;
 extern crate std;
 
 use alloc::{
-    boxed::Box,
     collections::{BTreeMap, BTreeSet},
     format,
     string::{String, ToString as _},
@@ -17,11 +16,9 @@ use askama::Template;
 pub use errors::*;
 pub use program::*;
 use sails_idl_meta::*;
-use scale_info::{Variant, form::PortableForm};
 
 mod builder;
 mod errors;
-mod generic_resolver;
 mod type_resolver;
 
 const SAILS_VERSION: &str = env!("CARGO_PKG_VERSION");

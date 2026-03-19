@@ -29,7 +29,7 @@ mod meta_in_program {
     use super::*;
     #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[type_info(crate = sails_rs::type_info)]
     pub struct __NewParams {
         pub(super) p1: u32,
         pub(super) p2: String,
@@ -44,7 +44,7 @@ mod meta_in_program {
         type Params = Self;
     }
     #[derive(sails_rs::TypeInfo)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[type_info(crate = sails_rs::type_info)]
     pub enum ConstructorsMeta {
         New(__NewParams),
     }

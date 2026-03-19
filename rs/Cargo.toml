@@ -32,7 +32,7 @@ sails-idl-gen = { workspace = true, optional = true }
 sails-idl-meta.workspace = true
 sails-macros = { workspace = true, optional = true }
 sails-reflect-hash.workspace = true
-scale-info = { workspace = true, features = ["derive", "docs"] }
+sails-type-registry = { workspace = true, features = ["derive", "gprimitives"] }
 spin.workspace = true
 thiserror.workspace = true
 tokio-stream = { workspace = true, optional = true }

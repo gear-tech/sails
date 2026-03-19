@@ -84,14 +84,14 @@ impl ServiceBuilder<'_> {
     pub(super) fn meta_module(&self) -> TokenStream {
         let sails_path = self.sails_path;
         let scale_codec_path = &sails_paths::scale_codec_path(sails_path);
-        let scale_info_path = &sails_paths::scale_info_path(sails_path);
+        let type_info_path = &sails_paths::type_info_path(sails_path);
         let meta_module_ident = &self.meta_module_ident;
 
         let no_events_type = Path::from(Ident::new("NoEvents", Span::call_site()));
         let events_type = self.events_type.unwrap_or(&no_events_type);
 
         let invocation_params_structs = self.service_handlers.iter().map(|fn_builder| {
-            fn_builder.params_struct(self.type_path, scale_codec_path, scale_info_path)
+            fn_builder.params_struct(self.type_path, scale_codec_path, type_info_path)
         });
         let commands_meta_variants = self
             .service_handlers
@@ -119,19 +119,19 @@ impl ServiceBuilder<'_> {
                 #( #invocation_params_structs )*
 
                 #[derive(#sails_path::TypeInfo)]
-                #[scale_info(crate = #scale_info_path)]
+                #[type_info(crate = #type_info_path)]
                 pub enum CommandsMeta {
                     #(#commands_meta_variants),*
                 }
 
                 #[derive(#sails_path::TypeInfo)]
-                #[scale_info(crate = #scale_info_path)]
+                #[type_info(crate = #type_info_path)]
                 pub enum QueriesMeta {
                     #(#queries_meta_variants),*
                 }
 
                 #[derive(#sails_path::TypeInfo)]
-                #[scale_info(crate = #scale_info_path )]
+                #[type_info(crate = #type_info_path )]
                 pub enum #no_events_type {}
 
                 pub type EventsMeta = #events_type;
