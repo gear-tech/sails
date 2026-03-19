@@ -9,7 +9,7 @@ use crate::prelude::*;
 /// These methods are essential for enabling on-chain applications to interact with the Gear runtime
 /// in a consistent manner. Depending on the target environment, different implementations are provided:
 ///
-/// - For the WASM target, direct calls are made to `gstd::msg` and `gstd::exec` to fetch runtime data.
+/// - For the WASM target, direct calls are made to `gcore::msg` and `gcore::exec` to fetch runtime data.
 /// - In standard (`std`) environments, a mock implementation uses thread-local state for testing purposes.
 /// - In `no_std` configurations without the `std` feature and not WASM target, the functions are marked as unimplemented.
 ///
@@ -20,79 +20,90 @@ pub struct Syscall;
 #[cfg(target_arch = "wasm32")]
 impl Syscall {
     pub fn message_id() -> MessageId {
-        gstd::msg::id()
+        ::gcore::msg::id()
     }
 
     pub fn message_size() -> usize {
-        gstd::msg::size()
+        ::gcore::msg::size()
     }
 
     pub fn message_source() -> ActorId {
-        gstd::msg::source()
+        ::gcore::msg::source()
     }
 
     pub fn message_value() -> ValueUnit {
-        gstd::msg::value()
+        ::gcore::msg::value()
     }
 
     pub fn reply_to() -> Result<MessageId, gcore::errors::Error> {
-        gstd::msg::reply_to()
+        ::gcore::msg::reply_to()
     }
 
-    pub fn reply_code() -> Result<ReplyCode, gcore::errors::Error> {
-        gstd::msg::reply_code()
+    pub fn reply_code() -> Result<gcore::errors::ReplyCode, gcore::errors::Error> {
+        ::gcore::msg::reply_code()
     }
 
     #[cfg(not(feature = "ethexe"))]
     pub fn signal_from() -> Result<MessageId, gcore::errors::Error> {
-        gstd::msg::signal_from()
+        ::gcore::msg::signal_from()
     }
 
     #[cfg(not(feature = "ethexe"))]
-    pub fn signal_code() -> Result<Option<SignalCode>, gcore::errors::Error> {
-        gstd::msg::signal_code()
+    pub fn signal_code() -> Result<Option<::gcore::errors::SignalCode>, gcore::errors::Error> {
+        ::gcore::msg::signal_code()
     }
 
     pub fn program_id() -> ActorId {
-        gstd::exec::program_id()
+        ::gcore::exec::program_id()
     }
 
     pub fn block_height() -> u32 {
-        gstd::exec::block_height()
+        ::gcore::exec::block_height()
     }
 
     pub fn block_timestamp() -> u64 {
-        gstd::exec::block_timestamp()
+        ::gcore::exec::block_timestamp()
     }
 
     pub fn value_available() -> ValueUnit {
-        gstd::exec::value_available()
+        ::gcore::exec::value_available()
     }
 
     pub fn gas_available() -> GasUnit {
-        gstd::exec::gas_available()
+        ::gcore::exec::gas_available()
     }
 
-    pub fn env_vars() -> gstd::EnvVars {
-        gstd::exec::env_vars()
+    pub fn env_vars() -> ::gcore::EnvVars {
+        ::gcore::exec::env_vars()
     }
 
     pub fn exit(inheritor_id: ActorId) -> ! {
-        gstd::exec::exit(inheritor_id)
+        ::gcore::exec::exit(inheritor_id)
     }
 
     pub fn panic(data: &[u8]) -> ! {
-        gstd::ext::panic_bytes(data)
+        ::gcore::ext::panic(data)
+    }
+
+    pub fn read_bytes() -> Result<Vec<u8>, ::gcore::errors::Error> {
+        let mut result = vec![0u8; ::gcore::msg::size()];
+        ::gcore::msg::read(result.as_mut())?;
+        Ok(result)
+    }
+
+    #[cfg(not(feature = "ethexe"))]
+    pub fn system_reserve_gas(amount: GasUnit) -> Result<(), ::gcore::errors::Error> {
+        ::gcore::exec::system_reserve_gas(amount)
     }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 #[cfg(not(feature = "std"))]
 macro_rules! syscall_unimplemented {
-    ($($name:ident() -> $type:ty),* $(,)?) => {
+    ($($name:ident(  $( $param:ident : $ty:ty ),* ) -> $type:ty),* $(,)?) => {
         impl Syscall {
             $(
-                pub fn $name() -> $type {
+                pub fn $name($( $param: $ty ),* ) -> $type {
                     unimplemented!("{ERROR}")
                 }
             )*
@@ -120,20 +131,12 @@ syscall_unimplemented!(
     block_timestamp() -> u64,
     value_available() -> ValueUnit,
     gas_available() -> GasUnit,
-    env_vars() -> gstd::EnvVars,
+    env_vars() -> ::gcore::EnvVars,
+    exit(_inheritor_id: ActorId) -> !,
+    panic(_data: &[u8]) -> !,
+    read_bytes() -> Result<Vec<u8>, gcore::errors::Error>,
+    system_reserve_gas(_amount: GasUnit) -> Result<(), ::gcore::errors::Error>,
 );
-
-#[cfg(not(target_arch = "wasm32"))]
-#[cfg(not(feature = "std"))]
-impl Syscall {
-    pub fn exit(_inheritor_id: ActorId) -> ! {
-        unimplemented!("{ERROR}")
-    }
-
-    pub fn panic(_data: &[u8]) -> ! {
-        unimplemented!("{ERROR}")
-    }
-}
 
 #[cfg(not(target_arch = "wasm32"))]
 #[cfg(feature = "std")]
@@ -189,6 +192,7 @@ const _: () = {
         block_timestamp() -> u64,
         value_available() -> ValueUnit,
         gas_available() -> GasUnit,
+        read_bytes() -> Result<Vec<u8>, gcore::errors::Error>,
     );
 
     impl Default for SyscallState {
@@ -209,17 +213,18 @@ const _: () = {
                 block_timestamp: 0,
                 value_available: 0,
                 gas_available: 0,
+                read_bytes: Err(::gcore::errors::Error::SyscallUsage),
             }
         }
     }
 
     impl Syscall {
-        pub fn env_vars() -> gstd::EnvVars {
-            gstd::EnvVars {
-                performance_multiplier: gstd::Percent::new(100),
+        pub fn env_vars() -> ::gcore::EnvVars {
+            ::gcore::EnvVars {
+                performance_multiplier: ::gcore::Percent::new(100),
                 existential_deposit: 1_000_000_000_000,
                 mailbox_threshold: 3000,
-                gas_multiplier: gstd::GasMultiplier::from_value_per_gas(100),
+                gas_multiplier: ::gcore::GasMultiplier::from_value_per_gas(100),
             }
         }
 
@@ -235,6 +240,11 @@ const _: () = {
                 }
             }
             panic!("{:?}", data);
+        }
+
+        #[cfg(not(feature = "ethexe"))]
+        pub fn system_reserve_gas(_amount: GasUnit) -> Result<(), ::gcore::errors::Error> {
+            Ok(())
         }
     }
 };

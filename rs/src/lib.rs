@@ -19,6 +19,11 @@ pub use spin;
 
 #[cfg(feature = "client-builder")]
 mod builder;
+#[cfg(any(
+    feature = "gstd",
+    all(feature = "gtest", not(target_arch = "wasm32")),
+    all(feature = "gclient", not(target_arch = "wasm32"))
+))]
 pub mod client;
 pub mod errors;
 #[cfg(all(feature = "gclient", not(target_arch = "wasm32")))]
