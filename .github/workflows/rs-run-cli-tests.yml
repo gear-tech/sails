@@ -38,7 +38,7 @@ jobs:
 
       - name: Generate MyDemo via CLI
         run: |
-          ./target/debug/cargo-sails sails new ~/tmp/my-demo --name my-demo --sails-path ./rs
+          cargo run -p sails-cli -- sails new ~/tmp/my-demo --name my-demo --sails-path ./rs
 
       - name: Run Tests on MyDemo
         run: |
@@ -46,5 +46,9 @@ jobs:
 
       - name: Generate IDL from MyDemo via CLI
         run: |
-          ./target/debug/cargo-sails sails idl --manifest-path ~/tmp/my-demo/Cargo.toml --program-name MyDemoClient
+          cargo run -p sails-cli -- sails idl --manifest-path ~/tmp/my-demo/Cargo.toml --program-name MyDemoClient
           diff ~/tmp/my-demo/target/my-demo-app.idl ~/tmp/my-demo/client/my_demo_client.idl
+
+      - name: Generate IDL from EthApp
+        run: |
+          cargo run -p sails-cli -- sails idl --manifest-path rs/ethexe/ethapp/Cargo.toml --program-name EthApp
