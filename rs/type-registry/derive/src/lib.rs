@@ -1,5 +1,3 @@
-mod error;
-
 use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::quote;
@@ -176,8 +174,10 @@ impl DeriveContext {
                                     });
                                 }
                                 _ => {
-                                    return Err(crate::error::MacroError::UnsupportedLiteralType
-                                        .into_syn_error(expr_lit.span()));
+                                    return Err(syn::Error::new(
+                                        expr_lit.span(),
+                                        "Unsupported literal type. Only string literals are supported (e.g. `doc = \"text\"`).",
+                                    ));
                                 }
                             }
                         } else {
@@ -486,9 +486,10 @@ impl DeriveContext {
                         .build()
                 })
             }
-            Data::Union(_) => {
-                Err(crate::error::MacroError::UnsupportedUnion.into_syn_error(self.name.span()))
-            }
+            Data::Union(_) => Err(syn::Error::new(
+                self.name.span(),
+                "Unions are not supported by SailsTypeRegistry",
+            )),
         }
     }
 }
@@ -547,50 +548,80 @@ mod tests {
     }
 
     #[test]
+    fn minimal() {
+        assert_expansion(parse_quote!(struct Unit;), "unit_struct");
+        assert_expansion(parse_quote!(enum Empty {}), "empty_enum");
+    }
+
+    #[test]
     fn basic_struct() {
         let input = parse_quote! {
-            /// Documentation for basic struct
-            #[type_info(skip)]
-            struct Basic {
-                /// Field documentation
-                #[type_info(name = "custom_field")]
+            /// Basic struct with docs
+            /// Second line of documentation
+            struct Basic<T> {
+                /// Simple field
+                #[type_info(name = "custom")]
                 a: u32,
-                b: String,
+                /// Direct parameter
+                b: T,
             }
         };
         assert_expansion(input, "basic_struct");
     }
 
     #[test]
-    fn generic_struct() {
+    fn generics_and_containers() {
         let input = parse_quote! {
-            struct Generic<T, const N: usize> {
+            struct Generics<T, const N: usize> {
+                /// Nested generics
+                matrix: Vec<Vec<T>>,
+                /// Array with const param
                 data: [T; N],
-                other: Option<T>,
+                /// Complex path with generics
+                result: Result<Option<T>, String>,
             }
         };
-        assert_expansion(input, "generic_struct");
+        assert_expansion(input, "generics_and_containers");
     }
 
     #[test]
     fn complex_enum() {
         let input = parse_quote! {
-            /// Multiline
-            /// Enum docs
+            #[type_info(top = "val")]
             enum Complex {
-                /// Variant 1
+                /// Variant with named fields and annotations
+                #[type_info(v1)]
                 V1 {
-                    #[type_info(rename = "val")]
-                    field1: u32,
+                    #[type_info(f1 = "v")]
+                    f: u32
                 },
-                /// Variant 2
+                /// Variant with unnamed fields
                 V2(u64, String),
                 /// Unit variant
-                #[type_info(unit)]
                 V3,
             }
         };
         assert_expansion(input, "complex_enum");
+    }
+
+    #[test]
+    fn aliases() {
+        #[allow(dead_code)]
+        type Inner<T> = (T, bool);
+        #[allow(dead_code)]
+        type Middle<T> = Vec<Inner<T>>;
+        #[allow(dead_code)]
+        type Outer<T> = Result<Middle<T>, String>;
+
+        let input = parse_quote! {
+            struct Aliases<T> {
+                /// Deeply nested aliases: Result<Vec<(T, bool)>, String>
+                field: Outer<T>,
+                /// Direct use of intermediate alias
+                direct: Middle<T>,
+            }
+        };
+        assert_expansion(input, "aliases");
     }
 
     #[test]

@@ -1,0 +1,129 @@
+---
+source: rs/type-registry/derive/src/lib.rs
+expression: formatted
+---
+#[automatically_derived]
+impl<T: ::sails_type_registry::TypeInfo, const N: usize> ::sails_type_registry::TypeInfo
+for Generics<T, N> {
+    type Identity = Self;
+    fn type_info(
+        registry: &mut ::sails_type_registry::Registry,
+    ) -> ::sails_type_registry::ty::Type {
+        let mut type_builder = ::sails_type_registry::builder::TypeBuilder::new()
+            .module_path(::core::module_path!())
+            .name("Generics")
+            .docs(::sails_type_registry::prelude::alloc::vec![]);
+        type_builder = type_builder.type_param("T", registry.register_type::<T>());
+        type_builder = type_builder
+            .const_param("N", ::sails_type_registry::prelude::alloc::format!("{}", N));
+        type_builder
+            .composite()
+            .field(
+                "matrix",
+                {
+                    let id = registry.register_type::<Vec<Vec<T>>>();
+                    let args = ::sails_type_registry::prelude::alloc::vec![
+                        {
+                            let id = registry.register_type::<Vec<T>>();
+                            let args = ::sails_type_registry::prelude::alloc::vec![
+                                ::sails_type_registry::ty::FieldType::Parameter(
+                                    "T".to_string(),
+                                ),
+                            ];
+                            let field_type = ::sails_type_registry::ty::FieldType::Parameterized {
+                                id,
+                                args,
+                            };
+                            registry.expand_aliases(&field_type)
+                        },
+                    ];
+                    let field_type = ::sails_type_registry::ty::FieldType::Parameterized {
+                        id,
+                        args,
+                    };
+                    registry.expand_aliases(&field_type)
+                },
+            )
+            .type_name(
+                ::sails_type_registry::prelude::alloc::string::String::from(
+                    ::core::stringify!(Vec < Vec < T > >),
+                ),
+            )
+            .docs(
+                ::sails_type_registry::prelude::alloc::vec![
+                    "Nested generics".to_string(),
+                ],
+            )
+            .field(
+                "data",
+                {
+                    let id = registry.register_type::<[T; N]>();
+                    let elem = ::sails_type_registry::prelude::alloc::boxed::Box::new(
+                        ::sails_type_registry::ty::FieldType::Parameter("T".to_string()),
+                    );
+                    let field_type = ::sails_type_registry::ty::FieldType::Array {
+                        id,
+                        elem,
+                        len: ::sails_type_registry::ty::ArrayLen::Parameter(
+                            "N".to_string(),
+                        ),
+                    };
+                    registry.expand_aliases(&field_type)
+                },
+            )
+            .type_name(
+                ::sails_type_registry::prelude::alloc::string::String::from(
+                    ::core::stringify!([T; N]),
+                ),
+            )
+            .docs(
+                ::sails_type_registry::prelude::alloc::vec![
+                    "Array with const param".to_string(),
+                ],
+            )
+            .field(
+                "result",
+                {
+                    let id = registry.register_type::<Result<Option<T>, String>>();
+                    let args = ::sails_type_registry::prelude::alloc::vec![
+                        {
+                            let id = registry.register_type::<Option<T>>();
+                            let args = ::sails_type_registry::prelude::alloc::vec![
+                                ::sails_type_registry::ty::FieldType::Parameter(
+                                    "T".to_string(),
+                                ),
+                            ];
+                            let field_type = ::sails_type_registry::ty::FieldType::Parameterized {
+                                id,
+                                args,
+                            };
+                            registry.expand_aliases(&field_type)
+                        },
+                        {
+                            let id = registry.register_type::<String>();
+                            let field_type = ::sails_type_registry::ty::FieldType::Id(
+                                id,
+                            );
+                            registry.expand_aliases(&field_type)
+                        },
+                    ];
+                    let field_type = ::sails_type_registry::ty::FieldType::Parameterized {
+                        id,
+                        args,
+                    };
+                    registry.expand_aliases(&field_type)
+                },
+            )
+            .type_name(
+                ::sails_type_registry::prelude::alloc::string::String::from(
+                    ::core::stringify!(Result < Option < T >, String >),
+                ),
+            )
+            .docs(
+                ::sails_type_registry::prelude::alloc::vec![
+                    "Complex path with generics".to_string(),
+                ],
+            )
+            .build()
+    }
+}
