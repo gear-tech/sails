@@ -381,9 +381,7 @@ fn sails_dep_v2(sails_package: &Package, sails_features: &[String]) -> toml_edit
     let mut features = toml_edit::Array::default();
     features.push("idl-gen");
     features.push("std");
-    for feat in sails_features {
-        features.push(feat);
-    }
+    features.extend(sails_features);
     let mut sails_table = toml_edit::InlineTable::new();
     let manifest_dir = sails_package.manifest_path.parent().unwrap();
     sails_table.insert("package", sails_package.name.as_str().into());
