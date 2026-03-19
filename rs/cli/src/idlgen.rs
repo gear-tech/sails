@@ -1,5 +1,5 @@
 use anyhow::{Context, bail};
-use cargo_metadata::{Package, PackageId, camino::*, semver::VersionReq};
+use cargo_metadata::{DependencyKind, Package, PackageId, camino::*, semver::VersionReq};
 use convert_case::{Case, Casing};
 use std::{
     collections::{HashMap, HashSet},
@@ -9,6 +9,9 @@ use std::{
 };
 
 const META_PATH: &[&str] = &["sails_idl_meta", "ProgramMeta"];
+const ICON_BUILD: &str = "🔨";
+const ICON_DONE: &str = "✅";
+const ICON_ERROR: &str = "❌";
 
 pub struct CrateIdlGenerator {
     manifest_path: Utf8PathBuf,
@@ -77,12 +80,12 @@ impl CrateIdlGenerator {
                 Ok(program_struct_path) => {
                     println!("...found Program implementation: {program_struct_path}");
                     let file_path = idl_gen.try_generate_for_package(&program_struct_path)?;
-                    println!("Generated IDL: {file_path}");
+                    println!("{ICON_DONE} Generated IDL: {file_path}");
 
                     return Ok(());
                 }
                 Err(err) => {
-                    println!("...no Program implementation found: {err}");
+                    println!("{ICON_ERROR} no Program implementation found: {err}");
                 }
             }
         }
@@ -116,13 +119,19 @@ impl<'a> PackageIdlGenerator<'a> {
     }
 
     fn try_generate_for_package(&self, program_struct_path: &str) -> anyhow::Result<Utf8PathBuf> {
-        // find `sails-rs` dependency
+        // find `sails-rs` dependency kind `Normal`
         let sails_dep = self
             .program_package
             .dependencies
             .iter()
-            .find(|p| p.name == "sails-rs")
+            .find(|p| p.name == "sails-rs" && p.kind == DependencyKind::Normal)
             .context("failed to find `sails-rs` dependency")?;
+        // collect features, e.g. ["ethexe"]
+        let sails_features = &sails_dep.features;
+        println!(
+            "...found `sails-rs` dep with features: {:?}",
+            sails_features
+        );
         // find `sails-rs` package matches dep version
         let sails_package = self
             .sails_packages
@@ -133,15 +142,15 @@ impl<'a> PackageIdlGenerator<'a> {
                 &sails_dep.req
             ))?;
 
-        let crate_name = get_idl_gen_crate_name(self.program_package);
-        let crate_dir = &self.target_dir.join(&crate_name);
+        let crate_name = &get_idl_gen_crate_name(self.program_package);
+        let crate_dir = &self.target_dir.join(crate_name);
         let src_dir = crate_dir.join("src");
         fs::create_dir_all(&src_dir)?;
 
         let gen_manifest_path = crate_dir.join("Cargo.toml");
         write_file(
             &gen_manifest_path,
-            gen_cargo_toml(self.program_package, sails_package),
+            gen_cargo_toml(self.program_package, sails_package, sails_features),
         )?;
 
         let out_file = self
@@ -161,7 +170,8 @@ impl<'a> PackageIdlGenerator<'a> {
         let to_lock = &crate_dir.join("Cargo.lock");
         drop(fs::copy(from_lock, to_lock));
 
-        let res = cargo_run_bin(&gen_manifest_path, &crate_name, self.target_dir);
+        println!("{ICON_BUILD} cargo run --bin {crate_name}");
+        let res = cargo_run_bin(&gen_manifest_path, crate_name, self.target_dir);
 
         fs::remove_dir_all(crate_dir)?;
 
@@ -329,7 +339,11 @@ fn cargo_run_bin(
     cmd.status().context("failed to execute `cargo` command")
 }
 
-fn gen_cargo_toml(program_package: &Package, sails_package: &Package) -> String {
+fn gen_cargo_toml(
+    program_package: &Package,
+    sails_package: &Package,
+    sails_features: &[String],
+) -> String {
     let mut manifest = toml_edit::DocumentMut::new();
     manifest["package"] = toml_edit::Item::Table(toml_edit::Table::new());
     manifest["package"]["name"] = toml_edit::value(get_idl_gen_crate_name(program_package));
@@ -342,7 +356,7 @@ fn gen_cargo_toml(program_package: &Package, sails_package: &Package) -> String 
     package_table.insert("path", manifest_dir.as_str().into());
     dep_table[&program_package.name] = toml_edit::value(package_table);
 
-    let sails_dep = sails_dep_v2(sails_package);
+    let sails_dep = sails_dep_v2(sails_package, sails_features);
     dep_table[&sails_package.name] = toml_edit::value(sails_dep);
 
     manifest["dependencies"] = toml_edit::Item::Table(dep_table);
@@ -363,10 +377,13 @@ fn gen_cargo_toml(program_package: &Package, sails_package: &Package) -> String 
     manifest.to_string()
 }
 
-fn sails_dep_v2(sails_package: &Package) -> toml_edit::InlineTable {
+fn sails_dep_v2(sails_package: &Package, sails_features: &[String]) -> toml_edit::InlineTable {
     let mut features = toml_edit::Array::default();
     features.push("idl-gen");
     features.push("std");
+    for feat in sails_features {
+        features.push(feat);
+    }
     let mut sails_table = toml_edit::InlineTable::new();
     let manifest_dir = sails_package.manifest_path.parent().unwrap();
     sails_table.insert("package", sails_package.name.as_str().into());
