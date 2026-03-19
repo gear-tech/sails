@@ -1,9 +1,0 @@
-[template]
-sub_templates = ["program", "program-alt"]
-
-[placeholders]
-with-client = { type = "bool", prompt = "Add client project?" }
-with-gtest = { type = "bool", prompt = "Add gtest project?" }
-
-[hooks]
-pre = ["../pre-hook.rhai"]

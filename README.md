@@ -1,4 +1,4 @@
-# Sails &emsp;
+# &#x26F5; Sails
 
 `Sails` is a library for bringing your experience of writing applications utilizing
 [Gear Protocol](https://gear-tech.io/) to the next level of simplicity and

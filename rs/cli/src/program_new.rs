@@ -4,7 +4,7 @@ use cargo_metadata::DependencyKind::{Build, Development, Normal};
 use convert_case::{Case, Casing};
 use std::{
     env,
-    ffi::OsStr,
+    ffi::{OsStr, OsString},
     fs::{self, File},
     io::{self, Write},
     path::{Path, PathBuf},
@@ -12,7 +12,15 @@ use std::{
 };
 
 const SAILS_VERSION: &str = env!("CARGO_PKG_VERSION");
-const TOKIO_VERSION: &str = "1.48.0";
+const TOKIO_VERSION: &str = "1.50.0";
+const ICON_CONFIG: &str = "📋";
+const ICON_WORKSPACE: &str = "⚓";
+const ICON_APP: &str = "📦";
+const ICON_CLIENT: &str = "📡";
+const ICON_BUILD: &str = "🔨";
+const ICON_TESTS: &str = "🔬";
+const ICON_FORMAT: &str = "✨";
+const ICON_DONE: &str = "✅";
 
 trait ExitStatusExt: Sized {
     fn exit_result(self) -> io::Result<()>;
@@ -273,13 +281,43 @@ impl ProgramGenerator {
         )
     }
 
+    fn print_config(&self) {
+        let sails_source = self
+            .sails_path
+            .as_ref()
+            .map(|path| path.display().to_string())
+            .unwrap_or_else(|| format!("crates.io:{SAILS_VERSION}"));
+        let print_field = |label: &str, value: &dyn std::fmt::Display| {
+            println!("   {label:<10} {value}");
+        };
+
+        println!("{ICON_CONFIG} Program config:");
+        print_field("path:", &self.path.display());
+        print_field("package:", &self.package_name);
+        print_field("author:", &self.package_author);
+        print_field("username:", &self.github_username);
+        print_field("sails-rs:", &sails_source);
+        print_field("offline:", &self.offline);
+        print_field("eth:", &self.ethereum);
+    }
+
     pub fn generate(self) -> anyhow::Result<()> {
+        println!("⛵ Creating new Sails program...");
+        self.print_config();
+
+        println!("{ICON_WORKSPACE} [1/6] Initializing workspace...");
         self.generate_root()?;
+        println!("{ICON_APP} [2/6] Generating app crate...");
         self.generate_app()?;
+        println!("{ICON_CLIENT} [3/6] Generating client crate...");
         self.generate_client()?;
+        println!("{ICON_BUILD} [4/6] Wiring root crate...");
         self.generate_build()?;
+        println!("{ICON_TESTS} [5/6] Generating tests...");
         self.generate_tests()?;
+        println!("{ICON_FORMAT} [6/6] Formatting workspace...");
         self.fmt()?;
+        println!("{ICON_DONE} Done.");
         Ok(())
     }
 
@@ -302,6 +340,7 @@ impl ProgramGenerator {
         cargo_new(path, &self.package_name, self.offline, true)?;
 
         let git_branch_name = git_show_current_branch(path)?;
+        println!("   git branch: {git_branch_name}");
 
         fs::create_dir_all(ci_workflow_dir_path(path))?;
         let mut ci_workflow_yml = File::create(ci_workflow_path(path))?;
@@ -473,6 +512,10 @@ fn cargo_new<P: AsRef<Path>>(
     let cargo_command = cargo_command();
     let target_dir = target_dir.as_ref();
     let cargo_new_or_init = if target_dir.exists() { "init" } else { "new" };
+    println!(
+        "   cargo {cargo_new_or_init}: {name} -> {}",
+        target_dir.display()
+    );
     let mut cmd = Command::new(cargo_command);
     cmd.stdout(Stdio::null()) // Don't pollute output
         .arg(cargo_new_or_init)
@@ -575,11 +618,33 @@ where
     S: AsRef<OsStr>,
 {
     let cargo_command = cargo_command();
+    let package_args = packages
+        .into_iter()
+        .map(|package| package.as_ref().to_os_string())
+        .collect::<Vec<OsString>>();
+    let package_names = package_args
+        .iter()
+        .map(|package| package.to_string_lossy().into_owned())
+        .collect::<Vec<_>>()
+        .join(", ");
+    let dep_kind = match dependency {
+        Development => "dev-dependency",
+        Build => "build-dependency",
+        Normal => "dependency",
+        _ => "dependency",
+    };
+    let feature_suffix = features
+        .map(|features| format!(" [features: {features}]"))
+        .unwrap_or_default();
+    println!(
+        "   cargo add: {package_names} -> {} ({dep_kind}){feature_suffix}",
+        manifest_path.as_ref().display()
+    );
 
     let mut cmd = Command::new(cargo_command);
     cmd.stdout(Stdio::null()) // Don't pollute output
         .arg("add")
-        .args(packages)
+        .args(&package_args)
         .arg("--manifest-path")
         .arg(manifest_path.as_ref())
         .arg("--quiet");
@@ -612,6 +677,7 @@ where
 
 fn cargo_fmt<P: AsRef<Path>>(manifest_path: P) -> anyhow::Result<()> {
     let cargo_command = cargo_command();
+    println!("   cargo fmt: {}", manifest_path.as_ref().display());
 
     let mut cmd = Command::new(cargo_command);
     cmd.stdout(Stdio::null()) // Don't pollute output

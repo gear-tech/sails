@@ -1,11 +1,12 @@
 use clap::{Parser, Subcommand};
 use convert_case::{Case, Casing};
-use sails_cli::{
-    idlgen::CrateIdlGenerator, program::ProgramGenerator, program_new, solgen::SolidityGenerator,
-};
+use sails_cli::{idlgen::CrateIdlGenerator, program_new, solgen::SolidityGenerator};
 use sails_client_gen::ClientGenerator;
 use sails_client_gen_js::JsClientGenerator;
 use std::{error::Error, path::PathBuf};
+
+const SAILBOAT: &str = "\u{26F5}";
+const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[derive(Parser)]
 #[command(bin_name = "cargo")]
@@ -16,24 +17,6 @@ enum CliCommand {
 
 #[derive(Subcommand)]
 enum SailsCommands {
-    /// Create a new program from template
-    #[command(name = "program")]
-    NewProgram {
-        #[arg(help = "Path to the new program")]
-        path: String,
-        #[arg(short, long, help = "Name of the new program")]
-        name: Option<String>,
-        #[arg(
-            long,
-            help = "Disable generation of client package alongside the program. Implies '--no-gtest'"
-        )]
-        no_client: bool,
-        #[arg(long, help = "Disable generation of program tests using 'gtest'")]
-        no_gtest: bool,
-        #[arg(long, help = "Use 'sails-rs' crate of the specified version")]
-        sails_version: Option<String>,
-    },
-
     /// Create a new Sails program
     #[command(name = "new")]
     New {
@@ -141,23 +124,10 @@ where
 }
 
 fn main() -> Result<(), i32> {
+    println!("{SAILBOAT} Sails CLI {VERSION}");
     let CliCommand::Sails(command) = CliCommand::parse();
 
     let result = match command {
-        SailsCommands::NewProgram {
-            path,
-            name,
-            no_client,
-            no_gtest,
-            sails_version,
-        } => {
-            let program_generator = ProgramGenerator::new(path)
-                .with_name(name)
-                .with_client(!no_client)
-                .with_gtest(!no_gtest)
-                .with_sails_version(sails_version);
-            program_generator.generate()
-        }
         SailsCommands::New {
             path,
             name,
