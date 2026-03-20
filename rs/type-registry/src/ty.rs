@@ -27,6 +27,7 @@ pub struct Type {
     pub name: String,
     pub type_params: Vec<TypeParameter>,
     pub def: TypeDef,
+    pub expanded_def: Option<TypeDef>,
     pub docs: Vec<String>,
     pub annotations: Vec<Annotation>,
 }
@@ -42,6 +43,7 @@ impl Type {
             name: String::new(),
             type_params: Vec::new(),
             def: TypeDef::Tuple(Vec::new()),
+            expanded_def: None,
             docs: Vec::new(),
             annotations: Vec::new(),
         }
@@ -53,7 +55,8 @@ pub enum TypeDef {
     Primitive(Primitive),
     #[cfg(feature = "gprimitives")]
     GPrimitive(GPrimitive),
-    Definition(TypeDefinition),
+    Composite(Composite),
+    Variant(VariantDef),
     Sequence(TypeRef),
     Array {
         len: u32,
@@ -69,17 +72,6 @@ pub enum TypeDef {
         ok: TypeRef,
         err: TypeRef,
     },
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TypeDefinition {
-    pub kind: TypeDefinitionKind,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum TypeDefinitionKind {
-    Composite(Composite),
-    Variant(VariantDef),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -122,11 +114,11 @@ pub enum FieldType {
 impl FieldType {
     pub fn id(&self) -> TypeRef {
         match self {
-            Self::Id(id) => *id,
+            Self::Id(id)
+            | Self::Parameterized { id, .. }
+            | Self::Array { id, .. }
+            | Self::Tuple { id, .. } => *id,
             Self::Parameter(_) => panic!("Cannot get ID from a parameter"),
-            Self::Parameterized { id, .. } => *id,
-            Self::Array { id, .. } => *id,
-            Self::Tuple { id, .. } => *id,
         }
     }
 }

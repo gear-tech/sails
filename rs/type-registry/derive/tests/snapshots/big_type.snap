@@ -18,173 +18,142 @@ where
         let mut type_builder = sails_rs::type_info::builder::TypeBuilder::new()
             .module_path(::core::module_path!())
             .name("Container")
-            .docs(
-                sails_rs::type_info::prelude::alloc::vec![
-                    "The Container Type".to_string(),
-                ],
-            );
-        type_builder = type_builder.type_param("T", registry.register_type::<T>());
-        type_builder = type_builder.type_param("U", registry.register_type::<U>());
+            .doc("The Container Type");
+        type_builder = type_builder.type_param("T").arg(registry.register_type::<T>());
+        type_builder = type_builder.type_param("U").arg(registry.register_type::<U>());
         type_builder = type_builder
-            .const_param(
-                "SIZE",
-                sails_rs::type_info::prelude::alloc::format!("{}", SIZE),
-            );
-        type_builder = type_builder
-            .annotation(
-                sails_rs::type_info::ty::Annotation::new_with_value("attr1", "val1"),
-            );
-        type_builder = type_builder
-            .annotation(sails_rs::type_info::ty::Annotation::new("attr2"));
+            .const_param("SIZE")
+            .val(sails_rs::type_info::prelude::alloc::format!("{}", SIZE));
+        type_builder = type_builder.annotate("attr1").value("val1");
+        type_builder = type_builder.annotate("attr2");
         type_builder
             .composite()
-            .field(
-                "next",
-                {
-                    let id = registry
-                        .register_type::<Option<Box<Container<T, U, SIZE>>>>();
-                    let args = sails_rs::type_info::prelude::alloc::vec![
-                        {
-                            let id = registry
-                                .register_type::<Box<Container<T, U, SIZE>>>();
-                            let args = sails_rs::type_info::prelude::alloc::vec![
-                                {
-                                    let id = registry.register_type::<Container<T, U, SIZE>>();
-                                    let args = sails_rs::type_info::prelude::alloc::vec![
-                                        sails_rs::type_info::ty::FieldType::Parameter(
-                                            "T".to_string(),
-                                        ),
-                                        sails_rs::type_info::ty::FieldType::Parameter(
-                                            "U".to_string(),
-                                        ),
-                                        {
-                                            let id = registry.register_type::<SIZE>();
-                                            let field_type = sails_rs::type_info::ty::FieldType::Id(id);
-                                            registry.expand_aliases(&field_type)
-                                        },
-                                    ];
-                                    let field_type = sails_rs::type_info::ty::FieldType::Parameterized {
-                                        id,
-                                        args,
-                                    };
-                                    registry.expand_aliases(&field_type)
-                                },
-                            ];
-                            let field_type = sails_rs::type_info::ty::FieldType::Parameterized {
-                                id,
-                                args,
-                            };
-                            registry.expand_aliases(&field_type)
-                        },
-                    ];
-                    let field_type = sails_rs::type_info::ty::FieldType::Parameterized {
-                        id,
-                        args,
-                    };
-                    registry.expand_aliases(&field_type)
-                },
-            )
+            .field("next")
             .type_name(
                 sails_rs::type_info::prelude::alloc::string::String::from(
                     ::core::stringify!(Option < Box < Container < T, U, SIZE > > >),
                 ),
             )
-            .docs(
-                sails_rs::type_info::prelude::alloc::vec!["Recursive field".to_string()],
-            )
-            .field(
-                "data",
-                {
-                    let id = registry.register_type::<[T; SIZE]>();
-                    let elem = sails_rs::type_info::prelude::alloc::boxed::Box::new(
-                        sails_rs::type_info::ty::FieldType::Parameter("T".to_string()),
-                    );
-                    let field_type = sails_rs::type_info::ty::FieldType::Array {
-                        id,
-                        elem,
-                        len: sails_rs::type_info::ty::ArrayLen::Parameter(
-                            "SIZE".to_string(),
-                        ),
-                    };
-                    registry.expand_aliases(&field_type)
-                },
-            )
+            .doc("Recursive field")
+            .ty({
+                let id = registry.register_type::<Option<Box<Container<T, U, SIZE>>>>();
+                let args = sails_rs::type_info::prelude::alloc::vec![
+                    {
+                        let id = registry.register_type::<Box<Container<T, U, SIZE>>>();
+                        let args = sails_rs::type_info::prelude::alloc::vec![
+                            {
+                                let id = registry.register_type::<Container<T, U, SIZE>>();
+                                let args = sails_rs::type_info::prelude::alloc::vec![
+                                    sails_rs::type_info::ty::FieldType::Parameter(
+                                        "T".to_string(),
+                                    ),
+                                    sails_rs::type_info::ty::FieldType::Parameter(
+                                        "U".to_string(),
+                                    ),
+                                    {
+                                        let id = registry.register_type::<SIZE>();
+                                        let field_type = sails_rs::type_info::ty::FieldType::Id(id);
+                                        registry.expand_aliases(&field_type)
+                                    },
+                                ];
+                                let field_type = sails_rs::type_info::ty::FieldType::Parameterized {
+                                    id,
+                                    args,
+                                };
+                                registry.expand_aliases(&field_type)
+                            },
+                        ];
+                        let field_type = sails_rs::type_info::ty::FieldType::Parameterized {
+                            id,
+                            args,
+                        };
+                        registry.expand_aliases(&field_type)
+                    },
+                ];
+                let field_type = sails_rs::type_info::ty::FieldType::Parameterized {
+                    id,
+                    args,
+                };
+                registry.expand_aliases(&field_type)
+            })
+            .field("data")
             .type_name(
                 sails_rs::type_info::prelude::alloc::string::String::from(
                     ::core::stringify!([T; SIZE]),
                 ),
             )
-            .docs(
-                sails_rs::type_info::prelude::alloc::vec![
-                    "Field with many annotations".to_string(),
-                ],
-            )
-            .annotation(sails_rs::type_info::ty::Annotation::new("indexed"))
-            .annotation(
-                sails_rs::type_info::ty::Annotation::new_with_value("secret", "true"),
-            )
-            .annotation(
-                sails_rs::type_info::ty::Annotation::new_with_value("range", "0..100"),
-            )
-            .field(
-                "mapped",
-                {
-                    let id = registry.register_type::<BTreeMap<String, U>>();
-                    let args = sails_rs::type_info::prelude::alloc::vec![
-                        {
-                            let id = registry.register_type::<String>();
-                            let field_type = sails_rs::type_info::ty::FieldType::Id(id);
-                            registry.expand_aliases(&field_type)
-                        },
-                        sails_rs::type_info::ty::FieldType::Parameter("U".to_string()),
-                    ];
-                    let field_type = sails_rs::type_info::ty::FieldType::Parameterized {
-                        id,
-                        args,
-                    };
-                    registry.expand_aliases(&field_type)
-                },
-            )
+            .doc("Field with many annotations")
+            .annotate("indexed")
+            .annotate("secret")
+            .value("true")
+            .annotate("range")
+            .value("0..100")
+            .ty({
+                let id = registry.register_type::<[T; SIZE]>();
+                let elem = sails_rs::type_info::prelude::alloc::boxed::Box::new(
+                    sails_rs::type_info::ty::FieldType::Parameter("T".to_string()),
+                );
+                let field_type = sails_rs::type_info::ty::FieldType::Array {
+                    id,
+                    elem,
+                    len: sails_rs::type_info::ty::ArrayLen::Parameter("SIZE".to_string()),
+                };
+                registry.expand_aliases(&field_type)
+            })
+            .field("mapped")
             .type_name(
                 sails_rs::type_info::prelude::alloc::string::String::from(
                     ::core::stringify!(BTreeMap < String, U >),
                 ),
             )
-            .docs(sails_rs::type_info::prelude::alloc::vec![])
-            .field(
-                "meta",
-                {
-                    let id = registry.register_type::<(u32, bool, String)>();
-                    let elems = sails_rs::type_info::prelude::alloc::vec![
-                        {
-                            let id = registry.register_type::<u32>();
-                            let field_type = sails_rs::type_info::ty::FieldType::Id(id);
-                            registry.expand_aliases(&field_type)
-                        },
-                        {
-                            let id = registry.register_type::<bool>();
-                            let field_type = sails_rs::type_info::ty::FieldType::Id(id);
-                            registry.expand_aliases(&field_type)
-                        },
-                        {
-                            let id = registry.register_type::<String>();
-                            let field_type = sails_rs::type_info::ty::FieldType::Id(id);
-                            registry.expand_aliases(&field_type)
-                        },
-                    ];
-                    let field_type = sails_rs::type_info::ty::FieldType::Tuple {
-                        id,
-                        elems,
-                    };
-                    registry.expand_aliases(&field_type)
-                },
-            )
+            .ty({
+                let id = registry.register_type::<BTreeMap<String, U>>();
+                let args = sails_rs::type_info::prelude::alloc::vec![
+                    {
+                        let id = registry.register_type::<String>();
+                        let field_type = sails_rs::type_info::ty::FieldType::Id(id);
+                        registry.expand_aliases(&field_type)
+                    },
+                    sails_rs::type_info::ty::FieldType::Parameter("U".to_string()),
+                ];
+                let field_type = sails_rs::type_info::ty::FieldType::Parameterized {
+                    id,
+                    args,
+                };
+                registry.expand_aliases(&field_type)
+            })
+            .field("meta")
             .type_name(
                 sails_rs::type_info::prelude::alloc::string::String::from(
                     ::core::stringify!((u32, bool, String)),
                 ),
             )
-            .docs(sails_rs::type_info::prelude::alloc::vec!["Tuple field".to_string()])
+            .doc("Tuple field")
+            .ty({
+                let id = registry.register_type::<(u32, bool, String)>();
+                let elems = sails_rs::type_info::prelude::alloc::vec![
+                    {
+                        let id = registry.register_type::<u32>();
+                        let field_type = sails_rs::type_info::ty::FieldType::Id(id);
+                        registry.expand_aliases(&field_type)
+                    },
+                    {
+                        let id = registry.register_type::<bool>();
+                        let field_type = sails_rs::type_info::ty::FieldType::Id(id);
+                        registry.expand_aliases(&field_type)
+                    },
+                    {
+                        let id = registry.register_type::<String>();
+                        let field_type = sails_rs::type_info::ty::FieldType::Id(id);
+                        registry.expand_aliases(&field_type)
+                    },
+                ];
+                let field_type = sails_rs::type_info::ty::FieldType::Tuple {
+                    id,
+                    elems,
+                };
+                registry.expand_aliases(&field_type)
+            })
             .build()
     }
 }

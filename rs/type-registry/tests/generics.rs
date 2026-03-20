@@ -1,7 +1,7 @@
 extern crate alloc;
 
 use alloc::string::String;
-use sails_type_registry::ty::{GenericArg, TypeDef, TypeDefinitionKind};
+use sails_type_registry::ty::{GenericArg, TypeDef};
 use sails_type_registry::{Registry, TypeInfo};
 
 #[test]
@@ -67,18 +67,15 @@ fn test_const_generics() {
         _ => panic!("Expected Const argument for N"),
     }
 
-    if let TypeDef::Definition(def) = &struct_ty.def {
-        match &def.kind {
-            TypeDefinitionKind::Composite(comp) => {
-                let field_ty_ref = comp.fields[0].ty.id();
-                let field_ty = registry.get_type(field_ty_ref).unwrap();
+    if let TypeDef::Composite(comp) = &struct_ty.def {
+        let field_ty_ref = comp.fields[0].ty.id();
+        let field_ty = registry.get_type(field_ty_ref).unwrap();
 
-                match &field_ty.def {
-                    TypeDef::Array { len, .. } => assert_eq!(*len, 32),
-                    _ => panic!("Expected Array definition for field data"),
-                }
-            }
-            _ => panic!("Expected Composite definition"),
+        match &field_ty.def {
+            TypeDef::Array { len, .. } => assert_eq!(*len, 32),
+            _ => panic!("Expected Array definition for field data"),
         }
+    } else {
+        panic!("Expected Composite definition");
     }
 }

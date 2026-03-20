@@ -3,7 +3,7 @@ extern crate alloc;
 use gprimitives::{ActorId, CodeId, H160, H256, MessageId, U256};
 use sails_type_registry::{
     Registry,
-    ty::{GPrimitive, TypeDef, TypeDefinitionKind},
+    ty::{GPrimitive, TypeDef},
 };
 
 macro_rules! assert_gprimitive {
@@ -42,9 +42,7 @@ fn test_nonzero_u256_is_composite() {
     let id = registry.register_type::<NonZeroU256>();
     let ty = registry.get_type(id).expect("Type should be in registry");
 
-    if let TypeDef::Definition(def) = &ty.def
-        && let TypeDefinitionKind::Composite(c) = &def.kind
-    {
+    if let TypeDef::Composite(c) = &ty.def {
         assert_eq!(c.fields.len(), 1);
         assert!(registry.is_type::<U256>(c.fields[0].ty.id()));
     } else {

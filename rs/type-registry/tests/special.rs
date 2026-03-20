@@ -7,10 +7,7 @@ use core::{
     time::Duration,
 };
 
-use sails_type_registry::{
-    Registry,
-    ty::{TypeDef, TypeDefinitionKind},
-};
+use sails_type_registry::{Registry, ty::TypeDef};
 
 #[test]
 fn test_transparent_wrappers() {
@@ -67,14 +64,12 @@ fn test_duration() {
     let duration_ty = registry.get_type(duration_ref).unwrap();
 
     assert_eq!(duration_ty.name, "Duration");
-    if let TypeDef::Definition(def) = &duration_ty.def
-        && let TypeDefinitionKind::Composite(c) = &def.kind
-    {
+    if let TypeDef::Composite(c) = &duration_ty.def {
         assert_eq!(c.fields.len(), 2);
         assert_eq!(c.fields[0].name.as_deref(), Some("secs"));
         assert_eq!(c.fields[1].name.as_deref(), Some("nanos"));
     } else {
-        panic!("Expected Composite");
+        panic!("Expected Composite, got {:?}", duration_ty.def);
     }
 }
 
@@ -86,14 +81,12 @@ fn test_ranges() {
     let range_ty = registry.get_type(range_ref).unwrap();
 
     assert_eq!(range_ty.name, "Range");
-    if let TypeDef::Definition(def) = &range_ty.def
-        && let TypeDefinitionKind::Composite(c) = &def.kind
-    {
+    if let TypeDef::Composite(c) = &range_ty.def {
         assert_eq!(c.fields.len(), 2);
         assert_eq!(c.fields[0].name.as_deref(), Some("start"));
         assert_eq!(c.fields[1].name.as_deref(), Some("end"));
     } else {
-        panic!("Expected Composite");
+        panic!("Expected Composite, got {:?}", range_ty.def);
     }
 
     let inclusive_ref = registry.register_type::<RangeInclusive<u32>>();

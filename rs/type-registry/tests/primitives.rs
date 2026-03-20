@@ -3,7 +3,7 @@ extern crate alloc;
 use alloc::string::String;
 use sails_type_registry::{
     Registry,
-    ty::{Primitive, TypeDef, TypeDefinitionKind},
+    ty::{Primitive, TypeDef},
 };
 
 macro_rules! assert_primitive {
@@ -58,9 +58,7 @@ fn test_nonzero_is_composite() {
     let ty = registry.get_type(id).expect("Type should be in registry");
 
     // NonZero is now Composite, not Primitive
-    if let TypeDef::Definition(def) = &ty.def
-        && let TypeDefinitionKind::Composite(c) = &def.kind
-    {
+    if let TypeDef::Composite(c) = &ty.def {
         assert_eq!(c.fields.len(), 1);
         assert!(registry.is_type::<u8>(c.fields[0].ty.id()));
     } else {

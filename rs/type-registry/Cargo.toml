@@ -13,7 +13,6 @@ gprimitives = { workspace = true, optional = true }
 sails-type-registry-derive = { path = "derive", optional = true }
 
 [dev-dependencies]
-sails-type-registry = { path = ".", features = ["derive", "gprimitives"] }
 insta.workspace = true
 trybuild.workspace = true
 

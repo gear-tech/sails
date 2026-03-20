@@ -11,45 +11,33 @@ impl<T: ::sails_type_registry::TypeInfo> ::sails_type_registry::TypeInfo for Bas
         let mut type_builder = ::sails_type_registry::builder::TypeBuilder::new()
             .module_path(::core::module_path!())
             .name("Basic")
-            .docs(
-                ::sails_type_registry::prelude::alloc::vec![
-                    "Basic struct with docs".to_string(),
-                    "Second line of documentation".to_string(),
-                ],
-            );
-        type_builder = type_builder.type_param("T", registry.register_type::<T>());
+            .doc("Basic struct with docs")
+            .doc("Second line of documentation");
+        type_builder = type_builder.type_param("T").arg(registry.register_type::<T>());
         type_builder
             .composite()
-            .field(
-                "a",
-                {
-                    let id = registry.register_type::<u32>();
-                    let field_type = ::sails_type_registry::ty::FieldType::Id(id);
-                    registry.expand_aliases(&field_type)
-                },
-            )
+            .field("a")
             .type_name(
                 ::sails_type_registry::prelude::alloc::string::String::from(
                     ::core::stringify!(u32),
                 ),
             )
-            .docs(
-                ::sails_type_registry::prelude::alloc::vec!["Simple field".to_string()],
-            )
-            .annotation(
-                ::sails_type_registry::ty::Annotation::new_with_value("name", "custom"),
-            )
-            .field("b", ::sails_type_registry::ty::FieldType::Parameter("T".to_string()))
+            .doc("Simple field")
+            .annotate("name")
+            .value("custom")
+            .ty({
+                let id = registry.register_type::<u32>();
+                let field_type = ::sails_type_registry::ty::FieldType::Id(id);
+                registry.expand_aliases(&field_type)
+            })
+            .field("b")
             .type_name(
                 ::sails_type_registry::prelude::alloc::string::String::from(
                     ::core::stringify!(T),
                 ),
             )
-            .docs(
-                ::sails_type_registry::prelude::alloc::vec![
-                    "Direct parameter".to_string(),
-                ],
-            )
+            .doc("Direct parameter")
+            .ty(::sails_type_registry::ty::FieldType::Parameter("T".to_string()))
             .build()
     }
 }

@@ -10,8 +10,7 @@ impl ::sails_type_registry::TypeInfo for Unit {
     ) -> ::sails_type_registry::ty::Type {
         let mut type_builder = ::sails_type_registry::builder::TypeBuilder::new()
             .module_path(::core::module_path!())
-            .name("Unit")
-            .docs(::sails_type_registry::prelude::alloc::vec![]);
+            .name("Unit");
         type_builder.composite().build()
     }
 }

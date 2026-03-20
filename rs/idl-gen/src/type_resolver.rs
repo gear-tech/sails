@@ -3,7 +3,7 @@ use alloc::boxed::Box;
 use convert_case::{Case, Casing};
 use sails_type_registry::{
     Registry, TypeRef,
-    ty::{ArrayLen, Field, FieldType, GenericArg, Primitive, Type, TypeDef, TypeDefinitionKind},
+    ty::{ArrayLen, Field, FieldType, GenericArg, Primitive, Type, TypeDef},
 };
 
 #[derive(Debug, Clone)]
@@ -32,18 +32,14 @@ impl UserDefinedEntry {
 
     fn field_types(type_info: &Type) -> Vec<FieldType> {
         match &type_info.def {
-            TypeDef::Definition(def) => match &def.kind {
-                TypeDefinitionKind::Composite(comp) => {
-                    comp.fields.iter().map(|f| f.ty.clone()).collect()
+            TypeDef::Composite(comp) => comp.fields.iter().map(|f| f.ty.clone()).collect(),
+            TypeDef::Variant(var) => {
+                let mut fields = Vec::new();
+                for v in &var.variants {
+                    fields.extend(v.fields.iter().map(|f| f.ty.clone()));
                 }
-                TypeDefinitionKind::Variant(var) => {
-                    let mut fields = Vec::new();
-                    var.variants.iter().for_each(|v| {
-                        fields.extend(v.fields.iter().map(|f| f.ty.clone()));
-                    });
-                    fields
-                }
-            },
+                fields
+            }
             _ => unreachable!(),
         }
     }
@@ -177,7 +173,7 @@ impl<'a> TypeResolver<'a> {
                     generics: vec![ok_decl, err_decl],
                 }
             }
-            TypeDef::Definition(_) => {
+            TypeDef::Composite(_) | TypeDef::Variant(_) => {
                 let name = self.register_user_defined(ty)?;
                 let mut generics = Vec::new();
                 for param in &ty.type_params {
@@ -222,40 +218,38 @@ impl<'a> TypeResolver<'a> {
         let empty_args = BTreeMap::new();
 
         let def = match &ty.def {
-            TypeDef::Definition(def) => match &def.kind {
-                TypeDefinitionKind::Composite(type_def_composite) => {
-                    let fields = type_def_composite
-                        .fields
-                        .iter()
-                        .map(|f| self.resolve_field_inner(f, &empty_args))
-                        .collect::<Result<Vec<_>>>()?;
-                    sails_idl_meta::TypeDef::Struct(StructDef { fields })
-                }
-                TypeDefinitionKind::Variant(type_def_variant) => {
-                    let variants = type_def_variant
-                        .variants
-                        .iter()
-                        .map(|v| {
-                            let fields = v
-                                .fields
+            TypeDef::Composite(comp) => {
+                let fields = comp
+                    .fields
+                    .iter()
+                    .map(|f| self.resolve_field_inner(f, &empty_args))
+                    .collect::<Result<Vec<_>>>()?;
+                sails_idl_meta::TypeDef::Struct(StructDef { fields })
+            }
+            TypeDef::Variant(var) => {
+                let variants = var
+                    .variants
+                    .iter()
+                    .map(|v| {
+                        let fields = v
+                            .fields
+                            .iter()
+                            .map(|f| self.resolve_field_inner(f, &empty_args))
+                            .collect::<Result<Vec<_>>>()?;
+                        Ok(EnumVariant {
+                            name: v.name.to_string(),
+                            def: StructDef { fields },
+                            docs: v.docs.iter().map(|d| d.to_string()).collect(),
+                            annotations: v
+                                .annotations
                                 .iter()
-                                .map(|f| self.resolve_field_inner(f, &empty_args))
-                                .collect::<Result<Vec<_>>>()?;
-                            Ok(EnumVariant {
-                                name: v.name.to_string(),
-                                def: StructDef { fields },
-                                docs: v.docs.iter().map(|d| d.to_string()).collect(),
-                                annotations: v
-                                    .annotations
-                                    .iter()
-                                    .map(|a| (a.name.clone(), a.value.clone()))
-                                    .collect(),
-                            })
+                                .map(|a| (a.name.clone(), a.value.clone()))
+                                .collect(),
                         })
-                        .collect::<Result<Vec<_>>>()?;
-                    sails_idl_meta::TypeDef::Enum(EnumDef { variants })
-                }
-            },
+                    })
+                    .collect::<Result<Vec<_>>>()?;
+                sails_idl_meta::TypeDef::Enum(EnumDef { variants })
+            }
             _ => unreachable!(),
         };
 
@@ -424,15 +418,14 @@ impl<'a> TypeResolver<'a> {
             let name_with_consts = format!("{}{}", base_name, const_suffix);
 
             if let Some(exists) = self.user_defined.get(&name_with_consts) {
-                if !exists.is_path_equals(ty) {
-                    continue;
-                } else if exists.is_fields_equal(ty) {
+                if exists.is_path_equals(ty) && exists.is_fields_equal(ty) {
                     return Err(name_with_consts);
                 } else {
-                    return Ok(name_with_consts);
+                    continue;
                 }
+            } else {
+                return Ok(name_with_consts);
             }
-            return Ok(name_with_consts);
         }
 
         let mut final_name = format!("{}{}", base_name, const_suffix);
@@ -636,7 +629,7 @@ mod tests {
         assert_eq!(u32_string_enum.to_string(), "GenericEnum<u32, String>");
 
         let bool_u32_enum = resolver.get(bool_u32_enum_id).unwrap();
-        assert_eq!(bool_u32_enum.to_string(), "GenericEnum<bool, u32>");
+        assert_eq!(bool_u32_enum.to_string(), "TestsGenericEnum<bool, u32>");
     }
 
     #[test]
@@ -878,7 +871,7 @@ mod tests {
         assert_eq!(n8_name_2, "GenericConstStructN8O8<u8>");
         assert_eq!(n32_name, "GenericConstStructN32O8<u8>");
         assert_eq!(n256_name, "GenericConstStructN256O832<u8>");
-        assert_eq!(n32u256_name, "GenericConstStructN32O8<U256>");
+        assert_eq!(n32u256_name, "TestsGenericConstStructN32O8<U256>");
     }
 
     #[test]
@@ -1046,7 +1039,7 @@ mod tests {
             "Result<Option<T>, String>",
             "[(Option<T>, GenericStruct<T>)]",
             "GenericStruct<Option<T>>",
-            "SimpleOneGenericEnum<Result<T, String>>",
+            "TestsSimpleOneGenericEnum<Result<T, String>>",
             "Option<Option<Option<T>>>",
             "Result<Option<Result<T, String>>, String>",
             "[(Option<GenericStruct<T>>, Result<T, String>)]",
@@ -1116,13 +1109,7 @@ mod tests {
 
         let struct_def = &struct_type.def;
 
-        if let sails_type_registry::ty::TypeDef::Definition(
-            sails_type_registry::ty::TypeDefinition {
-                kind: sails_type_registry::ty::TypeDefinitionKind::Composite(_composite),
-                ..
-            },
-        ) = struct_def
-        {
+        if let sails_type_registry::ty::TypeDef::Composite(_composite) = struct_def {
             let meta_fields = struct_generic.meta_fields();
             let find_field_name = |name: &str| {
                 meta_fields
@@ -1593,13 +1580,7 @@ mod tests {
             .unwrap();
         let struct_def = &struct_type.def;
 
-        if let sails_type_registry::ty::TypeDef::Definition(
-            sails_type_registry::ty::TypeDefinition {
-                kind: sails_type_registry::ty::TypeDefinitionKind::Composite(_composite),
-                ..
-            },
-        ) = struct_def
-        {
+        if let sails_type_registry::ty::TypeDef::Composite(_composite) = struct_def {
             let find_field_name = |name: &str| {
                 struct_generic
                     .meta_fields()
@@ -1624,13 +1605,7 @@ mod tests {
             .unwrap();
         let enum_def = &enum_type.def;
 
-        if let sails_type_registry::ty::TypeDef::Definition(
-            sails_type_registry::ty::TypeDefinition {
-                kind: sails_type_registry::ty::TypeDefinitionKind::Variant(_variant),
-                ..
-            },
-        ) = enum_def
-        {
+        if let sails_type_registry::ty::TypeDef::Variant(_variant) = enum_def {
             let enum_variants = match &enum_generic.meta_type.def {
                 sails_idl_meta::TypeDef::Enum(e) => &e.variants,
                 _ => panic!("Expected enum definition"),
@@ -1714,7 +1689,7 @@ mod tests {
         let enum_n8_bool_decl = resolver.get(enum_n8_bool_id).unwrap().to_string();
 
         assert_eq!(struct_n8_u32_decl, "ConstGenericStructN8<u32>");
-        assert_eq!(struct_n8_string_decl, "ConstGenericStructN8<String>");
+        assert_eq!(struct_n8_string_decl, "TestsConstGenericStructN8<String>");
         assert_eq!(struct_n16_u32_decl, "ConstGenericStructN16<u32>");
         assert_eq!(two_const_decl, "TwoConstGenericStructM8N4<u64, H256>");
         assert_eq!(enum_n8_bool_decl, "ConstGenericEnumN8<bool>");

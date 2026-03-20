@@ -2,7 +2,7 @@ use super::*;
 use crate::type_resolver::TypeResolver;
 use sails_type_registry::{
     Registry, TypeRef,
-    ty::{GenericArg, TypeDef, TypeDefinitionKind, Variant},
+    ty::{GenericArg, TypeDef, Variant},
 };
 
 fn get_type_args(
@@ -49,19 +49,17 @@ impl ProgramBuilder {
         let enum_type_args = get_type_args(&self.registry, resolver, self.ctors_type_id)?;
 
         for c in any_funcs(&self.registry, self.ctors_type_id)? {
-            if c.fields.len() != 1 && c.fields.len() != 2 {
-                if c.fields.is_empty() {
-                    return Err(Error::MetaIsInvalid(format!(
-                        "func `{}` has no fields",
-                        c.name
-                    )));
-                }
-                if c.fields.len() > 2 {
-                    return Err(Error::MetaIsInvalid(format!(
-                        "ctor `{}` has invalid number of fields",
-                        c.name
-                    )));
-                }
+            if c.fields.is_empty() {
+                return Err(Error::MetaIsInvalid(format!(
+                    "func `{}` has no fields",
+                    c.name
+                )));
+            }
+            if c.fields.len() > 2 {
+                return Err(Error::MetaIsInvalid(format!(
+                    "ctor `{}` has invalid number of fields",
+                    c.name
+                )));
             }
 
             let params_type_id = c.fields[0].ty.id();
@@ -77,43 +75,36 @@ impl ProgramBuilder {
                 None
             };
 
-            if let TypeDef::Definition(def) = &params_type.def {
-                if let TypeDefinitionKind::Composite(params_type_def) = &def.kind {
-                    let params_type_args = get_type_args(&self.registry, resolver, params_type_id)?;
-                    let params = params_type_def
-                        .fields
-                        .iter()
-                        .map(|f| -> Result<_> {
-                            let field = resolver.resolve_field_with_args(f, &params_type_args)?;
-                            let name = field.name.ok_or_else(|| {
-                                Error::MetaIsInvalid(format!(
-                                    "ctor `{}` param is missing a name",
-                                    c.name
-                                ))
-                            })?;
-                            Ok(FuncParam {
-                                name,
-                                type_decl: field.type_decl,
-                            })
+            if let TypeDef::Composite(params_type_def) = &params_type.def {
+                let params_type_args = get_type_args(&self.registry, resolver, params_type_id)?;
+                let params = params_type_def
+                    .fields
+                    .iter()
+                    .map(|f| -> Result<_> {
+                        let field = resolver.resolve_field_with_args(f, &params_type_args)?;
+                        let name = field.name.ok_or_else(|| {
+                            Error::MetaIsInvalid(format!(
+                                "ctor `{}` param is missing a name",
+                                c.name
+                            ))
+                        })?;
+                        Ok(FuncParam {
+                            name,
+                            type_decl: field.type_decl,
                         })
-                        .collect::<Result<Vec<_>>>()?;
-                    ctors.push(CtorFunc {
-                        name: c.name.to_string(),
-                        params,
-                        throws,
-                        docs: c.docs.iter().map(|s| s.to_string()).collect(),
-                        annotations: c
-                            .annotations
-                            .iter()
-                            .map(|a| (a.name.clone(), a.value.clone()))
-                            .collect(),
-                    });
-                } else {
-                    return Err(Error::MetaIsInvalid(format!(
-                        "ctor `{}` params type is not a composite",
-                        c.name
-                    )));
-                }
+                    })
+                    .collect::<Result<Vec<_>>>()?;
+                ctors.push(CtorFunc {
+                    name: c.name.to_string(),
+                    params,
+                    throws,
+                    docs: c.docs.iter().map(|s| s.to_string()).collect(),
+                    annotations: c
+                        .annotations
+                        .iter()
+                        .map(|a| (a.name.clone(), a.value.clone()))
+                        .collect(),
+                });
             } else {
                 return Err(Error::MetaIsInvalid(format!(
                     "ctor `{}` params type is not a composite",
@@ -123,7 +114,6 @@ impl ProgramBuilder {
         }
         Ok(ctors)
     }
-
     /// Assemble the final `ProgramUnit` from resolved constructors, types, and service exports.
     pub fn build(self, name: String, services: &[ServiceUnit]) -> Result<ProgramUnit> {
         let mut exclude = BTreeSet::new();
@@ -185,9 +175,7 @@ fn any_funcs(registry: &Registry, func_type_id: TypeRef) -> Result<impl Iterator
         .get_type(func_type_id)
         .ok_or(Error::TypeIdIsUnknown(func_type_id.get()))?;
 
-    if let TypeDef::Definition(def) = &funcs.def
-        && let TypeDefinitionKind::Variant(variant) = &def.kind
-    {
+    if let TypeDef::Variant(variant) = &funcs.def {
         return Ok(variant.variants.iter());
     }
 
@@ -336,43 +324,36 @@ impl<'a> ServiceBuilder<'a> {
                 None
             };
 
-            if let TypeDef::Definition(def) = &params_type.def {
-                if let TypeDefinitionKind::Composite(params_type_def) = &def.kind {
-                    let params_type_args = get_type_args(&self.registry, resolver, params_type_id)?;
-                    let params = params_type_def
-                        .fields
+            if let TypeDef::Composite(params_type_def) = &params_type.def {
+                let params_type_args = get_type_args(&self.registry, resolver, params_type_id)?;
+                let params = params_type_def
+                    .fields
+                    .iter()
+                    .map(|f| -> Result<_> {
+                        let field = resolver.resolve_field_with_args(f, &params_type_args)?;
+                        let name = field.name.ok_or_else(|| {
+                            Error::MetaIsInvalid(format!(
+                                "command `{}` param is missing a name",
+                                c.name
+                            ))
+                        })?;
+                        let type_decl = field.type_decl;
+                        Ok(FuncParam { name, type_decl })
+                    })
+                    .collect::<Result<Vec<_>>>()?;
+                commands.push(ServiceFunc {
+                    name: c.name.to_string(),
+                    kind: FunctionKind::Command,
+                    params,
+                    output,
+                    throws,
+                    docs: c.docs.iter().map(|s| s.to_string()).collect(),
+                    annotations: c
+                        .annotations
                         .iter()
-                        .map(|f| -> Result<_> {
-                            let field = resolver.resolve_field_with_args(f, &params_type_args)?;
-                            let name = field.name.ok_or_else(|| {
-                                Error::MetaIsInvalid(format!(
-                                    "command `{}` param is missing a name",
-                                    c.name
-                                ))
-                            })?;
-                            let type_decl = field.type_decl;
-                            Ok(FuncParam { name, type_decl })
-                        })
-                        .collect::<Result<Vec<_>>>()?;
-                    commands.push(ServiceFunc {
-                        name: c.name.to_string(),
-                        kind: FunctionKind::Command,
-                        params,
-                        output,
-                        throws,
-                        docs: c.docs.iter().map(|s| s.to_string()).collect(),
-                        annotations: c
-                            .annotations
-                            .iter()
-                            .map(|a| (a.name.clone(), a.value.clone()))
-                            .collect(),
-                    });
-                } else {
-                    return Err(Error::MetaIsInvalid(format!(
-                        "command `{}` params type is not a composite",
-                        c.name
-                    )));
-                }
+                        .map(|a| (a.name.clone(), a.value.clone()))
+                        .collect(),
+                });
             } else {
                 return Err(Error::MetaIsInvalid(format!(
                     "command `{}` params type is not a composite",
@@ -410,48 +391,41 @@ impl<'a> ServiceBuilder<'a> {
                 None
             };
 
-            if let TypeDef::Definition(def) = &params_type.def {
-                if let TypeDefinitionKind::Composite(params_type_def) = &def.kind {
-                    let params_type_args = get_type_args(&self.registry, resolver, params_type_id)?;
-                    let params = params_type_def
-                        .fields
-                        .iter()
-                        .map(|f| -> Result<_> {
-                            let field = resolver.resolve_field_with_args(f, &params_type_args)?;
-                            let name = field.name.ok_or_else(|| {
-                                Error::MetaIsInvalid(format!(
-                                    "query `{}` param is missing a name",
-                                    c.name
-                                ))
-                            })?;
-                            Ok(FuncParam {
-                                name,
-                                type_decl: field.type_decl,
-                            })
+            if let TypeDef::Composite(params_type_def) = &params_type.def {
+                let params_type_args = get_type_args(&self.registry, resolver, params_type_id)?;
+                let params = params_type_def
+                    .fields
+                    .iter()
+                    .map(|f| -> Result<_> {
+                        let field = resolver.resolve_field_with_args(f, &params_type_args)?;
+                        let name = field.name.ok_or_else(|| {
+                            Error::MetaIsInvalid(format!(
+                                "query `{}` param is missing a name",
+                                c.name
+                            ))
+                        })?;
+                        Ok(FuncParam {
+                            name,
+                            type_decl: field.type_decl,
                         })
-                        .collect::<Result<Vec<_>>>()?;
-                    let mut annotations: Vec<_> = c
-                        .annotations
-                        .iter()
-                        .map(|a| (a.name.clone(), a.value.clone()))
-                        .collect();
-                    annotations.push(("query".to_string(), None));
+                    })
+                    .collect::<Result<Vec<_>>>()?;
+                let mut annotations: Vec<_> = c
+                    .annotations
+                    .iter()
+                    .map(|a| (a.name.clone(), a.value.clone()))
+                    .collect();
+                annotations.push(("query".to_string(), None));
 
-                    queries.push(ServiceFunc {
-                        name: c.name.to_string(),
-                        kind: FunctionKind::Query,
-                        params,
-                        output,
-                        throws,
-                        docs: c.docs.iter().map(|s| s.to_string()).collect(),
-                        annotations,
-                    });
-                } else {
-                    return Err(Error::MetaIsInvalid(format!(
-                        "query `{}` params type is not a composite",
-                        c.name
-                    )));
-                }
+                queries.push(ServiceFunc {
+                    name: c.name.to_string(),
+                    kind: FunctionKind::Query,
+                    params,
+                    output,
+                    throws,
+                    docs: c.docs.iter().map(|s| s.to_string()).collect(),
+                    annotations,
+                });
             } else {
                 return Err(Error::MetaIsInvalid(format!(
                     "query `{}` params type is not a composite",

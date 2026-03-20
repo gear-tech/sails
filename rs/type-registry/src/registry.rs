@@ -1,7 +1,7 @@
-use alloc::{collections::BTreeMap, vec::Vec};
+use alloc::{collections::BTreeMap, string::String, vec::Vec};
 use core::{any::TypeId, num::NonZeroU32};
 
-use crate::ty::{FieldType, Type, TypeDef, TypeDefinitionKind};
+use crate::ty::{FieldType, Type, TypeDef};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
@@ -52,7 +52,13 @@ impl Registry {
 
         let mut actual_type = meta.type_info(self);
 
-        self.expand_type_fields(&mut actual_type);
+        // --- TWO CHAIRS PATTERN ---
+        // 1. Create a clone for the expanded (monomorphized) definition
+        let mut expanded_type = actual_type.clone();
+        self.real_expand_type_fields(&mut expanded_type);
+
+        // 2. Save the expanded definition side-by-side with the original template
+        actual_type.expanded_def = Some(expanded_type.def);
 
         self.types[(next_id - 1) as usize] = actual_type;
         type_ref
@@ -75,10 +81,11 @@ impl Registry {
         self.type_table.get(&type_id) == Some(&type_ref)
     }
 
-    pub fn types(&self) -> Types<'_> {
-        Types {
-            iter: self.types.iter().enumerate(),
-        }
+    pub fn types(&self) -> impl Iterator<Item = (TypeRef, &Type)> {
+        self.types
+            .iter()
+            .enumerate()
+            .map(|(i, t)| (TypeRef::new((i as u32) + 1), t))
     }
 
     pub fn len(&self) -> usize {
@@ -89,26 +96,30 @@ impl Registry {
         self.types.is_empty()
     }
 
-    fn expand_type_fields(&self, ty: &mut Type) {
-        if let TypeDef::Definition(def) = &mut ty.def {
-            match &mut def.kind {
-                TypeDefinitionKind::Composite(comp) => {
-                    for field in &mut comp.fields {
-                        field.ty = self.expand_aliases(&field.ty);
-                    }
+    pub fn expand_aliases(&self, field_type: &FieldType) -> FieldType {
+        // Called by macro. Keep it as a pass-through to preserve template for idl-gen.
+        field_type.clone()
+    }
+
+    fn real_expand_type_fields(&self, ty: &mut Type) {
+        match &mut ty.def {
+            TypeDef::Composite(comp) => {
+                for field in &mut comp.fields {
+                    field.ty = self.real_expand_aliases(&field.ty);
                 }
-                TypeDefinitionKind::Variant(var) => {
-                    for variant in &mut var.variants {
-                        for field in &mut variant.fields {
-                            field.ty = self.expand_aliases(&field.ty);
-                        }
+            }
+            TypeDef::Variant(var) => {
+                for variant in &mut var.variants {
+                    for field in &mut variant.fields {
+                        field.ty = self.real_expand_aliases(&field.ty);
                     }
                 }
             }
+            _ => {}
         }
     }
 
-    pub fn expand_aliases(&self, field_type: &FieldType) -> FieldType {
+    fn real_expand_aliases(&self, field_type: &FieldType) -> FieldType {
         match field_type {
             FieldType::Id(id) => {
                 let Some(actual_ty) = self.get_type(*id) else {
@@ -117,48 +128,38 @@ impl Registry {
                 match &actual_ty.def {
                     TypeDef::Sequence(inner) | TypeDef::Option(inner) => FieldType::Parameterized {
                         id: *id,
-                        args: alloc::vec![self.expand_aliases(&FieldType::Id(*inner))],
+                        args: alloc::vec![self.real_expand_aliases(&FieldType::Id(*inner))],
                     },
                     TypeDef::Result { ok, err } => FieldType::Parameterized {
                         id: *id,
                         args: alloc::vec![
-                            self.expand_aliases(&FieldType::Id(*ok)),
-                            self.expand_aliases(&FieldType::Id(*err)),
+                            self.real_expand_aliases(&FieldType::Id(*ok)),
+                            self.real_expand_aliases(&FieldType::Id(*err)),
                         ],
                     },
                     TypeDef::Map { key, value } => FieldType::Parameterized {
                         id: *id,
                         args: alloc::vec![
-                            self.expand_aliases(&FieldType::Id(*key)),
-                            self.expand_aliases(&FieldType::Id(*value)),
+                            self.real_expand_aliases(&FieldType::Id(*key)),
+                            self.real_expand_aliases(&FieldType::Id(*value)),
                         ],
                     },
                     TypeDef::Tuple(elems) => FieldType::Tuple {
                         id: *id,
                         elems: elems
                             .iter()
-                            .map(|e| self.expand_aliases(&FieldType::Id(*e)))
+                            .map(|e| self.real_expand_aliases(&FieldType::Id(*e)))
                             .collect(),
                     },
                     TypeDef::Array { len, type_param } => FieldType::Array {
                         id: *id,
                         elem: alloc::boxed::Box::new(
-                            self.expand_aliases(&FieldType::Id(*type_param)),
+                            self.real_expand_aliases(&FieldType::Id(*type_param)),
                         ),
                         len: crate::ty::ArrayLen::Static(*len),
                     },
                     _ => {
-                        let args: Vec<_> = actual_ty
-                            .type_params
-                            .iter()
-                            .filter_map(|p| {
-                                if let crate::ty::GenericArg::Type(t) = &p.arg {
-                                    Some(self.expand_aliases(&FieldType::Id(*t)))
-                                } else {
-                                    None
-                                }
-                            })
-                            .collect();
+                        let args = self.expand_args(&actual_ty.type_params, &BTreeMap::new());
 
                         if !args.is_empty() {
                             FieldType::Parameterized { id: *id, args }
@@ -173,76 +174,57 @@ impl Registry {
                     return field_type.clone();
                 };
 
-                let expanded_args: Vec<FieldType> =
-                    args.iter().map(|arg| self.expand_aliases(arg)).collect();
+                let expanded_args: Vec<FieldType> = args
+                    .iter()
+                    .map(|arg| self.real_expand_aliases(arg))
+                    .collect();
+
+                let mut mapping = BTreeMap::new();
+                let mut provided_idx = 0;
+                for param in &actual_ty.type_params {
+                    if let crate::ty::GenericArg::Type(_) = &param.arg
+                        && provided_idx < expanded_args.len()
+                    {
+                        mapping.insert(param.name.clone(), expanded_args[provided_idx].clone());
+                        provided_idx += 1;
+                    }
+                }
 
                 match &actual_ty.def {
-                    TypeDef::Result { ok, err } => {
-                        let arg1 = expanded_args
-                            .first()
-                            .cloned()
-                            .unwrap_or_else(|| self.expand_aliases(&FieldType::Id(*ok)));
-                        let arg2 = expanded_args
-                            .get(1)
-                            .cloned()
-                            .unwrap_or_else(|| self.expand_aliases(&FieldType::Id(*err)));
-                        FieldType::Parameterized {
-                            id: *id,
-                            args: alloc::vec![arg1, arg2],
-                        }
-                    }
-                    TypeDef::Option(inner) | TypeDef::Sequence(inner) => {
-                        let arg1 = expanded_args
-                            .first()
-                            .cloned()
-                            .unwrap_or_else(|| self.expand_aliases(&FieldType::Id(*inner)));
-                        FieldType::Parameterized {
-                            id: *id,
-                            args: alloc::vec![arg1],
-                        }
-                    }
-                    TypeDef::Map { key, value } => {
-                        let arg1 = expanded_args
-                            .first()
-                            .cloned()
-                            .unwrap_or_else(|| self.expand_aliases(&FieldType::Id(*key)));
-                        let arg2 = expanded_args
-                            .get(1)
-                            .cloned()
-                            .unwrap_or_else(|| self.expand_aliases(&FieldType::Id(*value)));
-                        FieldType::Parameterized {
-                            id: *id,
-                            args: alloc::vec![arg1, arg2],
-                        }
-                    }
+                    TypeDef::Result { ok, err } => FieldType::Parameterized {
+                        id: *id,
+                        args: alloc::vec![
+                            self.expand_and_substitute(*ok, &mapping),
+                            self.expand_and_substitute(*err, &mapping),
+                        ],
+                    },
+                    TypeDef::Option(inner) | TypeDef::Sequence(inner) => FieldType::Parameterized {
+                        id: *id,
+                        args: alloc::vec![self.expand_and_substitute(*inner, &mapping)],
+                    },
+                    TypeDef::Map { key, value } => FieldType::Parameterized {
+                        id: *id,
+                        args: alloc::vec![
+                            self.expand_and_substitute(*key, &mapping),
+                            self.expand_and_substitute(*value, &mapping),
+                        ],
+                    },
                     TypeDef::Tuple(elems) => FieldType::Tuple {
                         id: *id,
                         elems: elems
                             .iter()
-                            .map(|e| self.expand_aliases(&FieldType::Id(*e)))
+                            .map(|e| self.expand_and_substitute(*e, &mapping))
                             .collect(),
                     },
                     TypeDef::Array { len, type_param } => FieldType::Array {
                         id: *id,
                         elem: alloc::boxed::Box::new(
-                            self.expand_aliases(&FieldType::Id(*type_param)),
+                            self.expand_and_substitute(*type_param, &mapping),
                         ),
                         len: crate::ty::ArrayLen::Static(*len),
                     },
                     _ => {
-                        let mut final_args = Vec::new();
-                        let mut provided_idx = 0;
-
-                        for param in &actual_ty.type_params {
-                            if let crate::ty::GenericArg::Type(arg_id) = &param.arg {
-                                if provided_idx < expanded_args.len() {
-                                    final_args.push(expanded_args[provided_idx].clone());
-                                    provided_idx += 1;
-                                } else {
-                                    final_args.push(self.expand_aliases(&FieldType::Id(*arg_id)));
-                                }
-                            }
-                        }
+                        let mut final_args = self.expand_args(&actual_ty.type_params, &mapping);
 
                         if final_args.is_empty() && !expanded_args.is_empty() {
                             final_args = expanded_args;
@@ -257,37 +239,74 @@ impl Registry {
             }
             FieldType::Array { id, elem, len } => FieldType::Array {
                 id: *id,
-                elem: alloc::boxed::Box::new(self.expand_aliases(elem)),
+                elem: alloc::boxed::Box::new(self.real_expand_aliases(elem)),
                 len: len.clone(),
             },
             FieldType::Tuple { id, elems } => FieldType::Tuple {
                 id: *id,
-                elems: elems.iter().map(|e| self.expand_aliases(e)).collect(),
+                elems: elems.iter().map(|e| self.real_expand_aliases(e)).collect(),
             },
             _ => field_type.clone(),
         }
     }
-}
 
-pub struct Types<'a> {
-    iter: core::iter::Enumerate<core::slice::Iter<'a, Type>>,
-}
-
-impl<'a> Iterator for Types<'a> {
-    type Item = (TypeRef, &'a Type);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.iter
-            .next()
-            .map(|(i, t)| (TypeRef::new((i as u32) + 1), t))
+    fn substitute_params(&self, ty: FieldType, mapping: &BTreeMap<String, FieldType>) -> FieldType {
+        match ty {
+            FieldType::Parameter(name) => mapping
+                .get(&name)
+                .cloned()
+                .unwrap_or(FieldType::Parameter(name)),
+            FieldType::Parameterized { id, args } => FieldType::Parameterized {
+                id,
+                args: args
+                    .into_iter()
+                    .map(|arg| self.substitute_params(arg, mapping))
+                    .collect(),
+            },
+            FieldType::Array { id, elem, len } => FieldType::Array {
+                id,
+                elem: alloc::boxed::Box::new(self.substitute_params(*elem, mapping)),
+                len,
+            },
+            FieldType::Tuple { id, elems } => FieldType::Tuple {
+                id,
+                elems: elems
+                    .into_iter()
+                    .map(|e| self.substitute_params(e, mapping))
+                    .collect(),
+            },
+            _ => ty,
+        }
     }
 
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        self.iter.size_hint()
+    #[inline]
+    fn expand_and_substitute(
+        &self,
+        id: TypeRef,
+        mapping: &BTreeMap<String, FieldType>,
+    ) -> FieldType {
+        let expanded = self.real_expand_aliases(&FieldType::Id(id));
+        self.substitute_params(expanded, mapping)
+    }
+
+    fn expand_args(
+        &self,
+        params: &[crate::ty::TypeParameter],
+        mapping: &BTreeMap<String, FieldType>,
+    ) -> Vec<FieldType> {
+        let mut args = Vec::new();
+        for param in params {
+            if let crate::ty::GenericArg::Type(arg_id) = &param.arg {
+                if let Some(mapped) = mapping.get(&param.name) {
+                    args.push(mapped.clone());
+                } else {
+                    args.push(self.real_expand_aliases(&FieldType::Id(*arg_id)));
+                }
+            }
+        }
+        args
     }
 }
-
-impl<'a> ExactSizeIterator for Types<'a> {}
 
 #[cfg(test)]
 mod tests {

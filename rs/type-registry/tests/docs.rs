@@ -1,7 +1,7 @@
 extern crate alloc;
 
 use alloc::string::String;
-use sails_type_registry::ty::{TypeDef, TypeDefinitionKind};
+use sails_type_registry::ty::TypeDef;
 use sails_type_registry::{Registry, TypeInfo};
 
 #[test]
@@ -42,9 +42,7 @@ fn test_documentation_collection() {
         ]
     );
 
-    if let TypeDef::Definition(def) = &struct_ty.def
-        && let TypeDefinitionKind::Composite(c) = &def.kind
-    {
+    if let TypeDef::Composite(c) = &struct_ty.def {
         assert_eq!(c.fields[0].docs, vec!["The unique identifier.".to_string()]);
         assert_eq!(
             c.fields[1].docs,
@@ -58,9 +56,7 @@ fn test_documentation_collection() {
 
     assert_eq!(enum_ty.docs, vec!["This is a test enum.".to_string()]);
 
-    if let TypeDef::Definition(def) = &enum_ty.def
-        && let TypeDefinitionKind::Variant(v) = &def.kind
-    {
+    if let TypeDef::Variant(v) = &enum_ty.def {
         assert_eq!(v.variants[0].docs, vec!["First variant.".to_string()]);
         assert_eq!(
             v.variants[1].docs,

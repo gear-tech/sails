@@ -2,10 +2,7 @@ extern crate alloc;
 
 use alloc::{boxed::Box, collections::BTreeMap, string::String, vec::Vec};
 
-use sails_type_registry::{
-    Registry, TypeInfo,
-    ty::{TypeDef, TypeDefinitionKind},
-};
+use sails_type_registry::{Registry, TypeInfo, ty::TypeDef};
 
 #[test]
 fn test_deep_collections() {
@@ -39,9 +36,7 @@ fn test_self_recursive_type() {
 
     assert_eq!(list_ty.name, "LinkedList");
 
-    if let TypeDef::Definition(def) = &list_ty.def
-        && let TypeDefinitionKind::Composite(c) = &def.kind
-    {
+    if let TypeDef::Composite(c) = &list_ty.def {
         assert_eq!(c.fields.len(), 2);
 
         let next_opt_ref = c.fields[1].ty.id();
@@ -53,7 +48,7 @@ fn test_self_recursive_type() {
             panic!("Expected Option");
         }
     } else {
-        panic!("Expected Composite");
+        panic!("Expected Composite, got {:?}", list_ty.def);
     }
 }
 
@@ -74,13 +69,10 @@ fn test_mutually_recursive_types() {
     let ping_ref = registry.register_type::<Ping>();
     let pong_ref = registry.register_type::<Pong>();
 
-    println!("{:#?}", registry);
     assert!(ping_ref != pong_ref);
 
     let ping_ty = registry.get_type(ping_ref).unwrap();
-    if let TypeDef::Definition(def) = &ping_ty.def
-        && let TypeDefinitionKind::Composite(c) = &def.kind
-    {
+    if let TypeDef::Composite(c) = &ping_ty.def {
         let pong_opt_ref = c.fields[0].ty.id();
         let pong_opt_ty = registry.get_type(pong_opt_ref).unwrap();
 
@@ -89,5 +81,7 @@ fn test_mutually_recursive_types() {
         } else {
             panic!("Expected Option");
         }
+    } else {
+        panic!("Expected Composite, got {:?}", ping_ty.def);
     }
 }

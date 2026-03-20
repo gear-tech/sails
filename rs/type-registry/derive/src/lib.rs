@@ -41,11 +41,11 @@ fn process_derive(
                 let mut type_builder = #registry::builder::TypeBuilder::new()
                     .module_path(::core::module_path!())
                     .name(#name_str)
-                    .docs(#type_docs);
+                    #(.doc(#type_docs))*;
 
                 #(#type_params_builder_tokens)*
 
-                #(type_builder = type_builder.annotation(#type_annotations);)*
+                #(type_builder = type_builder #type_annotations;)*
 
                 #def_tokens
             }
@@ -121,8 +121,7 @@ impl DeriveContext {
         }
     }
 
-    fn extract_docs(&self, attrs: &[syn::Attribute]) -> proc_macro2::TokenStream {
-        let registry = &self.registry;
+    fn extract_docs(&self, attrs: &[syn::Attribute]) -> Vec<proc_macro2::TokenStream> {
         let mut docs = Vec::new();
 
         for attr in attrs {
@@ -135,17 +134,16 @@ impl DeriveContext {
             {
                 let doc = lit_str.value();
                 let doc = doc.strip_prefix(' ').unwrap_or(&doc);
-                docs.push(quote! { #doc.to_string() });
+                docs.push(quote! { #doc });
             }
         }
-        quote! { #registry::prelude::alloc::vec![#(#docs),*] }
+        docs
     }
 
     fn extract_annotations(
         &self,
         attrs: &[syn::Attribute],
     ) -> syn::Result<Vec<proc_macro2::TokenStream>> {
-        let registry = &self.registry;
         let mut annotations = Vec::new();
 
         for attr in attrs {
@@ -170,7 +168,7 @@ impl DeriveContext {
                                 syn::Lit::Str(lit_str) => {
                                     let lit_val = lit_str.value();
                                     annotations.push(quote! {
-                                        #registry::ty::Annotation::new_with_value(#ident_str, #lit_val)
+                                        .annotate(#ident_str).value(#lit_val)
                                     });
                                 }
                                 _ => {
@@ -187,7 +185,7 @@ impl DeriveContext {
                         }
                     } else {
                         annotations.push(quote! {
-                            #registry::ty::Annotation::new(#ident_str)
+                            .annotate(#ident_str)
                         });
                     }
 
@@ -262,12 +260,12 @@ impl DeriveContext {
                 syn::GenericParam::Type(tp) => {
                     let ty = &tp.ident;
                     let name = ty.to_string();
-                    quote! { type_builder = type_builder.type_param(#name, registry.register_type::<#ty>()); }
+                    quote! { type_builder = type_builder.type_param(#name).arg(registry.register_type::<#ty>()); }
                 }
                 syn::GenericParam::Const(cp) => {
                     let ident = &cp.ident;
                     let name = ident.to_string();
-                    quote! { type_builder = type_builder.const_param(#name, #registry::prelude::alloc::format!("{}", #ident)); }
+                    quote! { type_builder = type_builder.const_param(#name).val(#registry::prelude::alloc::format!("{}", #ident)); }
                 }
                 syn::GenericParam::Lifetime(_) => quote! {},
             })
@@ -383,7 +381,7 @@ impl DeriveContext {
     fn generate_fields_tokens(
         &self,
         fields: &Fields,
-        is_variant: bool,
+        _is_variant: bool,
     ) -> syn::Result<proc_macro2::TokenStream> {
         let registry = &self.registry;
 
@@ -415,14 +413,13 @@ impl DeriveContext {
                 let field_annotations = self.extract_annotations(&f.attrs)?;
                 let field_docs = self.extract_docs(&f.attrs);
 
-                let methods = FieldMethods::new(f.ident.is_some(), is_variant);
-                let field_method = methods.field;
-                let type_name_method = methods.type_name;
-                let docs_method = methods.docs;
-                let annotation_method = methods.annotation;
+                let field_method = if f.ident.is_some() { quote!(field) } else { quote!(unnamed_field) };
 
-                let field_annotations_tokens = quote! {
-                    #(.#annotation_method(#field_annotations))*
+                let field_call = if let Some(ident) = &f.ident {
+                    let name = ident.to_string();
+                    quote! { .#field_method(#name) }
+                } else {
+                    quote! { .#field_method() }
                 };
 
                 let field_type_tokens = self.generate_field_type_tokens(
@@ -431,18 +428,12 @@ impl DeriveContext {
                     &const_param_names,
                 );
 
-                let field_call = if let Some(ident) = &f.ident {
-                    let name = ident.to_string();
-                    quote! { .#field_method(#name, #field_type_tokens) }
-                } else {
-                    quote! { .#field_method(#field_type_tokens) }
-                };
-
                 Ok(quote! {
                     #field_call
-                    .#type_name_method(#field_type_name)
-                    .#docs_method(#field_docs)
-                    #field_annotations_tokens
+                    .type_name(#field_type_name)
+                    #(.doc(#field_docs))*
+                    #(#field_annotations)*
+                    .ty(#field_type_tokens)
                 })
             })
             .collect::<syn::Result<Vec<_>>>()?;
@@ -473,8 +464,8 @@ impl DeriveContext {
 
                         Ok(quote! {
                             .add_variant(#variant_name)
-                                .docs(#variant_docs)
-                                #(.annotation(#variant_annotations))*
+                                #(.doc(#variant_docs))*
+                                #(#variant_annotations)*
                                 #fields_tokens
                         })
                     })
@@ -493,42 +484,6 @@ impl DeriveContext {
         }
     }
 }
-
-struct FieldMethods {
-    field: proc_macro2::TokenStream,
-    type_name: proc_macro2::TokenStream,
-    docs: proc_macro2::TokenStream,
-    annotation: proc_macro2::TokenStream,
-}
-
-impl FieldMethods {
-    fn new(is_named: bool, is_variant: bool) -> Self {
-        if is_variant {
-            Self {
-                field: if is_named {
-                    quote!(field)
-                } else {
-                    quote!(unnamed_field)
-                },
-                type_name: quote!(type_name),
-                docs: quote!(field_docs),
-                annotation: quote!(field_annotation),
-            }
-        } else {
-            Self {
-                field: if is_named {
-                    quote!(field)
-                } else {
-                    quote!(unnamed_field)
-                },
-                type_name: quote!(type_name),
-                docs: quote!(docs),
-                annotation: quote!(annotation),
-            }
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -549,8 +504,18 @@ mod tests {
 
     #[test]
     fn minimal() {
-        assert_expansion(parse_quote!(struct Unit;), "unit_struct");
-        assert_expansion(parse_quote!(enum Empty {}), "empty_enum");
+        assert_expansion(
+            parse_quote!(
+                struct Unit;
+            ),
+            "unit_struct",
+        );
+        assert_expansion(
+            parse_quote!(
+                enum Empty {}
+            ),
+            "empty_enum",
+        );
     }
 
     #[test]

@@ -42,7 +42,7 @@ macro_rules! impl_for_non_zero {
                     Type::builder()
                         .name(::core::stringify!($t))
                         .composite()
-                        .unnamed_field(registry.register_type::<$inner>())
+                        .unnamed_field().ty(registry.register_type::<$inner>())
                         .build()
                 }
             }
@@ -145,7 +145,8 @@ mod g_impls {
             Type::builder()
                 .name("NonZeroU256")
                 .composite()
-                .unnamed_field(registry.register_type::<U256>())
+                .unnamed_field()
+                .ty(registry.register_type::<U256>())
                 .build()
         }
     }
@@ -203,7 +204,7 @@ impl<T: TypeInfo> TypeInfo for Vec<T> {
 impl<T: TypeInfo, const N: usize> TypeInfo for [T; N] {
     type Identity = Self;
     fn type_info(registry: &mut Registry) -> Type {
-        Type::builder().array(N as u32, registry.register_type::<T>())
+        Type::builder().array(registry.register_type::<T>(), N as u32)
     }
 }
 
@@ -248,8 +249,10 @@ impl<T: TypeInfo> TypeInfo for Range<T> {
         Type::builder()
             .name("Range")
             .composite()
-            .field("start", registry.register_type::<T>())
-            .field("end", registry.register_type::<T>())
+            .field("start")
+            .ty(registry.register_type::<T>())
+            .field("end")
+            .ty(registry.register_type::<T>())
             .build()
     }
 }
@@ -260,8 +263,10 @@ impl<T: TypeInfo> TypeInfo for RangeInclusive<T> {
         Type::builder()
             .name("RangeInclusive")
             .composite()
-            .field("start", registry.register_type::<T>())
-            .field("end", registry.register_type::<T>())
+            .field("start")
+            .ty(registry.register_type::<T>())
+            .field("end")
+            .ty(registry.register_type::<T>())
             .build()
     }
 }
@@ -272,8 +277,10 @@ impl TypeInfo for Duration {
         Type::builder()
             .name("Duration")
             .composite()
-            .field("secs", registry.register_type::<u64>())
-            .field("nanos", registry.register_type::<u32>())
+            .field("secs")
+            .ty(registry.register_type::<u64>())
+            .field("nanos")
+            .ty(registry.register_type::<u32>())
             .build()
     }
 }
