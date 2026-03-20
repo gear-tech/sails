@@ -188,7 +188,7 @@ mod some_service_meta {
     }
     #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[type_info(crate = sails_rs::type_info)]
     pub struct __DoSomethingParams {
         pub(super) p1: u32,
         pub(super) p2: String,
@@ -204,7 +204,7 @@ mod some_service_meta {
     }
     #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[type_info(crate = sails_rs::type_info)]
     pub struct __ThisParams {
         pub(super) p1: bool,
     }
@@ -218,17 +218,17 @@ mod some_service_meta {
         type Params = Self;
     }
     #[derive(sails_rs::TypeInfo)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[type_info(crate = sails_rs::type_info)]
     pub enum CommandsMeta {
         DoSomething(__DoSomethingParams, (u32, String), String),
     }
     #[derive(sails_rs::TypeInfo)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[type_info(crate = sails_rs::type_info)]
     pub enum QueriesMeta {
         This(__ThisParams, bool),
     }
     #[derive(sails_rs::TypeInfo)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[type_info(crate = sails_rs::type_info)]
     pub enum NoEvents {}
     pub type EventsMeta = NoEvents;
 }

@@ -6327,7 +6327,7 @@ dependencies = [
  "quote",
  "sails-idl-meta",
  "sails-idl-parser-v2",
- "scale-info",
+ "sails-type-registry",
  "syn 2.0.117",
  "thiserror 2.0.18",
 ]
@@ -6342,7 +6342,7 @@ dependencies = [
  "keccak-const",
  "parity-scale-codec",
  "sails-reflect-hash",
- "scale-info",
+ "sails-type-registry",
  "serde",
  "serde_json",
 ]
@@ -6385,7 +6385,7 @@ dependencies = [
  "proc-macro-error",
  "sails-macros-core",
  "sails-rs",
- "scale-info",
+ "sails-type-registry",
  "tokio",
  "trybuild",
 ]
@@ -6452,7 +6452,7 @@ dependencies = [
  "sails-idl-meta",
  "sails-macros",
  "sails-reflect-hash",
- "scale-info",
+ "sails-type-registry",
  "spin 0.10.0",
  "thiserror 2.0.18",
  "tokio",
@@ -6470,6 +6470,28 @@ dependencies = [
  "sails-idl-meta",
  "sails-idl-parser-v2",
  "serde",
+]
+
+[[package]]
+name = "sails-type-registry"
+version = "1.0.0-beta.1"
+dependencies = [
+ "gprimitives",
+ "insta",
+ "sails-type-registry-derive",
+ "trybuild",
+]
+
+[[package]]
+name = "sails-type-registry-derive"
+version = "1.0.0-beta.1"
+dependencies = [
+ "insta",
+ "prettyplease",
+ "proc-macro-crate 3.5.0",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.117",
 ]
 
 [[package]]

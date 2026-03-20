@@ -65,7 +65,7 @@ pub mod inspector {
 
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = sails_rs::scale_codec)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[type_info(crate = sails_rs::type_info)]
     #[reflect_hash(crate = sails_rs)]
     pub enum ValidationError {
         TooSmall,

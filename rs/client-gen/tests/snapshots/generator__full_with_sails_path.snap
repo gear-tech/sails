@@ -158,7 +158,7 @@ pub mod io {
 }
 #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
 #[codec(crate = my_crate::sails::scale_codec)]
-#[scale_info(crate = my_crate::sails::scale_info)]
+#[type_info(crate = my_crate::sails::type_info)]
 #[reflect_hash(crate = my_crate::sails)]
 pub struct ProgramConfig {
     pub initial_value: u32,
@@ -167,7 +167,7 @@ pub struct ProgramConfig {
 }
 #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
 #[codec(crate = my_crate::sails::scale_codec)]
-#[scale_info(crate = my_crate::sails::scale_info)]
+#[type_info(crate = my_crate::sails::type_info)]
 #[reflect_hash(crate = my_crate::sails)]
 pub enum ProgramError {
     InvalidOwner,
@@ -179,7 +179,7 @@ pub mod canvas {
 
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = my_crate::sails::scale_codec)]
-    #[scale_info(crate = my_crate::sails::scale_info)]
+    #[type_info(crate = my_crate::sails::type_info)]
     #[reflect_hash(crate = my_crate::sails)]
     pub struct Point<T> {
         pub x: T,
@@ -187,7 +187,7 @@ pub mod canvas {
     }
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = my_crate::sails::scale_codec)]
-    #[scale_info(crate = my_crate::sails::scale_info)]
+    #[type_info(crate = my_crate::sails::type_info)]
     #[reflect_hash(crate = my_crate::sails)]
     pub struct Color {
         pub color: [u8; 4],
@@ -195,7 +195,7 @@ pub mod canvas {
     }
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = my_crate::sails::scale_codec)]
-    #[scale_info(crate = my_crate::sails::scale_info)]
+    #[type_info(crate = my_crate::sails::type_info)]
     #[reflect_hash(crate = my_crate::sails)]
     pub enum ColorSpace {
         RGB,
@@ -204,7 +204,7 @@ pub mod canvas {
     }
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = my_crate::sails::scale_codec)]
-    #[scale_info(crate = my_crate::sails::scale_info)]
+    #[type_info(crate = my_crate::sails::type_info)]
     #[reflect_hash(crate = my_crate::sails)]
     pub enum PointStatus {
         Colored { author: ActorId, color: Color },
@@ -212,7 +212,7 @@ pub mod canvas {
     }
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = my_crate::sails::scale_codec)]
-    #[scale_info(crate = my_crate::sails::scale_info)]
+    #[type_info(crate = my_crate::sails::type_info)]
     #[reflect_hash(crate = my_crate::sails)]
     pub enum ColorError {
         InvalidSource,
@@ -563,7 +563,7 @@ pub mod references {
 
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = my_crate::sails::scale_codec)]
-    #[scale_info(crate = my_crate::sails::scale_info)]
+    #[type_info(crate = my_crate::sails::type_info)]
     #[reflect_hash(crate = my_crate::sails)]
     pub struct ReferenceCount(pub u32);
 
@@ -652,7 +652,7 @@ pub mod this_that {
 
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = my_crate::sails::scale_codec)]
-    #[scale_info(crate = my_crate::sails::scale_info)]
+    #[type_info(crate = my_crate::sails::type_info)]
     #[reflect_hash(crate = my_crate::sails)]
     pub struct DoThatParam {
         pub p1: u32,
@@ -661,7 +661,7 @@ pub mod this_that {
     }
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = my_crate::sails::scale_codec)]
-    #[scale_info(crate = my_crate::sails::scale_info)]
+    #[type_info(crate = my_crate::sails::type_info)]
     #[reflect_hash(crate = my_crate::sails)]
     pub enum ManyVariants {
         One,
@@ -673,7 +673,7 @@ pub mod this_that {
     }
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = my_crate::sails::scale_codec)]
-    #[scale_info(crate = my_crate::sails::scale_info)]
+    #[type_info(crate = my_crate::sails::type_info)]
     #[reflect_hash(crate = my_crate::sails)]
     pub enum ManyVariantsReply {
         One,
@@ -685,7 +685,7 @@ pub mod this_that {
     }
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = my_crate::sails::scale_codec)]
-    #[scale_info(crate = my_crate::sails::scale_info)]
+    #[type_info(crate = my_crate::sails::type_info)]
     #[reflect_hash(crate = my_crate::sails)]
     pub struct TupleStruct(pub bool);
 
@@ -826,7 +826,7 @@ pub mod pausable {
 
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = my_crate::sails::scale_codec)]
-    #[scale_info(crate = my_crate::sails::scale_info)]
+    #[type_info(crate = my_crate::sails::type_info)]
     #[reflect_hash(crate = my_crate::sails)]
     pub struct PausedError();
 
@@ -965,7 +965,7 @@ pub mod non_zero_params {
 
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = my_crate::sails::scale_codec)]
-    #[scale_info(crate = my_crate::sails::scale_info)]
+    #[type_info(crate = my_crate::sails::type_info)]
     #[reflect_hash(crate = my_crate::sails)]
     pub struct MyParam {
         pub f1: U256,
@@ -1013,7 +1013,7 @@ pub mod service_with_events {
 
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = my_crate::sails::scale_codec)]
-    #[scale_info(crate = my_crate::sails::scale_info)]
+    #[type_info(crate = my_crate::sails::type_info)]
     #[reflect_hash(crate = my_crate::sails)]
     pub struct MyParam {
         pub f1: U256,
@@ -1095,7 +1095,7 @@ pub mod basic {
 
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = my_crate::sails::scale_codec)]
-    #[scale_info(crate = my_crate::sails::scale_info)]
+    #[type_info(crate = my_crate::sails::type_info)]
     #[reflect_hash(crate = my_crate::sails)]
     pub struct MyParam {
         pub f1: u32,
@@ -1104,7 +1104,7 @@ pub mod basic {
     }
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = my_crate::sails::scale_codec)]
-    #[scale_info(crate = my_crate::sails::scale_info)]
+    #[type_info(crate = my_crate::sails::type_info)]
     #[reflect_hash(crate = my_crate::sails)]
     pub enum MyParam2 {
         Variant1,
@@ -1163,7 +1163,7 @@ pub mod another_service {
 
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = my_crate::sails::scale_codec)]
-    #[scale_info(crate = my_crate::sails::scale_info)]
+    #[type_info(crate = my_crate::sails::type_info)]
     #[reflect_hash(crate = my_crate::sails)]
     pub enum ProgramError {
         InvalidOwner,
@@ -1213,7 +1213,7 @@ pub mod my_complex_service {
 
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = my_crate::sails::scale_codec)]
-    #[scale_info(crate = my_crate::sails::scale_info)]
+    #[type_info(crate = my_crate::sails::type_info)]
     #[reflect_hash(crate = my_crate::sails)]
     pub struct ProgramGlobalInfo {
         pub id: ActorId,
@@ -1227,7 +1227,7 @@ pub mod my_complex_service {
     }
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = my_crate::sails::scale_codec)]
-    #[scale_info(crate = my_crate::sails::scale_info)]
+    #[type_info(crate = my_crate::sails::type_info)]
     #[reflect_hash(crate = my_crate::sails)]
     pub struct ProgramScopedData {
         pub name: String,
@@ -1236,7 +1236,7 @@ pub mod my_complex_service {
     }
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = my_crate::sails::scale_codec)]
-    #[scale_info(crate = my_crate::sails::scale_info)]
+    #[type_info(crate = my_crate::sails::type_info)]
     #[reflect_hash(crate = my_crate::sails)]
     pub enum ErrorType {
         InvalidInput,
@@ -1245,7 +1245,7 @@ pub mod my_complex_service {
     }
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = my_crate::sails::scale_codec)]
-    #[scale_info(crate = my_crate::sails::scale_info)]
+    #[type_info(crate = my_crate::sails::type_info)]
     #[reflect_hash(crate = my_crate::sails)]
     pub struct GenericData<T, U> {
         pub value_t: T,
@@ -1254,7 +1254,7 @@ pub mod my_complex_service {
     }
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = my_crate::sails::scale_codec)]
-    #[scale_info(crate = my_crate::sails::scale_info)]
+    #[type_info(crate = my_crate::sails::type_info)]
     #[reflect_hash(crate = my_crate::sails)]
     pub enum GenericResult<V> {
         Success(V),
@@ -1262,7 +1262,7 @@ pub mod my_complex_service {
     }
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = my_crate::sails::scale_codec)]
-    #[scale_info(crate = my_crate::sails::scale_info)]
+    #[type_info(crate = my_crate::sails::type_info)]
     #[reflect_hash(crate = my_crate::sails)]
     pub struct ServiceLocalConfig {
         pub enabled: bool,
@@ -1271,7 +1271,7 @@ pub mod my_complex_service {
     }
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = my_crate::sails::scale_codec)]
-    #[scale_info(crate = my_crate::sails::scale_info)]
+    #[type_info(crate = my_crate::sails::type_info)]
     #[reflect_hash(crate = my_crate::sails)]
     pub enum ServiceStatus {
         Active(ServiceLocalConfig),
@@ -1280,7 +1280,7 @@ pub mod my_complex_service {
     }
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = my_crate::sails::scale_codec)]
-    #[scale_info(crate = my_crate::sails::scale_info)]
+    #[type_info(crate = my_crate::sails::type_info)]
     #[reflect_hash(crate = my_crate::sails)]
     pub enum ProgramError {
         InvalidOwner,

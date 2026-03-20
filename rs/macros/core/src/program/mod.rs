@@ -419,7 +419,7 @@ impl ProgramBuilder {
     fn generate_init(&self, program_ident: &Ident) -> (TokenStream2, TokenStream2) {
         let sails_path = self.sails_path();
         let scale_codec_path = sails_paths::scale_codec_path(sails_path);
-        let scale_info_path = sails_paths::scale_info_path(sails_path);
+        let type_info_path = sails_paths::type_info_path(sails_path);
 
         let (program_type_path, ..) = self.impl_type();
         let input_ident = Ident::new("input", Span::call_site());
@@ -437,7 +437,7 @@ impl ProgramBuilder {
                 program_ident,
             ));
             ctor_params_structs
-                .push(fn_builder.ctor_params_struct(&scale_codec_path, &scale_info_path));
+                .push(fn_builder.ctor_params_struct(&scale_codec_path, &type_info_path));
             ctor_meta_variants.push(fn_builder.ctor_meta_variant());
         }
 
@@ -473,7 +473,7 @@ impl ProgramBuilder {
                 #( #ctor_params_structs )*
 
                 #[derive(#sails_path::TypeInfo)]
-                #[scale_info(crate = #scale_info_path)]
+                #[type_info(crate = #type_info_path)]
                 pub enum ConstructorsMeta {
                     #( #ctor_meta_variants ),*
                 }
@@ -809,7 +809,7 @@ impl FnBuilder<'_> {
         )
     }
 
-    fn ctor_params_struct(&self, scale_codec_path: &Path, scale_info_path: &Path) -> TokenStream2 {
+    fn ctor_params_struct(&self, scale_codec_path: &Path, type_info_path: &Path) -> TokenStream2 {
         let sails_path = self.sails_path;
         let params_struct_ident = &self.params_struct_ident;
         let params_struct_members = self.params().map(|(ident, ty)| quote!(#ident: #ty));
@@ -818,7 +818,7 @@ impl FnBuilder<'_> {
         quote! {
             #[derive(#sails_path::Decode, #sails_path::TypeInfo)]
             #[codec(crate = #scale_codec_path )]
-            #[scale_info(crate = #scale_info_path )]
+            #[type_info(crate = #type_info_path )]
             pub struct #params_struct_ident {
                 #(pub(super) #params_struct_members,)*
             }

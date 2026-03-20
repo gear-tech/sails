@@ -10,6 +10,6 @@ pub(crate) fn scale_codec_path(sails_path: &Path) -> syn::Path {
     parse_quote!(#sails_path::scale_codec)
 }
 
-pub(crate) fn scale_info_path(sails_path: &Path) -> syn::Path {
-    parse_quote!(#sails_path::scale_info)
+pub(crate) fn type_info_path(sails_path: &Path) -> syn::Path {
+    parse_quote!(#sails_path::type_info)
 }

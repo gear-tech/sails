@@ -1,0 +1,61 @@
+---
+source: rs/type-registry/derive/src/lib.rs
+expression: formatted
+---
+#[automatically_derived]
+impl ::sails_type_registry::TypeInfo for Complex {
+    type Identity = Self;
+    fn type_info(
+        registry: &mut ::sails_type_registry::Registry,
+    ) -> ::sails_type_registry::ty::Type {
+        let mut type_builder = ::sails_type_registry::builder::TypeBuilder::new()
+            .module_path(::core::module_path!())
+            .name("Complex");
+        type_builder = type_builder.annotate("top").value("val");
+        type_builder
+            .variant()
+            .add_variant("V1")
+            .doc("Variant with named fields and annotations")
+            .annotate("v1")
+            .field("f")
+            .type_name(
+                ::sails_type_registry::prelude::alloc::string::String::from(
+                    ::core::stringify!(u32),
+                ),
+            )
+            .annotate("f1")
+            .value("v")
+            .ty({
+                let id = registry.register_type::<u32>();
+                let field_type = ::sails_type_registry::ty::FieldType::Id(id);
+                registry.expand_aliases(&field_type)
+            })
+            .add_variant("V2")
+            .doc("Variant with unnamed fields")
+            .unnamed_field()
+            .type_name(
+                ::sails_type_registry::prelude::alloc::string::String::from(
+                    ::core::stringify!(u64),
+                ),
+            )
+            .ty({
+                let id = registry.register_type::<u64>();
+                let field_type = ::sails_type_registry::ty::FieldType::Id(id);
+                registry.expand_aliases(&field_type)
+            })
+            .unnamed_field()
+            .type_name(
+                ::sails_type_registry::prelude::alloc::string::String::from(
+                    ::core::stringify!(String),
+                ),
+            )
+            .ty({
+                let id = registry.register_type::<String>();
+                let field_type = ::sails_type_registry::ty::FieldType::Id(id);
+                registry.expand_aliases(&field_type)
+            })
+            .add_variant("V3")
+            .doc("Unit variant")
+            .build()
+    }
+}

@@ -1,0 +1,5 @@
+error: Unsupported literal type. Only string literals are supported (e.g. `doc = "text"`).
+ --> tests/ui/invalid_annotation.rs:4:18
+  |
+4 | #[type_info(id = 42)] // Integer values are not supported in IDL V2!
+  |                  ^^

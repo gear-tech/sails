@@ -5,7 +5,7 @@ use sails_idl_meta::{
     AnyServiceMeta, AnyServiceMetaFn, BaseServiceMeta, Identifiable, InterfaceId, MethodMetadata,
     ProgramMeta, ServiceMeta,
 };
-use scale_info::{StaticTypeInfo, TypeInfo};
+use sails_type_registry::TypeInfo;
 use std::{collections::BTreeMap, result::Result as StdResult};
 
 #[allow(dead_code)]
@@ -191,9 +191,9 @@ impl<C, Q, E, const ID: u64> Identifiable for GenericService<C, Q, E, ID> {
 
 impl<C, Q, E, const ID: u64> ServiceMeta for GenericService<C, Q, E, ID>
 where
-    C: StaticTypeInfo,
-    Q: StaticTypeInfo,
-    E: StaticTypeInfo,
+    C: TypeInfo,
+    Q: TypeInfo,
+    E: TypeInfo,
 {
     type CommandsMeta = C;
     type QueriesMeta = Q;
@@ -216,9 +216,9 @@ impl<C, Q, E, B, const ID: u64> Identifiable for GenericServiceWithBase<C, Q, E,
 
 impl<C, Q, E, B, const ID: u64> ServiceMeta for GenericServiceWithBase<C, Q, E, B, ID>
 where
-    C: StaticTypeInfo,
-    Q: StaticTypeInfo,
-    E: StaticTypeInfo,
+    C: TypeInfo,
+    Q: TypeInfo,
+    E: TypeInfo,
     B: ServiceMeta + 'static,
 {
     type CommandsMeta = C;

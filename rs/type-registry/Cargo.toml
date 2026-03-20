@@ -1,0 +1,22 @@
+[package]
+name = "sails-type-registry"
+description = "Metadata registry for Sails"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+gprimitives = { workspace = true, optional = true }
+sails-type-registry-derive = { path = "derive", optional = true }
+
+[dev-dependencies]
+insta.workspace = true
+trybuild.workspace = true
+
+[features]
+default = []
+derive = ["dep:sails-type-registry-derive"]
+gprimitives = ["dep:gprimitives"]

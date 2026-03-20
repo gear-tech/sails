@@ -10,11 +10,12 @@ mod hash;
 use alloc::{
     format,
     string::{String, ToString as _},
+    vec::Vec,
 };
 #[cfg(feature = "ast")]
 pub use ast::*;
 use parity_scale_codec::{Decode, Encode, Error};
-use scale_info::{MetaType, StaticTypeInfo, prelude::vec::Vec};
+use sails_type_registry::{MetaType, TypeInfo};
 
 mod header;
 pub use header::*;
@@ -176,9 +177,9 @@ pub struct MethodMetadata {
 }
 
 pub trait ServiceMeta: Identifiable {
-    type CommandsMeta: StaticTypeInfo;
-    type QueriesMeta: StaticTypeInfo;
-    type EventsMeta: StaticTypeInfo;
+    type CommandsMeta: TypeInfo;
+    type QueriesMeta: TypeInfo;
+    type EventsMeta: TypeInfo;
     /// The order of base services here is lexicographical by their names
     const BASE_SERVICES: &'static [BaseServiceMeta];
     /// The order of base services here is lexicographical by their names
@@ -246,7 +247,7 @@ impl AnyServiceMeta {
 }
 
 pub trait ProgramMeta {
-    type ConstructorsMeta: StaticTypeInfo;
+    type ConstructorsMeta: TypeInfo;
     const SERVICES: &'static [(&'static str, AnyServiceMetaFn)];
     const ASYNC: bool;
 

@@ -222,7 +222,7 @@ mod tests {
     struct P;
 
     #[derive(TypeInfo)]
-    #[scale_info(crate = crate::scale_info)]
+    #[type_info(crate = crate::type_info)]
     struct Meta;
 
     impl ProgramMeta for P {
