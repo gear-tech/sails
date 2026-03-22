@@ -88,13 +88,13 @@ alloy-sol-types = { version = "1.5", default-features = false }
 anyhow = "1"
 askama = { version = "0.15", default-features = false }
 cargo_metadata = "0.23"
-clap = "4.5"
+clap = "4.6"
 fs2 = "0.4.3"
 convert_case = "0.11"
 futures = { version = "0.3", default-features = false }
 genco = "0.19"
 git-download = "0.1"
-handlebars = "=4.5" # PIN version
+handlebars = "=6.4" # PIN version
 hashbrown = "0.16"
 hex = { version = "0.4", default-features = false }
 insta = "1.46"
@@ -113,7 +113,7 @@ pest_derive = { version = "2", default-features = false }
 prettyplease = "0.2"
 proc-macro-error = "1.0"
 proc-macro2 = { version = "1", default-features = false }
-rustdoc-types = "=0.56.0"
+rustdoc-types = "=0.57.3"
 quote = "1.0"
 scale-info = { version = "2.11", default-features = false }
 serde = { version = "1.0", default-features = false }
