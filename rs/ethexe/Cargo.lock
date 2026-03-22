@@ -4648,6 +4648,7 @@ dependencies = [
  "gear-wasm-builder",
  "gprimitives",
  "gstd",
+ "gsys",
  "gtest",
  "hashbrown 0.16.1",
  "hex",
