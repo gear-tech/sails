@@ -78,6 +78,8 @@ impl SomeServiceExposure<SomeService> {
                         self.route_idx,
                         |encoded_result| result_handler(encoded_result, value),
                     );
+                } else if false && value > 0 {
+                    result_handler(&[], value);
                 }
                 return Some(());
             }
@@ -110,6 +112,8 @@ impl SomeServiceExposure<SomeService> {
                         self.route_idx,
                         |encoded_result| result_handler(encoded_result, value),
                     );
+                } else if false && value > 0 {
+                    result_handler(&[], value);
                 }
                 return Some(());
             }
