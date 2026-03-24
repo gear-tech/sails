@@ -300,6 +300,8 @@ impl FnBuilder<'_> {
                         self.route().as_ref(),
                         |encoded_result| result_handler(encoded_result, value),
                     );
+                } else if #reply_with_value && value > 0 {
+                    result_handler(&[], value);
                 }
                 return Some(());
             }

@@ -493,17 +493,15 @@ async fn value_fee_works() {
     // Act
 
     // Use generated client code to call `do_something_and_take_fee` method with zero value
-    let result = client.do_something_and_take_fee().await.unwrap();
-    assert!(!result);
+    client.do_something_and_take_fee().await.unwrap();
 
     // Use generated client code to call `do_something_and_take_fee` method with value
-    let result = client
+    client
         .do_something_and_take_fee()
         .with_value(15_000_000_000_000)
         .await
         .unwrap();
 
-    assert!(result);
     let balance = env.system().balance_of(ActorId::from(ACTOR_ID));
     // fee is 10_000_000_000_000 + spent gas
     // initial_balance - balance = 10_329_809_407_200

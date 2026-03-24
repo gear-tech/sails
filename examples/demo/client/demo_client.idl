@@ -98,9 +98,9 @@ service ThisThat {
 };
 
 service ValueFee {
-  /// Return flag if fee taken and remain value,
+  /// Return `Ok(())` if fee taken and remain value,
   /// using special type `CommandReply<T>`
-  DoSomethingAndTakeFee : () -> bool;
+  DoSomethingAndTakeFee : () -> null;
 
   events {
     Withheld: u128;

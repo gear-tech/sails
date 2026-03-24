@@ -19,25 +19,25 @@ impl FeeService {
 
 #[service(events = FeeEvents)]
 impl FeeService {
-    /// Return flag if fee taken and remain value,
+    /// Return `Ok(())` if fee taken and remain value,
     /// using special type `CommandReply<T>`
-    #[export]
-    pub fn do_something_and_take_fee(&mut self) -> CommandReply<bool> {
+    #[export(unwrap_result)]
+    pub fn do_something_and_take_fee(&mut self) -> Result<CommandReply<()>, String> {
         let value = Syscall::message_value();
         if value == 0 {
-            return false.into();
+            return Ok(().into());
         }
         if value < self.fee {
-            panic!("Not enough value");
+            return Err("Not enough value".to_string());
         }
         self.emit_event(FeeEvents::Withheld(self.fee)).unwrap();
         let to_return = value - self.fee;
         if to_return < Syscall::env_vars().existential_deposit {
             // return zero value with reply
-            true.into()
+            Ok(().into())
         } else {
             // return remaining value with reply
-            CommandReply::new(true).with_value(to_return)
+            Ok(CommandReply::new(()).with_value(to_return))
         }
     }
 }
@@ -55,10 +55,9 @@ mod tests {
         let mut fee_service = FeeService::new(100).expose(&[]); // fee = 100
 
         // Act: invoke fee service.
-        let (data, value) = fee_service.do_something_and_take_fee().to_tuple();
+        let (_, value) = fee_service.do_something_and_take_fee().unwrap().to_tuple();
 
-        // Assert: should return false with no extra value.
-        assert!(!data);
+        // Assert: should return `Ok(())` with no extra value.
         assert_eq!(value, 0);
     }
 
@@ -71,7 +70,7 @@ mod tests {
         let mut fee_service = FeeService::new(200).expose(&[]); // fee = 200
 
         // Act: this should panic because transferred value < fee.
-        let _ = fee_service.do_something_and_take_fee();
+        let _ = fee_service.do_something_and_take_fee().unwrap();
     }
 
     #[test]
@@ -81,10 +80,9 @@ mod tests {
         let mut fee_service = FeeService::new(100).expose(&[]);
 
         // Act: fee is taken and remaining value is too small.
-        let (data, value) = fee_service.do_something_and_take_fee().to_tuple();
+        let (_, value) = fee_service.do_something_and_take_fee().unwrap().to_tuple();
 
-        // Assert: reply indicates success (true) but without carrying extra value.
-        assert!(data);
+        // Assert: reply `Ok(())` but without carrying extra value.
         assert_eq!(value, 0);
     }
 
@@ -98,11 +96,10 @@ mod tests {
         let mut fee_service = FeeService::new(fee).expose(&[]);
 
         // Act: fee is taken and the remaining value is passed along.
-        let (data, value) = fee_service.do_something_and_take_fee().to_tuple();
+        let (_, value) = fee_service.do_something_and_take_fee().unwrap().to_tuple();
 
-        // Assert: reply indicates success (true) and carries the remaining value (message_value - fee)
+        // Assert: reply `Ok(())` and carries the remaining value (message_value - fee)
         // in its value field.
-        assert!(data);
         assert_eq!(value, message_value - fee);
     }
 }

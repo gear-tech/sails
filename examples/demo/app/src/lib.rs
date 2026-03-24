@@ -117,11 +117,13 @@ mod tests {
         Syscall::with_message_id(MessageId::from(1));
 
         let mut service_exposure = program.value_fee();
-        let (data, value) = service_exposure.do_something_and_take_fee().to_tuple();
+        let (_, value) = service_exposure
+            .do_something_and_take_fee()
+            .unwrap()
+            .to_tuple();
 
         // Assert
         assert_eq!("ValueFee".encode().as_slice(), service_exposure.route());
-        assert!(data);
         assert_eq!(value, message_value - 10_000_000_000_000);
 
         // Next call
