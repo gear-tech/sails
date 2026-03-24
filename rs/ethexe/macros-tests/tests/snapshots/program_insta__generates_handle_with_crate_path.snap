@@ -114,10 +114,7 @@ pub mod wasm {
                     if sails_rename::gstd::msg::value() > 0 {
                         core::panic!("'create' accepts no value");
                     }
-                    let program = MyProgram::create();
-                    unsafe {
-                        PROGRAM = Some(program);
-                    }
+                    sails_rename::program_ctor!(PROGRAM = MyProgram::create())
                 }
                 _ => {
                     sails_rename::gstd::unknown_input_panic(

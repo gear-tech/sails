@@ -150,12 +150,7 @@ pub mod wasm {
                     if sails_rs::gstd::msg::value() > 0 {
                         core::panic!("'create' accepts no value");
                     }
-                    gstd::message_loop(async move {
-                        let program = MyProgram::create(p1, p2).await;
-                        unsafe {
-                            PROGRAM = Some(program);
-                        }
-                    });
+                    sails_rs::program_ctor!(PROGRAM = MyProgram::create(p1, p2). await)
                 }
                 1u16 => {
                     let (p2, p1): (String, u32) = sails_rs::Decode::decode(&mut input)
@@ -167,10 +162,7 @@ pub mod wasm {
                     if sails_rs::gstd::msg::value() > 0 {
                         core::panic!("'new2' accepts no value");
                     }
-                    let program = MyProgram::new2(p2, p1);
-                    unsafe {
-                        PROGRAM = Some(program);
-                    }
+                    sails_rs::program_ctor!(PROGRAM = MyProgram::new2(p2, p1))
                 }
                 _ => {
                     sails_rs::gstd::unknown_input_panic(

@@ -152,28 +152,9 @@ pub mod wasm {
                     if sails_rs::gstd::msg::value() > 0 {
                         core::panic!("'create' accepts no value");
                     }
-                    gstd::message_loop(async move {
-                        let program = match MyProgram::create(p1, p2).await {
-                            Ok(v) => v,
-                            Err(e) => {
-                                let encoded = <meta_in_program::__CreateParams as sails_rs::gstd::InvocationIo>::with_optimized_encode_with_id(
-                                    <meta_in_program::__CreateParams as sails_rs::meta::Identifiable>::INTERFACE_ID,
-                                    <meta_in_program::__CreateParams as sails_rs::meta::MethodMeta>::ENTRY_ID,
-                                    &e,
-                                    0,
-                                    |encoded| encoded.to_vec(),
-                                );
-                                if encoded.len() <= sails_rs::gstd::MAX_PANIC_PAYLOAD_SIZE {
-                                    sails_rs::gstd::Syscall::panic(&encoded)
-                                } else {
-                                    ::core::panic!("Error payload is too large to panic")
-                                }
-                            }
-                        };
-                        unsafe {
-                            PROGRAM = Some(program);
-                        }
-                    });
+                    sails_rs::program_ctor!(
+                        PROGRAM = MyProgram::create(p1, p2). await .unwrap()
+                    )
                 }
                 1u16 => {
                     let (p2, p1): (String, u32) = sails_rs::Decode::decode(&mut input)
@@ -185,26 +166,7 @@ pub mod wasm {
                     if sails_rs::gstd::msg::value() > 0 {
                         core::panic!("'new2' accepts no value");
                     }
-                    let program = match MyProgram::new2(p2, p1) {
-                        Ok(v) => v,
-                        Err(e) => {
-                            let encoded = <meta_in_program::__New2Params as sails_rs::gstd::InvocationIo>::with_optimized_encode_with_id(
-                                <meta_in_program::__New2Params as sails_rs::meta::Identifiable>::INTERFACE_ID,
-                                <meta_in_program::__New2Params as sails_rs::meta::MethodMeta>::ENTRY_ID,
-                                &e,
-                                0,
-                                |encoded| encoded.to_vec(),
-                            );
-                            if encoded.len() <= sails_rs::gstd::MAX_PANIC_PAYLOAD_SIZE {
-                                sails_rs::gstd::Syscall::panic(&encoded)
-                            } else {
-                                ::core::panic!("Error payload is too large to panic")
-                            }
-                        }
-                    };
-                    unsafe {
-                        PROGRAM = Some(program);
-                    }
+                    sails_rs::program_ctor!(PROGRAM = MyProgram::new2(p2, p1).unwrap())
                 }
                 _ => {
                     sails_rs::gstd::unknown_input_panic(

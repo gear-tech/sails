@@ -60,12 +60,7 @@ pub mod wasm {
                             "Unknown request",
                             input,
                         ));
-                    gstd::message_loop(async move {
-                        let program = MyProgram::new(p1, p2).await;
-                        unsafe {
-                            PROGRAM = Some(program);
-                        }
-                    });
+                    sails_rs::program_ctor!(PROGRAM = MyProgram::new(p1, p2). await)
                 }
                 _ => {
                     sails_rs::gstd::unknown_input_panic(

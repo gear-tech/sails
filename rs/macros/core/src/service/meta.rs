@@ -304,7 +304,7 @@ impl<'a> FnHashBuilder<'a> {
         if let Some(name_expr) = self.override_name {
             let kind = if self.is_query { "query" } else { "command" };
             quote! {
-                #sails_path::hash_fn_raw!( #kind #name_expr, ( #( #arg_types ),* ) #result_tokens )
+                #sails_path::hash_fn!( #kind #name_expr, ( #( #arg_types ),* ) #result_tokens )
             }
         } else {
             let kind_ident = if self.is_query {

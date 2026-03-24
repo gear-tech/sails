@@ -86,12 +86,7 @@ pub mod wasm {
                             "Unknown request",
                             input,
                         ));
-                    gstd::message_loop(async move {
-                        let program = MyProgram::new(p1, p2).await;
-                        unsafe {
-                            PROGRAM = Some(program);
-                        }
-                    });
+                    sails_rs::program_ctor!(PROGRAM = MyProgram::new(p1, p2). await)
                 }
                 1u16 => {
                     let (p2, p1): (String, u32) = sails_rs::Decode::decode(&mut input)
@@ -99,10 +94,7 @@ pub mod wasm {
                             "Unknown request",
                             input,
                         ));
-                    let program = MyProgram::new2(p2, p1);
-                    unsafe {
-                        PROGRAM = Some(program);
-                    }
+                    sails_rs::program_ctor!(PROGRAM = MyProgram::new2(p2, p1))
                 }
                 _ => {
                     sails_rs::gstd::unknown_input_panic(

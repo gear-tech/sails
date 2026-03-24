@@ -745,58 +745,62 @@ impl FnBuilder<'_> {
         };
 
         let await_token = self.is_async().then(|| quote!(.await));
-        let raw_call =
-            quote! { #program_type_path :: #handler_ident (#(#handler_args),*) #await_token };
+        let unwrap_token = self.unwrap_result.then(|| quote!(.unwrap()));
+        let raw_call = quote! { #program_type_path :: #handler_ident (#(#handler_args),*) #await_token #unwrap_token };
 
-        let params_struct_ident = &self.params_struct_ident;
-        let original_result_type = shared::result_type(&self.impl_fn.sig);
-        let call = if self.unwrap_result {
-            if let syn::Type::Path(tp) = &original_result_type
-                && let Some((_ok_ty, _err_ty)) = shared::extract_result_types(tp)
-            {
-                quote! {
-                    match #raw_call {
-                        Ok(v) => v,
-                        Err(e) => {
-                            let encoded = <meta_in_program::#params_struct_ident as #sails_path::gstd::InvocationIo>::with_optimized_encode_with_id(
-                                <meta_in_program::#params_struct_ident as #sails_path::meta::Identifiable>::INTERFACE_ID,
-                                <meta_in_program::#params_struct_ident as #sails_path::meta::MethodMeta>::ENTRY_ID,
-                                &e,
-                                0, // route_idx for ctors is always 0
-                                |encoded| encoded.to_vec()
-                            );
-                            if encoded.len() <= #sails_path::gstd::MAX_PANIC_PAYLOAD_SIZE {
-                                #sails_path::gstd::Syscall::panic(&encoded)
-                            } else {
-                                ::core::panic!("Error payload is too large to panic")
-                            }
-                        }
-                    }
-                }
-            } else {
-                quote! { #raw_call .unwrap() }
-            }
-        } else {
-            raw_call
-        };
+        // let params_struct_ident = &self.params_struct_ident;
+        // let original_result_type = shared::result_type(&self.impl_fn.sig);
+        // let call = if self.unwrap_result {
+        //     if let syn::Type::Path(tp) = &original_result_type
+        //         && let Some((_ok_ty, _err_ty)) = shared::extract_result_types(tp)
+        //     {
+        //         quote! {
+        //             match #raw_call {
+        //                 Ok(v) => v,
+        //                 Err(e) => {
+        //                     let encoded = <meta_in_program::#params_struct_ident as #sails_path::gstd::InvocationIo>::with_optimized_encode_with_id(
+        //                         <meta_in_program::#params_struct_ident as #sails_path::meta::Identifiable>::INTERFACE_ID,
+        //                         <meta_in_program::#params_struct_ident as #sails_path::meta::MethodMeta>::ENTRY_ID,
+        //                         &e,
+        //                         0, // route_idx for ctors is always 0
+        //                         |encoded| encoded.to_vec()
+        //                     );
+        //                     if encoded.len() <= #sails_path::gstd::MAX_PANIC_PAYLOAD_SIZE {
+        //                         #sails_path::gstd::Syscall::panic(&encoded)
+        //                     } else {
+        //                         ::core::panic!("Error payload is too large to panic")
+        //                     }
+        //                 }
+        //             }
+        //         }
+        //     } else {
+        //         quote! { #raw_call .unwrap() }
+        //     }
+        // } else {
+        //     raw_call
+        // };
 
-        let ctor_call_impl = if self.is_async() {
-            quote! {
-                gstd::message_loop(async move {
-                    let program = #call;
+        // let ctor_call_impl = if self.is_async() {
+        //     quote! {
+        //         gstd::message_loop(async move {
+        //             let program = #call;
 
-                    unsafe {
-                        #program_ident = Some(program);
-                    }
-                });
-            }
-        } else {
-            quote! {
-                let program = #call;
-                unsafe {
-                    #program_ident = Some(program);
-                }
-            }
+        //             unsafe {
+        //                 #program_ident = Some(program);
+        //             }
+        //         });
+        //     }
+        // } else {
+        //     quote! {
+        //         let program = #call;
+        //         unsafe {
+        //             #program_ident = Some(program);
+        //         }
+        //     }
+        // };
+
+        let ctor_call_impl = quote! {
+            #sails_path::program_ctor!(#program_ident = #raw_call)
         };
 
         quote!(

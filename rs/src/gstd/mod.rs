@@ -30,6 +30,7 @@ use gcore::stack_buffer;
 #[cfg(feature = "ethexe")]
 mod ethexe;
 mod events;
+mod macros;
 pub mod services;
 mod syscalls;
 

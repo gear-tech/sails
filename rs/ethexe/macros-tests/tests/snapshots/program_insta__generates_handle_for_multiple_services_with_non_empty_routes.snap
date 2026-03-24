@@ -146,10 +146,7 @@ pub mod wasm {
                     if sails_rs::gstd::msg::value() > 0 {
                         core::panic!("'create' accepts no value");
                     }
-                    let program = MyProgram::create();
-                    unsafe {
-                        PROGRAM = Some(program);
-                    }
+                    sails_rs::program_ctor!(PROGRAM = MyProgram::create())
                 }
                 _ => {
                     sails_rs::gstd::unknown_input_panic(

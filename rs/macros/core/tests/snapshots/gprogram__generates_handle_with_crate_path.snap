@@ -57,10 +57,7 @@ pub mod wasm {
                             "Unknown request",
                             input,
                         ));
-                    let program = MyProgram::create();
-                    unsafe {
-                        PROGRAM = Some(program);
-                    }
+                    sails_rename::program_ctor!(PROGRAM = MyProgram::create())
                 }
                 _ => {
                     sails_rename::gstd::unknown_input_panic(
