@@ -14,19 +14,7 @@ impl sails_rename::meta::ProgramMeta for MyProgram {
 }
 mod meta_in_program {
     use super::*;
-    #[derive(sails_rename::Decode, sails_rename::TypeInfo)]
-    #[codec(crate = sails_rename::scale_codec)]
-    #[scale_info(crate = sails_rename::scale_info)]
-    pub struct __CreateParams {}
-    impl sails_rename::meta::Identifiable for __CreateParams {
-        const INTERFACE_ID: sails_rename::meta::InterfaceId = sails_rename::meta::InterfaceId::zero();
-    }
-    impl sails_rename::meta::MethodMeta for __CreateParams {
-        const ENTRY_ID: u16 = 0u16;
-    }
-    impl sails_rename::gstd::InvocationIo for __CreateParams {
-        type Params = Self;
-    }
+    sails_rename::invocation_io!(pub struct __CreateParams {}, entry_id = 0u16,);
     #[derive(sails_rename::TypeInfo)]
     #[scale_info(crate = sails_rename::scale_info)]
     pub enum ConstructorsMeta {

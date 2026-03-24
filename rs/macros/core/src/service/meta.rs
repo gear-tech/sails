@@ -83,16 +83,16 @@ impl ServiceBuilder<'_> {
 
     pub(super) fn meta_module(&self) -> TokenStream {
         let sails_path = self.sails_path;
-        let scale_codec_path = &sails_paths::scale_codec_path(sails_path);
         let scale_info_path = &sails_paths::scale_info_path(sails_path);
         let meta_module_ident = &self.meta_module_ident;
 
         let no_events_type = Path::from(Ident::new("NoEvents", Span::call_site()));
         let events_type = self.events_type.unwrap_or(&no_events_type);
 
-        let invocation_params_structs = self.service_handlers.iter().map(|fn_builder| {
-            fn_builder.params_struct(self.type_path, scale_codec_path, scale_info_path)
-        });
+        let invocation_params_structs = self
+            .service_handlers
+            .iter()
+            .map(|fn_builder| fn_builder.params_struct(self.type_path));
         let commands_meta_variants = self
             .service_handlers
             .iter()

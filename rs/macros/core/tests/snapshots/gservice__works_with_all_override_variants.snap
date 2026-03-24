@@ -278,57 +278,22 @@ mod inherited_service_meta {
             );
         }
     };
-    #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
-    #[codec(crate = sails_rs::scale_codec)]
-    #[scale_info(crate = sails_rs::scale_info)]
-    pub struct __MethodThreeParams {}
-    impl sails_rs::meta::Identifiable for __MethodThreeParams {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::BaseService as sails_rs::meta::Identifiable>::INTERFACE_ID;
-    }
-    impl sails_rs::meta::MethodMeta for __MethodThreeParams {
-        const ENTRY_ID: u16 = {
-            const ID: u16 = sails_rs::meta::find_id(
-                <super::BaseService as sails_rs::meta::ServiceMeta>::METHODS,
-                "MethodThree",
-            );
-            ID
-        };
-    }
-    impl sails_rs::gstd::InvocationIo for __MethodThreeParams {
-        type Params = Self;
-    }
-    #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
-    #[codec(crate = sails_rs::scale_codec)]
-    #[scale_info(crate = sails_rs::scale_info)]
-    pub struct __RenamedByRouteParams {}
-    impl sails_rs::meta::Identifiable for __RenamedByRouteParams {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::BaseService as sails_rs::meta::Identifiable>::INTERFACE_ID;
-    }
-    impl sails_rs::meta::MethodMeta for __RenamedByRouteParams {
-        const ENTRY_ID: u16 = {
-            const ID: u16 = sails_rs::meta::find_id(
-                <super::BaseService as sails_rs::meta::ServiceMeta>::METHODS,
-                "MethodTwo",
-            );
-            ID
-        };
-    }
-    impl sails_rs::gstd::InvocationIo for __RenamedByRouteParams {
-        type Params = Self;
-    }
-    #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
-    #[codec(crate = sails_rs::scale_codec)]
-    #[scale_info(crate = sails_rs::scale_info)]
-    pub struct __RenamedByIdParams {}
-    impl sails_rs::meta::Identifiable for __RenamedByIdParams {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::BaseService as sails_rs::meta::Identifiable>::INTERFACE_ID;
-    }
-    impl sails_rs::meta::MethodMeta for __RenamedByIdParams {
-        const ENTRY_ID: u16 = 0u16;
-    }
-    impl sails_rs::gstd::InvocationIo for __RenamedByIdParams {
-        type Params = Self;
-    }
+    sails_rs::invocation_io!(
+        pub struct __MethodThreeParams {}, interface_id = < super::BaseService as
+        sails_rs::meta::Identifiable > ::INTERFACE_ID, entry_id = { const ID : u16 =
+        sails_rs::meta::find_id(< super::BaseService as sails_rs::meta::ServiceMeta >
+        ::METHODS, "MethodThree",); ID },
+    );
+    sails_rs::invocation_io!(
+        pub struct __RenamedByRouteParams {}, interface_id = < super::BaseService as
+        sails_rs::meta::Identifiable > ::INTERFACE_ID, entry_id = { const ID : u16 =
+        sails_rs::meta::find_id(< super::BaseService as sails_rs::meta::ServiceMeta >
+        ::METHODS, "MethodTwo",); ID },
+    );
+    sails_rs::invocation_io!(
+        pub struct __RenamedByIdParams {}, interface_id = < super::BaseService as
+        sails_rs::meta::Identifiable > ::INTERFACE_ID, entry_id = 0u16,
+    );
     #[derive(sails_rs::TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum CommandsMeta {}

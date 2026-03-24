@@ -251,37 +251,16 @@ mod some_service_meta {
         ];
         const ASYNC: bool = true;
     }
-    #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
-    #[codec(crate = sails_rs::scale_codec)]
-    #[scale_info(crate = sails_rs::scale_info)]
-    pub struct __DoThisParams {
-        pub(super) p1: u32,
-        pub(super) p2: String,
-    }
-    impl sails_rs::meta::Identifiable for __DoThisParams {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::SomeService as sails_rs::meta::Identifiable>::INTERFACE_ID;
-    }
-    impl sails_rs::meta::MethodMeta for __DoThisParams {
-        const ENTRY_ID: u16 = 0u16;
-    }
-    impl sails_rs::gstd::InvocationIo for __DoThisParams {
-        type Params = Self;
-    }
-    #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
-    #[codec(crate = sails_rs::scale_codec)]
-    #[scale_info(crate = sails_rs::scale_info)]
-    pub struct __ThisParams {
-        pub(super) p1: bool,
-    }
-    impl sails_rs::meta::Identifiable for __ThisParams {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::SomeService as sails_rs::meta::Identifiable>::INTERFACE_ID;
-    }
-    impl sails_rs::meta::MethodMeta for __ThisParams {
-        const ENTRY_ID: u16 = 1u16;
-    }
-    impl sails_rs::gstd::InvocationIo for __ThisParams {
-        type Params = Self;
-    }
+    sails_rs::invocation_io!(
+        pub struct __DoThisParams { pub (super) p1 : u32, pub (super) p2 : String, },
+        interface_id = < super::SomeService as sails_rs::meta::Identifiable >
+        ::INTERFACE_ID, entry_id = 0u16,
+    );
+    sails_rs::invocation_io!(
+        pub struct __ThisParams { pub (super) p1 : bool, }, interface_id = <
+        super::SomeService as sails_rs::meta::Identifiable > ::INTERFACE_ID, entry_id =
+        1u16,
+    );
     #[derive(sails_rs::TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum CommandsMeta {

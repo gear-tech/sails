@@ -418,7 +418,6 @@ impl ProgramBuilder {
 
     fn generate_init(&self, program_ident: &Ident) -> (TokenStream2, TokenStream2) {
         let sails_path = self.sails_path();
-        let scale_codec_path = sails_paths::scale_codec_path(sails_path);
         let scale_info_path = sails_paths::scale_info_path(sails_path);
 
         let (program_type_path, ..) = self.impl_type();
@@ -436,8 +435,7 @@ impl ProgramBuilder {
                 &input_ident,
                 program_ident,
             ));
-            ctor_params_structs
-                .push(fn_builder.ctor_params_struct(&scale_codec_path, &scale_info_path));
+            ctor_params_structs.push(fn_builder.ctor_params_struct());
             ctor_meta_variants.push(fn_builder.ctor_meta_variant());
         }
 
@@ -748,57 +746,6 @@ impl FnBuilder<'_> {
         let unwrap_token = self.unwrap_result.then(|| quote!(.unwrap()));
         let raw_call = quote! { #program_type_path :: #handler_ident (#(#handler_args),*) #await_token #unwrap_token };
 
-        // let params_struct_ident = &self.params_struct_ident;
-        // let original_result_type = shared::result_type(&self.impl_fn.sig);
-        // let call = if self.unwrap_result {
-        //     if let syn::Type::Path(tp) = &original_result_type
-        //         && let Some((_ok_ty, _err_ty)) = shared::extract_result_types(tp)
-        //     {
-        //         quote! {
-        //             match #raw_call {
-        //                 Ok(v) => v,
-        //                 Err(e) => {
-        //                     let encoded = <meta_in_program::#params_struct_ident as #sails_path::gstd::InvocationIo>::with_optimized_encode_with_id(
-        //                         <meta_in_program::#params_struct_ident as #sails_path::meta::Identifiable>::INTERFACE_ID,
-        //                         <meta_in_program::#params_struct_ident as #sails_path::meta::MethodMeta>::ENTRY_ID,
-        //                         &e,
-        //                         0, // route_idx for ctors is always 0
-        //                         |encoded| encoded.to_vec()
-        //                     );
-        //                     if encoded.len() <= #sails_path::gstd::MAX_PANIC_PAYLOAD_SIZE {
-        //                         #sails_path::gstd::Syscall::panic(&encoded)
-        //                     } else {
-        //                         ::core::panic!("Error payload is too large to panic")
-        //                     }
-        //                 }
-        //             }
-        //         }
-        //     } else {
-        //         quote! { #raw_call .unwrap() }
-        //     }
-        // } else {
-        //     raw_call
-        // };
-
-        // let ctor_call_impl = if self.is_async() {
-        //     quote! {
-        //         gstd::message_loop(async move {
-        //             let program = #call;
-
-        //             unsafe {
-        //                 #program_ident = Some(program);
-        //             }
-        //         });
-        //     }
-        // } else {
-        //     quote! {
-        //         let program = #call;
-        //         unsafe {
-        //             #program_ident = Some(program);
-        //         }
-        //     }
-        // };
-
         let ctor_call_impl = quote! {
             #sails_path::program_ctor!(#program_ident = #raw_call)
         };
@@ -813,31 +760,19 @@ impl FnBuilder<'_> {
         )
     }
 
-    fn ctor_params_struct(&self, scale_codec_path: &Path, scale_info_path: &Path) -> TokenStream2 {
+    fn ctor_params_struct(&self) -> TokenStream2 {
         let sails_path = self.sails_path;
         let params_struct_ident = &self.params_struct_ident;
         let params_struct_members = self.params().map(|(ident, ty)| quote!(#ident: #ty));
         let entry_id = &self.entry_id;
 
         quote! {
-            #[derive(#sails_path::Decode, #sails_path::TypeInfo)]
-            #[codec(crate = #scale_codec_path )]
-            #[scale_info(crate = #scale_info_path )]
-            pub struct #params_struct_ident {
-                #(pub(super) #params_struct_members,)*
-            }
-
-            impl #sails_path::meta::Identifiable for #params_struct_ident {
-                const INTERFACE_ID: #sails_path::meta::InterfaceId = #sails_path::meta::InterfaceId::zero();
-            }
-
-            impl #sails_path::meta::MethodMeta for #params_struct_ident {
-                const ENTRY_ID: u16 = #entry_id;
-            }
-
-            impl #sails_path::gstd::InvocationIo for #params_struct_ident {
-                type Params = Self;
-            }
+            #sails_path::invocation_io!(
+                pub struct #params_struct_ident {
+                    #(pub(super) #params_struct_members,)*
+                },
+                entry_id = #entry_id,
+            );
         }
     }
 

@@ -92,6 +92,69 @@ macro_rules! program_ctor {
     }};
 }
 
+/// Declares an invocation params struct together with its metadata and
+/// [`crate::gstd::InvocationIo`] implementation.
+///
+/// The generated struct always derives [`crate::Decode`] and
+/// [`crate::TypeInfo`], using `$crate::scale_codec` and `$crate::scale_info`
+/// as the derive crate paths.
+///
+/// # Examples
+///
+/// ```rust,ignore
+/// sails_rs::invocation_io!(
+///     pub struct __FooParams {
+///         pub(super) a: u32,
+///         pub(super) b: String,
+///     }
+///     entry_id = 0,
+/// );
+/// ```
+#[macro_export]
+macro_rules! invocation_io {
+    (
+        $struct_vis:vis struct $params_struct:ident {
+            $( $field_vis:vis $field:ident : $ty:ty ),* $(,)?
+        },
+        entry_id = $entry_id:expr $(,)?
+    ) => {
+        $crate::invocation_io!(
+            $struct_vis struct $params_struct {
+                $( $field_vis $field : $ty, )*
+            },
+            interface_id = $crate::meta::InterfaceId::zero(),
+            entry_id = $entry_id,
+        );
+    };
+
+    (
+        $struct_vis:vis struct $params_struct:ident {
+            $( $field_vis:vis $field:ident : $ty:ty ),* $(,)?
+        },
+        interface_id = $interface_id:expr,
+        entry_id = $entry_id:expr $(,)?
+    ) => {
+        #[derive($crate::Decode, $crate::TypeInfo)]
+        #[codec(crate = $crate::scale_codec)]
+        #[scale_info(crate = $crate::scale_info)]
+        $struct_vis struct $params_struct {
+            $( $field_vis $field: $ty, )*
+        }
+
+        impl $crate::meta::Identifiable for $params_struct {
+            const INTERFACE_ID: $crate::meta::InterfaceId = $interface_id;
+        }
+
+        impl $crate::meta::MethodMeta for $params_struct {
+            const ENTRY_ID: u16 = $entry_id;
+        }
+
+        impl $crate::gstd::InvocationIo for $params_struct {
+            type Params = Self;
+        }
+    };
+}
+
 /// Unwraps a `Result` or converts its error into a structured panic payload.
 ///
 /// The payload is encoded with the provided invocation params type and route
@@ -141,19 +204,7 @@ mod tests {
     }
 
     mod meta_in_program {
-        pub struct __NewResultParams;
-
-        impl crate::meta::Identifiable for __NewResultParams {
-            const INTERFACE_ID: crate::meta::InterfaceId = crate::meta::InterfaceId::zero();
-        }
-
-        impl crate::meta::MethodMeta for __NewResultParams {
-            const ENTRY_ID: u16 = 0;
-        }
-
-        impl crate::gstd::InvocationIo for __NewResultParams {
-            type Params = (u32, crate::String);
-        }
+        invocation_io!(pub struct __NewResultParams {}, entry_id = 0,);
     }
 
     #[test]
@@ -174,5 +225,44 @@ mod tests {
         let _compile = || {
             program_ctor!(PROGRAM = MyProgram::new_result(p1, p2).await.unwrap());
         };
+    }
+
+    #[test]
+    fn invocation_io_macro_compiles() {
+        invocation_io!(
+            pub struct __FooParams {
+                pub(super) a: u32,
+                pub(super) b: String,
+            },
+            interface_id = crate::meta::InterfaceId::zero(),
+            entry_id = 7,
+        );
+
+        let _params: <__FooParams as crate::gstd::InvocationIo>::Params = __FooParams {
+            a: 1,
+            b: String::from("ok"),
+        };
+        let _ = (_params.a, &_params.b);
+
+        assert_eq!(<__FooParams as crate::meta::MethodMeta>::ENTRY_ID, 7);
+    }
+
+    #[test]
+    fn invocation_io_macro_defaults_interface_id_to_zero() {
+        invocation_io!(
+            pub struct __BarParams {
+                pub(super) a: u32,
+            },
+            entry_id = 3,
+        );
+
+        let params = __BarParams { a: 1 };
+        let _ = params.a;
+
+        assert_eq!(
+            <__BarParams as crate::meta::Identifiable>::INTERFACE_ID,
+            crate::meta::InterfaceId::zero()
+        );
+        assert_eq!(<__BarParams as crate::meta::MethodMeta>::ENTRY_ID, 3);
     }
 }
