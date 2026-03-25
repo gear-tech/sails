@@ -1,4 +1,5 @@
 #![no_std]
+#![allow(unused)]
 
 /// Service Events
 #[sails_rs::event]
