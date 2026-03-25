@@ -167,12 +167,11 @@ macro_rules! service_route_dispatch {
         entry_id = $entry_id:expr,
         input = $input:expr $(,)?
     ) => {{
-        let is_async =
-            <$service_ty as $crate::gstd::services::Service>::Exposure::check_asyncness(
-                $interface_id,
-                $entry_id,
-            )
-            .unwrap_or_else(|| $crate::gstd::unknown_input_panic("Unknown call", &[]));
+        let is_async = <$service_ty as $crate::gstd::services::Service>::Exposure::check_asyncness(
+            $interface_id,
+            $entry_id,
+        )
+        .unwrap_or_else(|| $crate::gstd::unknown_input_panic("Unknown call", &[]));
 
         if is_async {
             $crate::gstd::message_loop(async move {
