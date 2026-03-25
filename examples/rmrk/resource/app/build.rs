@@ -10,7 +10,7 @@ fn main() {
     let idl_file_path = out_dir_path.join("rmrk-catalog.idl");
     #[cfg(not(target_family = "windows"))]
     git_download::repo("https://github.com/gear-tech/sails")
-        .branch_name("master")
+        .branch_name("backport-gear-ap")
         .add_file(
             "examples/rmrk/catalog/wasm/rmrk-catalog.idl",
             &idl_file_path,

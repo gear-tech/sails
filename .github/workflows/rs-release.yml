@@ -42,6 +42,7 @@ jobs:
         shell: bash
     outputs:
       rc_branch: ${{ steps.rc_branch.outputs.branch }}
+      r_source_commit: ${{ steps.release_info.outputs.source_commit }}
       r_version: ${{ steps.release_info.outputs.version }}
       r_tag: rs/v${{ steps.release_info.outputs.version }}
 
@@ -62,6 +63,9 @@ jobs:
           fi
           echo "Pin Tag: $PIN_TAG"
           echo "pin_tag=$PIN_TAG" >> $GITHUB_OUTPUT
+          SOURCE_COMMIT=$(git rev-list -n 1 "$PIN_TAG")
+          echo "Source Commit: $SOURCE_COMMIT"
+          echo "source_commit=$SOURCE_COMMIT" >> $GITHUB_OUTPUT
           echo "Version: $VERSION"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
@@ -160,6 +164,8 @@ jobs:
     defaults:
       run:
         shell: bash
+    env:
+      CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
 
     steps:
       - name: Checkout Code from Release Branch
@@ -170,12 +176,25 @@ jobs:
       - name: Publish Crates
         run: |
           VERSION=${{ needs.prepare.outputs.r_version }}
-          for SAILS_CRATE in $SAILS_CRATES; do
-            sed -i "/^\s*${SAILS_CRATE} = {.*}/ s/}/, version = \"=${VERSION}\" }/" Cargo.toml
+           # Update internal dependencies
+          for CRATE in $SAILS_CRATES; do
+            sed -i "/^\s*${CRATE} = {.*}/ s/}/, version = \"=${VERSION}\" }/" Cargo.toml
           done
-          cargo login ${{ secrets.CRATES_IO_TOKEN }}
-          for SAILS_CRATE in $SAILS_CRATES; do
-            cargo publish -p $SAILS_CRATE --allow-dirty
+
+          cargo fetch --locked
+
+          for CRATE in $SAILS_CRATES; do
+            echo "Publishing $CRATE..."
+            if ! OUT=$(cargo publish -p "$CRATE" --locked --allow-dirty 2>&1); then
+              echo "$OUT"
+              if echo "$OUT" | grep -Eqi "already exists on crates\.io|already uploaded"; then
+                echo "Skipping $CRATE (already published on crates.io)"
+              else
+                echo "Publish failed for $CRATE"
+                exit 1
+              fi
+            fi
+            sleep 5
           done
           # Revert temporary changes to Cargo.toml
           git checkout -- .
@@ -216,6 +235,7 @@ jobs:
         shell: bash
     env:
       R_NAME: Sails-RS v${{ needs.prepare.outputs.r_version }}
+      R_TARGET_BRANCH: release/v${{ needs.prepare.outputs.r_version }}
 
     steps:
       - name: Checkout Code from Release Branch
@@ -238,6 +258,19 @@ jobs:
           git tag -a "$R_TAG" -m "Release v${{ needs.prepare.outputs.r_version }}"
           git push origin "$R_TAG"
 
+      - name: Ensure Target Branch Exists
+        run: |
+          if git ls-remote --exit-code --heads origin "$R_TARGET_BRANCH" > /dev/null; then
+            echo "Target branch already exists: $R_TARGET_BRANCH"
+            exit 0
+          fi
+
+          SOURCE_COMMIT=${{ needs.prepare.outputs.r_source_commit }}
+          git config --global user.name "$GITHUB_USER_NAME"
+          git config --global user.email "$GITHUB_USER_EMAIL"
+          git branch "$R_TARGET_BRANCH" "$SOURCE_COMMIT"
+          git push origin "$R_TARGET_BRANCH"
+
       - name: Install GitHub CLI
         run: sudo apt-get install -y gh
 
@@ -246,9 +279,9 @@ jobs:
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
           PR_URL=$(gh pr create \
-            --title "release: sync $R_NAME to master" \
+            --title "release: sync $R_NAME to $R_TARGET_BRANCH" \
             --body "This PR was created by GitHub Actions" \
-            --base master \
+            --base "$R_TARGET_BRANCH" \
             --head ${{ needs.prepare.outputs.rc_branch }})
           echo "url=$PR_URL" >> $GITHUB_OUTPUT
 
@@ -261,7 +294,7 @@ jobs:
           body: |
             :exclamation: This is a draft release.
             :exclamation: Please write/generate change notes and publish the release.
-            :exclamation: Please also check this [PR](${{ steps.sync_pr.outputs.url }}) to sync the changes to master.
+            :exclamation: Please also check this [PR](${{ steps.sync_pr.outputs.url }}) to sync the changes to ${{ env.R_TARGET_BRANCH }}.
           fail_on_unmatched_files: true
           files: |
             ./assets/sails_idl_parser/sails_idl_parser.wasm

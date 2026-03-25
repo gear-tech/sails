@@ -40,6 +40,17 @@ impl FeeService {
             CommandReply::new(true).with_value(to_return)
         }
     }
+
+    #[export]
+    pub fn take_fee_and_return_nothing(&mut self) -> CommandReply<()> {
+        let value = Syscall::message_value();
+        if value < self.fee {
+            panic!("Not enough value");
+        }
+        self.emit_event(FeeEvents::Withheld(self.fee)).unwrap();
+        let to_return = value - self.fee;
+        CommandReply::new(()).with_value(to_return)
+    }
 }
 
 #[cfg(test)]
@@ -103,6 +114,20 @@ mod tests {
         // Assert: reply indicates success (true) and carries the remaining value (message_value - fee)
         // in its value field.
         assert!(data);
+        assert_eq!(value, message_value - fee);
+    }
+
+    #[test]
+    fn test_take_fee_and_return_nothing() {
+        let message_value = 200 + Syscall::env_vars().existential_deposit;
+        let fee = 100;
+        Syscall::with_message_value(message_value);
+        let mut fee_service = FeeService::new(fee).expose(&[]);
+
+        let (data, value) = fee_service.take_fee_and_return_nothing().to_tuple();
+
+        assert_eq!(data, ());
+        assert_ne!(value, 0);
         assert_eq!(value, message_value - fee);
     }
 }

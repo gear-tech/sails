@@ -153,6 +153,7 @@ pub trait EthEvent {
 }
 
 #[cfg(test)]
+#[allow(unused)]
 mod tests {
     use super::*;
     use crate::{self as sails_rs, Encode, String, TypeInfo, event};
