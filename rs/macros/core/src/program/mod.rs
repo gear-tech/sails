@@ -299,45 +299,17 @@ impl ProgramBuilder {
             .iter()
             .enumerate()
             .map(|(idx, (service_ctor_ident, service_type))| {
-                let route_id = (idx + 1) as u8;
+                let route_idx = (idx + 1) as u8;
 
                 quote! {
-                    #route_id => {
+                    #route_idx => {
                         let svc = program_ref.#service_ctor_ident();
-                        let is_async = <#service_type as #sails_path::gstd::services::Service>::Exposure::check_asyncness(interface_id, entry_id)
-                            .unwrap_or_else(|| {
-                                gstd::unknown_input_panic("Unknown call", &[])
-                            });
-                        if is_async {
-                            gstd::message_loop(async move {
-                                svc
-                                    .try_handle_async(
-                                        interface_id,
-                                        entry_id,
-                                        &input[header_len..],
-                                        |encoded_result, value| {
-                                            gstd::msg::reply_bytes(encoded_result, value)
-                                                .expect("Failed to send output");
-                                        },
-                                    )
-                                    .await
-                                    .unwrap_or_else(|| {
-                                        gstd::unknown_input_panic("Unknown request", &[])
-                                    });
-                            });
-                        } else {
-                            svc
-                                .try_handle(
-                                    interface_id,
-                                    entry_id,
-                                    &input[header_len..],
-                                    |encoded_result, value| {
-                                        gstd::msg::reply_bytes(encoded_result, value)
-                                            .expect("Failed to send output");
-                                    },
-                                )
-                                .unwrap_or_else(|| gstd::unknown_input_panic("Unknown request", &[]));
-                        }
+                        #sails_path::service_route_dispatch!(
+                            svc: #service_type,
+                            interface_id = interface_id,
+                            entry_id = entry_id,
+                            input = &input[header_len..],
+                        );
                     }
                 }
             })

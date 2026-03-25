@@ -286,85 +286,17 @@ pub mod wasm {
             match route_id {
                 1u8 => {
                     let svc = program_ref.service1();
-                    let is_async = <MyService as sails_rs::gstd::services::Service>::Exposure::check_asyncness(
-                            interface_id,
-                            entry_id,
-                        )
-                        .unwrap_or_else(|| {
-                            gstd::unknown_input_panic("Unknown call", &[])
-                        });
-                    if is_async {
-                        gstd::message_loop(async move {
-                            svc.try_handle_async(
-                                    interface_id,
-                                    entry_id,
-                                    &input[header_len..],
-                                    |encoded_result, value| {
-                                        gstd::msg::reply_bytes(encoded_result, value)
-                                            .expect("Failed to send output");
-                                    },
-                                )
-                                .await
-                                .unwrap_or_else(|| {
-                                    gstd::unknown_input_panic("Unknown request", &[])
-                                });
-                        });
-                    } else {
-                        svc.try_handle(
-                                interface_id,
-                                entry_id,
-                                &input[header_len..],
-                                |encoded_result, value| {
-                                    gstd::msg::reply_bytes(encoded_result, value)
-                                        .expect("Failed to send output");
-                                },
-                            )
-                            .unwrap_or_else(|| gstd::unknown_input_panic(
-                                "Unknown request",
-                                &[],
-                            ));
-                    }
+                    sails_rs::service_route_dispatch!(
+                        svc : MyService, interface_id = interface_id, entry_id =
+                        entry_id, input = & input[header_len..],
+                    );
                 }
                 2u8 => {
                     let svc = program_ref.service2();
-                    let is_async = <MyService as sails_rs::gstd::services::Service>::Exposure::check_asyncness(
-                            interface_id,
-                            entry_id,
-                        )
-                        .unwrap_or_else(|| {
-                            gstd::unknown_input_panic("Unknown call", &[])
-                        });
-                    if is_async {
-                        gstd::message_loop(async move {
-                            svc.try_handle_async(
-                                    interface_id,
-                                    entry_id,
-                                    &input[header_len..],
-                                    |encoded_result, value| {
-                                        gstd::msg::reply_bytes(encoded_result, value)
-                                            .expect("Failed to send output");
-                                    },
-                                )
-                                .await
-                                .unwrap_or_else(|| {
-                                    gstd::unknown_input_panic("Unknown request", &[])
-                                });
-                        });
-                    } else {
-                        svc.try_handle(
-                                interface_id,
-                                entry_id,
-                                &input[header_len..],
-                                |encoded_result, value| {
-                                    gstd::msg::reply_bytes(encoded_result, value)
-                                        .expect("Failed to send output");
-                                },
-                            )
-                            .unwrap_or_else(|| gstd::unknown_input_panic(
-                                "Unknown request",
-                                &[],
-                            ));
-                    }
+                    sails_rs::service_route_dispatch!(
+                        svc : MyService, interface_id = interface_id, entry_id =
+                        entry_id, input = & input[header_len..],
+                    );
                 }
                 _ => gstd::unknown_input_panic("Unknown route_id", &[route_id]),
             }

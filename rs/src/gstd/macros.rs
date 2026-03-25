@@ -155,6 +155,44 @@ macro_rules! invocation_io {
     };
 }
 
+/// Dispatches a service exposure, selecting the async or sync handling path at
+/// runtime and replying with the encoded result.
+///
+/// The service exposure value must already be bound in the local scope.
+#[macro_export]
+macro_rules! service_route_dispatch {
+    (
+        $svc:ident : $service_ty:ty,
+        interface_id = $interface_id:expr,
+        entry_id = $entry_id:expr,
+        input = $input:expr $(,)?
+    ) => {{
+        let is_async =
+            <$service_ty as $crate::gstd::services::Service>::Exposure::check_asyncness(
+                $interface_id,
+                $entry_id,
+            )
+            .unwrap_or_else(|| $crate::gstd::unknown_input_panic("Unknown call", &[]));
+
+        if is_async {
+            $crate::gstd::message_loop(async move {
+                $svc.try_handle_async($interface_id, $entry_id, $input, |encoded_result, value| {
+                    $crate::gstd::msg::reply_bytes(encoded_result, value)
+                        .expect("Failed to send output");
+                })
+                .await
+                .unwrap_or_else(|| $crate::gstd::unknown_input_panic("Unknown request", &[]));
+            });
+        } else {
+            $svc.try_handle($interface_id, $entry_id, $input, |encoded_result, value| {
+                $crate::gstd::msg::reply_bytes(encoded_result, value)
+                    .expect("Failed to send output");
+            })
+            .unwrap_or_else(|| $crate::gstd::unknown_input_panic("Unknown request", &[]));
+        }
+    }};
+}
+
 /// Unwraps a `Result` or converts its error into a structured panic payload.
 ///
 /// The payload is encoded with the provided invocation params type and route
@@ -264,5 +302,72 @@ mod tests {
             crate::meta::InterfaceId::zero()
         );
         assert_eq!(<__BarParams as crate::meta::MethodMeta>::ENTRY_ID, 3);
+    }
+
+    #[test]
+    fn service_route_dispatch_macro_compiles() {
+        struct DummyService;
+        struct DummyExposure;
+
+        impl crate::gstd::services::Service for DummyService {
+            type Exposure = DummyExposure;
+
+            fn expose(self, _route_idx: u8) -> Self::Exposure {
+                DummyExposure
+            }
+        }
+
+        impl crate::gstd::services::Exposure for DummyExposure {
+            fn interface_id() -> crate::meta::InterfaceId {
+                crate::meta::InterfaceId::zero()
+            }
+
+            fn route_idx(&self) -> u8 {
+                0
+            }
+
+            fn check_asyncness(
+                _interface_id: crate::meta::InterfaceId,
+                _entry_id: u16,
+            ) -> Option<bool> {
+                Some(false)
+            }
+        }
+
+        impl DummyExposure {
+            async fn try_handle_async(
+                self,
+                _interface_id: crate::meta::InterfaceId,
+                _entry_id: u16,
+                _input: &[u8],
+                _result_handler: impl FnOnce(&[u8], u128),
+            ) -> Option<()> {
+                Some(())
+            }
+
+            fn try_handle(
+                self,
+                _interface_id: crate::meta::InterfaceId,
+                _entry_id: u16,
+                _input: &[u8],
+                _result_handler: impl FnOnce(&[u8], u128),
+            ) -> Option<()> {
+                Some(())
+            }
+        }
+
+        let svc = DummyExposure;
+        let interface_id = crate::meta::InterfaceId::zero();
+        let entry_id = 0u16;
+        let input: &[u8] = &[];
+
+        let _compile = || {
+            service_route_dispatch!(
+                svc: DummyService,
+                interface_id = interface_id,
+                entry_id = entry_id,
+                input = input,
+            );
+        };
     }
 }
