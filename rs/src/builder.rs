@@ -255,7 +255,7 @@ impl<P: ProgramMeta> ClientBuilder<P> {
                     .map(|m| m.len())
                     .unwrap_or(0);
                 std::eprintln!(
-                    "cargo::warning=Embedded IDL in WASM ({raw_size} bytes IDL, {wasm_size} bytes WASM total)"
+                    "Embedded IDL in WASM ({raw_size} bytes IDL, {wasm_size} bytes WASM total)"
                 );
             }
             Err(e) => {

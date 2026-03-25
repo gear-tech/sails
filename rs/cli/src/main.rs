@@ -205,8 +205,7 @@ fn main() -> Result<(), i32> {
         .generate(),
         SailsCommands::IdlEmbed { wasm, idl } => (|| -> anyhow::Result<()> {
             let idl_text = std::fs::read_to_string(&idl)?;
-            sails_idl_embed::embed_idl_to_file(&wasm, &idl_text)
-                .map_err(|e| anyhow::anyhow!("{e}"))?;
+            sails_idl_embed::embed_idl_to_file(&wasm, &idl_text)?;
             println!(
                 "Embedded IDL ({} bytes) into {}",
                 idl_text.len(),
@@ -215,8 +214,7 @@ fn main() -> Result<(), i32> {
             Ok(())
         })(),
         SailsCommands::IdlExtract { wasm, output } => (|| -> anyhow::Result<()> {
-            let idl = sails_idl_embed::extract_idl_from_file(&wasm)
-                .map_err(|e| anyhow::anyhow!("{e}"))?;
+            let idl = sails_idl_embed::extract_idl_from_file(&wasm)?;
             match idl {
                 Some(text) => {
                     if let Some(out_path) = output {
