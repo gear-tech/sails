@@ -672,6 +672,9 @@ impl<R: Remoting + Clone> traits::ValueFee for ValueFee<R> {
     fn do_something_and_take_fee(&mut self) -> impl Call<Output = bool, Args = R::Args> {
         RemotingAction::<_, value_fee::io::DoSomethingAndTakeFee>::new(self.remoting.clone(), ())
     }
+    fn take_fee_and_return_nothing(&mut self) -> impl Call<Output = (), Args = R::Args> {
+        RemotingAction::<_, value_fee::io::TakeFeeAndReturnNothing>::new(self.remoting.clone(), ())
+    }
 }
 
 pub mod value_fee {
@@ -696,6 +699,23 @@ pub mod value_fee {
             ];
             type Params = ();
             type Reply = bool;
+        }
+        pub struct TakeFeeAndReturnNothing(());
+
+        impl TakeFeeAndReturnNothing {
+            #[allow(dead_code)]
+            pub fn encode_call() -> Vec<u8> {
+                <TakeFeeAndReturnNothing as ActionIo>::encode_call(&())
+            }
+        }
+
+        impl ActionIo for TakeFeeAndReturnNothing {
+            const ROUTE: &'static [u8] = &[
+                32, 86, 97, 108, 117, 101, 70, 101, 101, 92, 84, 97, 107, 101, 70, 101, 101, 65,
+                110, 100, 82, 101, 116, 117, 114, 110, 78, 111, 116, 104, 105, 110, 103,
+            ];
+            type Params = ();
+            type Reply = ();
         }
     }
 
@@ -846,6 +866,7 @@ pub mod traits {
     pub trait ValueFee {
         type Args;
         fn do_something_and_take_fee(&mut self) -> impl Call<Output = bool, Args = Self::Args>;
+        fn take_fee_and_return_nothing(&mut self) -> impl Call<Output = (), Args = Self::Args>;
     }
 }
 
@@ -915,7 +936,7 @@ pub mod mockall {
         #[allow(clippy::type_complexity)]
         impl<A> traits::ValueFee for ValueFee<A> {
             type Args = A;
-            fn do_something_and_take_fee (&mut self, ) -> MockCall<A, bool>;
+            fn do_something_and_take_fee (&mut self, ) -> MockCall<A, bool>;fn take_fee_and_return_nothing (&mut self, ) -> MockCall<A, ()>;
         }
     }
 }

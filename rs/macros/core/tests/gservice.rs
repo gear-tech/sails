@@ -323,3 +323,20 @@ fn works_with_export() {
 
     insta::assert_snapshot!(result);
 }
+
+#[test]
+fn works_with_reply_with_unit_type() {
+    let input = quote! {
+        impl SomeService {
+            #[export]
+            pub fn do_this(&mut self) -> CommandReply<()> {
+                ().into()
+            }
+        }
+    };
+
+    let result = gservice(TokenStream::new(), input).to_string();
+    let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
+
+    insta::assert_snapshot!(result);
+}

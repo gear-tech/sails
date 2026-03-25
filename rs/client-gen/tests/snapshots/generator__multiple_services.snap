@@ -14,11 +14,13 @@ use sails_rs::{
 pub struct Multiple<R> {
     remoting: R,
 }
+
 impl<R> Multiple<R> {
     pub fn new(remoting: R) -> Self {
         Self { remoting }
     }
 }
+
 impl<R: Remoting + Clone> traits::Multiple for Multiple<R> {
     type Args = R::Args;
     fn do_this(&mut self, p1: u32, p2: MyParam) -> impl Call<Output = u16, Args = R::Args> {
@@ -36,24 +38,28 @@ pub mod multiple {
         use super::*;
         use sails_rs::calls::ActionIo;
         pub struct DoThis(());
+
         impl DoThis {
             #[allow(dead_code)]
             pub fn encode_call(p1: u32, p2: super::MyParam) -> Vec<u8> {
                 <DoThis as ActionIo>::encode_call(&(p1, p2))
             }
         }
+
         impl ActionIo for DoThis {
             const ROUTE: &'static [u8] = &[24, 68, 111, 84, 104, 105, 115];
             type Params = (u32, super::MyParam);
             type Reply = u16;
         }
         pub struct DoThat(());
+
         impl DoThat {
             #[allow(dead_code)]
             pub fn encode_call(p1: (u8, u32)) -> Vec<u8> {
                 <DoThat as ActionIo>::encode_call(&p1)
             }
         }
+
         impl ActionIo for DoThat {
             const ROUTE: &'static [u8] = &[24, 68, 111, 84, 104, 97, 116];
             type Params = (u8, u32);
@@ -64,11 +70,13 @@ pub mod multiple {
 pub struct Named<R> {
     remoting: R,
 }
+
 impl<R> Named<R> {
     pub fn new(remoting: R) -> Self {
         Self { remoting }
     }
 }
+
 impl<R: Remoting + Clone> traits::Named for Named<R> {
     type Args = R::Args;
     fn that(&self, p1: u32) -> impl Query<Output = String, Args = R::Args> {
@@ -83,12 +91,14 @@ pub mod named {
         use super::*;
         use sails_rs::calls::ActionIo;
         pub struct That(());
+
         impl That {
             #[allow(dead_code)]
             pub fn encode_call(p1: u32) -> Vec<u8> {
                 <That as ActionIo>::encode_call(&p1)
             }
         }
+
         impl ActionIo for That {
             const ROUTE: &'static [u8] = &[20, 78, 97, 109, 101, 100, 16, 84, 104, 97, 116];
             type Params = u32;
@@ -123,6 +133,24 @@ extern crate std;
 pub mod mockall {
     use super::*;
     use sails_rs::mockall::*;
-    mock! { pub Multiple<A> {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl<A> traits::Multiple for Multiple<A> { type Args = A; fn do_this (&mut self, p1: u32,p2: MyParam,) -> MockCall<A, u16>;fn do_that (&mut self, p1: (u8,u32,),) -> MockCall<A, u8>; } }
-    mock! { pub Named<A> {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl<A> traits::Named for Named<A> { type Args = A; fn that (& self, p1: u32,) -> MockQuery<A, String>; } }
+    mock! {
+        pub Multiple<A> {}
+
+        #[allow(refining_impl_trait)]
+        #[allow(clippy::type_complexity)]
+        impl<A> traits::Multiple for Multiple<A> {
+            type Args = A;
+            fn do_this (&mut self, p1: u32,p2: MyParam,) -> MockCall<A, u16>;fn do_that (&mut self, p1: (u8,u32,),) -> MockCall<A, u8>;
+        }
+    }
+    mock! {
+        pub Named<A> {}
+
+        #[allow(refining_impl_trait)]
+        #[allow(clippy::type_complexity)]
+        impl<A> traits::Named for Named<A> {
+            type Args = A;
+            fn that (& self, p1: u32,) -> MockQuery<A, String>;
+        }
+    }
 }

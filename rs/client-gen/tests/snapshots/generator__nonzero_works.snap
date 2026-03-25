@@ -14,11 +14,13 @@ use sails_rs::{
 pub struct NonZeroParams<R> {
     remoting: R,
 }
+
 impl<R> NonZeroParams<R> {
     pub fn new(remoting: R) -> Self {
         Self { remoting }
     }
 }
+
 impl<R: Remoting + Clone> traits::NonZeroParams for NonZeroParams<R> {
     type Args = R::Args;
     fn do_this(
@@ -37,12 +39,14 @@ pub mod non_zero_params {
         use super::*;
         use sails_rs::calls::ActionIo;
         pub struct DoThis(());
+
         impl DoThis {
             #[allow(dead_code)]
             pub fn encode_call(p1: NonZeroU256, p2: super::MyParam) -> Vec<u8> {
                 <DoThis as ActionIo>::encode_call(&(p1, p2))
             }
         }
+
         impl ActionIo for DoThis {
             const ROUTE: &'static [u8] = &[24, 68, 111, 84, 104, 105, 115];
             type Params = (NonZeroU256, super::MyParam);
@@ -82,5 +86,14 @@ extern crate std;
 pub mod mockall {
     use super::*;
     use sails_rs::mockall::*;
-    mock! { pub NonZeroParams<A> {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl<A> traits::NonZeroParams for NonZeroParams<A> { type Args = A; fn do_this (&mut self, p1: NonZeroU256,p2: MyParam,) -> MockCall<A, NonZeroU64>; } }
+    mock! {
+        pub NonZeroParams<A> {}
+
+        #[allow(refining_impl_trait)]
+        #[allow(clippy::type_complexity)]
+        impl<A> traits::NonZeroParams for NonZeroParams<A> {
+            type Args = A;
+            fn do_this (&mut self, p1: NonZeroU256,p2: MyParam,) -> MockCall<A, NonZeroU64>;
+        }
+    }
 }

@@ -15,12 +15,14 @@ pub struct ServiceFactory<R> {
     #[allow(dead_code)]
     remoting: R,
 }
+
 impl<R> ServiceFactory<R> {
     #[allow(unused)]
     pub fn new(remoting: R) -> Self {
         Self { remoting }
     }
 }
+
 impl<R: Remoting + Clone> traits::ServiceFactory for ServiceFactory<R> {
     type Args = R::Args;
     fn new(&self, a: u32) -> impl Activation<Args = R::Args> {
@@ -34,12 +36,14 @@ pub mod service_factory {
         use super::*;
         use my_crate::sails::calls::ActionIo;
         pub struct New(());
+
         impl New {
             #[allow(dead_code)]
             pub fn encode_call(a: u32) -> Vec<u8> {
                 <New as ActionIo>::encode_call(&a)
             }
         }
+
         impl ActionIo for New {
             const ROUTE: &'static [u8] = &[12, 78, 101, 119];
             type Params = u32;
@@ -50,11 +54,13 @@ pub mod service_factory {
 pub struct Service<R> {
     remoting: R,
 }
+
 impl<R> Service<R> {
     pub fn new(remoting: R) -> Self {
         Self { remoting }
     }
 }
+
 impl<R: Remoting + Clone> traits::Service for Service<R> {
     type Args = R::Args;
     fn do_this(
@@ -87,6 +93,7 @@ pub mod service {
         use super::*;
         use my_crate::sails::calls::ActionIo;
         pub struct DoThis(());
+
         impl DoThis {
             #[allow(dead_code)]
             pub fn encode_call(
@@ -98,6 +105,7 @@ pub mod service {
                 <DoThis as ActionIo>::encode_call(&(p1, p2, p3, p4))
             }
         }
+
         impl ActionIo for DoThis {
             const ROUTE: &'static [u8] = &[24, 68, 111, 84, 104, 105, 115];
             type Params = (
@@ -109,36 +117,42 @@ pub mod service {
             type Reply = (String, u32);
         }
         pub struct DoThat(());
+
         impl DoThat {
             #[allow(dead_code)]
             pub fn encode_call(param: super::ThisThatSvcAppDoThatParam) -> Vec<u8> {
                 <DoThat as ActionIo>::encode_call(&param)
             }
         }
+
         impl ActionIo for DoThat {
             const ROUTE: &'static [u8] = &[24, 68, 111, 84, 104, 97, 116];
             type Params = super::ThisThatSvcAppDoThatParam;
             type Reply = Result<(String, u32), (String,)>;
         }
         pub struct This(());
+
         impl This {
             #[allow(dead_code)]
             pub fn encode_call(v1: Vec<u16>) -> Vec<u8> {
                 <This as ActionIo>::encode_call(&v1)
             }
         }
+
         impl ActionIo for This {
             const ROUTE: &'static [u8] = &[16, 84, 104, 105, 115];
             type Params = Vec<u16>;
             type Reply = u32;
         }
         pub struct That(());
+
         impl That {
             #[allow(dead_code)]
             pub fn encode_call(v1: ()) -> Vec<u8> {
                 <That as ActionIo>::encode_call(&v1)
             }
         }
+
         impl ActionIo for That {
             const ROUTE: &'static [u8] = &[16, 84, 104, 97, 116];
             type Params = ();

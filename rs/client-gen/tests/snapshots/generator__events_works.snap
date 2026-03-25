@@ -14,11 +14,13 @@ use sails_rs::{
 pub struct ServiceWithEvents<R> {
     remoting: R,
 }
+
 impl<R> ServiceWithEvents<R> {
     pub fn new(remoting: R) -> Self {
         Self { remoting }
     }
 }
+
 impl<R: Remoting + Clone> traits::ServiceWithEvents for ServiceWithEvents<R> {
     type Args = R::Args;
     fn do_this(
@@ -37,12 +39,14 @@ pub mod service_with_events {
         use super::*;
         use sails_rs::calls::ActionIo;
         pub struct DoThis(());
+
         impl DoThis {
             #[allow(dead_code)]
             pub fn encode_call(p1: NonZeroU256, p2: super::MyParam) -> Vec<u8> {
                 <DoThis as ActionIo>::encode_call(&(p1, p2))
             }
         }
+
         impl ActionIo for DoThis {
             const ROUTE: &'static [u8] = &[24, 68, 111, 84, 104, 105, 115];
             type Params = (NonZeroU256, super::MyParam);
@@ -73,6 +77,7 @@ pub mod service_with_events {
             ];
             type Event = Self;
         }
+
         pub fn listener<R: Listener<Vec<u8>>>(
             remoting: R,
         ) -> impl Listener<ServiceWithEventsEvents> {
@@ -112,5 +117,14 @@ extern crate std;
 pub mod mockall {
     use super::*;
     use sails_rs::mockall::*;
-    mock! { pub ServiceWithEvents<A> {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl<A> traits::ServiceWithEvents for ServiceWithEvents<A> { type Args = A; fn do_this (&mut self, p1: NonZeroU256,p2: MyParam,) -> MockCall<A, NonZeroU64>; } }
+    mock! {
+        pub ServiceWithEvents<A> {}
+
+        #[allow(refining_impl_trait)]
+        #[allow(clippy::type_complexity)]
+        impl<A> traits::ServiceWithEvents for ServiceWithEvents<A> {
+            type Args = A;
+            fn do_this (&mut self, p1: NonZeroU256,p2: MyParam,) -> MockCall<A, NonZeroU64>;
+        }
+    }
 }

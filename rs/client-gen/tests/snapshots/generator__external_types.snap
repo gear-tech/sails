@@ -16,11 +16,13 @@ use my_crate::sails::{
 pub struct Service<R> {
     remoting: R,
 }
+
 impl<R> Service<R> {
     pub fn new(remoting: R) -> Self {
         Self { remoting }
     }
 }
+
 impl<R: Remoting + Clone> traits::Service for Service<R> {
     type Args = R::Args;
     fn do_this(&mut self, p1: u32, p2: MyParam) -> impl Call<Output = u16, Args = R::Args> {
@@ -38,24 +40,28 @@ pub mod service {
         use super::*;
         use my_crate::sails::calls::ActionIo;
         pub struct DoThis(());
+
         impl DoThis {
             #[allow(dead_code)]
             pub fn encode_call(p1: u32, p2: super::MyParam) -> Vec<u8> {
                 <DoThis as ActionIo>::encode_call(&(p1, p2))
             }
         }
+
         impl ActionIo for DoThis {
             const ROUTE: &'static [u8] = &[24, 68, 111, 84, 104, 105, 115];
             type Params = (u32, super::MyParam);
             type Reply = u16;
         }
         pub struct DoThat(());
+
         impl DoThat {
             #[allow(dead_code)]
             pub fn encode_call(p1: (u8, u32)) -> Vec<u8> {
                 <DoThat as ActionIo>::encode_call(&p1)
             }
         }
+
         impl ActionIo for DoThat {
             const ROUTE: &'static [u8] = &[24, 68, 111, 84, 104, 97, 116];
             type Params = (u8, u32);
