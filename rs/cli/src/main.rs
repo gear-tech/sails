@@ -223,7 +223,7 @@ fn main() -> Result<(), i32> {
                     }
                 }
                 None => {
-                    println!("No sails:idl section found in {}", wasm.display());
+                    eprintln!("No sails:idl section found in {}", wasm.display());
                 }
             }
             Ok(())

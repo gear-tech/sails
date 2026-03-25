@@ -11,9 +11,7 @@ rust-version.workspace = true
 
 [dependencies]
 flate2 = "1"
+tempfile.workspace = true
 thiserror.workspace = true
 wasm-encoder = "0.230"
 wasmparser = "0.230"
-
-[dev-dependencies]
-tempfile.workspace = true

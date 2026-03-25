@@ -232,15 +232,15 @@ impl<P: ProgramMeta> ClientBuilder<P> {
     /// abort the build.
     #[cfg(feature = "idl-embed")]
     fn try_embed_idl(&self, idl_path: &Path) {
-        if env::var("SAILS_NO_EMBED_IDL").is_ok() {
+        if env::var("SAILS_NO_EMBED_IDL")
+            .ok()
+            .is_some_and(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+        {
             return;
         }
         let Some(wasm_path) = self.wasm_path.as_ref() else {
             return;
         };
-        if !wasm_path.exists() {
-            return;
-        }
         let idl = match std::fs::read_to_string(idl_path) {
             Ok(idl) => idl,
             Err(e) => {

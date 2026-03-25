@@ -35,6 +35,8 @@ pub enum Error {
     DecompressionBomb,
     #[error("IDL data is not valid UTF-8: {0}")]
     InvalidUtf8(#[from] std::string::FromUtf8Error),
+    #[error("unsupported WASM payload (Component Model sections are not supported)")]
+    UnsupportedWasmPayload,
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -84,6 +86,14 @@ pub fn embed_idl(wasm_bytes: &[u8], idl: &str) -> Result<Vec<u8>> {
                         id,
                         data: &wasm_bytes[range],
                     });
+                } else if !matches!(
+                    other,
+                    wasmparser::Payload::CodeSectionStart { .. }
+                        | wasmparser::Payload::CodeSectionEntry { .. }
+                ) {
+                    // Unknown payload type (e.g., Component Model sections) —
+                    // fail loudly rather than silently dropping sections
+                    return Err(Error::UnsupportedWasmPayload);
                 }
             }
         }
@@ -124,6 +134,10 @@ pub fn extract_idl(wasm_bytes: &[u8]) -> Result<Option<String>> {
                 }
 
                 let flags = data[1];
+                // Unknown flags — skip gracefully (forward compat)
+                if flags & !FLAG_COMPRESSED != 0 {
+                    return Ok(None);
+                }
                 let content = &data[2..];
 
                 let idl_bytes = if flags & FLAG_COMPRESSED != 0 {
@@ -154,7 +168,11 @@ pub fn embed_idl_to_file(wasm_path: &Path, idl: &str) -> Result<()> {
     }
     let wasm_bytes = std::fs::read(wasm_path)?;
     let modified = embed_idl(&wasm_bytes, idl)?;
-    std::fs::write(wasm_path, modified)?;
+    // Atomic write: write to temp file then rename to avoid corruption on crash
+    let dir = wasm_path.parent().unwrap_or(Path::new("."));
+    let mut tmp = tempfile::NamedTempFile::new_in(dir)?;
+    tmp.write_all(&modified)?;
+    tmp.persist(wasm_path).map_err(|e| Error::Io(e.error))?;
     Ok(())
 }
 

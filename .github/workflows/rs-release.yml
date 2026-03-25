@@ -26,6 +26,7 @@ env:
     sails-idl-meta
     sails-idl-parser
     sails-idl-parser-v2
+    sails-idl-embed
     sails-idl-gen
     sails-sol-gen
     sails-client-gen
