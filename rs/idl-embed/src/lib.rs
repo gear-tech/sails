@@ -12,9 +12,9 @@
 //! 2..N     data      variable   IDL text (raw or deflate-compressed)
 //! ```
 
+use flate2::Compression;
 use flate2::read::DeflateDecoder;
 use flate2::write::DeflateEncoder;
-use flate2::Compression;
 use std::io::{Read, Write};
 use std::path::Path;
 
@@ -120,38 +120,38 @@ pub fn extract_idl(wasm_bytes: &[u8]) -> Result<Option<String>> {
 
     for section in parser.parse_all(wasm_bytes) {
         let section = section?;
-        if let wasmparser::Payload::CustomSection(custom) = section {
-            if custom.name() == SECTION_NAME {
-                let data = custom.data();
-                if data.len() < 2 {
-                    return Ok(None);
-                }
-
-                let version = data[0];
-                if version != ENVELOPE_VERSION {
-                    // Unknown version — skip gracefully
-                    return Ok(None);
-                }
-
-                let flags = data[1];
-                // Unknown flags — skip gracefully (forward compat)
-                if flags & !FLAG_COMPRESSED != 0 {
-                    return Ok(None);
-                }
-                let content = &data[2..];
-
-                let idl_bytes = if flags & FLAG_COMPRESSED != 0 {
-                    decompress_with_limit(content)?
-                } else {
-                    if content.len() > MAX_DECOMPRESSED_SIZE {
-                        return Err(Error::DecompressionBomb);
-                    }
-                    content.to_vec()
-                };
-
-                let idl = String::from_utf8(idl_bytes)?;
-                return Ok(Some(idl));
+        if let wasmparser::Payload::CustomSection(custom) = section
+            && custom.name() == SECTION_NAME
+        {
+            let data = custom.data();
+            if data.len() < 2 {
+                return Ok(None);
             }
+
+            let version = data[0];
+            if version != ENVELOPE_VERSION {
+                // Unknown version — skip gracefully
+                return Ok(None);
+            }
+
+            let flags = data[1];
+            // Unknown flags — skip gracefully (forward compat)
+            if flags & !FLAG_COMPRESSED != 0 {
+                return Ok(None);
+            }
+            let content = &data[2..];
+
+            let idl_bytes = if flags & FLAG_COMPRESSED != 0 {
+                decompress_with_limit(content)?
+            } else {
+                if content.len() > MAX_DECOMPRESSED_SIZE {
+                    return Err(Error::DecompressionBomb);
+                }
+                content.to_vec()
+            };
+
+            let idl = String::from_utf8(idl_bytes)?;
+            return Ok(Some(idl));
         }
     }
 
@@ -241,7 +241,6 @@ mod tests {
 
     #[test]
     fn unknown_version_returns_none() {
-        let wasm = minimal_wasm();
         // Manually inject a section with version 0x02
         let mut module = wasm_encoder::Module::new();
         let payload = vec![0x02, 0x00, b'h', b'i'];
@@ -357,7 +356,9 @@ mod tests {
         // Generate a ~10KB IDL (realistic upper bound)
         let mut idl = String::from("service Large {\n  functions {\n");
         for i in 0..200 {
-            idl.push_str(&format!("    Method{i}(arg: String) -> Result<String, String>;\n"));
+            idl.push_str(&format!(
+                "    Method{i}(arg: String) -> Result<String, String>;\n"
+            ));
         }
         idl.push_str("  }\n}");
 

@@ -207,7 +207,11 @@ fn main() -> Result<(), i32> {
             let idl_text = std::fs::read_to_string(&idl)?;
             sails_idl_embed::embed_idl_to_file(&wasm, &idl_text)
                 .map_err(|e| anyhow::anyhow!("{e}"))?;
-            println!("Embedded IDL ({} bytes) into {}", idl_text.len(), wasm.display());
+            println!(
+                "Embedded IDL ({} bytes) into {}",
+                idl_text.len(),
+                wasm.display()
+            );
             Ok(())
         })(),
         SailsCommands::IdlExtract { wasm, output } => (|| -> anyhow::Result<()> {
@@ -217,7 +221,11 @@ fn main() -> Result<(), i32> {
                 Some(text) => {
                     if let Some(out_path) = output {
                         std::fs::write(&out_path, &text)?;
-                        println!("Extracted IDL ({} bytes) to {}", text.len(), out_path.display());
+                        println!(
+                            "Extracted IDL ({} bytes) to {}",
+                            text.len(),
+                            out_path.display()
+                        );
                     } else {
                         print!("{text}");
                     }
