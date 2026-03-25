@@ -251,9 +251,7 @@ impl<P: ProgramMeta> ClientBuilder<P> {
         match sails_idl_embed::embed_idl_to_file(wasm_path, &idl) {
             Ok(()) => {
                 let raw_size = idl.len();
-                let wasm_size = std::fs::metadata(wasm_path)
-                    .map(|m| m.len())
-                    .unwrap_or(0);
+                let wasm_size = std::fs::metadata(wasm_path).map(|m| m.len()).unwrap_or(0);
                 std::eprintln!(
                     "Embedded IDL in WASM ({raw_size} bytes IDL, {wasm_size} bytes WASM total)"
                 );
