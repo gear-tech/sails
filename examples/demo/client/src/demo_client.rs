@@ -701,7 +701,7 @@ pub mod value_fee {
 
     pub trait ValueFee {
         type Env: sails_rs::client::GearEnv;
-        /// Return flag if fee taken and remain value,
+        /// Return `Ok(())` if fee taken and remain value,
         /// using special type `CommandReply<T>`
         fn do_something_and_take_fee(
             &mut self,
@@ -712,7 +712,7 @@ pub mod value_fee {
 
     impl sails_rs::client::Identifiable for ValueFeeImpl {
         const INTERFACE_ID: sails_rs::InterfaceId =
-            sails_rs::InterfaceId::from_bytes_8([65, 193, 8, 11, 78, 30, 141, 197]);
+            sails_rs::InterfaceId::from_bytes_8([97, 38, 26, 134, 82, 139, 249, 213]);
     }
 
     impl<E: sails_rs::client::GearEnv> ValueFee for sails_rs::client::Service<ValueFeeImpl, E> {
@@ -726,7 +726,7 @@ pub mod value_fee {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(DoSomethingAndTakeFee () -> bool, 0, <super::ValueFeeImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(DoSomethingAndTakeFee () -> () | String, 0, <super::ValueFeeImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(not(target_arch = "wasm32"))]

@@ -274,17 +274,16 @@ async fn value_fee_works() {
     // Act
 
     // Use generated client code to call `do_something_and_take_fee` method with zero value
-    let result = client.do_something_and_take_fee().await.unwrap();
-    assert!(!result);
+    client.do_something_and_take_fee().await.unwrap().unwrap();
 
     // Use generated client code to call `do_something_and_take_fee` method with value
-    let result = client
+    client
         .do_something_and_take_fee()
         .with_value(15_000_000_000_000)
         .await
+        .unwrap()
         .unwrap();
 
-    assert!(result);
     let fee = 10_000_000_000_000;
     let balance = gear_api.free_balance(admin_id).await.unwrap();
     dbg!(initial_balance, balance, initial_balance - balance - fee);

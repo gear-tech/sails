@@ -10,18 +10,14 @@ use core::{
 use futures::Stream;
 pub use sails_idl_meta::{Identifiable, InterfaceId, MethodMeta};
 
-#[cfg(feature = "gtest")]
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(feature = "gtest", not(target_arch = "wasm32")))]
 mod gtest_env;
-#[cfg(feature = "gtest")]
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(feature = "gtest", not(target_arch = "wasm32")))]
 pub use gtest_env::{BlockRunMode, GtestEnv, GtestError, GtestParams};
 
-#[cfg(feature = "gclient")]
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(feature = "gclient", not(target_arch = "wasm32")))]
 mod gclient_env;
-#[cfg(feature = "gclient")]
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(feature = "gclient", not(target_arch = "wasm32")))]
 pub use gclient_env::{GclientEnv, GclientError, GclientParams};
 
 mod gstd_env;

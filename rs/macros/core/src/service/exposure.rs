@@ -146,6 +146,8 @@ impl ServiceBuilder<'_> {
                     self.route_idx,
                     |encoded_result| result_handler(encoded_result, value),
                 );
+            } else if #reply_with_value && value > 0 {
+                result_handler(&[], value);
             }
             return Some(());
         }
