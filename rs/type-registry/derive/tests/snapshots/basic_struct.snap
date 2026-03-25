@@ -13,31 +13,40 @@ impl<T: ::sails_type_registry::TypeInfo> ::sails_type_registry::TypeInfo for Bas
             .name("Basic")
             .doc("Basic struct with docs")
             .doc("Second line of documentation");
-        type_builder = type_builder.type_param("T").arg(registry.register_type::<T>());
-        type_builder
-            .composite()
-            .field("a")
-            .type_name(
-                ::sails_type_registry::prelude::alloc::string::String::from(
-                    ::core::stringify!(u32),
-                ),
-            )
-            .doc("Simple field")
-            .annotate("name")
-            .value("custom")
-            .ty({
-                let id = registry.register_type::<u32>();
-                let field_type = ::sails_type_registry::ty::FieldType::Id(id);
-                registry.expand_aliases(&field_type)
-            })
-            .field("b")
-            .type_name(
-                ::sails_type_registry::prelude::alloc::string::String::from(
-                    ::core::stringify!(T),
-                ),
-            )
-            .doc("Direct parameter")
-            .ty(::sails_type_registry::ty::FieldType::Parameter("T".to_string()))
-            .build()
+        {
+            let arg_id = { registry.register_type::<T>() };
+            type_builder = type_builder.type_param("T").arg(arg_id);
+        }
+        let mut builder = type_builder.composite();
+        {
+            let ty = { registry.register_type::<u32>() };
+            builder = builder
+                .field("a")
+                .type_name(
+                    ::sails_type_registry::prelude::alloc::string::String::from(
+                        ::core::stringify!(u32),
+                    ),
+                )
+                .doc("Simple field")
+                .annotate("name")
+                .value("custom")
+                .ty(ty);
+        }
+        {
+            let ty = registry
+                .register_type_def(
+                    ::sails_type_registry::ty::Type::builder().name("T").parameter("T"),
+                );
+            builder = builder
+                .field("b")
+                .type_name(
+                    ::sails_type_registry::prelude::alloc::string::String::from(
+                        ::core::stringify!(T),
+                    ),
+                )
+                .doc("Direct parameter")
+                .ty(ty);
+        }
+        builder.build()
     }
 }

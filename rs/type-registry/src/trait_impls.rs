@@ -42,7 +42,7 @@ macro_rules! impl_for_non_zero {
                     Type::builder()
                         .name(::core::stringify!($t))
                         .composite()
-                        .unnamed_field().ty(registry.register_type::<$inner>())
+                        .unnamed().ty(registry.register_type::<$inner>())
                         .build()
                 }
             }
@@ -145,7 +145,7 @@ mod g_impls {
             Type::builder()
                 .name("NonZeroU256")
                 .composite()
-                .unnamed_field()
+                .unnamed()
                 .ty(registry.register_type::<U256>())
                 .build()
         }

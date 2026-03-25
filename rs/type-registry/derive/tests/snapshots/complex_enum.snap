@@ -12,50 +12,59 @@ impl ::sails_type_registry::TypeInfo for Complex {
             .module_path(::core::module_path!())
             .name("Complex");
         type_builder = type_builder.annotate("top").value("val");
-        type_builder
-            .variant()
-            .add_variant("V1")
-            .doc("Variant with named fields and annotations")
-            .annotate("v1")
-            .field("f")
-            .type_name(
-                ::sails_type_registry::prelude::alloc::string::String::from(
-                    ::core::stringify!(u32),
-                ),
-            )
-            .annotate("f1")
-            .value("v")
-            .ty({
-                let id = registry.register_type::<u32>();
-                let field_type = ::sails_type_registry::ty::FieldType::Id(id);
-                registry.expand_aliases(&field_type)
-            })
-            .add_variant("V2")
-            .doc("Variant with unnamed fields")
-            .unnamed_field()
-            .type_name(
-                ::sails_type_registry::prelude::alloc::string::String::from(
-                    ::core::stringify!(u64),
-                ),
-            )
-            .ty({
-                let id = registry.register_type::<u64>();
-                let field_type = ::sails_type_registry::ty::FieldType::Id(id);
-                registry.expand_aliases(&field_type)
-            })
-            .unnamed_field()
-            .type_name(
-                ::sails_type_registry::prelude::alloc::string::String::from(
-                    ::core::stringify!(String),
-                ),
-            )
-            .ty({
-                let id = registry.register_type::<String>();
-                let field_type = ::sails_type_registry::ty::FieldType::Id(id);
-                registry.expand_aliases(&field_type)
-            })
-            .add_variant("V3")
-            .doc("Unit variant")
-            .build()
+        let mut builder = type_builder.variant();
+        builder = {
+            let mut v_builder = builder
+                .add_variant("V1")
+                .doc("Variant with named fields and annotations")
+                .annotate("v1");
+            {
+                let ty = { registry.register_type::<u32>() };
+                v_builder = v_builder
+                    .field("f")
+                    .type_name(
+                        ::sails_type_registry::prelude::alloc::string::String::from(
+                            ::core::stringify!(u32),
+                        ),
+                    )
+                    .annotate("f1")
+                    .value("v")
+                    .ty(ty);
+            }
+            v_builder.finish_variant()
+        };
+        builder = {
+            let mut v_builder = builder
+                .add_variant("V2")
+                .doc("Variant with unnamed fields");
+            {
+                let ty = { registry.register_type::<u64>() };
+                v_builder = v_builder
+                    .unnamed()
+                    .type_name(
+                        ::sails_type_registry::prelude::alloc::string::String::from(
+                            ::core::stringify!(u64),
+                        ),
+                    )
+                    .ty(ty);
+            }
+            {
+                let ty = { registry.register_type::<String>() };
+                v_builder = v_builder
+                    .unnamed()
+                    .type_name(
+                        ::sails_type_registry::prelude::alloc::string::String::from(
+                            ::core::stringify!(String),
+                        ),
+                    )
+                    .ty(ty);
+            }
+            v_builder.finish_variant()
+        };
+        builder = {
+            let mut v_builder = builder.add_variant("V3").doc("Unit variant");
+            v_builder.finish_variant()
+        };
+        builder.build()
     }
 }

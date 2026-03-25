@@ -60,7 +60,7 @@ fn test_nonzero_is_composite() {
     // NonZero is now Composite, not Primitive
     if let TypeDef::Composite(c) = &ty.def {
         assert_eq!(c.fields.len(), 1);
-        assert!(registry.is_type::<u8>(c.fields[0].ty.id()));
+        assert!(registry.is_type::<u8>(c.fields[0].ty));
     } else {
         panic!("NonZeroU8 should be composite, got {:?}", ty.def);
     }

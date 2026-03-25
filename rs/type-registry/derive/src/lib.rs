@@ -260,7 +260,12 @@ impl DeriveContext {
                 syn::GenericParam::Type(tp) => {
                     let ty = &tp.ident;
                     let name = ty.to_string();
-                    quote! { type_builder = type_builder.type_param(#name).arg(registry.register_type::<#ty>()); }
+                    quote! {
+                        {
+                            let arg_id = { registry.register_type::<#ty>() };
+                            type_builder = type_builder.type_param(#name).arg(arg_id);
+                        }
+                    }
                 }
                 syn::GenericParam::Const(cp) => {
                     let ident = &cp.ident;
@@ -280,17 +285,26 @@ impl DeriveContext {
     ) -> proc_macro2::TokenStream {
         let registry = &self.registry;
 
+        if !self.contains_generic_param(ty, type_param_names, const_param_names) {
+            return quote! { { registry.register_type::<#ty>() } };
+        }
+
         match ty {
             syn::Type::Path(tp) => {
                 if let Some(ident) = tp.path.get_ident()
                     && type_param_names.contains(&ident.to_string())
                 {
                     let ident_str = ident.to_string();
-                    return quote! { #registry::ty::FieldType::Parameter(#ident_str.to_string()) };
+                    return quote! {
+                        registry.register_type_def(
+                            #registry::ty::Type::builder()
+                                .name(#ident_str)
+                                .parameter(#ident_str)
+                        )
+                    };
                 }
 
-                if self.contains_generic_param(ty, type_param_names, const_param_names)
-                    && let Some(last_segment) = tp.path.segments.last()
+                if let Some(last_segment) = tp.path.segments.last()
                     && let syn::PathArguments::AngleBracketed(args) = &last_segment.arguments
                 {
                     let mut arg_tokens = Vec::new();
@@ -307,46 +321,47 @@ impl DeriveContext {
                     if !arg_tokens.is_empty() {
                         return quote! {
                             {
-                                let id = registry.register_type::<#ty>();
+                                let base_id = registry.register_type::<#ty>();
                                 let args = #registry::prelude::alloc::vec![#(#arg_tokens),*];
-                                let field_type = #registry::ty::FieldType::Parameterized { id, args };
-                                registry.expand_aliases(&field_type)
+                                registry.register_type_def(
+                                    #registry::ty::Type::builder()
+                                        .applied(base_id, args)
+                                )
                             }
                         };
                     }
                 }
-
-                quote! {
-                    {
-                        let id = registry.register_type::<#ty>();
-                        let field_type = #registry::ty::FieldType::Id(id);
-                        registry.expand_aliases(&field_type)
-                    }
+                quote! { { registry.register_type::<#ty>() } }
+            }
+            syn::Type::Reference(tr) => {
+                if let syn::Type::Slice(ts) = &*tr.elem {
+                    let inner_tokens = self.generate_field_type_tokens(
+                        &ts.elem,
+                        type_param_names,
+                        const_param_names,
+                    );
+                    return quote! {
+                        {
+                            let inner_id = #inner_tokens;
+                            registry.register_type_def(
+                                #registry::ty::Type::builder().sequence(inner_id)
+                            )
+                        }
+                    };
                 }
+                // Fallback for &T etc.
+                self.generate_field_type_tokens(&tr.elem, type_param_names, const_param_names)
             }
             syn::Type::Array(ta) => {
-                let inner_ty = &ta.elem;
                 let inner_tokens =
-                    self.generate_field_type_tokens(inner_ty, type_param_names, const_param_names);
-
+                    self.generate_field_type_tokens(&ta.elem, type_param_names, const_param_names);
                 let len = &ta.len;
-                let mut len_tokens = quote! { #registry::ty::ArrayLen::Static(#len as u32) };
-
-                if let syn::Expr::Path(ep) = len
-                    && let Some(ident) = ep.path.get_ident()
-                    && const_param_names.contains(&ident.to_string())
-                {
-                    let ident_str = ident.to_string();
-                    len_tokens =
-                        quote! { #registry::ty::ArrayLen::Parameter(#ident_str.to_string()) };
-                }
-
                 quote! {
                     {
-                        let id = registry.register_type::<#ty>();
-                        let elem = #registry::prelude::alloc::boxed::Box::new(#inner_tokens);
-                        let field_type = #registry::ty::FieldType::Array { id, elem, len: #len_tokens };
-                        registry.expand_aliases(&field_type)
+                        let inner_id = #inner_tokens;
+                        registry.register_type_def(
+                            #registry::ty::Type::builder().array(inner_id, #len as u32)
+                        )
                     }
                 }
             }
@@ -361,27 +376,21 @@ impl DeriveContext {
                 }
                 quote! {
                     {
-                        let id = registry.register_type::<#ty>();
-                        let elems = #registry::prelude::alloc::vec![#(#elem_tokens),*];
-                        let field_type = #registry::ty::FieldType::Tuple { id, elems };
-                        registry.expand_aliases(&field_type)
+                        let ids = #registry::prelude::alloc::vec![#(#elem_tokens),*];
+                        registry.register_type_def(
+                            #registry::ty::Type::builder().tuple(ids)
+                        )
                     }
                 }
             }
-            _ => quote! {
-                {
-                    let id = registry.register_type::<#ty>();
-                    let field_type = #registry::ty::FieldType::Id(id);
-                    registry.expand_aliases(&field_type)
-                }
-            },
+            _ => quote! { { registry.register_type::<#ty>() } },
         }
     }
 
     fn generate_fields_tokens(
         &self,
         fields: &Fields,
-        _is_variant: bool,
+        builder_ident: &Ident,
     ) -> syn::Result<proc_macro2::TokenStream> {
         let registry = &self.registry;
 
@@ -413,7 +422,7 @@ impl DeriveContext {
                 let field_annotations = self.extract_annotations(&f.attrs)?;
                 let field_docs = self.extract_docs(&f.attrs);
 
-                let field_method = if f.ident.is_some() { quote!(field) } else { quote!(unnamed_field) };
+                let field_method = if f.ident.is_some() { quote!(field) } else { quote!(unnamed) };
 
                 let field_call = if let Some(ident) = &f.ident {
                     let name = ident.to_string();
@@ -429,11 +438,14 @@ impl DeriveContext {
                 );
 
                 Ok(quote! {
-                    #field_call
-                    .type_name(#field_type_name)
-                    #(.doc(#field_docs))*
-                    #(#field_annotations)*
-                    .ty(#field_type_tokens)
+                    {
+                        let ty = #field_type_tokens;
+                        #builder_ident = #builder_ident #field_call
+                            .type_name(#field_type_name)
+                            #(.doc(#field_docs))*
+                            #(#field_annotations)*
+                            .ty(ty);
+                    }
                 })
             })
             .collect::<syn::Result<Vec<_>>>()?;
@@ -442,14 +454,16 @@ impl DeriveContext {
     }
 
     fn generate_def_tokens(&self, data: Data) -> syn::Result<proc_macro2::TokenStream> {
+        let builder_ident = Ident::new("builder", Span::call_site());
         match data {
             Data::Struct(data_struct) => {
-                let fields_tokens = self.generate_fields_tokens(&data_struct.fields, false)?;
+                let fields_tokens =
+                    self.generate_fields_tokens(&data_struct.fields, &builder_ident)?;
 
                 Ok(quote! {
-                    type_builder.composite()
-                        #fields_tokens
-                        .build()
+                    let mut #builder_ident = type_builder.composite();
+                    #fields_tokens
+                    #builder_ident.build()
                 })
             }
             Data::Enum(data_enum) => {
@@ -460,21 +474,27 @@ impl DeriveContext {
                         let variant_name = variant.ident.to_string();
                         let variant_docs = self.extract_docs(&variant.attrs);
                         let variant_annotations = self.extract_annotations(&variant.attrs)?;
-                        let fields_tokens = self.generate_fields_tokens(&variant.fields, true)?;
+                        let fields_tokens = self.generate_fields_tokens(
+                            &variant.fields,
+                            &Ident::new("v_builder", Span::call_site()),
+                        )?;
 
                         Ok(quote! {
-                            .add_variant(#variant_name)
-                                #(.doc(#variant_docs))*
-                                #(#variant_annotations)*
+                            #builder_ident = {
+                                let mut v_builder = #builder_ident.add_variant(#variant_name)
+                                    #(.doc(#variant_docs))*
+                                    #(#variant_annotations)*;
                                 #fields_tokens
+                                v_builder.finish_variant()
+                            };
                         })
                     })
                     .collect::<syn::Result<Vec<_>>>()?;
 
                 Ok(quote! {
-                    type_builder.variant()
-                        #(#variants)*
-                        .build()
+                    let mut #builder_ident = type_builder.variant();
+                    #(#variants)*
+                    #builder_ident.build()
                 })
             }
             Data::Union(_) => Err(syn::Error::new(

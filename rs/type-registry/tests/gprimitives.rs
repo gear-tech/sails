@@ -44,7 +44,7 @@ fn test_nonzero_u256_is_composite() {
 
     if let TypeDef::Composite(c) = &ty.def {
         assert_eq!(c.fields.len(), 1);
-        assert!(registry.is_type::<U256>(c.fields[0].ty.id()));
+        assert!(registry.is_type::<U256>(c.fields[0].ty));
     } else {
         panic!("NonZeroU256 should be composite, got {:?}", ty.def);
     }

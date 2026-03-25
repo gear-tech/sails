@@ -62,14 +62,14 @@ impl ProgramBuilder {
                 )));
             }
 
-            let params_type_id = c.fields[0].ty.id();
+            let params_type_id = c.fields[0].ty;
             let params_type = self
                 .registry
                 .get_type(params_type_id)
                 .ok_or(Error::TypeIdIsUnknown(params_type_id.get()))?;
 
             let throws = if c.fields.len() == 2 {
-                let throws = resolver.resolve_field_type(&c.fields[1].ty, &enum_type_args)?;
+                let throws = resolver.resolve_by_id_inner(c.fields[1].ty, &enum_type_args)?;
                 Some(throws)
             } else {
                 None
@@ -189,7 +189,7 @@ fn any_funcs_ids(registry: &Registry, func_type_id: TypeRef) -> Result<Vec<TypeR
     let mut ids = Vec::new();
     for variant in any_funcs(registry, func_type_id)? {
         if let Some(field) = variant.fields.first() {
-            ids.push(field.ty.id());
+            ids.push(field.ty);
         }
     }
     Ok(ids)
@@ -309,16 +309,16 @@ impl<'a> ServiceBuilder<'a> {
                 )));
             }
 
-            let params_type_id = c.fields[0].ty.id();
+            let params_type_id = c.fields[0].ty;
             let params_type = self
                 .registry
                 .get_type(params_type_id)
                 .ok_or(Error::TypeIdIsUnknown(params_type_id.get()))?;
 
-            let output = resolver.resolve_field_type(&c.fields[1].ty, &enum_type_args)?;
+            let output = resolver.resolve_by_id_inner(c.fields[1].ty, &enum_type_args)?;
 
             let throws = if c.fields.len() == 3 {
-                let throws = resolver.resolve_field_type(&c.fields[2].ty, &enum_type_args)?;
+                let throws = resolver.resolve_by_id_inner(c.fields[2].ty, &enum_type_args)?;
                 Some(throws)
             } else {
                 None
@@ -376,16 +376,16 @@ impl<'a> ServiceBuilder<'a> {
                 )));
             }
 
-            let params_type_id = c.fields[0].ty.id();
+            let params_type_id = c.fields[0].ty;
             let params_type = self
                 .registry
                 .get_type(params_type_id)
                 .ok_or(Error::TypeIdIsUnknown(params_type_id.get()))?;
 
-            let output = resolver.resolve_field_type(&c.fields[1].ty, &enum_type_args)?;
+            let output = resolver.resolve_by_id_inner(c.fields[1].ty, &enum_type_args)?;
 
             let throws = if c.fields.len() == 3 {
-                let throws = resolver.resolve_field_type(&c.fields[2].ty, &enum_type_args)?;
+                let throws = resolver.resolve_by_id_inner(c.fields[2].ty, &enum_type_args)?;
                 Some(throws)
             } else {
                 None
@@ -445,7 +445,7 @@ impl<'a> ServiceBuilder<'a> {
                 .fields
                 .iter()
                 .map(|field| -> Result<_> {
-                    let type_decl = resolver.resolve_field_type(&field.ty, &enum_type_args)?;
+                    let type_decl = resolver.resolve_by_id_inner(field.ty, &enum_type_args)?;
                     Ok(StructField {
                         name: field.name.clone(),
                         type_decl,

@@ -68,7 +68,7 @@ fn test_const_generics() {
     }
 
     if let TypeDef::Composite(comp) = &struct_ty.def {
-        let field_ty_ref = comp.fields[0].ty.id();
+        let field_ty_ref = comp.fields[0].ty;
         let field_ty = registry.get_type(field_ty_ref).unwrap();
 
         match &field_ty.def {

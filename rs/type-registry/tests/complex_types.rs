@@ -39,7 +39,7 @@ fn test_self_recursive_type() {
     if let TypeDef::Composite(c) = &list_ty.def {
         assert_eq!(c.fields.len(), 2);
 
-        let next_opt_ref = c.fields[1].ty.id();
+        let next_opt_ref = c.fields[1].ty;
         let next_opt_ty = registry.get_type(next_opt_ref).unwrap();
 
         if let TypeDef::Option(inner_ref) = &next_opt_ty.def {
@@ -73,7 +73,7 @@ fn test_mutually_recursive_types() {
 
     let ping_ty = registry.get_type(ping_ref).unwrap();
     if let TypeDef::Composite(c) = &ping_ty.def {
-        let pong_opt_ref = c.fields[0].ty.id();
+        let pong_opt_ref = c.fields[0].ty;
         let pong_opt_ty = registry.get_type(pong_opt_ref).unwrap();
 
         if let TypeDef::Option(inner_ref) = &pong_opt_ty.def {

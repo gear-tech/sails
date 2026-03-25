@@ -27,7 +27,6 @@ pub struct Type {
     pub name: String,
     pub type_params: Vec<TypeParameter>,
     pub def: TypeDef,
-    pub expanded_def: Option<TypeDef>,
     pub docs: Vec<String>,
     pub annotations: Vec<Annotation>,
 }
@@ -43,7 +42,6 @@ impl Type {
             name: String::new(),
             type_params: Vec::new(),
             def: TypeDef::Tuple(Vec::new()),
-            expanded_def: None,
             docs: Vec::new(),
             annotations: Vec::new(),
         }
@@ -72,6 +70,11 @@ pub enum TypeDef {
         ok: TypeRef,
         err: TypeRef,
     },
+    Parameter(String),
+    Applied {
+        base: TypeRef,
+        args: Vec<TypeRef>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -93,40 +96,12 @@ pub struct Variant {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum FieldType {
-    Id(TypeRef),
-    Parameter(String),
-    Parameterized {
-        id: TypeRef,
-        args: Vec<FieldType>,
-    },
-    Array {
-        id: TypeRef,
-        elem: alloc::boxed::Box<FieldType>,
-        len: ArrayLen,
-    },
-    Tuple {
-        id: TypeRef,
-        elems: Vec<FieldType>,
-    },
-}
-
-impl FieldType {
-    pub fn id(&self) -> TypeRef {
-        match self {
-            Self::Id(id)
-            | Self::Parameterized { id, .. }
-            | Self::Array { id, .. }
-            | Self::Tuple { id, .. } => *id,
-            Self::Parameter(_) => panic!("Cannot get ID from a parameter"),
-        }
-    }
-}
-
-impl From<TypeRef> for FieldType {
-    fn from(id: TypeRef) -> Self {
-        Self::Id(id)
-    }
+pub struct Field {
+    pub name: Option<String>,
+    pub ty: TypeRef,
+    pub type_name: Option<String>,
+    pub docs: Vec<String>,
+    pub annotations: Vec<Annotation>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -151,15 +126,6 @@ impl From<&str> for ArrayLen {
     fn from(name: &str) -> Self {
         Self::Parameter(name.to_string())
     }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Field {
-    pub name: Option<String>,
-    pub ty: FieldType,
-    pub type_name: Option<String>,
-    pub docs: Vec<String>,
-    pub annotations: Vec<Annotation>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -195,13 +161,6 @@ impl Annotation {
         Self {
             name: name.into(),
             value: None,
-        }
-    }
-
-    pub fn new_with_value(name: impl Into<String>, value: impl Into<String>) -> Self {
-        Self {
-            name: name.into(),
-            value: Some(value.into()),
         }
     }
 }

@@ -3,7 +3,7 @@ use alloc::boxed::Box;
 use convert_case::{Case, Casing};
 use sails_type_registry::{
     Registry, TypeRef,
-    ty::{ArrayLen, Field, FieldType, GenericArg, Primitive, Type, TypeDef},
+    ty::{Field, GenericArg, Primitive, Type, TypeDef},
 };
 
 #[derive(Debug, Clone)]
@@ -30,13 +30,13 @@ impl UserDefinedEntry {
         fs1 == fs2
     }
 
-    fn field_types(type_info: &Type) -> Vec<FieldType> {
+    fn field_types(type_info: &Type) -> Vec<TypeRef> {
         match &type_info.def {
-            TypeDef::Composite(comp) => comp.fields.iter().map(|f| f.ty.clone()).collect(),
+            TypeDef::Composite(comp) => comp.fields.iter().map(|f| f.ty).collect(),
             TypeDef::Variant(var) => {
                 let mut fields = Vec::new();
                 for v in &var.variants {
-                    fields.extend(v.fields.iter().map(|f| f.ty.clone()));
+                    fields.extend(v.fields.iter().map(|f| f.ty));
                 }
                 fields
             }
@@ -112,7 +112,7 @@ impl<'a> TypeResolver<'a> {
         self.resolve_by_id_inner(id, &BTreeMap::new())
     }
 
-    fn resolve_by_id_inner(
+    pub(crate) fn resolve_by_id_inner(
         &mut self,
         id: TypeRef,
         type_args: &BTreeMap<String, TypeDecl>,
@@ -182,6 +182,70 @@ impl<'a> TypeResolver<'a> {
                     }
                 }
                 TypeDecl::Named { name, generics }
+            }
+            TypeDef::Parameter(name) => {
+                if let Some(mapped) = type_args.get(name) {
+                    mapped.clone()
+                } else {
+                    TypeDecl::Named {
+                        name: name.clone(),
+                        generics: vec![],
+                    }
+                }
+            }
+            TypeDef::Applied { base, args } => {
+                let base_ty = self
+                    .registry
+                    .get_type(*base)
+                    .ok_or(Error::TypeIdIsUnknown(base.get()))?;
+
+                match &base_ty.def {
+                    TypeDef::Option(_) if !args.is_empty() => TypeDecl::Named {
+                        name: "Option".to_string(),
+                        generics: vec![self.resolve_by_id_inner(args[0], type_args)?],
+                    },
+                    TypeDef::Result { .. } if args.len() >= 2 => TypeDecl::Named {
+                        name: "Result".to_string(),
+                        generics: vec![
+                            self.resolve_by_id_inner(args[0], type_args)?,
+                            self.resolve_by_id_inner(args[1], type_args)?,
+                        ],
+                    },
+                    TypeDef::Sequence(_) if !args.is_empty() => TypeDecl::Slice {
+                        item: Box::new(self.resolve_by_id_inner(args[0], type_args)?),
+                    },
+                    TypeDef::Array { len, .. } if !args.is_empty() => TypeDecl::Array {
+                        item: Box::new(self.resolve_by_id_inner(args[0], type_args)?),
+                        len: *len,
+                    },
+                    TypeDef::Map { .. } if args.len() >= 2 => TypeDecl::Slice {
+                        item: Box::new(TypeDecl::Tuple {
+                            types: vec![
+                                self.resolve_by_id_inner(args[0], type_args)?,
+                                self.resolve_by_id_inner(args[1], type_args)?,
+                            ],
+                        }),
+                    },
+                    TypeDef::Tuple(_) => {
+                        let mut types = Vec::new();
+                        for arg in args {
+                            types.push(self.resolve_by_id_inner(*arg, type_args)?);
+                        }
+                        TypeDecl::Tuple { types }
+                    }
+                    _ => {
+                        let base_decl = self.resolve_by_id_inner(*base, type_args)?;
+                        if let TypeDecl::Named { name, .. } = base_decl {
+                            let mut generics = Vec::new();
+                            for arg in args {
+                                generics.push(self.resolve_by_id_inner(*arg, type_args)?);
+                            }
+                            TypeDecl::Named { name, generics }
+                        } else {
+                            base_decl
+                        }
+                    }
+                }
             }
         };
 
@@ -284,101 +348,12 @@ impl<'a> TypeResolver<'a> {
         Ok(name)
     }
 
-    pub fn resolve_field_type(
-        &mut self,
-        field_type: &FieldType,
-        type_args: &BTreeMap<String, TypeDecl>,
-    ) -> Result<TypeDecl> {
-        match field_type {
-            FieldType::Id(id) => self.resolve_by_id_inner(*id, type_args),
-            FieldType::Parameter(name) => {
-                if let Some(decl) = type_args.get(name) {
-                    Ok(decl.clone())
-                } else {
-                    Ok(TypeDecl::Named {
-                        name: name.clone(),
-                        generics: Vec::new(),
-                    })
-                }
-            }
-            FieldType::Parameterized { id, args } => {
-                let ty = self
-                    .registry
-                    .get_type(*id)
-                    .ok_or(Error::TypeIdIsUnknown(id.get()))?;
-
-                let mut resolved_args = Vec::new();
-                for arg in args {
-                    resolved_args.push(self.resolve_field_type(arg, type_args)?);
-                }
-
-                match &ty.def {
-                    TypeDef::Option(_) => Ok(TypeDecl::Named {
-                        name: "Option".to_string(),
-                        generics: resolved_args,
-                    }),
-                    TypeDef::Sequence(_) => Ok(TypeDecl::Slice {
-                        item: Box::new(resolved_args.remove(0)),
-                    }),
-                    TypeDef::Result { .. } => Ok(TypeDecl::Named {
-                        name: "Result".to_string(),
-                        generics: resolved_args,
-                    }),
-                    TypeDef::Map { .. } => Ok(TypeDecl::Slice {
-                        item: Box::new(TypeDecl::Tuple {
-                            types: resolved_args,
-                        }),
-                    }),
-                    _ => {
-                        let base_name = self.register_user_defined(ty)?;
-                        Ok(TypeDecl::Named {
-                            name: base_name,
-                            generics: resolved_args,
-                        })
-                    }
-                }
-            }
-            FieldType::Array { id, elem, len } => {
-                let resolved_elem = self.resolve_field_type(elem, type_args)?;
-                let len = match len {
-                    ArrayLen::Static(l) => *l,
-                    ArrayLen::Parameter(_) => self
-                        .registry
-                        .get_type(*id)
-                        .and_then(|ty| match &ty.def {
-                            TypeDef::Array { len, .. } => Some(*len),
-                            _ => None,
-                        })
-                        .unwrap_or(0),
-                };
-
-                Ok(TypeDecl::Array {
-                    item: Box::new(resolved_elem),
-                    len,
-                })
-            }
-            FieldType::Tuple { elems, .. } => {
-                if elems.is_empty() {
-                    Ok(TypeDecl::Primitive(PrimitiveType::Void))
-                } else {
-                    let mut resolved_elems = Vec::new();
-                    for elem in elems {
-                        resolved_elems.push(self.resolve_field_type(elem, type_args)?);
-                    }
-                    Ok(TypeDecl::Tuple {
-                        types: resolved_elems,
-                    })
-                }
-            }
-        }
-    }
-
     fn resolve_field_inner(
         &mut self,
         field: &Field,
         type_args: &BTreeMap<String, TypeDecl>,
     ) -> Result<StructField> {
-        let type_decl = self.resolve_field_type(&field.ty, type_args)?;
+        let type_decl = self.resolve_by_id_inner(field.ty, type_args)?;
         Ok(StructField {
             name: field.name.clone(),
             type_decl,

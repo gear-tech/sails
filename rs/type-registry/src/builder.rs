@@ -1,7 +1,7 @@
 use crate::registry::TypeRef;
 use crate::ty::{
-    Annotation, Composite, Field, FieldType, GenericArg, Primitive, Type, TypeDef, TypeParameter,
-    Variant, VariantDef,
+    Annotation, Composite, Field, GenericArg, Primitive, Type, TypeDef, TypeParameter, Variant,
+    VariantDef,
 };
 use alloc::{string::String, vec::Vec};
 
@@ -12,8 +12,6 @@ pub struct TypeBuilder {
     type_params: Vec<TypeParameter>,
     docs: Vec<String>,
     annotations: Vec<Annotation>,
-
-    // Pending state for generics (name is stored until arg/val is provided)
     pending_param_name: Option<String>,
 }
 
@@ -115,6 +113,14 @@ impl TypeBuilder {
         self.build(TypeDef::Result { ok, err })
     }
 
+    pub fn parameter(self, name: impl Into<String>) -> Type {
+        self.build(TypeDef::Parameter(name.into()))
+    }
+
+    pub fn applied(self, base: TypeRef, args: Vec<TypeRef>) -> Type {
+        self.build(TypeDef::Applied { base, args })
+    }
+
     pub fn composite(self) -> CompositeBuilder {
         CompositeBuilder {
             type_builder: self,
@@ -139,7 +145,6 @@ impl TypeBuilder {
             name: self.name,
             type_params: self.type_params,
             def,
-            expanded_def: None,
             docs: self.docs,
             annotations: self.annotations,
         }
@@ -149,9 +154,8 @@ impl TypeBuilder {
 pub struct CompositeBuilder {
     type_builder: TypeBuilder,
     fields: Vec<Field>,
-
-    // Pending state for the field being built
-    current_name: Option<Option<String>>, // None = no field pending, Some(None) = unnamed field pending, Some(Some(n)) = named field pending
+    /// None: idle; Some(Some(name)): building named field; Some(None): building unnamed field
+    current_name: Option<Option<String>>,
     current_docs: Vec<String>,
     current_annotations: Vec<Annotation>,
     current_type_name: Option<String>,
@@ -163,7 +167,7 @@ impl CompositeBuilder {
         self
     }
 
-    pub fn unnamed_field(mut self) -> Self {
+    pub fn unnamed(mut self) -> Self {
         self.current_name = Some(None);
         self
     }
@@ -205,11 +209,11 @@ impl CompositeBuilder {
         self
     }
 
-    pub fn ty(mut self, ty: impl Into<FieldType>) -> Self {
+    pub fn ty(mut self, ty: TypeRef) -> Self {
         if let Some(name) = self.current_name.take() {
             self.fields.push(Field {
                 name,
-                ty: ty.into(),
+                ty,
                 type_name: self.current_type_name.take(),
                 docs: core::mem::take(&mut self.current_docs),
                 annotations: core::mem::take(&mut self.current_annotations),
@@ -226,8 +230,8 @@ impl CompositeBuilder {
 }
 
 pub struct VariantDefBuilder {
-    type_builder: TypeBuilder,
-    variants: Vec<Variant>,
+    pub(crate) type_builder: TypeBuilder,
+    pub(crate) variants: Vec<Variant>,
 }
 
 impl VariantDefBuilder {
@@ -258,8 +262,7 @@ pub struct VariantBuilder {
     fields: Vec<Field>,
     variant_docs: Vec<String>,
     variant_annotations: Vec<Annotation>,
-
-    // Pending state for fields inside the variant
+    /// None: idle; Some(Some(name)): building named field; Some(None): building unnamed field
     current_name: Option<Option<String>>,
     current_docs: Vec<String>,
     current_annotations: Vec<Annotation>,
@@ -272,7 +275,7 @@ impl VariantBuilder {
         self
     }
 
-    pub fn unnamed_field(mut self) -> Self {
+    pub fn unnamed(mut self) -> Self {
         self.current_name = Some(None);
         self
     }
@@ -317,11 +320,11 @@ impl VariantBuilder {
         self
     }
 
-    pub fn ty(mut self, ty: impl Into<FieldType>) -> Self {
+    pub fn ty(mut self, ty: TypeRef) -> Self {
         if let Some(name) = self.current_name.take() {
             self.fields.push(Field {
                 name,
-                ty: ty.into(),
+                ty,
                 type_name: self.current_type_name.take(),
                 docs: core::mem::take(&mut self.current_docs),
                 annotations: core::mem::take(&mut self.current_annotations),
@@ -330,36 +333,18 @@ impl VariantBuilder {
         self
     }
 
-    pub fn add_variant(mut self, name: impl Into<String>) -> VariantBuilder {
+    pub fn finish_variant(mut self) -> VariantDefBuilder {
         self.parent.variants.push(Variant {
             name: self.variant_name,
             fields: self.fields,
             docs: self.variant_docs,
             annotations: self.variant_annotations,
         });
-        VariantBuilder {
-            parent: self.parent,
-            variant_name: name.into(),
-            fields: Vec::new(),
-            variant_docs: Vec::new(),
-            variant_annotations: Vec::new(),
-            current_name: None,
-            current_docs: Vec::new(),
-            current_annotations: Vec::new(),
-            current_type_name: None,
-        }
+        self.parent
     }
 
-    pub fn build(mut self) -> Type {
-        self.parent.variants.push(Variant {
-            name: self.variant_name,
-            fields: self.fields,
-            docs: self.variant_docs,
-            annotations: self.variant_annotations,
-        });
-
-        self.parent.type_builder.build(TypeDef::Variant(VariantDef {
-            variants: self.parent.variants,
-        }))
+    pub fn build(self) -> Type {
+        let parent = self.finish_variant();
+        parent.build()
     }
 }
