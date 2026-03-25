@@ -94,6 +94,28 @@ enum SailsCommands {
         program_name: Option<String>,
     },
 
+    /// Embed IDL into a WASM binary as a custom section
+    #[command(name = "idl-embed")]
+    IdlEmbed {
+        /// Path to the WASM file
+        #[arg(long, value_hint = clap::ValueHint::FilePath)]
+        wasm: PathBuf,
+        /// Path to the IDL file
+        #[arg(long, value_hint = clap::ValueHint::FilePath)]
+        idl: PathBuf,
+    },
+
+    /// Extract IDL from a WASM binary's custom section
+    #[command(name = "idl-extract")]
+    IdlExtract {
+        /// Path to the WASM file
+        #[arg(long, value_hint = clap::ValueHint::FilePath)]
+        wasm: PathBuf,
+        /// Path to write extracted IDL (stdout if not specified)
+        #[arg(long, short, value_hint = clap::ValueHint::FilePath)]
+        output: Option<PathBuf>,
+    },
+
     /// Generate Solidity ABI-contracts from IDL
     #[command(name = "sol")]
     SolGen {
@@ -181,6 +203,31 @@ fn main() -> Result<(), i32> {
             program_name.map(|s| s.to_case(Case::Pascal)),
         )
         .generate(),
+        SailsCommands::IdlEmbed { wasm, idl } => (|| -> anyhow::Result<()> {
+            let idl_text = std::fs::read_to_string(&idl)?;
+            sails_idl_embed::embed_idl_to_file(&wasm, &idl_text)
+                .map_err(|e| anyhow::anyhow!("{e}"))?;
+            println!("Embedded IDL ({} bytes) into {}", idl_text.len(), wasm.display());
+            Ok(())
+        })(),
+        SailsCommands::IdlExtract { wasm, output } => (|| -> anyhow::Result<()> {
+            let idl = sails_idl_embed::extract_idl_from_file(&wasm)
+                .map_err(|e| anyhow::anyhow!("{e}"))?;
+            match idl {
+                Some(text) => {
+                    if let Some(out_path) = output {
+                        std::fs::write(&out_path, &text)?;
+                        println!("Extracted IDL ({} bytes) to {}", text.len(), out_path.display());
+                    } else {
+                        print!("{text}");
+                    }
+                }
+                None => {
+                    println!("No sails:idl section found in {}", wasm.display());
+                }
+            }
+            Ok(())
+        })(),
         SailsCommands::SolGen {
             idl_path,
             target_dir,

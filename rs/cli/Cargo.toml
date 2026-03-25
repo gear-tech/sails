@@ -25,6 +25,7 @@ path = "src/main.rs"
 # sails
 sails-client-gen.workspace = true
 sails-client-gen-js.workspace = true
+sails-idl-embed.workspace = true
 sails-sol-gen.workspace = true
 
 # other
