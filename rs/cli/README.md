@@ -56,6 +56,18 @@ Generate IDL from a Cargo manifest:
 cargo sails idl --manifest-path path/to/Cargo.toml
 ```
 
+Embed IDL into a WASM binary as a custom section:
+
+```bash
+cargo sails idl-embed --wasm path/to/app.opt.wasm --idl path/to/app.idl
+```
+
+Extract IDL from a WASM binary:
+
+```bash
+cargo sails idl-extract --wasm path/to/app.opt.wasm
+```
+
 Generate Solidity artifacts from IDL:
 
 ```bash
