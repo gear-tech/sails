@@ -717,9 +717,13 @@ impl FnBuilder<'_> {
         let await_token = self.is_async().then(|| quote!(.await));
         let unwrap_token = self.error_type.is_some().then(|| quote!(.unwrap()));
         let raw_call = quote! { #program_type_path :: #handler_ident (#(#handler_args),*) #await_token #unwrap_token };
+        let params_struct_ident = &self.params_struct_ident;
 
         let ctor_call_impl = quote! {
-            #sails_path::program_ctor!(#program_ident = #raw_call)
+            #sails_path::program_ctor!(
+                #program_ident = #raw_call,
+                params_struct = meta_in_program::#params_struct_ident
+            )
         };
 
         quote!(

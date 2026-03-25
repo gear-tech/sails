@@ -126,7 +126,10 @@ pub mod wasm {
                     if sails_rs::gstd::msg::value() > 0 {
                         core::panic!("'create' accepts no value");
                     }
-                    sails_rs::program_ctor!(PROGRAM = MyProgram::create(p1, p2). await)
+                    sails_rs::program_ctor!(
+                        PROGRAM = MyProgram::create(p1, p2). await, params_struct =
+                        meta_in_program::__CreateParams
+                    )
                 }
                 1u16 => {
                     let (p2, p1): (String, u32) = sails_rs::Decode::decode(&mut input)
@@ -138,7 +141,10 @@ pub mod wasm {
                     if sails_rs::gstd::msg::value() > 0 {
                         core::panic!("'new2' accepts no value");
                     }
-                    sails_rs::program_ctor!(PROGRAM = MyProgram::new2(p2, p1))
+                    sails_rs::program_ctor!(
+                        PROGRAM = MyProgram::new2(p2, p1), params_struct =
+                        meta_in_program::__New2Params
+                    )
                 }
                 _ => {
                     sails_rs::gstd::unknown_input_panic(

@@ -59,7 +59,8 @@ pub mod wasm {
                             input,
                         ));
                     sails_rs::program_ctor!(
-                        PROGRAM = MyProgram::new(p1, p2). await .unwrap()
+                        PROGRAM = MyProgram::new(p1, p2). await .unwrap(), params_struct
+                        = meta_in_program::__NewParams
                     )
                 }
                 1u16 => {
@@ -68,7 +69,10 @@ pub mod wasm {
                             "Unknown request",
                             input,
                         ));
-                    sails_rs::program_ctor!(PROGRAM = MyProgram::new2(p2, p1).unwrap())
+                    sails_rs::program_ctor!(
+                        PROGRAM = MyProgram::new2(p2, p1).unwrap(), params_struct =
+                        meta_in_program::__New2Params
+                    )
                 }
                 _ => {
                     sails_rs::gstd::unknown_input_panic(

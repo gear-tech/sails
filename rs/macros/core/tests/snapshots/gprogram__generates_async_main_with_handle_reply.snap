@@ -46,7 +46,10 @@ pub mod wasm {
                             "Unknown request",
                             input,
                         ));
-                    sails_rs::program_ctor!(PROGRAM = MyProgram::create())
+                    sails_rs::program_ctor!(
+                        PROGRAM = MyProgram::create(), params_struct =
+                        meta_in_program::__CreateParams
+                    )
                 }
                 _ => {
                     sails_rs::gstd::unknown_input_panic(

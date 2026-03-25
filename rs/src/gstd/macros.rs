@@ -43,52 +43,61 @@ macro_rules! hash_fn {
 /// Evaluates a program constructor call and stores the resulting program in a
 /// mutable static slot.
 ///
-/// Supports plain constructor calls plus `.await`, `.unwrap()`, and
-/// `.await.unwrap()`.
-///
 /// The constructor arguments are expected to already be bound in the local
-/// scope. When `.unwrap()` is used, `Result` errors are converted into a
-/// structured panic through [`ok_or_throws!`].
+/// scope. `params_struct = ...` is required and is used to convert `.unwrap()`
+/// failures into a structured panic through
+/// [`ok_or_throws!`].
 ///
 /// # Examples
 ///
 /// ```rust,ignore
-/// program_ctor!(PROGRAM = MyProgram::new(p1, p2).await);
-/// program_ctor!(PROGRAM = MyProgram::new_result(p1, p2).await.unwrap());
+/// program_ctor!(
+///     PROGRAM = MyProgram::new(p1, p2).await,
+///     params_struct = meta_in_program::__NewParams,
+/// );
+/// program_ctor!(
+///     PROGRAM = MyProgram::new_result(p1, p2).await.unwrap(),
+///     params_struct = meta_in_program::__NewResultParams,
+/// );
 /// ```
 #[macro_export]
 macro_rules! program_ctor {
-    ($prg:ident = $($call:ident)::+ ( $( $arg:ident ),* $(,)? ) $($tail:tt)*) => {{
-        $crate::program_ctor!(@inner $prg = [$($call)::+] ( $( $arg ),* ) $($tail)*);
+    (
+        $prg:ident = $($call:ident)::+ ( $( $arg:ident ),* $(,)? ) .await .unwrap(),
+        params_struct = $params_ty:ty $(,)?
+    ) => {{
+        $crate::gstd::message_loop(async move {
+            $crate::program_ctor!(
+                @store $prg = $crate::ok_or_throws!($($call)::+ ( $( $arg, )* ).await, $params_ty, 0)
+            );
+        });
+    }};
+    (
+        $prg:ident = $($call:ident)::+ ( $( $arg:ident ),* $(,)? ) .await,
+        params_struct = $params_ty:ty $(,)?
+    ) => {{
+        $crate::gstd::message_loop(async move {
+            $crate::program_ctor!(@store $prg = $($call)::+ ( $( $arg, )* ).await);
+        });
+    }};
+    (
+        $prg:ident = $($call:ident)::+ ( $( $arg:ident ),* $(,)? ) .unwrap(),
+        params_struct = $params_ty:ty $(,)?
+    ) => {{
+        $crate::program_ctor!(
+            @store $prg = $crate::ok_or_throws!($($call)::+ ( $( $arg, )* ), $params_ty, 0)
+        );
+    }};
+    (
+        $prg:ident = $($call:ident)::+ ( $( $arg:ident ),* $(,)? ),
+        params_struct = $params_ty:ty $(,)?
+    ) => {{
+        $crate::program_ctor!(@store $prg = $($call)::+ ( $( $arg, )* ));
     }};
     (@store $prg:ident = $program:expr) => {{
         unsafe {
             $prg = Some($program);
         }
-    }};
-    (@throws [$handler:ident] = $call:expr) => {{
-        $crate::paste::paste! {
-            $crate::ok_or_throws!($call, meta_in_program::[<__ $handler:camel Params>], 0)
-        }
-    }};
-    (@throws [$head:ident :: $($tail:tt)+] = $call:expr) => {{
-        $crate::program_ctor!(@throws [$($tail)+] = $call)
-    }};
-    (@inner $prg:ident = [$($call:tt)+] ( $( $arg:ident ),* ) .await .unwrap()) => {{
-        $crate::gstd::message_loop(async move {
-            $crate::program_ctor!(@store $prg = $crate::program_ctor!(@throws [$($call)+] = $($call)+ ( $( $arg, )* ).await));
-        });
-    }};
-    (@inner $prg:ident = [$($call:tt)+] ( $( $arg:ident ),* ) .await) => {{
-        $crate::gstd::message_loop(async move {
-            $crate::program_ctor!(@store $prg = $($call)+ ( $( $arg, )* ).await);
-        });
-    }};
-    (@inner $prg:ident = [$($call:tt)+] ( $( $arg:ident ),* ) .unwrap()) => {{
-        $crate::program_ctor!(@store $prg = $crate::program_ctor!(@throws [$($call)+] = $($call)+ ( $( $arg, )* )));
-    }};
-    (@inner $prg:ident = [$($call:tt)+] ( $( $arg:ident ),* )) => {{
-        $crate::program_ctor!(@store $prg = $($call)+ ( $( $arg, )* ));
     }};
 }
 
@@ -241,6 +250,7 @@ mod tests {
     }
 
     mod meta_in_program {
+        invocation_io!(pub struct __NewParams {}, entry_id = 0,);
         invocation_io!(pub struct __NewResultParams {}, entry_id = 0,);
     }
 
@@ -250,7 +260,10 @@ mod tests {
         let p2 = String::from("payload");
 
         let _compile = || {
-            program_ctor!(PROGRAM = MyProgram::new(p1, p2).await);
+            program_ctor!(
+                PROGRAM = MyProgram::new(p1, p2).await,
+                params_struct = meta_in_program::__NewParams,
+            );
         };
     }
 
@@ -260,7 +273,10 @@ mod tests {
         let p2 = String::from("payload");
 
         let _compile = || {
-            program_ctor!(PROGRAM = MyProgram::new_result(p1, p2).await.unwrap());
+            program_ctor!(
+                PROGRAM = MyProgram::new_result(p1, p2).await.unwrap(),
+                params_struct = meta_in_program::__NewResultParams,
+            );
         };
     }
 

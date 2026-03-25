@@ -108,23 +108,10 @@ impl SomeServiceExposure<SomeService> {
                         &mut input,
                     )
                     .expect("Failed to decode params");
-                let result = match self.do_this(request.p1, request.p2).await {
-                    Ok(v) => v,
-                    Err(e) => {
-                        let encoded = <some_service_meta::__DoSomethingParams as sails_rs::gstd::InvocationIo>::with_optimized_encode_with_id(
-                            <some_service_meta::__DoSomethingParams as sails_rs::meta::Identifiable>::INTERFACE_ID,
-                            <some_service_meta::__DoSomethingParams as sails_rs::meta::MethodMeta>::ENTRY_ID,
-                            &e,
-                            self.route_idx,
-                            |encoded| encoded.to_vec(),
-                        );
-                        if encoded.len() <= sails_rs::gstd::MAX_PANIC_PAYLOAD_SIZE {
-                            sails_rs::gstd::Syscall::panic(&encoded)
-                        } else {
-                            ::core::panic!("Error payload is too large to panic")
-                        }
-                    }
-                };
+                let result = sails_rs::ok_or_throws!(
+                    self.do_this(request.p1, request.p2). await,
+                    some_service_meta::__DoSomethingParams, self.route_idx
+                );
                 let value = 0u128;
                 if !sails_rs::gstd::is_empty_tuple::<(u32, String)>() {
                     <some_service_meta::__DoSomethingParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
