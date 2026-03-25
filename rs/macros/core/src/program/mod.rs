@@ -699,7 +699,7 @@ impl FnBuilder<'_> {
         let sails_path = self.sails_path;
         let service_type = &self.result_type;
         let route_idx = (self.entry_id + 1) as u8;
-        let unwrap_token = self.unwrap_result.then(|| quote!(.unwrap()));
+        let unwrap_token = self.error_type.is_some().then(|| quote!(.unwrap()));
 
         let mut wrapping_service_ctor_fn = self.impl_fn.clone();
         // Filter out `export  attribute
@@ -743,7 +743,7 @@ impl FnBuilder<'_> {
         };
 
         let await_token = self.is_async().then(|| quote!(.await));
-        let unwrap_token = self.unwrap_result.then(|| quote!(.unwrap()));
+        let unwrap_token = self.error_type.is_some().then(|| quote!(.unwrap()));
         let raw_call = quote! { #program_type_path :: #handler_ident (#(#handler_args),*) #await_token #unwrap_token };
 
         let ctor_call_impl = quote! {
@@ -785,9 +785,7 @@ impl FnBuilder<'_> {
             .filter(|attr| attr.path().is_ident("doc"));
         let params_struct_ident = &self.params_struct_ident;
 
-        if self.unwrap_result
-            && let Some(err_ty) = &self.error_type
-        {
+        if let Some(err_ty) = &self.error_type {
             let err_ty = shared::replace_any_lifetime_with_static(err_ty.clone());
             quote! {
                 #( #ctor_docs_attrs )*

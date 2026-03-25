@@ -229,9 +229,7 @@ impl FnBuilder<'_> {
             None
         };
 
-        if self.unwrap_result
-            && let Some(err_ty) = &self.error_type
-        {
+        if let Some(err_ty) = &self.error_type {
             let err_ty = shared::replace_any_lifetime_with_static(err_ty.clone());
             quote!(
                 #( #handler_docs_attrs )*
