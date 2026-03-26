@@ -22,11 +22,11 @@ fn test_type_naming_parity_generation() {
 }
 
 #[test]
-fn test_partial_idl_generation() {
-    let idl = include_str!("idls/partial.idl");
+fn test_aliases_generation() {
+    let idl = include_str!("idls/aliases_works.idl");
     let generated = JsClientGenerator::from_idl(idl)
         .generate()
         .expect("generate ts client");
 
-    assert_snapshot!("partial_idl_generation", generated);
+    assert_snapshot!("aliases_generation", generated);
 }

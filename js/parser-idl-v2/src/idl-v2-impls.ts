@@ -16,6 +16,7 @@ import type {
   ITypeEnum,
   ITypeParameter,
   ITypeStruct,
+  ITypeAlias,
   ICtorFunc,
   IEnumVariant,
 } from 'sails-js-types';
@@ -179,6 +180,24 @@ class TypeEnum implements ITypeEnum {
   }
 }
 
+class TypeAlias implements ITypeAlias {
+  public readonly name: string;
+  public readonly type_params?: TypeParameter[];
+  public readonly kind: 'alias';
+  public readonly target: TypeDecl;
+  public readonly docs?: string[];
+  public readonly annotations?: AnnotationEntry[];
+
+  constructor(data: ITypeAlias) {
+    this.name = data.name;
+    this.type_params = mapArray(data.type_params, (param) => new TypeParameter(param));
+    this.kind = 'alias';
+    this.target = data.target;
+    this.docs = data.docs;
+    this.annotations = data.annotations;
+  }
+}
+
 class TypeParameter implements ITypeParameter {
   public readonly name: string;
   public readonly ty?: TypeDecl;
@@ -221,6 +240,9 @@ const createType = (type: Type): Type => {
   if (type.kind === 'struct') {
     return new TypeStruct(type);
   }
+  if (type.kind === 'alias') {
+    return new TypeAlias(type);
+  }
 
   return new TypeEnum(type);
 };
@@ -248,6 +270,15 @@ const normalizeType = (data: Type): Type => {
       kind: 'struct',
       type_params: typeParams,
       fields: (data.fields ?? []).map((data: IStructField) => normalizeStructField(data)),
+    };
+  }
+
+  if (data.kind === 'alias') {
+    return {
+      ...base,
+      kind: 'alias',
+      type_params: typeParams,
+      target: data.target,
     };
   }
 
