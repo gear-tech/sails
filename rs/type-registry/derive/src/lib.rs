@@ -59,15 +59,38 @@ struct DeriveContext {
     registry: proc_macro2::TokenStream,
     name: Ident,
     generics: Generics,
+    type_param_names: Vec<String>,
+    const_param_names: Vec<String>,
 }
 
 impl DeriveContext {
     fn new(input: &DeriveInput) -> Self {
         let registry = Self::resolve_registry_path(input);
+        let type_param_names = input
+            .generics
+            .params
+            .iter()
+            .filter_map(|p| match p {
+                syn::GenericParam::Type(tp) => Some(tp.ident.to_string()),
+                _ => None,
+            })
+            .collect();
+        let const_param_names = input
+            .generics
+            .params
+            .iter()
+            .filter_map(|p| match p {
+                syn::GenericParam::Const(cp) => Some(cp.ident.to_string()),
+                _ => None,
+            })
+            .collect();
+
         Self {
             registry,
             name: input.ident.clone(),
             generics: input.generics.clone(),
+            type_param_names,
+            const_param_names,
         }
     }
 
@@ -197,19 +220,14 @@ impl DeriveContext {
         Ok(annotations)
     }
 
-    fn contains_generic_param(
-        &self,
-        ty: &syn::Type,
-        type_param_names: &[String],
-        const_param_names: &[String],
-    ) -> bool {
-        if type_param_names.is_empty() && const_param_names.is_empty() {
+    fn contains_generic_param(&self, ty: &syn::Type) -> bool {
+        if self.type_param_names.is_empty() && self.const_param_names.is_empty() {
             return false;
         }
         match ty {
             syn::Type::Path(tp) => {
                 if let Some(ident) = tp.path.get_ident()
-                    && type_param_names.contains(&ident.to_string())
+                    && self.type_param_names.contains(&ident.to_string())
                 {
                     return true;
                 }
@@ -219,11 +237,7 @@ impl DeriveContext {
                 {
                     for arg in &args.args {
                         if let syn::GenericArgument::Type(inner_ty) = arg
-                            && self.contains_generic_param(
-                                inner_ty,
-                                type_param_names,
-                                const_param_names,
-                            )
+                            && self.contains_generic_param(inner_ty)
                         {
                             return true;
                         }
@@ -231,22 +245,20 @@ impl DeriveContext {
                 }
                 false
             }
+            syn::Type::Reference(tr) => self.contains_generic_param(&tr.elem),
             syn::Type::Array(ta) => {
-                if self.contains_generic_param(&ta.elem, type_param_names, const_param_names) {
+                if self.contains_generic_param(&ta.elem) {
                     return true;
                 }
                 if let syn::Expr::Path(ep) = &ta.len
                     && let Some(ident) = ep.path.get_ident()
-                    && const_param_names.contains(&ident.to_string())
+                    && self.const_param_names.contains(&ident.to_string())
                 {
                     return true;
                 }
                 false
             }
-            syn::Type::Tuple(tt) => tt
-                .elems
-                .iter()
-                .any(|e| self.contains_generic_param(e, type_param_names, const_param_names)),
+            syn::Type::Tuple(tt) => tt.elems.iter().any(|e| self.contains_generic_param(e)),
             _ => false,
         }
     }
@@ -277,22 +289,17 @@ impl DeriveContext {
             .collect()
     }
 
-    fn generate_field_type_tokens(
-        &self,
-        ty: &syn::Type,
-        type_param_names: &[String],
-        const_param_names: &[String],
-    ) -> proc_macro2::TokenStream {
+    fn generate_field_type_tokens(&self, ty: &syn::Type) -> proc_macro2::TokenStream {
         let registry = &self.registry;
 
-        if !self.contains_generic_param(ty, type_param_names, const_param_names) {
+        if !self.contains_generic_param(ty) {
             return quote! { { registry.register_type::<#ty>() } };
         }
 
         match ty {
             syn::Type::Path(tp) => {
                 if let Some(ident) = tp.path.get_ident()
-                    && type_param_names.contains(&ident.to_string())
+                    && self.type_param_names.contains(&ident.to_string())
                 {
                     let ident_str = ident.to_string();
                     return quote! {
@@ -310,11 +317,7 @@ impl DeriveContext {
                     let mut arg_tokens = Vec::new();
                     for arg in &args.args {
                         if let syn::GenericArgument::Type(inner_ty) = arg {
-                            arg_tokens.push(self.generate_field_type_tokens(
-                                inner_ty,
-                                type_param_names,
-                                const_param_names,
-                            ));
+                            arg_tokens.push(self.generate_field_type_tokens(inner_ty));
                         }
                     }
 
@@ -335,11 +338,7 @@ impl DeriveContext {
             }
             syn::Type::Reference(tr) => {
                 if let syn::Type::Slice(ts) = &*tr.elem {
-                    let inner_tokens = self.generate_field_type_tokens(
-                        &ts.elem,
-                        type_param_names,
-                        const_param_names,
-                    );
+                    let inner_tokens = self.generate_field_type_tokens(&ts.elem);
                     return quote! {
                         {
                             let inner_id = #inner_tokens;
@@ -349,12 +348,10 @@ impl DeriveContext {
                         }
                     };
                 }
-                // Fallback for &T etc.
-                self.generate_field_type_tokens(&tr.elem, type_param_names, const_param_names)
+                self.generate_field_type_tokens(&tr.elem)
             }
             syn::Type::Array(ta) => {
-                let inner_tokens =
-                    self.generate_field_type_tokens(&ta.elem, type_param_names, const_param_names);
+                let inner_tokens = self.generate_field_type_tokens(&ta.elem);
                 let len = &ta.len;
                 quote! {
                     {
@@ -368,11 +365,7 @@ impl DeriveContext {
             syn::Type::Tuple(tt) => {
                 let mut elem_tokens = Vec::new();
                 for inner_ty in &tt.elems {
-                    elem_tokens.push(self.generate_field_type_tokens(
-                        inner_ty,
-                        type_param_names,
-                        const_param_names,
-                    ));
+                    elem_tokens.push(self.generate_field_type_tokens(inner_ty));
                 }
                 quote! {
                     {
@@ -394,26 +387,6 @@ impl DeriveContext {
     ) -> syn::Result<proc_macro2::TokenStream> {
         let registry = &self.registry;
 
-        let type_param_names: Vec<_> = self
-            .generics
-            .params
-            .iter()
-            .filter_map(|p| match p {
-                syn::GenericParam::Type(tp) => Some(tp.ident.to_string()),
-                _ => None,
-            })
-            .collect();
-
-        let const_param_names: Vec<_> = self
-            .generics
-            .params
-            .iter()
-            .filter_map(|p| match p {
-                syn::GenericParam::Const(cp) => Some(cp.ident.to_string()),
-                _ => None,
-            })
-            .collect();
-
         let field_tokens = fields
             .iter()
             .map(|f| {
@@ -422,25 +395,19 @@ impl DeriveContext {
                 let field_annotations = self.extract_annotations(&f.attrs)?;
                 let field_docs = self.extract_docs(&f.attrs);
 
-                let field_method = if f.ident.is_some() { quote!(field) } else { quote!(unnamed) };
-
-                let field_call = if let Some(ident) = &f.ident {
+                let (field_method, field_args) = if let Some(ident) = &f.ident {
                     let name = ident.to_string();
-                    quote! { .#field_method(#name) }
+                    (quote!(field), quote!(#name))
                 } else {
-                    quote! { .#field_method() }
+                    (quote!(unnamed), quote!())
                 };
 
-                let field_type_tokens = self.generate_field_type_tokens(
-                    field_ty,
-                    &type_param_names,
-                    &const_param_names,
-                );
+                let field_type_tokens = self.generate_field_type_tokens(field_ty);
 
                 Ok(quote! {
                     {
                         let ty = #field_type_tokens;
-                        #builder_ident = #builder_ident #field_call
+                        #builder_ident = #builder_ident .#field_method(#field_args)
                             .type_name(#field_type_name)
                             #(.doc(#field_docs))*
                             #(#field_annotations)*

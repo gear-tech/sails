@@ -5,14 +5,46 @@ use crate::ty::{
 };
 use alloc::{string::String, vec::Vec};
 
-#[derive(Default)]
+#[derive(Debug, Clone, Default)]
 pub struct TypeBuilder {
     module_path: String,
     name: String,
     type_params: Vec<TypeParameter>,
+    metadata: Metadata,
+    pending_param_name: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct VariantBuilder {
+    fields_builder: FieldsBuilder<VariantDefBuilder>,
+    name: String,
+    metadata: Metadata,
+}
+
+#[derive(Debug, Clone)]
+pub struct CompositeBuilder {
+    fields_builder: FieldsBuilder<TypeBuilder>,
+}
+
+#[derive(Debug, Clone)]
+pub struct VariantDefBuilder {
+    type_builder: TypeBuilder,
+    variants: Vec<Variant>,
+}
+
+#[derive(Debug, Clone)]
+struct FieldsBuilder<P> {
+    parent: P,
+    fields: Vec<Field>,
+    current_name: Option<Option<String>>,
+    current_metadata: Metadata,
+    current_type_name: Option<String>,
+}
+
+#[derive(Debug, Clone, Default)]
+struct Metadata {
     docs: Vec<String>,
     annotations: Vec<Annotation>,
-    pending_param_name: Option<String>,
 }
 
 impl TypeBuilder {
@@ -61,22 +93,17 @@ impl TypeBuilder {
     }
 
     pub fn doc(mut self, doc: impl Into<String>) -> Self {
-        self.docs.push(doc.into());
+        self.metadata.doc(doc);
         self
     }
 
     pub fn annotate(mut self, name: impl Into<String>) -> Self {
-        self.annotations.push(Annotation {
-            name: name.into(),
-            value: None,
-        });
+        self.metadata.annotate(name);
         self
     }
 
     pub fn value(mut self, value: impl Into<String>) -> Self {
-        if let Some(ann) = self.annotations.last_mut() {
-            ann.value = Some(value.into());
-        }
+        self.metadata.value(value);
         self
     }
 
@@ -123,12 +150,7 @@ impl TypeBuilder {
 
     pub fn composite(self) -> CompositeBuilder {
         CompositeBuilder {
-            type_builder: self,
-            fields: Vec::new(),
-            current_name: None,
-            current_docs: Vec::new(),
-            current_annotations: Vec::new(),
-            current_type_name: None,
+            fields_builder: FieldsBuilder::new(self),
         }
     }
 
@@ -145,107 +167,133 @@ impl TypeBuilder {
             name: self.name,
             type_params: self.type_params,
             def,
-            docs: self.docs,
-            annotations: self.annotations,
+            docs: self.metadata.docs,
+            annotations: self.metadata.annotations,
         }
     }
 }
 
-pub struct CompositeBuilder {
-    type_builder: TypeBuilder,
-    fields: Vec<Field>,
-    /// None: idle; Some(Some(name)): building named field; Some(None): building unnamed field
-    current_name: Option<Option<String>>,
-    current_docs: Vec<String>,
-    current_annotations: Vec<Annotation>,
-    current_type_name: Option<String>,
-}
-
-impl CompositeBuilder {
+impl VariantBuilder {
     pub fn field(mut self, name: impl Into<String>) -> Self {
-        self.current_name = Some(Some(name.into()));
+        self.fields_builder.field(name);
         self
     }
 
     pub fn unnamed(mut self) -> Self {
-        self.current_name = Some(None);
+        self.fields_builder.unnamed();
         self
     }
 
     pub fn doc(mut self, doc: impl Into<String>) -> Self {
-        if self.current_name.is_some() {
-            self.current_docs.push(doc.into());
-        } else {
-            self.type_builder = self.type_builder.doc(doc);
+        let doc = doc.into();
+        if !self.fields_builder.try_doc(doc.clone()) {
+            self.metadata.doc(doc);
         }
         self
     }
 
     pub fn annotate(mut self, name: impl Into<String>) -> Self {
-        if self.current_name.is_some() {
-            self.current_annotations.push(Annotation {
-                name: name.into(),
-                value: None,
-            });
-        } else {
-            self.type_builder = self.type_builder.annotate(name);
+        let name = name.into();
+        if !self.fields_builder.try_annotate(name.clone()) {
+            self.metadata.annotate(name);
         }
         self
     }
 
     pub fn value(mut self, value: impl Into<String>) -> Self {
-        if self.current_name.is_some() {
-            if let Some(ann) = self.current_annotations.last_mut() {
-                ann.value = Some(value.into());
-            }
-        } else {
-            self.type_builder = self.type_builder.value(value);
+        let value = value.into();
+        if !self.fields_builder.try_value(value.clone()) {
+            self.metadata.value(value);
         }
         self
     }
 
     pub fn type_name(mut self, type_name: impl Into<String>) -> Self {
-        self.current_type_name = Some(type_name.into());
+        self.fields_builder.type_name(type_name);
         self
     }
 
     pub fn ty(mut self, ty: TypeRef) -> Self {
-        if let Some(name) = self.current_name.take() {
-            self.fields.push(Field {
-                name,
-                ty,
-                type_name: self.current_type_name.take(),
-                docs: core::mem::take(&mut self.current_docs),
-                annotations: core::mem::take(&mut self.current_annotations),
-            });
+        self.fields_builder.ty(ty);
+        self
+    }
+
+    pub fn finish_variant(self) -> VariantDefBuilder {
+        let fields = self.fields_builder.fields;
+        let mut parent = self.fields_builder.parent;
+        parent.variants.push(Variant {
+            name: self.name,
+            fields,
+            docs: self.metadata.docs,
+            annotations: self.metadata.annotations,
+        });
+        parent
+    }
+
+    pub fn build(self) -> Type {
+        self.finish_variant().build()
+    }
+}
+
+impl CompositeBuilder {
+    pub fn field(mut self, name: impl Into<String>) -> Self {
+        self.fields_builder.field(name);
+        self
+    }
+
+    pub fn unnamed(mut self) -> Self {
+        self.fields_builder.unnamed();
+        self
+    }
+
+    pub fn doc(mut self, doc: impl Into<String>) -> Self {
+        let doc = doc.into();
+        if !self.fields_builder.try_doc(doc.clone()) {
+            self.fields_builder.parent.metadata.doc(doc);
         }
         self
     }
 
-    pub fn build(self) -> Type {
-        self.type_builder.build(TypeDef::Composite(Composite {
-            fields: self.fields,
-        }))
+    pub fn annotate(mut self, name: impl Into<String>) -> Self {
+        let name = name.into();
+        if !self.fields_builder.try_annotate(name.clone()) {
+            self.fields_builder.parent.metadata.annotate(name);
+        }
+        self
     }
-}
 
-pub struct VariantDefBuilder {
-    pub(crate) type_builder: TypeBuilder,
-    pub(crate) variants: Vec<Variant>,
+    pub fn value(mut self, value: impl Into<String>) -> Self {
+        let value = value.into();
+        if !self.fields_builder.try_value(value.clone()) {
+            self.fields_builder.parent.metadata.value(value);
+        }
+        self
+    }
+
+    pub fn type_name(mut self, type_name: impl Into<String>) -> Self {
+        self.fields_builder.type_name(type_name);
+        self
+    }
+
+    pub fn ty(mut self, ty: TypeRef) -> Self {
+        self.fields_builder.ty(ty);
+        self
+    }
+
+    pub fn build(self) -> Type {
+        let fields = self.fields_builder.fields;
+        self.fields_builder
+            .parent
+            .build(TypeDef::Composite(Composite { fields }))
+    }
 }
 
 impl VariantDefBuilder {
     pub fn add_variant(self, name: impl Into<String>) -> VariantBuilder {
         VariantBuilder {
-            parent: self,
-            variant_name: name.into(),
-            fields: Vec::new(),
-            variant_docs: Vec::new(),
-            variant_annotations: Vec::new(),
-            current_name: None,
-            current_docs: Vec::new(),
-            current_annotations: Vec::new(),
-            current_type_name: None,
+            fields_builder: FieldsBuilder::new(self),
+            name: name.into(),
+            metadata: Metadata::default(),
         }
     }
 
@@ -256,95 +304,84 @@ impl VariantDefBuilder {
     }
 }
 
-pub struct VariantBuilder {
-    parent: VariantDefBuilder,
-    variant_name: String,
-    fields: Vec<Field>,
-    variant_docs: Vec<String>,
-    variant_annotations: Vec<Annotation>,
-    /// None: idle; Some(Some(name)): building named field; Some(None): building unnamed field
-    current_name: Option<Option<String>>,
-    current_docs: Vec<String>,
-    current_annotations: Vec<Annotation>,
-    current_type_name: Option<String>,
-}
+impl<P> FieldsBuilder<P> {
+    fn new(parent: P) -> Self {
+        Self {
+            parent,
+            fields: Vec::new(),
+            current_name: None,
+            current_metadata: Metadata::default(),
+            current_type_name: None,
+        }
+    }
 
-impl VariantBuilder {
-    pub fn field(mut self, name: impl Into<String>) -> Self {
+    fn field(&mut self, name: impl Into<String>) {
         self.current_name = Some(Some(name.into()));
-        self
     }
 
-    pub fn unnamed(mut self) -> Self {
+    fn unnamed(&mut self) {
         self.current_name = Some(None);
-        self
     }
 
-    pub fn doc(mut self, doc: impl Into<String>) -> Self {
-        if self.current_name.is_some() {
-            self.current_docs.push(doc.into());
-        } else {
-            self.variant_docs.push(doc.into());
-        }
-        self
-    }
-
-    pub fn annotate(mut self, name: impl Into<String>) -> Self {
-        if self.current_name.is_some() {
-            self.current_annotations.push(Annotation {
-                name: name.into(),
-                value: None,
-            });
-        } else {
-            self.variant_annotations.push(Annotation {
-                name: name.into(),
-                value: None,
-            });
-        }
-        self
-    }
-
-    pub fn value(mut self, value: impl Into<String>) -> Self {
-        if self.current_name.is_some() {
-            if let Some(ann) = self.current_annotations.last_mut() {
-                ann.value = Some(value.into());
-            }
-        } else if let Some(ann) = self.variant_annotations.last_mut() {
-            ann.value = Some(value.into());
-        }
-        self
-    }
-
-    pub fn type_name(mut self, type_name: impl Into<String>) -> Self {
+    fn type_name(&mut self, type_name: impl Into<String>) {
         self.current_type_name = Some(type_name.into());
-        self
     }
 
-    pub fn ty(mut self, ty: TypeRef) -> Self {
+    fn ty(&mut self, ty: TypeRef) {
         if let Some(name) = self.current_name.take() {
             self.fields.push(Field {
                 name,
                 ty,
                 type_name: self.current_type_name.take(),
-                docs: core::mem::take(&mut self.current_docs),
-                annotations: core::mem::take(&mut self.current_annotations),
+                docs: core::mem::take(&mut self.current_metadata.docs),
+                annotations: core::mem::take(&mut self.current_metadata.annotations),
             });
         }
-        self
     }
 
-    pub fn finish_variant(mut self) -> VariantDefBuilder {
-        self.parent.variants.push(Variant {
-            name: self.variant_name,
-            fields: self.fields,
-            docs: self.variant_docs,
-            annotations: self.variant_annotations,
+    fn try_doc(&mut self, doc: String) -> bool {
+        if self.current_name.is_some() {
+            self.current_metadata.doc(doc);
+            true
+        } else {
+            false
+        }
+    }
+
+    fn try_annotate(&mut self, name: String) -> bool {
+        if self.current_name.is_some() {
+            self.current_metadata.annotate(name);
+            true
+        } else {
+            false
+        }
+    }
+
+    fn try_value(&mut self, value: String) -> bool {
+        if self.current_name.is_some() {
+            self.current_metadata.value(value);
+            true
+        } else {
+            false
+        }
+    }
+}
+
+impl Metadata {
+    fn doc(&mut self, doc: impl Into<String>) {
+        self.docs.push(doc.into());
+    }
+
+    fn annotate(&mut self, name: impl Into<String>) {
+        self.annotations.push(Annotation {
+            name: name.into(),
+            value: None,
         });
-        self.parent
     }
 
-    pub fn build(self) -> Type {
-        let parent = self.finish_variant();
-        parent.build()
+    fn value(&mut self, value: impl Into<String>) {
+        if let Some(ann) = self.annotations.last_mut() {
+            ann.value = Some(value.into());
+        }
     }
 }
