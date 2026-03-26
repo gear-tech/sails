@@ -19,52 +19,48 @@ pub trait IdlLoader {
 /// Each file is included at most once
 pub fn preprocess<L: IdlLoader>(path: &str, loader: &L) -> Result<String, String> {
     let mut visited = BTreeSet::new();
-    preprocess_recursive(path, loader, &mut visited)
+    let mut result = String::new();
+    preprocess_recursive(path, loader, &mut visited, &mut result)?;
+    Ok(result)
 }
 
 fn preprocess_recursive<L: IdlLoader>(
     path: &str,
     loader: &L,
     visited: &mut BTreeSet<L::Id>,
-) -> Result<String, String> {
+    out: &mut String,
+) -> Result<(), String> {
     let (src, unique_id) = loader.load(path)?;
 
-    if visited.contains(&unique_id) {
-        // If already visited, we return empty string to prevent duplication/cycle
-        return Ok(String::new());
+    if !visited.insert(unique_id) {
+        return Ok(());
     }
-    visited.insert(unique_id);
 
-    let mut result = String::new();
-    let mut brace_level: i32 = 0;
+    src.lines()
+        .try_fold(0, |brace_level, line| -> Result<i32, String> {
+            let trimmed = line.trim();
 
-    for line in src.lines() {
-        let trimmed = line.trim();
+            if brace_level == 0 && trimmed.starts_with("!@include:") {
+                let next_path = trimmed
+                    .strip_prefix("!@include:")
+                    .map(|s| s.trim().trim_matches(|c| c == '"' || c == '\''))
+                    .ok_or_else(|| String::from("Invalid include directive"))
+                    .and_then(|include_path| loader.resolve(path, include_path))?;
 
-        if brace_level == 0 && trimmed.starts_with("!@include:") {
-            let next_path_raw = trimmed.strip_prefix("!@include:").unwrap().trim();
-            let next_path_raw = next_path_raw.trim_matches('"').trim_matches('\'');
+                preprocess_recursive(&next_path, loader, visited, out)?;
 
-            // Resolve path using loader
-            let next_path = loader.resolve(path, next_path_raw)?;
-
-            let processed_content = preprocess_recursive(&next_path, loader, visited)?;
-
-            result.push_str(&processed_content);
-            if !processed_content.is_empty() && !processed_content.ends_with('\n') {
-                result.push('\n');
+                if !out.is_empty() && !out.ends_with('\n') {
+                    out.push('\n');
+                }
+                Ok(0)
+            } else {
+                out.push_str(line);
+                out.push('\n');
+                Ok(brace_level + calculate_brace_change(line))
             }
-            continue;
-        }
+        })?;
 
-        result.push_str(line);
-        result.push('\n');
-
-        let change = calculate_brace_change(line);
-        brace_level += change;
-    }
-
-    Ok(result)
+    Ok(())
 }
 
 fn calculate_brace_change(line: &str) -> i32 {
@@ -175,12 +171,11 @@ mod tests {
     use super::*;
     use alloc::collections::BTreeMap;
     use alloc::format;
-    use keccak_const::Keccak256;
 
     struct MapLoader(BTreeMap<String, String>);
 
     impl IdlLoader for MapLoader {
-        type Id = [u8; 32];
+        type Id = String;
 
         fn load(&self, path: &str) -> Result<(String, Self::Id), String> {
             let content = self
@@ -189,11 +184,8 @@ mod tests {
                 .cloned()
                 .ok_or_else(|| format!("File not found: {path}"))?;
 
-            let hash_raw = Keccak256::new().update(content.as_bytes()).finalize();
-            let mut hash = [0u8; 32];
-            hash.copy_from_slice(&hash_raw);
-
-            Ok((content, hash))
+            // In tests we can just use content itself as unique ID
+            Ok((content.clone(), content))
         }
 
         fn resolve(&self, base_path: &str, include_path: &str) -> Result<String, String> {
@@ -220,7 +212,6 @@ mod tests {
 
         let loader = MapLoader(files);
         let result = preprocess("main.idl", &loader).unwrap();
-
         assert!(result.contains("service Leaf"));
         assert!(result.contains("service Middle"));
         assert!(result.contains("service Main"));
@@ -267,5 +258,56 @@ mod tests {
         // } -> -1
         // Total 0.
         assert_eq!(calculate_brace_change(r#"{ " \" { " }"#), 0);
+    }
+
+    #[test]
+    fn test_preprocess_complex_includes() {
+        let mut files = BTreeMap::new();
+        files.insert(
+            "common.idl".into(),
+            r#"!@sails: 0.1.0
+            !@author: gear
+
+            service CommonSvc {
+                types {
+                    struct Common {
+                        id: u64,
+                    }
+                }
+            }"#
+            .into(),
+        );
+        files.insert(
+            "service_a.idl".into(),
+            r#"!@include: common.idl
+
+            service ServiceA {
+                functions {
+                    Do(c: u64);
+                }
+            }"#
+            .into(),
+        );
+        files.insert(
+            "main.idl".into(),
+            r#"!@sails: 0.1.0
+            !@include: service_a.idl
+
+            program Main {
+                services {
+                    ServiceA: ServiceA,
+                }
+            }"#
+            .into(),
+        );
+
+        let loader = MapLoader(files);
+        let result = preprocess("main.idl", &loader).unwrap();
+
+        let doc = crate::parse_idl(&result).expect("Failed to parse preprocessed IDL");
+
+        assert_eq!(doc.globals.len(), 3);
+        assert_eq!(doc.services.len(), 2);
+        assert!(doc.program.is_some());
     }
 }
