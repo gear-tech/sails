@@ -1,0 +1,3 @@
+!@include: folder_a/a.idl
+!@include: folder_b/b.idl
+service Main {}

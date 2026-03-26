@@ -19,6 +19,7 @@ pub mod ffi {
     pub mod ast;
 }
 mod post_process;
+pub mod preprocess;
 pub mod visitor;
 
 // Sails IDL v2 — parser using `pest-rs`
