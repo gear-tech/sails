@@ -23,3 +23,6 @@ pest.workspace = true
 pest_derive.workspace = true
 sails-idl-meta = { workspace = true, features = ["ast"] }
 paste.workspace = true
+
+[dev-dependencies]
+keccak-const.workspace = true

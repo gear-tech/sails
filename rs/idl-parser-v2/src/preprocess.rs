@@ -62,10 +62,6 @@ fn preprocess_recursive<L: IdlLoader>(
 
         let change = calculate_brace_change(line);
         brace_level += change;
-
-        if brace_level < 0 {
-            brace_level = 0;
-        }
     }
 
     Ok(result)
@@ -115,12 +111,12 @@ mod tests {
     use super::*;
     use alloc::collections::BTreeMap;
     use alloc::format;
-    use alloc::string::ToString;
+    use keccak_const::Keccak256;
 
     struct MapLoader(BTreeMap<String, String>);
 
     impl IdlLoader for MapLoader {
-        type Id = String;
+        type Id = [u8; 32];
 
         fn load(&self, path: &str) -> Result<(String, Self::Id), String> {
             let content = self
@@ -128,7 +124,12 @@ mod tests {
                 .get(path)
                 .cloned()
                 .ok_or_else(|| format!("File not found: {path}"))?;
-            Ok((content, path.to_string()))
+
+            let hash_raw = Keccak256::new().update(content.as_bytes()).finalize();
+            let mut hash = [0u8; 32];
+            hash.copy_from_slice(&hash_raw);
+
+            Ok((content, hash))
         }
 
         fn resolve(&self, base_path: &str, include_path: &str) -> Result<String, String> {
