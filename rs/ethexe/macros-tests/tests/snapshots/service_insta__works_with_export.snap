@@ -108,23 +108,10 @@ impl SomeServiceExposure<SomeService> {
                         &mut input,
                     )
                     .expect("Failed to decode params");
-                let result = match self.do_this(request.p1, request.p2).await {
-                    Ok(v) => v,
-                    Err(e) => {
-                        let encoded = <some_service_meta::__DoSomethingParams as sails_rs::gstd::InvocationIo>::with_optimized_encode_with_id(
-                            <some_service_meta::__DoSomethingParams as sails_rs::meta::Identifiable>::INTERFACE_ID,
-                            <some_service_meta::__DoSomethingParams as sails_rs::meta::MethodMeta>::ENTRY_ID,
-                            &e,
-                            self.route_idx,
-                            |encoded| encoded.to_vec(),
-                        );
-                        if encoded.len() <= sails_rs::gstd::MAX_PANIC_PAYLOAD_SIZE {
-                            sails_rs::gstd::Syscall::panic(&encoded)
-                        } else {
-                            ::core::panic!("Error payload is too large to panic")
-                        }
-                    }
-                };
+                let result = sails_rs::ok_or_throws!(
+                    self.do_this(request.p1, request.p2). await,
+                    some_service_meta::__DoSomethingParams, self.route_idx
+                );
                 let value = 0u128;
                 if !sails_rs::gstd::is_empty_tuple::<(u32, String)>() {
                     <some_service_meta::__DoSomethingParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
@@ -274,37 +261,16 @@ mod some_service_meta {
         ];
         const ASYNC: bool = true;
     }
-    #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
-    #[codec(crate = sails_rs::scale_codec)]
-    #[type_info(crate = sails_rs::type_info)]
-    pub struct __DoSomethingParams {
-        pub(super) p1: u32,
-        pub(super) p2: String,
-    }
-    impl sails_rs::meta::Identifiable for __DoSomethingParams {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::SomeService as sails_rs::meta::Identifiable>::INTERFACE_ID;
-    }
-    impl sails_rs::meta::MethodMeta for __DoSomethingParams {
-        const ENTRY_ID: u16 = 0u16;
-    }
-    impl sails_rs::gstd::InvocationIo for __DoSomethingParams {
-        type Params = Self;
-    }
-    #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
-    #[codec(crate = sails_rs::scale_codec)]
-    #[type_info(crate = sails_rs::type_info)]
-    pub struct __ThisParams {
-        pub(super) p1: bool,
-    }
-    impl sails_rs::meta::Identifiable for __ThisParams {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::SomeService as sails_rs::meta::Identifiable>::INTERFACE_ID;
-    }
-    impl sails_rs::meta::MethodMeta for __ThisParams {
-        const ENTRY_ID: u16 = 1u16;
-    }
-    impl sails_rs::gstd::InvocationIo for __ThisParams {
-        type Params = Self;
-    }
+    sails_rs::invocation_io!(
+        pub struct __DoSomethingParams { pub (super) p1 : u32, pub (super) p2 : String,
+        }, interface_id = < super::SomeService as sails_rs::meta::Identifiable >
+        ::INTERFACE_ID, entry_id = 0u16,
+    );
+    sails_rs::invocation_io!(
+        pub struct __ThisParams { pub (super) p1 : bool, }, interface_id = <
+        super::SomeService as sails_rs::meta::Identifiable > ::INTERFACE_ID, entry_id =
+        1u16,
+    );
     #[derive(sails_rs::TypeInfo)]
     #[type_info(crate = sails_rs::type_info)]
     pub enum CommandsMeta {

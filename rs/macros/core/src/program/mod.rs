@@ -299,45 +299,17 @@ impl ProgramBuilder {
             .iter()
             .enumerate()
             .map(|(idx, (service_ctor_ident, service_type))| {
-                let route_id = (idx + 1) as u8;
+                let route_idx = (idx + 1) as u8;
 
                 quote! {
-                    #route_id => {
+                    #route_idx => {
                         let svc = program_ref.#service_ctor_ident();
-                        let is_async = <#service_type as #sails_path::gstd::services::Service>::Exposure::check_asyncness(interface_id, entry_id)
-                            .unwrap_or_else(|| {
-                                gstd::unknown_input_panic("Unknown call", &[])
-                            });
-                        if is_async {
-                            gstd::message_loop(async move {
-                                svc
-                                    .try_handle_async(
-                                        interface_id,
-                                        entry_id,
-                                        &input[header_len..],
-                                        |encoded_result, value| {
-                                            gstd::msg::reply_bytes(encoded_result, value)
-                                                .expect("Failed to send output");
-                                        },
-                                    )
-                                    .await
-                                    .unwrap_or_else(|| {
-                                        gstd::unknown_input_panic("Unknown request", &[])
-                                    });
-                            });
-                        } else {
-                            svc
-                                .try_handle(
-                                    interface_id,
-                                    entry_id,
-                                    &input[header_len..],
-                                    |encoded_result, value| {
-                                        gstd::msg::reply_bytes(encoded_result, value)
-                                            .expect("Failed to send output");
-                                    },
-                                )
-                                .unwrap_or_else(|| gstd::unknown_input_panic("Unknown request", &[]));
-                        }
+                        #sails_path::service_route_dispatch!(
+                            svc: #service_type,
+                            interface_id = interface_id,
+                            entry_id = entry_id,
+                            input = &input[header_len..],
+                        );
                     }
                 }
             })
@@ -418,7 +390,6 @@ impl ProgramBuilder {
 
     fn generate_init(&self, program_ident: &Ident) -> (TokenStream2, TokenStream2) {
         let sails_path = self.sails_path();
-        let scale_codec_path = sails_paths::scale_codec_path(sails_path);
         let type_info_path = sails_paths::type_info_path(sails_path);
 
         let (program_type_path, ..) = self.impl_type();
@@ -436,8 +407,7 @@ impl ProgramBuilder {
                 &input_ident,
                 program_ident,
             ));
-            ctor_params_structs
-                .push(fn_builder.ctor_params_struct(&scale_codec_path, &type_info_path));
+            ctor_params_structs.push(fn_builder.ctor_params_struct());
             ctor_meta_variants.push(fn_builder.ctor_meta_variant());
         }
 
@@ -701,7 +671,7 @@ impl FnBuilder<'_> {
         let sails_path = self.sails_path;
         let service_type = &self.result_type;
         let route_idx = (self.entry_id + 1) as u8;
-        let unwrap_token = self.unwrap_result.then(|| quote!(.unwrap()));
+        let unwrap_token = self.error_type.is_some().then(|| quote!(.unwrap()));
 
         let mut wrapping_service_ctor_fn = self.impl_fn.clone();
         // Filter out `export  attribute
@@ -745,58 +715,15 @@ impl FnBuilder<'_> {
         };
 
         let await_token = self.is_async().then(|| quote!(.await));
-        let raw_call =
-            quote! { #program_type_path :: #handler_ident (#(#handler_args),*) #await_token };
-
+        let unwrap_token = self.error_type.is_some().then(|| quote!(.unwrap()));
+        let raw_call = quote! { #program_type_path :: #handler_ident (#(#handler_args),*) #await_token #unwrap_token };
         let params_struct_ident = &self.params_struct_ident;
-        let original_result_type = shared::result_type(&self.impl_fn.sig);
-        let call = if self.unwrap_result {
-            if let syn::Type::Path(tp) = &original_result_type
-                && let Some((_ok_ty, _err_ty)) = shared::extract_result_types(tp)
-            {
-                quote! {
-                    match #raw_call {
-                        Ok(v) => v,
-                        Err(e) => {
-                            let encoded = <meta_in_program::#params_struct_ident as #sails_path::gstd::InvocationIo>::with_optimized_encode_with_id(
-                                <meta_in_program::#params_struct_ident as #sails_path::meta::Identifiable>::INTERFACE_ID,
-                                <meta_in_program::#params_struct_ident as #sails_path::meta::MethodMeta>::ENTRY_ID,
-                                &e,
-                                0, // route_idx for ctors is always 0
-                                |encoded| encoded.to_vec()
-                            );
-                            if encoded.len() <= #sails_path::gstd::MAX_PANIC_PAYLOAD_SIZE {
-                                #sails_path::gstd::Syscall::panic(&encoded)
-                            } else {
-                                ::core::panic!("Error payload is too large to panic")
-                            }
-                        }
-                    }
-                }
-            } else {
-                quote! { #raw_call .unwrap() }
-            }
-        } else {
-            raw_call
-        };
 
-        let ctor_call_impl = if self.is_async() {
-            quote! {
-                gstd::message_loop(async move {
-                    let program = #call;
-
-                    unsafe {
-                        #program_ident = Some(program);
-                    }
-                });
-            }
-        } else {
-            quote! {
-                let program = #call;
-                unsafe {
-                    #program_ident = Some(program);
-                }
-            }
+        let ctor_call_impl = quote! {
+            #sails_path::program_ctor!(
+                #program_ident = #raw_call,
+                params_struct = meta_in_program::#params_struct_ident
+            )
         };
 
         quote!(
@@ -809,31 +736,19 @@ impl FnBuilder<'_> {
         )
     }
 
-    fn ctor_params_struct(&self, scale_codec_path: &Path, type_info_path: &Path) -> TokenStream2 {
+    fn ctor_params_struct(&self) -> TokenStream2 {
         let sails_path = self.sails_path;
         let params_struct_ident = &self.params_struct_ident;
         let params_struct_members = self.params().map(|(ident, ty)| quote!(#ident: #ty));
         let entry_id = &self.entry_id;
 
         quote! {
-            #[derive(#sails_path::Decode, #sails_path::TypeInfo)]
-            #[codec(crate = #scale_codec_path )]
-            #[type_info(crate = #type_info_path )]
-            pub struct #params_struct_ident {
-                #(pub(super) #params_struct_members,)*
-            }
-
-            impl #sails_path::meta::Identifiable for #params_struct_ident {
-                const INTERFACE_ID: #sails_path::meta::InterfaceId = #sails_path::meta::InterfaceId::zero();
-            }
-
-            impl #sails_path::meta::MethodMeta for #params_struct_ident {
-                const ENTRY_ID: u16 = #entry_id;
-            }
-
-            impl #sails_path::gstd::InvocationIo for #params_struct_ident {
-                type Params = Self;
-            }
+            #sails_path::invocation_io!(
+                pub struct #params_struct_ident {
+                    #(pub(super) #params_struct_members,)*
+                },
+                entry_id = #entry_id,
+            );
         }
     }
 
@@ -846,9 +761,7 @@ impl FnBuilder<'_> {
             .filter(|attr| attr.path().is_ident("doc"));
         let params_struct_ident = &self.params_struct_ident;
 
-        if self.unwrap_result
-            && let Some(err_ty) = &self.error_type
-        {
+        if let Some(err_ty) = &self.error_type {
             let err_ty = shared::replace_any_lifetime_with_static(err_ty.clone());
             quote! {
                 #( #ctor_docs_attrs )*

@@ -209,7 +209,7 @@ impl FnBuilder<'_> {
             }
         });
 
-        let unwrap_token = self.unwrap_result.then(|| quote!(.unwrap()));
+        let unwrap_token = self.error_type.is_some().then(|| quote!(.unwrap()));
 
         let ctor_invocation = if self.is_async() {
             quote! {

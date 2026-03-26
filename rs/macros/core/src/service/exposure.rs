@@ -91,32 +91,13 @@ impl ServiceBuilder<'_> {
 
         let raw_call = quote! { self.#handler_func_ident(#(#handler_func_params),*)#await_token };
 
-        let call = if fn_builder.unwrap_result {
-            let original_result_type = shared::result_type(&fn_builder.impl_fn.sig);
-            if let syn::Type::Path(tp) = &original_result_type
-                && let Some((_ok_ty, _err_ty)) = shared::extract_result_types(tp)
-            {
-                quote! {
-                    match #raw_call {
-                        Ok(v) => v,
-                        Err(e) => {
-                            let encoded = <#meta_module_ident::#params_struct_ident as #sails_path::gstd::InvocationIo>::with_optimized_encode_with_id(
-                                <#meta_module_ident::#params_struct_ident as #sails_path::meta::Identifiable>::INTERFACE_ID,
-                                <#meta_module_ident::#params_struct_ident as #sails_path::meta::MethodMeta>::ENTRY_ID,
-                                &e,
-                                self.route_idx,
-                                |encoded| encoded.to_vec()
-                            );
-                            if encoded.len() <= #sails_path::gstd::MAX_PANIC_PAYLOAD_SIZE {
-                                #sails_path::gstd::Syscall::panic(&encoded)
-                            } else {
-                                ::core::panic!("Error payload is too large to panic")
-                            }
-                        }
-                    }
-                }
-            } else {
-                quote! { #raw_call .unwrap() }
+        let call = if fn_builder.error_type.is_some() {
+            quote! {
+                #sails_path::ok_or_throws!(
+                    #raw_call,
+                    #meta_module_ident::#params_struct_ident,
+                    self.route_idx
+                )
             }
         } else {
             raw_call

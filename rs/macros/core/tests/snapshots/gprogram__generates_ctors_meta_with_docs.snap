@@ -20,38 +20,14 @@ impl sails_rs::meta::ProgramMeta for MyProgram {
 }
 mod meta_in_program {
     use super::*;
-    #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
-    #[codec(crate = sails_rs::scale_codec)]
-    #[type_info(crate = sails_rs::type_info)]
-    pub struct __NewParams {
-        pub(super) p1: u32,
-        pub(super) p2: String,
-    }
-    impl sails_rs::meta::Identifiable for __NewParams {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = sails_rs::meta::InterfaceId::zero();
-    }
-    impl sails_rs::meta::MethodMeta for __NewParams {
-        const ENTRY_ID: u16 = 0u16;
-    }
-    impl sails_rs::gstd::InvocationIo for __NewParams {
-        type Params = Self;
-    }
-    #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
-    #[codec(crate = sails_rs::scale_codec)]
-    #[type_info(crate = sails_rs::type_info)]
-    pub struct __New2Params {
-        pub(super) p2: String,
-        pub(super) p1: u32,
-    }
-    impl sails_rs::meta::Identifiable for __New2Params {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = sails_rs::meta::InterfaceId::zero();
-    }
-    impl sails_rs::meta::MethodMeta for __New2Params {
-        const ENTRY_ID: u16 = 1u16;
-    }
-    impl sails_rs::gstd::InvocationIo for __New2Params {
-        type Params = Self;
-    }
+    sails_rs::invocation_io!(
+        pub struct __NewParams { pub (super) p1 : u32, pub (super) p2 : String, },
+        entry_id = 0u16,
+    );
+    sails_rs::invocation_io!(
+        pub struct __New2Params { pub (super) p2 : String, pub (super) p1 : u32, },
+        entry_id = 1u16,
+    );
     #[derive(sails_rs::TypeInfo)]
     #[type_info(crate = sails_rs::type_info)]
     pub enum ConstructorsMeta {
@@ -86,12 +62,10 @@ pub mod wasm {
                             "Unknown request",
                             input,
                         ));
-                    gstd::message_loop(async move {
-                        let program = MyProgram::new(p1, p2).await;
-                        unsafe {
-                            PROGRAM = Some(program);
-                        }
-                    });
+                    sails_rs::program_ctor!(
+                        PROGRAM = MyProgram::new(p1, p2). await, params_struct =
+                        meta_in_program::__NewParams
+                    )
                 }
                 1u16 => {
                     let (p2, p1): (String, u32) = sails_rs::Decode::decode(&mut input)
@@ -99,10 +73,10 @@ pub mod wasm {
                             "Unknown request",
                             input,
                         ));
-                    let program = MyProgram::new2(p2, p1);
-                    unsafe {
-                        PROGRAM = Some(program);
-                    }
+                    sails_rs::program_ctor!(
+                        PROGRAM = MyProgram::new2(p2, p1), params_struct =
+                        meta_in_program::__New2Params
+                    )
                 }
                 _ => {
                     sails_rs::gstd::unknown_input_panic(

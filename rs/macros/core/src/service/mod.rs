@@ -229,9 +229,7 @@ impl FnBuilder<'_> {
             None
         };
 
-        if self.unwrap_result
-            && let Some(err_ty) = &self.error_type
-        {
+        if let Some(err_ty) = &self.error_type {
             let err_ty = shared::replace_any_lifetime_with_static(err_ty.clone());
             quote!(
                 #( #handler_docs_attrs )*
@@ -249,12 +247,7 @@ impl FnBuilder<'_> {
         }
     }
 
-    fn params_struct(
-        &self,
-        service_path: &TypePath,
-        scale_codec_path: &Path,
-        type_info_path: &Path,
-    ) -> TokenStream {
+    fn params_struct(&self, service_path: &TypePath) -> TokenStream {
         let sails_path = self.sails_path;
         let params_struct_ident = &self.params_struct_ident;
         let params_struct_members = self.params().map(|(ident, ty)| quote!(#ident: #ty));
@@ -291,24 +284,13 @@ impl FnBuilder<'_> {
         };
 
         quote!(
-            #[derive(#sails_path::Decode, #sails_path::TypeInfo)]
-            #[codec(crate = #scale_codec_path )]
-            #[type_info(crate = #type_info_path )]
-            pub struct #params_struct_ident {
-                #(pub(super) #params_struct_members,)*
-            }
-
-            impl #sails_path::meta::Identifiable for #params_struct_ident {
-                const INTERFACE_ID: #sails_path::meta::InterfaceId = #interface_id_computation;
-            }
-
-            impl #sails_path::meta::MethodMeta for #params_struct_ident {
-                const ENTRY_ID: u16 = #entry_id_computation;
-            }
-
-            impl #sails_path::gstd::InvocationIo for #params_struct_ident {
-                type Params = Self;
-            }
+            #sails_path::invocation_io!(
+                pub struct #params_struct_ident {
+                    #(pub(super) #params_struct_members,)*
+                },
+                interface_id = #interface_id_computation,
+                entry_id = #entry_id_computation,
+            );
         )
     }
 }

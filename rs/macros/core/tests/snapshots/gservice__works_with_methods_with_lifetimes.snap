@@ -285,73 +285,27 @@ mod reference_service_meta {
         ];
         const ASYNC: bool = true;
     }
-    #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
-    #[codec(crate = sails_rs::scale_codec)]
-    #[type_info(crate = sails_rs::type_info)]
-    pub struct __AddByteParams {
-        pub(super) byte: u8,
-    }
-    impl sails_rs::meta::Identifiable for __AddByteParams {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID;
-    }
-    impl sails_rs::meta::MethodMeta for __AddByteParams {
-        const ENTRY_ID: u16 = 0u16;
-    }
-    impl sails_rs::gstd::InvocationIo for __AddByteParams {
-        type Params = Self;
-    }
-    #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
-    #[codec(crate = sails_rs::scale_codec)]
-    #[type_info(crate = sails_rs::type_info)]
-    pub struct __BakedParams {}
-    impl sails_rs::meta::Identifiable for __BakedParams {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID;
-    }
-    impl sails_rs::meta::MethodMeta for __BakedParams {
-        const ENTRY_ID: u16 = 1u16;
-    }
-    impl sails_rs::gstd::InvocationIo for __BakedParams {
-        type Params = Self;
-    }
-    #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
-    #[codec(crate = sails_rs::scale_codec)]
-    #[type_info(crate = sails_rs::type_info)]
-    pub struct __FirstByteParams {}
-    impl sails_rs::meta::Identifiable for __FirstByteParams {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID;
-    }
-    impl sails_rs::meta::MethodMeta for __FirstByteParams {
-        const ENTRY_ID: u16 = 2u16;
-    }
-    impl sails_rs::gstd::InvocationIo for __FirstByteParams {
-        type Params = Self;
-    }
-    #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
-    #[codec(crate = sails_rs::scale_codec)]
-    #[type_info(crate = sails_rs::type_info)]
-    pub struct __IncrParams {}
-    impl sails_rs::meta::Identifiable for __IncrParams {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID;
-    }
-    impl sails_rs::meta::MethodMeta for __IncrParams {
-        const ENTRY_ID: u16 = 3u16;
-    }
-    impl sails_rs::gstd::InvocationIo for __IncrParams {
-        type Params = Self;
-    }
-    #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
-    #[codec(crate = sails_rs::scale_codec)]
-    #[type_info(crate = sails_rs::type_info)]
-    pub struct __LastByteParams {}
-    impl sails_rs::meta::Identifiable for __LastByteParams {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::ReferenceService as sails_rs::meta::Identifiable>::INTERFACE_ID;
-    }
-    impl sails_rs::meta::MethodMeta for __LastByteParams {
-        const ENTRY_ID: u16 = 4u16;
-    }
-    impl sails_rs::gstd::InvocationIo for __LastByteParams {
-        type Params = Self;
-    }
+    sails_rs::invocation_io!(
+        pub struct __AddByteParams { pub (super) byte : u8, }, interface_id = <
+        super::ReferenceService as sails_rs::meta::Identifiable > ::INTERFACE_ID,
+        entry_id = 0u16,
+    );
+    sails_rs::invocation_io!(
+        pub struct __BakedParams {}, interface_id = < super::ReferenceService as
+        sails_rs::meta::Identifiable > ::INTERFACE_ID, entry_id = 1u16,
+    );
+    sails_rs::invocation_io!(
+        pub struct __FirstByteParams {}, interface_id = < super::ReferenceService as
+        sails_rs::meta::Identifiable > ::INTERFACE_ID, entry_id = 2u16,
+    );
+    sails_rs::invocation_io!(
+        pub struct __IncrParams {}, interface_id = < super::ReferenceService as
+        sails_rs::meta::Identifiable > ::INTERFACE_ID, entry_id = 3u16,
+    );
+    sails_rs::invocation_io!(
+        pub struct __LastByteParams {}, interface_id = < super::ReferenceService as
+        sails_rs::meta::Identifiable > ::INTERFACE_ID, entry_id = 4u16,
+    );
     #[derive(sails_rs::TypeInfo)]
     #[type_info(crate = sails_rs::type_info)]
     pub enum CommandsMeta {

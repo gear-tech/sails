@@ -14,19 +14,7 @@ impl sails_rs::meta::ProgramMeta for MyProgram {
 }
 mod meta_in_program {
     use super::*;
-    #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
-    #[codec(crate = sails_rs::scale_codec)]
-    #[type_info(crate = sails_rs::type_info)]
-    pub struct __CreateParams {}
-    impl sails_rs::meta::Identifiable for __CreateParams {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = sails_rs::meta::InterfaceId::zero();
-    }
-    impl sails_rs::meta::MethodMeta for __CreateParams {
-        const ENTRY_ID: u16 = 0u16;
-    }
-    impl sails_rs::gstd::InvocationIo for __CreateParams {
-        type Params = Self;
-    }
+    sails_rs::invocation_io!(pub struct __CreateParams {}, entry_id = 0u16,);
     #[derive(sails_rs::TypeInfo)]
     #[type_info(crate = sails_rs::type_info)]
     pub enum ConstructorsMeta {
@@ -57,10 +45,10 @@ pub mod wasm {
                             "Unknown request",
                             input,
                         ));
-                    let program = MyProgram::create();
-                    unsafe {
-                        PROGRAM = Some(program);
-                    }
+                    sails_rs::program_ctor!(
+                        PROGRAM = MyProgram::create(), params_struct =
+                        meta_in_program::__CreateParams
+                    )
                 }
                 _ => {
                     sails_rs::gstd::unknown_input_panic(

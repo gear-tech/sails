@@ -9,6 +9,8 @@ pub use builder::{ClientBuilder, ClientGenerator, IdlPath, build_client, build_c
 #[cfg(feature = "wasm-builder")]
 pub use gwasm_builder::build as build_wasm;
 pub use hex;
+#[doc(hidden)]
+pub use paste;
 pub use prelude::*;
 #[cfg(all(feature = "idl-gen", not(target_arch = "wasm32")))]
 pub use sails_idl_gen::generate_idl;

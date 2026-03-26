@@ -129,7 +129,7 @@ impl ServiceBuilder<'_> {
         let (result_type, reply_with_value) = fn_builder.result_type_with_value();
 
         let await_token = fn_builder.is_async().then(|| quote!(.await));
-        let unwrap_token = fn_builder.unwrap_result.then(|| quote!(.unwrap()));
+        let unwrap_token = fn_builder.error_type.is_some().then(|| quote!(.unwrap()));
 
         let handle_token = if reply_with_value {
             quote! {

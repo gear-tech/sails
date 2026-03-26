@@ -152,19 +152,10 @@ mod my_generic_events_service_meta {
         ];
         const ASYNC: bool = false;
     }
-    #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
-    #[codec(crate = sails_rs::scale_codec)]
-    #[type_info(crate = sails_rs::type_info)]
-    pub struct __DoThisParams {}
-    impl sails_rs::meta::Identifiable for __DoThisParams {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = <super::MyGenericEventsService as sails_rs::meta::Identifiable>::INTERFACE_ID;
-    }
-    impl sails_rs::meta::MethodMeta for __DoThisParams {
-        const ENTRY_ID: u16 = 0u16;
-    }
-    impl sails_rs::gstd::InvocationIo for __DoThisParams {
-        type Params = Self;
-    }
+    sails_rs::invocation_io!(
+        pub struct __DoThisParams {}, interface_id = < super::MyGenericEventsService as
+        sails_rs::meta::Identifiable > ::INTERFACE_ID, entry_id = 0u16,
+    );
     #[derive(sails_rs::TypeInfo)]
     #[type_info(crate = sails_rs::type_info)]
     pub enum CommandsMeta {
