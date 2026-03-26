@@ -1,0 +1,7 @@
+!@include: common.idl
+
+service ServiceA {
+    functions {
+        GetData(id: u32) -> ResultData throws Error;
+    }
+}

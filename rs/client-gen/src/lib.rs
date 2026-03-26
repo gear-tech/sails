@@ -1,13 +1,12 @@
 use anyhow::{Context, Result};
 use root_generator::RootGenerator;
-use sails_idl_parser_v2::{parse_idl, visitor};
+use sails_idl_parser_v2::{parse_idl, preprocess, visitor};
 use std::{collections::HashMap, fs, io::Write, path::Path};
 
 mod ctor_generators;
 mod events_generator;
 mod helpers;
 mod mock_generator;
-mod resolution;
 mod root_generator;
 mod service_generators;
 mod type_generators;
@@ -103,7 +102,8 @@ impl<'ast> ClientGenerator<'ast, IdlPath<'ast>> {
         let client_path = self.client_path.context("client path not set")?;
         let idl_path = self.idl.0;
 
-        let idl = resolution::resolve_idl_from_path(idl_path)
+        let idl = preprocess::fs::preprocess_from_path(idl_path)
+            .map_err(|e| anyhow::anyhow!(e))
             .with_context(|| format!("Failed to open {} for reading", idl_path.display()))?;
 
         self.with_idl(&idl)
@@ -115,7 +115,8 @@ impl<'ast> ClientGenerator<'ast, IdlPath<'ast>> {
     pub fn generate_to(self, out_path: impl AsRef<Path>) -> Result<()> {
         let idl_path = self.idl.0;
 
-        let idl = resolution::resolve_idl_from_path(idl_path)
+        let idl = preprocess::fs::preprocess_from_path(idl_path)
+            .map_err(|e| anyhow::anyhow!(e))
             .with_context(|| format!("Failed to open {} for reading", idl_path.display()))?;
 
         self.with_idl(&idl)
@@ -212,4 +213,37 @@ fn pretty_with_rustfmt(code: &str) -> String {
     }
 
     String::from_utf8(output.stdout).expect("Failed to read rustfmt output")
+}
+
+#[cfg(test)]
+mod tests {
+    use sails_idl_parser_v2::preprocess::fs::preprocess_from_path;
+    use std::path::Path;
+
+    #[test]
+    fn test_resolve_idl_from_path() {
+        let path = Path::new("tests/idls/recursive_main.idl");
+        let result = preprocess_from_path(path).unwrap();
+
+        assert!(result.contains("service Leaf"));
+        assert!(result.contains("service Middle"));
+        assert!(result.contains("service Main"));
+    }
+
+    #[test]
+    fn test_resolve_nested_idl() {
+        let path = Path::new("tests/idls/nested/main.idl");
+        let result = preprocess_from_path(path).expect("Failed to resolve nested IDL");
+
+        assert!(result.contains("service A"));
+        assert!(result.contains("service B"));
+        assert!(result.contains("service Main"));
+
+        let common_count = result.matches("struct Common").count();
+        assert_eq!(
+            common_count, 1,
+            "struct Common should be included only once, but found {}",
+            common_count
+        );
+    }
 }

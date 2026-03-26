@@ -106,6 +106,70 @@ fn calculate_brace_change(line: &str) -> i32 {
     change
 }
 
+#[cfg(feature = "std")]
+pub mod fs {
+    use super::{IdlLoader, preprocess};
+    use alloc::format;
+    use alloc::string::String;
+    use keccak_const::Keccak256;
+    use std::fs;
+    use std::path::{Path, PathBuf};
+
+    pub struct FsLoader {
+        base_dir: PathBuf,
+    }
+
+    impl FsLoader {
+        pub fn new<P: AsRef<Path>>(base_dir: P) -> Self {
+            Self {
+                base_dir: base_dir.as_ref().to_path_buf(),
+            }
+        }
+    }
+
+    impl IdlLoader for FsLoader {
+        type Id = [u8; 32];
+
+        fn load(&self, path: &str) -> Result<(String, Self::Id), String> {
+            let full_path = self.base_dir.join(path);
+            let content = fs::read_to_string(&full_path).map_err(|e| {
+                format!(
+                    "Failed to read include '{}' (base_dir: '{}'): {}",
+                    path,
+                    self.base_dir.display(),
+                    e
+                )
+            })?;
+
+            let hash_raw = Keccak256::new().update(content.as_bytes()).finalize();
+            let mut hash = [0u8; 32];
+            hash.copy_from_slice(&hash_raw);
+
+            Ok((content, hash))
+        }
+
+        fn resolve(&self, base_path: &str, include_path: &str) -> Result<String, String> {
+            let base_path = Path::new(base_path);
+            let parent = base_path.parent().unwrap_or(Path::new(""));
+            let resolved = parent.join(include_path);
+            Ok(resolved.to_string_lossy().into_owned())
+        }
+    }
+
+    pub fn preprocess_from_path<P: AsRef<Path>>(path: P) -> Result<String, String> {
+        let path = path.as_ref();
+        let parent_dir = path.parent().unwrap_or(Path::new("."));
+        let loader = FsLoader::new(parent_dir);
+
+        let filename = path
+            .file_name()
+            .and_then(|s| s.to_str())
+            .ok_or_else(|| format!("Invalid IDL path: {}", path.display()))?;
+
+        preprocess(filename, &loader)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

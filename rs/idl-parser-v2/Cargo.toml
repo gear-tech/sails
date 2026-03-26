@@ -15,7 +15,7 @@ crate-type = ["rlib"]
 [features]
 default = []
 ffi = []
-std = ["pest/std", "pest_derive/std", "thiserror/std"]
+std = ["pest/std", "pest_derive/std", "thiserror/std", "keccak-const"]
 
 [dependencies]
 thiserror.workspace = true
@@ -23,6 +23,4 @@ pest.workspace = true
 pest_derive.workspace = true
 sails-idl-meta = { workspace = true, features = ["ast"] }
 paste.workspace = true
-
-[dev-dependencies]
-keccak-const.workspace = true
+keccak-const = { workspace = true, optional = true }
