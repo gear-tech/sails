@@ -73,6 +73,13 @@ fn test_partial_idl_with_entry_id() {
     insta::assert_snapshot!(gen_client(idl));
 }
 
+#[test]
+fn test_aliases_works() {
+    const IDL: &str = include_str!("idls/aliases_works.idl");
+
+    insta::assert_snapshot!(gen_client(IDL));
+}
+
 fn gen_client(program: &str) -> String {
     ClientGenerator::from_idl(program)
         .with_mocks("with_mocks")
