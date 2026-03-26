@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use root_generator::RootGenerator;
-use sails_idl_parser_v2::{parse_idl, preprocess, visitor};
+use sails_idl_parser_v2::{FsLoader, parse_idl, preprocess, visitor};
 use std::{collections::HashMap, fs, io::Write, path::Path};
 
 mod ctor_generators;
@@ -102,8 +102,9 @@ impl<'ast> ClientGenerator<'ast, IdlPath<'ast>> {
         let client_path = self.client_path.context("client path not set")?;
         let idl_path = self.idl.0;
 
-        let idl = preprocess::fs::preprocess_from_path(idl_path)
-            .map_err(|e| anyhow::anyhow!(e))
+        let path_str = idl_path.to_string_lossy();
+        let idl = preprocess::preprocess(&path_str, &FsLoader)
+            .map_err(|e| anyhow::anyhow!("{}", e))
             .with_context(|| format!("Failed to open {} for reading", idl_path.display()))?;
 
         self.with_idl(&idl)
@@ -115,8 +116,9 @@ impl<'ast> ClientGenerator<'ast, IdlPath<'ast>> {
     pub fn generate_to(self, out_path: impl AsRef<Path>) -> Result<()> {
         let idl_path = self.idl.0;
 
-        let idl = preprocess::fs::preprocess_from_path(idl_path)
-            .map_err(|e| anyhow::anyhow!(e))
+        let path_str = idl_path.to_string_lossy();
+        let idl = preprocess::preprocess(&path_str, &FsLoader)
+            .map_err(|e| anyhow::anyhow!("{}", e))
             .with_context(|| format!("Failed to open {} for reading", idl_path.display()))?;
 
         self.with_idl(&idl)
@@ -217,13 +219,12 @@ fn pretty_with_rustfmt(code: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use sails_idl_parser_v2::preprocess::fs::preprocess_from_path;
-    use std::path::Path;
+    use sails_idl_parser_v2::{FsLoader, preprocess};
 
     #[test]
     fn test_resolve_idl_from_path() {
-        let path = Path::new("tests/idls/recursive_main.idl");
-        let result = preprocess_from_path(path).unwrap();
+        let path = "tests/idls/recursive_main.idl";
+        let result = preprocess::preprocess(path, &FsLoader).unwrap();
 
         assert!(result.contains("service Leaf"));
         assert!(result.contains("service Middle"));
@@ -232,8 +233,8 @@ mod tests {
 
     #[test]
     fn test_resolve_nested_idl() {
-        let path = Path::new("tests/idls/nested/main.idl");
-        let result = preprocess_from_path(path).expect("Failed to resolve nested IDL");
+        let path = "tests/idls/nested/main.idl";
+        let result = preprocess::preprocess(path, &FsLoader).expect("Failed to resolve nested IDL");
 
         assert!(result.contains("service A"));
         assert!(result.contains("service B"));

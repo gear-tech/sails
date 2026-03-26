@@ -6410,7 +6410,6 @@ dependencies = [
 name = "sails-idl-parser-v2"
 version = "1.0.0-beta.1"
 dependencies = [
- "keccak-const",
  "paste",
  "pest",
  "pest_derive",

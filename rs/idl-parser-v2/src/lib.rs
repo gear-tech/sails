@@ -22,6 +22,10 @@ mod post_process;
 pub mod preprocess;
 pub mod visitor;
 
+pub use preprocess::IdlLoader;
+#[cfg(feature = "std")]
+pub use preprocess::fs::FsLoader;
+
 // Sails IDL v2 — parser using `pest-rs`
 use crate::error::{Error, Result};
 use core::str::FromStr;
@@ -36,6 +40,8 @@ type Annotation = (String, Option<String>);
 pub struct IdlParser;
 
 // ----------------------------- Public API ------------------------------------
+
+/// Parses the IDL source.
 pub fn parse_idl(src: &str) -> Result<IdlDoc> {
     let mut pairs = IdlParser::parse(Rule::Top, src)?;
     let mut doc = build_idl(
@@ -46,6 +52,12 @@ pub fn parse_idl(src: &str) -> Result<IdlDoc> {
 
     post_process::validate_and_post_process(&mut doc)?;
     Ok(doc)
+}
+
+/// Parses the IDL source from the given path using a custom loader.
+pub fn parse_idl_with_loader<L: IdlLoader>(path: &str, loader: &L) -> Result<IdlDoc> {
+    let src = preprocess::preprocess(path, loader)?;
+    parse_idl(&src)
 }
 
 // ------------------------------- Builders ------------------------------------

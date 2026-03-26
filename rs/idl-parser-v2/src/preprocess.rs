@@ -1,23 +1,24 @@
+use crate::error::{Error, Result};
 use alloc::collections::BTreeSet;
-use alloc::string::String;
+use alloc::string::{String, ToString};
 
 /// Trait for loading IDL content from a path.
 pub trait IdlLoader {
-    /// Unique identifier for the IDL content (e.g. hash or canonical path).
+    /// Unique identifier for the IDL content (e.g. canonical path or git URL).
     type Id: Ord + Clone;
 
     /// Load the content and its unique identifier of the IDL file at the given path.
-    fn load(&self, path: &str) -> Result<(String, Self::Id), String>;
+    fn load(&self, path: &str) -> Result<(String, Self::Id)>;
 
     /// Resolve a relative include path based on the current file path.
-    fn resolve(&self, base_path: &str, include_path: &str) -> Result<String, String>;
+    fn resolve(&self, base_path: &str, include_path: &str) -> Result<String>;
 }
 
 /// Preprocesses the IDL source, starting from the given path,
 /// resolving `!@include` directives recursively.
 ///
-/// Each file is included at most once
-pub fn preprocess<L: IdlLoader>(path: &str, loader: &L) -> Result<String, String> {
+/// Each file (identified by `IdlLoader::Id`) is included at most once.
+pub fn preprocess<L: IdlLoader>(path: &str, loader: &L) -> Result<String> {
     let mut visited = BTreeSet::new();
     let mut result = String::new();
     preprocess_recursive(path, loader, &mut visited, &mut result)?;
@@ -29,140 +30,71 @@ fn preprocess_recursive<L: IdlLoader>(
     loader: &L,
     visited: &mut BTreeSet<L::Id>,
     out: &mut String,
-) -> Result<(), String> {
+) -> Result<()> {
     let (src, unique_id) = loader.load(path)?;
 
     if !visited.insert(unique_id) {
+        // If already visited, we just return to prevent duplication/cycle
         return Ok(());
     }
 
-    src.lines()
-        .try_fold(0, |brace_level, line| -> Result<i32, String> {
-            let trimmed = line.trim();
+    src.lines().try_fold((), |_, line| -> Result<()> {
+        let trimmed = line.trim();
 
-            if brace_level == 0 && trimmed.starts_with("!@include:") {
-                let next_path = trimmed
-                    .strip_prefix("!@include:")
-                    .map(|s| s.trim().trim_matches(|c| c == '"' || c == '\''))
-                    .ok_or_else(|| String::from("Invalid include directive"))
-                    .and_then(|include_path| loader.resolve(path, include_path))?;
+        if trimmed.starts_with("!@include:") {
+            let next_path = trimmed
+                .strip_prefix("!@include:")
+                .map(|s| s.trim().trim_matches(|c| c == '"' || c == '\''))
+                .ok_or_else(|| Error::Preprocess("Invalid include directive".to_string()))
+                .and_then(|include_path| loader.resolve(path, include_path))?;
 
-                preprocess_recursive(&next_path, loader, visited, out)?;
+            preprocess_recursive(&next_path, loader, visited, out)?;
 
-                if !out.is_empty() && !out.ends_with('\n') {
-                    out.push('\n');
-                }
-                Ok(0)
-            } else {
-                out.push_str(line);
+            if !out.is_empty() && !out.ends_with('\n') {
                 out.push('\n');
-                Ok(brace_level + calculate_brace_change(line))
             }
-        })?;
+        } else {
+            out.push_str(line);
+            out.push('\n');
+        }
+        Ok(())
+    })?;
 
     Ok(())
 }
 
-fn calculate_brace_change(line: &str) -> i32 {
-    let mut change = 0;
-    let mut in_string = false; // inside "..."
-    let mut in_char = false; // inside '...'
-    let mut chars = line.chars().peekable();
-
-    while let Some(c) = chars.next() {
-        if in_string {
-            if c == '"' {
-                in_string = false;
-            } else if c == '\\' {
-                // Skip escaped char
-                chars.next();
-            }
-        } else if in_char {
-            if c == '\'' {
-                in_char = false;
-            } else if c == '\\' {
-                chars.next();
-            }
-        } else {
-            match c {
-                '{' => change += 1,
-                '}' => change -= 1,
-                '"' => in_string = true,
-                '\'' => in_char = true,
-                '/' => {
-                    if let Some('/') = chars.peek() {
-                        // Found comment start '//', ignore rest of line
-                        break;
-                    }
-                }
-                _ => {} // Ignore other characters
-            }
-        }
-    }
-    change
-}
-
 #[cfg(feature = "std")]
 pub mod fs {
-    use super::{IdlLoader, preprocess};
+    use super::IdlLoader;
+    use crate::error::{Error, Result};
     use alloc::format;
-    use alloc::string::String;
-    use keccak_const::Keccak256;
+    use alloc::string::{String, ToString};
     use std::fs;
-    use std::path::{Path, PathBuf};
+    use std::path::Path;
 
-    pub struct FsLoader {
-        base_dir: PathBuf,
-    }
-
-    impl FsLoader {
-        pub fn new<P: AsRef<Path>>(base_dir: P) -> Self {
-            Self {
-                base_dir: base_dir.as_ref().to_path_buf(),
-            }
-        }
-    }
+    /// A simple loader that reads IDL files from the local file system.
+    pub struct FsLoader;
 
     impl IdlLoader for FsLoader {
-        type Id = [u8; 32];
+        type Id = String;
 
-        fn load(&self, path: &str) -> Result<(String, Self::Id), String> {
-            let full_path = self.base_dir.join(path);
-            let content = fs::read_to_string(&full_path).map_err(|e| {
-                format!(
-                    "Failed to read include '{}' (base_dir: '{}'): {}",
-                    path,
-                    self.base_dir.display(),
-                    e
-                )
+        fn load(&self, path: &str) -> Result<(String, Self::Id)> {
+            let content = fs::read_to_string(path).map_err(|e| {
+                Error::Preprocess(format!("Failed to read IDL file at '{}': {}", path, e))
             })?;
-
-            let hash_raw = Keccak256::new().update(content.as_bytes()).finalize();
-            let mut hash = [0u8; 32];
-            hash.copy_from_slice(&hash_raw);
-
-            Ok((content, hash))
+            let id = Path::new(path)
+                .canonicalize()
+                .map(|p| p.to_string_lossy().into_owned())
+                .unwrap_or_else(|_| path.to_string());
+            Ok((content, id))
         }
 
-        fn resolve(&self, base_path: &str, include_path: &str) -> Result<String, String> {
-            let base_path = Path::new(base_path);
-            let parent = base_path.parent().unwrap_or(Path::new(""));
+        fn resolve(&self, base_path: &str, include_path: &str) -> Result<String> {
+            let base = Path::new(base_path);
+            let parent = base.parent().unwrap_or(Path::new("."));
             let resolved = parent.join(include_path);
             Ok(resolved.to_string_lossy().into_owned())
         }
-    }
-
-    pub fn preprocess_from_path<P: AsRef<Path>>(path: P) -> Result<String, String> {
-        let path = path.as_ref();
-        let parent_dir = path.parent().unwrap_or(Path::new("."));
-        let loader = FsLoader::new(parent_dir);
-
-        let filename = path
-            .file_name()
-            .and_then(|s| s.to_str())
-            .ok_or_else(|| format!("Invalid IDL path: {}", path.display()))?;
-
-        preprocess(filename, &loader)
     }
 }
 
@@ -177,18 +109,17 @@ mod tests {
     impl IdlLoader for MapLoader {
         type Id = String;
 
-        fn load(&self, path: &str) -> Result<(String, Self::Id), String> {
+        fn load(&self, path: &str) -> Result<(String, Self::Id)> {
             let content = self
                 .0
                 .get(path)
                 .cloned()
-                .ok_or_else(|| format!("File not found: {path}"))?;
+                .ok_or_else(|| Error::Preprocess(format!("File not found: {path}")))?;
 
-            // In tests we can just use content itself as unique ID
-            Ok((content.clone(), content))
+            Ok((content, path.to_string()))
         }
 
-        fn resolve(&self, base_path: &str, include_path: &str) -> Result<String, String> {
+        fn resolve(&self, base_path: &str, include_path: &str) -> Result<String> {
             if let Some(pos) = base_path.rfind('/') {
                 Ok(format!("{}{}", &base_path[..pos + 1], include_path))
             } else {
@@ -234,30 +165,6 @@ mod tests {
         // Count occurrences of "struct Common"
         let count = result.matches("struct Common").count();
         assert_eq!(count, 1); // Should be included only once
-    }
-
-    #[test]
-    fn test_brace_counting_robustness() {
-        // Case 1: Braces in comments
-        // { -> +1, // starts comment, rest ignored. Total 1.
-        assert_eq!(calculate_brace_change("service { // { }"), 1);
-
-        // Case 2: Braces in strings
-        // { -> +1
-        // " { " -> string, braces inside ignored
-        // } -> -1
-        // Total 0.
-        assert_eq!(calculate_brace_change(r#"service { " { " }"#), 0);
-
-        // Case 3: Escaped quotes in strings
-        // { -> +1
-        // " -> start string
-        // \" -> escaped quote (ignored)
-        // { -> inside string (ignored)
-        // " -> end string
-        // } -> -1
-        // Total 0.
-        assert_eq!(calculate_brace_change(r#"{ " \" { " }"#), 0);
     }
 
     #[test]
