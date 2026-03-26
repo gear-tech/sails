@@ -56,22 +56,24 @@ pub(crate) fn result_type(handler_signature: &Signature) -> Type {
     }
 }
 
-pub(crate) fn unwrap_result_type(handler_signature: &Signature, unwrap_result: bool) -> Type {
-    let result_type = result_type(handler_signature);
-    // process result type if set unwrap result
+pub(crate) fn unwrap_result_type(
+    signature: &Signature,
+    unwrap_result: bool,
+) -> (Type, Option<Type>) {
+    let result_type = result_type(signature);
     if unwrap_result {
+        if let Type::Path(tp) = &result_type
+            && let Some((ok, err)) = extract_result_types(tp)
         {
-            extract_result_type_from_path(&result_type)
-                .unwrap_or_else(|| {
-                    abort!(
-                        result_type.span(),
-                        "`unwrap_result` can be applied to methods returns result only"
-                    )
-                })
-                .clone()
+            (ok.clone(), Some(err.clone()))
+        } else {
+            abort!(
+                result_type.span(),
+                "`unwrap_result` can be applied to methods returns result only"
+            )
         }
     } else {
-        result_type
+        (result_type, None)
     }
 }
 
@@ -271,14 +273,6 @@ fn extract_reply_result_type_from_impl_into(tit: &TypeImplTrait) -> Option<&Type
     None
 }
 
-/// Check if type is `Result<T, E>` and extract inner type `T`
-pub(crate) fn extract_result_type_from_path(ty: &Type) -> Option<&Type> {
-    match ty {
-        Type::Path(tp) if tp.qself.is_none() => extract_result_types(tp).map(|(ok_ty, _)| ok_ty),
-        _ => None,
-    }
-}
-
 /// Extract both `T` and `E` types from `Result<T, E>`
 pub(crate) fn extract_result_types(tp: &TypePath) -> Option<(&Type, &Type)> {
     if let Some(last) = tp.path.segments.last() {
@@ -313,7 +307,6 @@ pub(crate) struct FnBuilder<'a> {
     params_types: Vec<&'a Type>,
     pub result_type: Type,
     pub error_type: Option<Type>,
-    pub unwrap_result: bool,
     pub sails_path: &'a Path,
 }
 
@@ -344,21 +337,7 @@ impl<'a> FnBuilder<'a> {
         };
         let (params_idents, params_types): (Vec<_>, Vec<_>) = extract_params(signature).unzip();
 
-        let full_result_type = result_type(signature);
-        let (result_type, error_type) = if unwrap_result {
-            if let Type::Path(tp) = &full_result_type
-                && let Some((ok, err)) = extract_result_types(tp)
-            {
-                (ok.clone(), Some(err.clone()))
-            } else {
-                abort!(
-                    full_result_type.span(),
-                    "`unwrap_result` can be applied to methods returns result only"
-                )
-            }
-        } else {
-            (full_result_type, None)
-        };
+        let (result_type, error_type) = unwrap_result_type(signature, unwrap_result);
 
         Self {
             route,
@@ -375,7 +354,6 @@ impl<'a> FnBuilder<'a> {
             params_types,
             result_type,
             error_type,
-            unwrap_result,
             sails_path,
         }
     }

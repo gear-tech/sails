@@ -263,7 +263,11 @@ async fn service_with_reply_with_value() {
     use service_with_reply_with_value::MyServiceWithReplyWithValue;
 
     // MyServiceWithReplyWithValue::do_this
-    let header = SailsMessageHeader::v1(<MyServiceWithReplyWithValue as Identifiable>::INTERFACE_ID, 1, 1);
+    let header = SailsMessageHeader::v1(
+        <MyServiceWithReplyWithValue as Identifiable>::INTERFACE_ID,
+        1,
+        1,
+    );
     let input = (false, 42u32, "correct".to_owned()).abi_encode_sequence();
     let (output, value, ..) = MyServiceWithReplyWithValue
         .expose(1)
@@ -282,7 +286,11 @@ async fn service_with_reply_with_value_with_impl_from() {
     use service_with_reply_with_value::MyServiceWithReplyWithValue;
 
     // MyServiceWithReplyWithValue::do_that
-    let header = SailsMessageHeader::v1(<MyServiceWithReplyWithValue as Identifiable>::INTERFACE_ID, 0, 1);
+    let header = SailsMessageHeader::v1(
+        <MyServiceWithReplyWithValue as Identifiable>::INTERFACE_ID,
+        0,
+        1,
+    );
     let input = (false, 42u32, "correct".to_owned()).abi_encode_sequence();
     let (output, value, ..) = MyServiceWithReplyWithValue
         .expose(1)
