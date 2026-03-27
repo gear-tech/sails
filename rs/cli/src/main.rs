@@ -145,9 +145,15 @@ where
     Ok((s[..pos].parse()?, s[pos + 1..].parse()?))
 }
 
+fn should_print_banner(command: &SailsCommands) -> bool {
+    !matches!(command, SailsCommands::IdlExtract { output: None, .. })
+}
+
 fn main() -> Result<(), i32> {
-    println!("{SAILBOAT} Sails CLI {VERSION}");
     let CliCommand::Sails(command) = CliCommand::parse();
+    if should_print_banner(&command) {
+        println!("{SAILBOAT} Sails CLI {VERSION}");
+    }
 
     let result = match command {
         SailsCommands::New {
