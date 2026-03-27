@@ -104,7 +104,6 @@ impl<'ast> ClientGenerator<'ast, IdlPath<'ast>> {
 
         let path_str = idl_path.to_string_lossy();
         let idl = preprocess::preprocess(&path_str, &FsLoader)
-            .map_err(|e| anyhow::anyhow!("{}", e))
             .with_context(|| format!("Failed to open {} for reading", idl_path.display()))?;
 
         self.with_idl(&idl)
@@ -118,7 +117,6 @@ impl<'ast> ClientGenerator<'ast, IdlPath<'ast>> {
 
         let path_str = idl_path.to_string_lossy();
         let idl = preprocess::preprocess(&path_str, &FsLoader)
-            .map_err(|e| anyhow::anyhow!("{}", e))
             .with_context(|| format!("Failed to open {} for reading", idl_path.display()))?;
 
         self.with_idl(&idl)
@@ -224,7 +222,7 @@ mod tests {
     #[test]
     fn test_resolve_idl_from_path() {
         let path = "tests/idls/recursive_main.idl";
-        let result = preprocess::preprocess(path, &FsLoader).unwrap();
+        let result = preprocess::preprocess(path, &FsLoader).expect("Failed to resolve nested IDL");
 
         assert!(result.contains("service Leaf"));
         assert!(result.contains("service Middle"));

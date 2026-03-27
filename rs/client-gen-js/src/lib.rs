@@ -56,7 +56,6 @@ impl<'a> JsClientGenerator<IdlPath<'a>> {
         let idl_path = self.idl.0;
         let path_str = idl_path.to_string_lossy();
         let idl = preprocess::preprocess(&path_str, &FsLoader)
-            .map_err(|e| anyhow::anyhow!("{}", e))
             .with_context(|| format!("Failed to preprocess IDL from {}", idl_path.display()))?;
         self.with_idl(&idl).generate()
     }
