@@ -1,9 +1,11 @@
-name: '[net] Release'
+name: '[outdated][net] Release'
 
 on:
-  push:
-    tags:
-      - 'net/v*'
+# Outdated workflow
+# push:
+# tags:
+#   - 'net/v*'  
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -16,6 +18,7 @@ env:
 
 jobs:
   prepare:
+      if: false
       name: Prepare Release
       runs-on: ubuntu-latest
       permissions:
@@ -43,13 +46,14 @@ jobs:
             echo "version=$VERSION" >> $GITHUB_OUTPUT
 
   build_win_x64:
+    if: false
     name: Build Native Libraries for Win x64
     needs: prepare
     runs-on: windows-latest
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Build & Test Client Generator
         run: |
@@ -59,19 +63,20 @@ jobs:
           cp ./net/rs/target/release/sails_net_client_gen.dll ./net/rs/target/artifacts/win-x64
 
       - name: Upload Client Generator Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: native_client_gen_win_x64
           path: ./net/rs/target/artifacts
 
   build_linux_x64:
+    if: false
     name: Build Native Libraries for Linux x64
     needs: prepare
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Build & Test Client Generator
         run: |
@@ -81,19 +86,20 @@ jobs:
           cp ./net/rs/target/release/libsails_net_client_gen.so ./net/rs/target/artifacts/linux-x64
 
       - name: Upload Client Generator Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: native_client_gen_linux_x64
           path: ./net/rs/target/artifacts
 
   build_osx_x64:
+    if: false
     name: Build Native Libraries for NacOS x64
     needs: prepare
     runs-on: macos-latest
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Build & Test Client Generator
         run: |
@@ -104,19 +110,20 @@ jobs:
           cp ./net/rs/target/x86_64-apple-darwin/release/libsails_net_client_gen.dylib ./net/rs/target/artifacts/osx-x64
 
       - name: Upload Client Generator Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: native_client_gen_osx_x64
           path: ./net/rs/target/artifacts
 
   build_osx_arm64:
+    if: false
     name: Build Native Libraries for MacOS ARM64
     needs: prepare
     runs-on: macos-latest
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Build & Test Client Generator
         run: |
@@ -127,12 +134,13 @@ jobs:
           cp ./net/rs/target/aarch64-apple-darwin/release/libsails_net_client_gen.dylib ./net/rs/target/artifacts/osx-arm64
 
       - name: Upload Client Generator Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: native_client_gen_osx_arm64
           path: ./net/rs/target/artifacts
 
   publish:
+    if: false
     name: Publish NuGet Packages
     needs:
       - prepare
@@ -144,18 +152,18 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0 # for MinVer
           filter: tree:0 # for MinVer
 
       - name: Set Up .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 9.0.x
 
       - name: Download Native Libraries
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: native_client_gens
           pattern: native_client_gen_*
@@ -192,6 +200,7 @@ jobs:
             --api-key ${{ secrets.NUGET_ORG_API_KEY }}
 
   release:
+    if: false
     name: Create Release
     runs-on: ubuntu-latest
     permissions:
@@ -207,7 +216,7 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Create Draft Release
         uses: softprops/action-gh-release@v2
