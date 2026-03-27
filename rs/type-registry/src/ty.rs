@@ -1,6 +1,6 @@
 use crate::builder::TypeBuilder;
 use crate::registry::TypeRef;
-use alloc::string::{String, ToString};
+use alloc::string::String;
 use alloc::vec::Vec;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -101,30 +101,6 @@ pub struct Field {
     pub ty: TypeRef,
     pub docs: Vec<String>,
     pub annotations: Vec<Annotation>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub enum ArrayLen {
-    Static(u32),
-    Parameter(String),
-}
-
-impl From<u32> for ArrayLen {
-    fn from(len: u32) -> Self {
-        Self::Static(len)
-    }
-}
-
-impl From<String> for ArrayLen {
-    fn from(name: String) -> Self {
-        Self::Parameter(name)
-    }
-}
-
-impl From<&str> for ArrayLen {
-    fn from(name: &str) -> Self {
-        Self::Parameter(name.to_string())
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

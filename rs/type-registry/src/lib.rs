@@ -22,5 +22,4 @@ pub mod prelude {
     pub use crate::builder::{CompositeBuilder, TypeBuilder, VariantBuilder, VariantDefBuilder};
     pub use crate::registry::{Registry, TypeInfo, TypeRef};
     pub use crate::ty::Type;
-    pub use core;
 }

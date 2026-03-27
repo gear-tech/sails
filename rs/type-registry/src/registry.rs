@@ -22,7 +22,7 @@ pub trait TypeInfo: 'static {
     fn type_info(registry: &mut Registry) -> Type;
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Eq)]
+#[derive(Default, Debug, Clone)]
 pub struct Registry {
     type_table: BTreeMap<TypeId, TypeRef>,
     types: Vec<Type>,
