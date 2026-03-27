@@ -1,10 +1,31 @@
 use super::*;
 use crate::type_resolver::TypeResolver;
-use scale_info::*;
+use sails_type_registry::{
+    Registry, TypeRef,
+    ty::{GenericArg, TypeDef, Variant},
+};
+
+fn get_type_args(
+    registry: &Registry,
+    resolver: &mut TypeResolver,
+    id: TypeRef,
+) -> Result<BTreeMap<String, TypeDecl>> {
+    let ty = registry
+        .get_type(id)
+        .ok_or(Error::TypeIdIsUnknown(id.get()))?;
+    let mut args = BTreeMap::new();
+    for param in &ty.type_params {
+        if let GenericArg::Type(arg_id) = &param.arg {
+            let arg_decl = resolver.resolve_by_id(*arg_id)?;
+            args.insert(param.name.clone(), arg_decl);
+        }
+    }
+    Ok(args)
+}
 
 pub struct ProgramBuilder {
-    registry: PortableRegistry,
-    ctors_type_id: u32,
+    registry: Registry,
+    ctors_type_id: TypeRef,
     service_expos: Vec<(&'static str, AnyServiceMeta)>,
 }
 
@@ -13,10 +34,9 @@ impl ProgramBuilder {
     pub fn new<P: ProgramMeta>() -> Self {
         let mut registry = Registry::new();
         let ctors = P::constructors();
-        let ctors_type_id = registry.register_type(&ctors).id;
+        let ctors_type_id = registry.register_meta_type(ctors);
         let service_expos = P::services().collect();
 
-        let registry = PortableRegistry::from(registry);
         Self {
             registry,
             ctors_type_id,
@@ -24,77 +44,83 @@ impl ProgramBuilder {
         }
     }
 
-    fn ctor_funcs(&self, resolver: &TypeResolver) -> Result<Vec<CtorFunc>> {
-        any_funcs(&self.registry, self.ctors_type_id)?
-            .map(|c| {
-                if c.fields.len() != 1 && c.fields.len() != 2 {
-                    Err(Error::MetaIsInvalid(format!(
-                        "ctor `{}` has invalid number of fields",
-                        c.name
-                    )))
-                } else {
-                    let params_type_id = c.fields[0].ty.id;
-                    let params_type = self
-                        .registry
-                        .resolve(params_type_id)
-                        .ok_or(Error::TypeIdIsUnknown(params_type_id))?;
-                    let throws = if c.fields.len() == 2 {
-                        let throws_type_id = c.fields[1].ty.id;
-                        let throws = resolver
-                            .get(throws_type_id)
-                            .cloned()
-                            .ok_or(Error::TypeIdIsUnknown(throws_type_id))?;
-                        Some(throws)
-                    } else {
-                        None
-                    };
+    fn ctor_funcs(&self, resolver: &mut TypeResolver) -> Result<Vec<CtorFunc>> {
+        let mut ctors = Vec::new();
+        let enum_type_args = get_type_args(&self.registry, resolver, self.ctors_type_id)?;
 
-                    if let scale_info::TypeDef::Composite(params_type) = &params_type.type_def {
-                        let params = params_type
-                            .fields
-                            .iter()
-                            .map(|f| -> Result<_> {
-                                let name = f.name.as_ref().ok_or_else(|| {
-                                    Error::MetaIsInvalid(format!(
-                                        "ctor `{}` param is missing a name",
-                                        c.name
-                                    ))
-                                })?;
-                                let type_decl = resolver
-                                    .get(f.ty.id)
-                                    .cloned()
-                                    .ok_or(Error::TypeIdIsUnknown(f.ty.id))?;
-                                Ok(FuncParam {
-                                    name: name.to_string(),
-                                    type_decl,
-                                })
-                            })
-                            .collect::<Result<Vec<_>>>()?;
-                        Ok(CtorFunc {
-                            name: c.name.to_string(),
-                            params,
-                            throws,
-                            docs: c.docs.iter().map(|s| s.to_string()).collect(),
-                            annotations: vec![],
+        for c in any_funcs(&self.registry, self.ctors_type_id)? {
+            if c.fields.is_empty() {
+                return Err(Error::MetaIsInvalid(format!(
+                    "func `{}` has no fields",
+                    c.name
+                )));
+            }
+            if c.fields.len() > 2 {
+                return Err(Error::MetaIsInvalid(format!(
+                    "ctor `{}` has invalid number of fields",
+                    c.name
+                )));
+            }
+
+            let params_type_id = c.fields[0].ty;
+            let params_type = self
+                .registry
+                .get_type(params_type_id)
+                .ok_or(Error::TypeIdIsUnknown(params_type_id.get()))?;
+
+            let throws = if c.fields.len() == 2 {
+                let throws = resolver.resolve_by_id_inner(c.fields[1].ty, &enum_type_args)?;
+                Some(throws)
+            } else {
+                None
+            };
+
+            if let TypeDef::Composite(params_type_def) = &params_type.def {
+                let params_type_args = get_type_args(&self.registry, resolver, params_type_id)?;
+                let params = params_type_def
+                    .fields
+                    .iter()
+                    .map(|f| -> Result<_> {
+                        let field = resolver.resolve_field_with_args(f, &params_type_args)?;
+                        let name = field.name.ok_or_else(|| {
+                            Error::MetaIsInvalid(format!(
+                                "ctor `{}` param is missing a name",
+                                c.name
+                            ))
+                        })?;
+                        Ok(FuncParam {
+                            name,
+                            type_decl: field.type_decl,
                         })
-                    } else {
-                        Err(Error::MetaIsInvalid(format!(
-                            "ctor `{}` params type is not a composite",
-                            c.name
-                        )))
-                    }
-                }
-            })
-            .collect()
+                    })
+                    .collect::<Result<Vec<_>>>()?;
+                ctors.push(CtorFunc {
+                    name: c.name.to_string(),
+                    params,
+                    throws,
+                    docs: c.docs.iter().map(|s| s.to_string()).collect(),
+                    annotations: c
+                        .annotations
+                        .iter()
+                        .map(|a| (a.name.clone(), a.value.clone()))
+                        .collect(),
+                });
+            } else {
+                return Err(Error::MetaIsInvalid(format!(
+                    "ctor `{}` params type is not a composite",
+                    c.name
+                )));
+            }
+        }
+        Ok(ctors)
     }
-
     /// Assemble the final `ProgramUnit` from resolved constructors, types, and service exports.
     pub fn build(self, name: String, services: &[ServiceUnit]) -> Result<ProgramUnit> {
         let mut exclude = BTreeSet::new();
         exclude.insert(self.ctors_type_id);
         exclude.extend(any_funcs_ids(&self.registry, self.ctors_type_id)?);
-        let resolver = TypeResolver::try_from(&self.registry, exclude)?;
-        let ctors = self.ctor_funcs(&resolver)?;
+        let mut resolver = TypeResolver::try_from(&self.registry, exclude)?;
+        let ctors = self.ctor_funcs(&mut resolver)?;
         let types = resolver.into_types();
 
         if self.service_expos.len() > u8::MAX as usize {
@@ -144,53 +170,47 @@ impl ProgramBuilder {
     }
 }
 
-fn any_funcs(
-    registry: &PortableRegistry,
-    func_type_id: u32,
-) -> Result<impl Iterator<Item = &Variant<PortableForm>>> {
+fn any_funcs(registry: &Registry, func_type_id: TypeRef) -> Result<impl Iterator<Item = &Variant>> {
     let funcs = registry
-        .resolve(func_type_id)
-        .ok_or(Error::TypeIdIsUnknown(func_type_id))?;
-    if let scale_info::TypeDef::Variant(variant) = &funcs.type_def {
-        Ok(variant.variants.iter())
-    } else {
-        Err(Error::MetaIsInvalid(format!(
-            "func type id {func_type_id} references a type that is not a variant"
-        )))
+        .get_type(func_type_id)
+        .ok_or(Error::TypeIdIsUnknown(func_type_id.get()))?;
+
+    if let TypeDef::Variant(variant) = &funcs.def {
+        return Ok(variant.variants.iter());
     }
+
+    Err(Error::MetaIsInvalid(format!(
+        "func type id {} references a type that is not a variant",
+        func_type_id.get()
+    )))
 }
 
-fn any_funcs_ids(registry: &PortableRegistry, func_type_id: u32) -> Result<Vec<u32>> {
-    any_funcs(registry, func_type_id)?
-        .map(|variant| {
-            variant
-                .fields
-                .first()
-                .map(|field| field.ty.id)
-                .ok_or_else(|| {
-                    Error::MetaIsInvalid(format!("func `{}` has no fields", variant.name))
-                })
-        })
-        .collect::<Result<Vec<_>>>()
+fn any_funcs_ids(registry: &Registry, func_type_id: TypeRef) -> Result<Vec<TypeRef>> {
+    let mut ids = Vec::new();
+    for variant in any_funcs(registry, func_type_id)? {
+        if let Some(field) = variant.fields.first() {
+            ids.push(field.ty);
+        }
+    }
+    Ok(ids)
 }
 
 pub struct ServiceBuilder<'a> {
     name: &'a str,
     meta: &'a AnyServiceMeta,
-    registry: PortableRegistry,
-    commands_type_id: u32,
-    queries_type_id: u32,
-    events_type_id: u32,
+    registry: Registry,
+    commands_type_id: TypeRef,
+    queries_type_id: TypeRef,
+    events_type_id: TypeRef,
 }
 
 impl<'a> ServiceBuilder<'a> {
     /// Create a builder for a single service name + metadata pair.
     pub fn new(name: &'a str, meta: &'a AnyServiceMeta) -> Self {
         let mut registry = Registry::new();
-        let commands_type_id = registry.register_type(meta.commands()).id;
-        let queries_type_id = registry.register_type(meta.queries()).id;
-        let events_type_id = registry.register_type(meta.events()).id;
-        let registry = PortableRegistry::from(registry);
+        let commands_type_id = registry.register_meta_type(*meta.commands());
+        let queries_type_id = registry.register_meta_type(*meta.queries());
+        let events_type_id = registry.register_meta_type(*meta.events());
         Self {
             name,
             meta,
@@ -240,10 +260,10 @@ impl<'a> ServiceBuilder<'a> {
         }
 
         let exclude = BTreeSet::from_iter(self.exclude_type_ids()?);
-        let resolver = TypeResolver::try_from(&self.registry, exclude)?;
-        let commands = self.commands(&resolver)?;
-        let queries = self.queries(&resolver)?;
-        let events = self.events(&resolver)?;
+        let mut resolver = TypeResolver::try_from(&self.registry, exclude)?;
+        let commands = self.commands(&mut resolver)?;
+        let queries = self.queries(&mut resolver)?;
+        let events = self.events(&mut resolver)?;
         let types = resolver.into_types();
 
         let ident = ServiceIdent {
@@ -260,192 +280,196 @@ impl<'a> ServiceBuilder<'a> {
             annotations: vec![],
         };
         unit.normalize();
-        // assert_eq!(unit.interface_id(), Ok(interface_id));
         services.push(unit);
         visited.remove(&key);
         Ok(ident)
     }
 
-    fn exclude_type_ids(&self) -> Result<impl Iterator<Item = u32>> {
-        let base = vec![
+    fn exclude_type_ids(&self) -> Result<impl Iterator<Item = TypeRef>> {
+        let mut ids = vec![
             self.commands_type_id,
             self.queries_type_id,
             self.events_type_id,
-        ]
-        .into_iter();
-        let command_ids = any_funcs_ids(&self.registry, self.commands_type_id)?;
-        let query_ids = any_funcs_ids(&self.registry, self.queries_type_id)?;
-        Ok(base.chain(command_ids).chain(query_ids))
+        ];
+        ids.extend(any_funcs_ids(&self.registry, self.commands_type_id)?);
+        ids.extend(any_funcs_ids(&self.registry, self.queries_type_id)?);
+        ids.extend(any_funcs_ids(&self.registry, self.events_type_id)?);
+        Ok(ids.into_iter())
     }
 
-    fn commands(&self, resolver: &TypeResolver) -> Result<Vec<ServiceFunc>> {
-        any_funcs(&self.registry, self.commands_type_id)?
-            .map(|c| {
-                if c.fields.len() != 2 && c.fields.len() != 3 {
-                    Err(Error::MetaIsInvalid(format!(
-                        "command `{}` has invalid number of fields",
-                        c.name
-                    )))
-                } else {
-                    let params_type_id = c.fields[0].ty.id;
-                    let params_type = self
-                        .registry
-                        .resolve(params_type_id)
-                        .ok_or(Error::TypeIdIsUnknown(params_type_id))?;
-                    let output_type_id = c.fields[1].ty.id;
-                    let output = resolver
-                        .get(output_type_id)
-                        .cloned()
-                        .ok_or(Error::TypeIdIsUnknown(output_type_id))?;
-                    let throws = if c.fields.len() == 3 {
-                        let throws_type_id = c.fields[2].ty.id;
-                        let throws = resolver
-                            .get(throws_type_id)
-                            .cloned()
-                            .ok_or(Error::TypeIdIsUnknown(throws_type_id))?;
-                        Some(throws)
-                    } else {
-                        None
-                    };
-                    if let scale_info::TypeDef::Composite(params_type) = &params_type.type_def {
-                        let params = params_type
-                            .fields
-                            .iter()
-                            .map(|f| -> Result<_> {
-                                let name = f.name.as_ref().ok_or_else(|| {
-                                    Error::MetaIsInvalid(format!(
-                                        "command `{}` param is missing a name",
-                                        c.name
-                                    ))
-                                })?;
-                                let type_decl = resolver
-                                    .get(f.ty.id)
-                                    .cloned()
-                                    .ok_or(Error::TypeIdIsUnknown(f.ty.id))?;
-                                Ok(FuncParam {
-                                    name: name.to_string(),
-                                    type_decl,
-                                })
-                            })
-                            .collect::<Result<Vec<_>>>()?;
-                        Ok(ServiceFunc {
-                            name: c.name.to_string(),
-                            params,
-                            output,
-                            throws,
-                            kind: FunctionKind::Command,
-                            docs: c.docs.iter().map(|s| s.to_string()).collect(),
-                            annotations: vec![],
-                        })
-                    } else {
-                        Err(Error::MetaIsInvalid(format!(
-                            "command `{}` params type is not a composite",
-                            c.name
-                        )))
-                    }
-                }
-            })
-            .collect()
-    }
+    fn commands(&self, resolver: &mut TypeResolver) -> Result<Vec<ServiceFunc>> {
+        let mut commands = Vec::new();
+        let enum_type_args = get_type_args(&self.registry, resolver, self.commands_type_id)?;
 
-    fn queries(&self, resolver: &TypeResolver) -> Result<Vec<ServiceFunc>> {
-        any_funcs(&self.registry, self.queries_type_id)?
-            .map(|c| {
-                if c.fields.len() != 2 && c.fields.len() != 3 {
-                    Err(Error::MetaIsInvalid(format!(
-                        "query `{}` has invalid number of fields",
-                        c.name
-                    )))
-                } else {
-                    let params_type_id = c.fields[0].ty.id;
-                    let params_type = self
-                        .registry
-                        .resolve(params_type_id)
-                        .ok_or(Error::TypeIdIsUnknown(params_type_id))?;
-                    let output_type_id = c.fields[1].ty.id;
-                    let output = resolver
-                        .get(output_type_id)
-                        .cloned()
-                        .ok_or(Error::TypeIdIsUnknown(output_type_id))?;
-                    let throws = if c.fields.len() == 3 {
-                        let throws_type_id = c.fields[2].ty.id;
-                        let throws = resolver
-                            .get(throws_type_id)
-                            .cloned()
-                            .ok_or(Error::TypeIdIsUnknown(throws_type_id))?;
-                        Some(throws)
-                    } else {
-                        None
-                    };
-                    if let scale_info::TypeDef::Composite(params_type) = &params_type.type_def {
-                        let params = params_type
-                            .fields
-                            .iter()
-                            .map(|f| -> Result<_> {
-                                let name = f.name.as_ref().ok_or_else(|| {
-                                    Error::MetaIsInvalid(format!(
-                                        "query `{}` param is missing a name",
-                                        c.name
-                                    ))
-                                })?;
-                                let type_decl = resolver
-                                    .get(f.ty.id)
-                                    .cloned()
-                                    .ok_or(Error::TypeIdIsUnknown(f.ty.id))?;
-                                Ok(FuncParam {
-                                    name: name.to_string(),
-                                    type_decl,
-                                })
-                            })
-                            .collect::<Result<Vec<_>>>()?;
-                        Ok(ServiceFunc {
-                            name: c.name.to_string(),
-                            params,
-                            output,
-                            throws,
-                            kind: FunctionKind::Query,
-                            docs: c.docs.iter().map(|s| s.to_string()).collect(),
-                            annotations: vec![("query".to_string(), None)],
-                        })
-                    } else {
-                        Err(Error::MetaIsInvalid(format!(
-                            "query `{}` params type is not a composite",
-                            c.name
-                        )))
-                    }
-                }
-            })
-            .collect()
-    }
+        for c in any_funcs(&self.registry, self.commands_type_id)? {
+            if c.fields.len() != 2 && c.fields.len() != 3 {
+                return Err(Error::MetaIsInvalid(format!(
+                    "command `{}` has invalid number of fields",
+                    c.name
+                )));
+            }
 
-    fn events(&self, resolver: &TypeResolver) -> Result<Vec<ServiceEvent>> {
-        any_funcs(&self.registry, self.events_type_id)?
-            .map(|v| {
-                let fields = v
+            let params_type_id = c.fields[0].ty;
+            let params_type = self
+                .registry
+                .get_type(params_type_id)
+                .ok_or(Error::TypeIdIsUnknown(params_type_id.get()))?;
+
+            let output = resolver.resolve_by_id_inner(c.fields[1].ty, &enum_type_args)?;
+
+            let throws = if c.fields.len() == 3 {
+                let throws = resolver.resolve_by_id_inner(c.fields[2].ty, &enum_type_args)?;
+                Some(throws)
+            } else {
+                None
+            };
+
+            if let TypeDef::Composite(params_type_def) = &params_type.def {
+                let params_type_args = get_type_args(&self.registry, resolver, params_type_id)?;
+                let params = params_type_def
                     .fields
                     .iter()
-                    .map(|field| -> Result<_> {
-                        let type_decl = resolver
-                            .get(field.ty.id)
-                            .cloned()
-                            .ok_or(Error::TypeIdIsUnknown(field.ty.id))?;
-                        Ok(StructField {
-                            name: field.name.as_ref().map(|s| s.to_string()),
-                            type_decl,
-                            docs: field.docs.iter().map(|d| d.to_string()).collect(),
-                            annotations: vec![],
+                    .map(|f| -> Result<_> {
+                        let field = resolver.resolve_field_with_args(f, &params_type_args)?;
+                        let name = field.name.ok_or_else(|| {
+                            Error::MetaIsInvalid(format!(
+                                "command `{}` param is missing a name",
+                                c.name
+                            ))
+                        })?;
+                        let type_decl = field.type_decl;
+                        Ok(FuncParam { name, type_decl })
+                    })
+                    .collect::<Result<Vec<_>>>()?;
+                commands.push(ServiceFunc {
+                    name: c.name.to_string(),
+                    kind: FunctionKind::Command,
+                    params,
+                    output,
+                    throws,
+                    docs: c.docs.iter().map(|s| s.to_string()).collect(),
+                    annotations: c
+                        .annotations
+                        .iter()
+                        .map(|a| (a.name.clone(), a.value.clone()))
+                        .collect(),
+                });
+            } else {
+                return Err(Error::MetaIsInvalid(format!(
+                    "command `{}` params type is not a composite",
+                    c.name
+                )));
+            }
+        }
+        Ok(commands)
+    }
+
+    fn queries(&self, resolver: &mut TypeResolver) -> Result<Vec<ServiceFunc>> {
+        let mut queries = Vec::new();
+        let enum_type_args = get_type_args(&self.registry, resolver, self.queries_type_id)?;
+
+        for c in any_funcs(&self.registry, self.queries_type_id)? {
+            if c.fields.len() != 2 && c.fields.len() != 3 {
+                return Err(Error::MetaIsInvalid(format!(
+                    "query `{}` has invalid number of fields",
+                    c.name
+                )));
+            }
+
+            let params_type_id = c.fields[0].ty;
+            let params_type = self
+                .registry
+                .get_type(params_type_id)
+                .ok_or(Error::TypeIdIsUnknown(params_type_id.get()))?;
+
+            let output = resolver.resolve_by_id_inner(c.fields[1].ty, &enum_type_args)?;
+
+            let throws = if c.fields.len() == 3 {
+                let throws = resolver.resolve_by_id_inner(c.fields[2].ty, &enum_type_args)?;
+                Some(throws)
+            } else {
+                None
+            };
+
+            if let TypeDef::Composite(params_type_def) = &params_type.def {
+                let params_type_args = get_type_args(&self.registry, resolver, params_type_id)?;
+                let params = params_type_def
+                    .fields
+                    .iter()
+                    .map(|f| -> Result<_> {
+                        let field = resolver.resolve_field_with_args(f, &params_type_args)?;
+                        let name = field.name.ok_or_else(|| {
+                            Error::MetaIsInvalid(format!(
+                                "query `{}` param is missing a name",
+                                c.name
+                            ))
+                        })?;
+                        Ok(FuncParam {
+                            name,
+                            type_decl: field.type_decl,
                         })
                     })
                     .collect::<Result<Vec<_>>>()?;
+                let mut annotations: Vec<_> = c
+                    .annotations
+                    .iter()
+                    .map(|a| (a.name.clone(), a.value.clone()))
+                    .collect();
+                annotations.push(("query".to_string(), None));
 
-                Ok(ServiceEvent {
-                    name: v.name.to_string(),
-                    def: StructDef { fields },
-                    docs: v.docs.iter().map(|d| d.to_string()).collect(),
-                    annotations: vec![],
+                queries.push(ServiceFunc {
+                    name: c.name.to_string(),
+                    kind: FunctionKind::Query,
+                    params,
+                    output,
+                    throws,
+                    docs: c.docs.iter().map(|s| s.to_string()).collect(),
+                    annotations,
+                });
+            } else {
+                return Err(Error::MetaIsInvalid(format!(
+                    "query `{}` params type is not a composite",
+                    c.name
+                )));
+            }
+        }
+        Ok(queries)
+    }
+
+    fn events(&self, resolver: &mut TypeResolver) -> Result<Vec<ServiceEvent>> {
+        let mut events = Vec::new();
+        let enum_type_args = get_type_args(&self.registry, resolver, self.events_type_id)?;
+
+        for v in any_funcs(&self.registry, self.events_type_id)? {
+            let fields = v
+                .fields
+                .iter()
+                .map(|field| -> Result<_> {
+                    let type_decl = resolver.resolve_by_id_inner(field.ty, &enum_type_args)?;
+                    Ok(StructField {
+                        name: field.name.clone(),
+                        type_decl,
+                        docs: field.docs.iter().map(|d| d.to_string()).collect(),
+                        annotations: field
+                            .annotations
+                            .iter()
+                            .map(|a| (a.name.clone(), a.value.clone()))
+                            .collect(),
+                    })
                 })
-            })
-            .collect()
+                .collect::<Result<Vec<_>>>()?;
+            events.push(ServiceEvent {
+                name: v.name.to_string(),
+                def: StructDef { fields },
+                docs: v.docs.iter().map(|d| d.to_string()).collect(),
+                annotations: v
+                    .annotations
+                    .iter()
+                    .map(|a| (a.name.clone(), a.value.clone()))
+                    .collect(),
+            });
+        }
+        Ok(events)
     }
 }
 
@@ -455,7 +479,7 @@ mod tests {
     use core::marker::PhantomData;
     use core::num::NonZeroU128;
     use gprimitives::{ActorId, CodeId, H160, H256, MessageId, NonZeroU256, U256};
-    use scale_info::TypeInfo;
+    use sails_type_registry::TypeInfo;
 
     mod utils {
         use super::*;
@@ -491,9 +515,9 @@ mod tests {
         pub(super) enum NoEvents {}
     }
 
-    fn test_program_unit<T: StaticTypeInfo>() -> Result<ProgramUnit> {
-        struct TestProgram<C: StaticTypeInfo>(PhantomData<C>);
-        impl<C: StaticTypeInfo> ProgramMeta for TestProgram<C> {
+    fn test_program_unit<T: TypeInfo>() -> Result<ProgramUnit> {
+        struct TestProgram<C: TypeInfo>(PhantomData<C>);
+        impl<C: TypeInfo> ProgramMeta for TestProgram<C> {
             type ConstructorsMeta = C;
             const SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
@@ -543,7 +567,7 @@ mod tests {
         #[derive(TypeInfo)]
         #[allow(unused)]
         enum TooManyArgsCtors {
-            CtorWithResult(ValidParams, String, bool), // Should have 1 or 2 fields, not 3
+            CtorWithResult(ValidParams, String, u32), // Should have at most 2 fields (params, result)
         }
 
         #[derive(TypeInfo)]
@@ -553,7 +577,7 @@ mod tests {
         }
 
         // Helper function to test constructor validation errors
-        fn test_ctor_error<T: StaticTypeInfo>(expected_error_msg: &str) {
+        fn test_ctor_error<T: TypeInfo>(expected_error_msg: &str) {
             let result = test_program_unit::<T>();
 
             assert!(result.is_err());
@@ -615,8 +639,6 @@ mod tests {
     /// Test successful creation with valid constructors and services
     #[test]
     fn ctor_simple_positive_test() {
-        use TypeDecl::*;
-
         #[derive(TypeInfo)]
         #[allow(unused)]
         enum Ctors {
@@ -637,12 +659,12 @@ mod tests {
                 name: "Ctor".to_string(),
                 params: vec![FuncParam {
                     name: "initial_value".to_string(),
-                    type_decl: Primitive(PrimitiveType::U32)
+                    type_decl: TypeDecl::Primitive(PrimitiveType::U32),
                 }],
-                docs: vec![],
                 throws: None,
-                annotations: vec![]
-            }]
+                docs: vec![],
+                annotations: vec![],
+            }],
         );
     }
 
@@ -1756,7 +1778,7 @@ mod tests {
         #[derive(TypeInfo)]
         #[allow(unused)]
         enum BadCommands2 {
-            FourFields(u32, String, bool, u8),
+            FourFields(u32, String, bool, u64),
         }
 
         #[derive(TypeInfo)]
@@ -1768,7 +1790,7 @@ mod tests {
         #[derive(TypeInfo)]
         #[allow(unused)]
         enum BadQueries2 {
-            FourFields(u32, String, bool, u8),
+            FourFields(u32, String, bool, u64),
         }
 
         let internal_check = |result: Result<Vec<ServiceUnit>>, expected_msg: &str| {

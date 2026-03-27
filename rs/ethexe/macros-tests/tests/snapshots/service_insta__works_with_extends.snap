@@ -350,15 +350,15 @@ mod some_service_meta {
         sails_rs::meta::Identifiable > ::INTERFACE_ID, entry_id = 0u16,
     );
     #[derive(sails_rs::TypeInfo)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[type_info(crate = sails_rs::type_info)]
     pub enum CommandsMeta {
         DoThis(__DoThisParams, u32),
     }
     #[derive(sails_rs::TypeInfo)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[type_info(crate = sails_rs::type_info)]
     pub enum QueriesMeta {}
     #[derive(sails_rs::TypeInfo)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[type_info(crate = sails_rs::type_info)]
     pub enum NoEvents {}
     pub type EventsMeta = NoEvents;
 }

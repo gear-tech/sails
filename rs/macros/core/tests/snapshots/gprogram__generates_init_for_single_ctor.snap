@@ -19,7 +19,7 @@ mod meta_in_program {
         entry_id = 0u16,
     );
     #[derive(sails_rs::TypeInfo)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[type_info(crate = sails_rs::type_info)]
     pub enum ConstructorsMeta {
         New(__NewParams),
     }

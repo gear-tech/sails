@@ -1,0 +1,63 @@
+---
+source: rs/type-registry/derive/src/lib.rs
+expression: formatted
+---
+#[automatically_derived]
+impl<T: ::sails_type_registry::TypeInfo> ::sails_type_registry::TypeInfo for Aliases<T> {
+    type Identity = Self;
+    fn type_info(
+        registry: &mut ::sails_type_registry::Registry,
+    ) -> ::sails_type_registry::ty::Type {
+        let mut type_builder = ::sails_type_registry::builder::TypeBuilder::new()
+            .module_path(::core::module_path!())
+            .name("Aliases");
+        {
+            let arg_id = { registry.register_type::<T>() };
+            type_builder = type_builder.type_param("T").arg(arg_id);
+        }
+        let mut builder = type_builder.composite();
+        {
+            let ty = {
+                let base_id = registry.register_type::<Outer<T>>();
+                let args = ::sails_type_registry::prelude::alloc::vec![
+                    registry
+                        .register_type_def(
+                            ::sails_type_registry::ty::Type::builder()
+                                .name("T")
+                                .parameter("T"),
+                        ),
+                ];
+                registry
+                    .register_type_def(
+                        ::sails_type_registry::ty::Type::builder().applied(base_id, args),
+                    )
+            };
+            builder = builder
+                .field("field")
+                .doc("Deeply nested aliases: Result<Vec<(T, bool)>, String>")
+                .ty(ty);
+        }
+        {
+            let ty = {
+                let base_id = registry.register_type::<Middle<T>>();
+                let args = ::sails_type_registry::prelude::alloc::vec![
+                    registry
+                        .register_type_def(
+                            ::sails_type_registry::ty::Type::builder()
+                                .name("T")
+                                .parameter("T"),
+                        ),
+                ];
+                registry
+                    .register_type_def(
+                        ::sails_type_registry::ty::Type::builder().applied(base_id, args),
+                    )
+            };
+            builder = builder
+                .field("direct")
+                .doc("Direct use of intermediate alias")
+                .ty(ty);
+        }
+        builder.build()
+    }
+}

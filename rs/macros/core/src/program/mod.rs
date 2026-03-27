@@ -390,7 +390,7 @@ impl ProgramBuilder {
 
     fn generate_init(&self, program_ident: &Ident) -> (TokenStream2, TokenStream2) {
         let sails_path = self.sails_path();
-        let scale_info_path = sails_paths::scale_info_path(sails_path);
+        let type_info_path = sails_paths::type_info_path(sails_path);
 
         let (program_type_path, ..) = self.impl_type();
         let input_ident = Ident::new("input", Span::call_site());
@@ -443,7 +443,7 @@ impl ProgramBuilder {
                 #( #ctor_params_structs )*
 
                 #[derive(#sails_path::TypeInfo)]
-                #[scale_info(crate = #scale_info_path)]
+                #[type_info(crate = #type_info_path)]
                 pub enum ConstructorsMeta {
                     #( #ctor_meta_variants ),*
                 }

@@ -24,7 +24,7 @@ use sails_idl_meta::InterfaceId;
 /// #[sails_rs::event]
 /// #[derive(sails_rs::Encode, sails_rs::TypeInfo)]
 /// #[codec(crate = sails_rs::scale_codec)]
-/// #[scale_info(crate = sails_rs::scale_info)]
+/// #[type_info(crate = sails_rs::type_info)]
 /// pub enum Events {
 ///     MyEvent {
 ///         sender: uint128,

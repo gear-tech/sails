@@ -4581,7 +4581,7 @@ dependencies = [
  "gprimitives",
  "quote",
  "sails-idl-meta",
- "scale-info",
+ "sails-type-registry",
  "syn 2.0.117",
  "thiserror 2.0.18",
 ]
@@ -4593,7 +4593,7 @@ dependencies = [
  "askama",
  "keccak-const",
  "parity-scale-codec",
- "scale-info",
+ "sails-type-registry",
 ]
 
 [[package]]
@@ -4661,10 +4661,28 @@ dependencies = [
  "sails-idl-meta",
  "sails-macros",
  "sails-reflect-hash",
- "scale-info",
+ "sails-type-registry",
  "spin 0.10.0",
  "thiserror 2.0.18",
  "tokio-stream",
+]
+
+[[package]]
+name = "sails-type-registry"
+version = "1.0.0-beta.1"
+dependencies = [
+ "gprimitives",
+ "sails-type-registry-derive",
+]
+
+[[package]]
+name = "sails-type-registry-derive"
+version = "1.0.0-beta.1"
+dependencies = [
+ "proc-macro-crate 3.5.0",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.117",
 ]
 
 [[package]]

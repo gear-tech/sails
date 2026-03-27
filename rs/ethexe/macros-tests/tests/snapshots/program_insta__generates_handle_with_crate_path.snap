@@ -16,7 +16,7 @@ mod meta_in_program {
     use super::*;
     sails_rename::invocation_io!(pub struct __CreateParams {}, entry_id = 0u16,);
     #[derive(sails_rename::TypeInfo)]
-    #[scale_info(crate = sails_rename::scale_info)]
+    #[type_info(crate = sails_rename::type_info)]
     pub enum ConstructorsMeta {
         Create(__CreateParams),
     }

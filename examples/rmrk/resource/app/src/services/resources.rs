@@ -6,7 +6,7 @@ pub type ResourceId = u8;
 
 #[derive(Decode, Encode, TypeInfo, Clone, Debug, PartialEq, Eq, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
+#[type_info(crate = sails_rs::type_info)]
 #[reflect_hash(crate = sails_rs)]
 pub enum Resource {
     Basic(BasicResource),
@@ -16,7 +16,7 @@ pub enum Resource {
 
 #[derive(Decode, Encode, TypeInfo, Clone, Debug, PartialEq, Eq, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
+#[type_info(crate = sails_rs::type_info)]
 #[reflect_hash(crate = sails_rs)]
 pub struct BasicResource {
     /// URI like IPFS hash
@@ -32,7 +32,7 @@ pub struct BasicResource {
 
 #[derive(Decode, Encode, TypeInfo, Clone, Debug, PartialEq, Eq, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
+#[type_info(crate = sails_rs::type_info)]
 #[reflect_hash(crate = sails_rs)]
 pub struct ComposedResource {
     /// URI like ipfs hash
@@ -54,7 +54,7 @@ pub struct ComposedResource {
 
 #[derive(Decode, Encode, TypeInfo, Clone, Debug, PartialEq, Eq, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
+#[type_info(crate = sails_rs::type_info)]
 #[reflect_hash(crate = sails_rs)]
 pub struct SlotResource {
     /// URI like ipfs hash

@@ -390,7 +390,7 @@ impl MatchedInterface {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use scale_info::prelude::vec;
+    use alloc::vec;
 
     #[test]
     fn try_from_bytes_does_not_move_offset() {

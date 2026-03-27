@@ -5,7 +5,7 @@ use sails_rs::{gstd, prelude::*};
 #[event]
 #[derive(Clone, Debug, PartialEq, Encode, TypeInfo, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
+#[type_info(crate = sails_rs::type_info)]
 #[reflect_hash(crate = sails_rs)]
 pub enum Events {
     Start,
