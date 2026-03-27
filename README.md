@@ -425,8 +425,8 @@ Payload bytes start at offset `header length` and are SCALE-encoded entry data:
 - Events: event data
 
 `interface_id` and `entry_id` are derived from the canonical IDL definition; `route_idx` is assigned by the program author.
-Optional extensions may follow the base header when `header length` >= 0x10. See `docs/SAILS_HEADER_V1_SPEC.md` for full
-format and validation rules.
+Optional extensions may follow the base header when `header length` >= 0x10. See [sails-header-v1-spec.md](docs/sails-header-v1-spec.md)
+for full format and validation rules.
 
 ### Syscalls
 
