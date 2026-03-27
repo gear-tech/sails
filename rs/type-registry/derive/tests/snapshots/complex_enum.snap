@@ -20,16 +20,7 @@ impl ::sails_type_registry::TypeInfo for Complex {
                 .annotate("v1");
             {
                 let ty = { registry.register_type::<u32>() };
-                v_builder = v_builder
-                    .field("f")
-                    .type_name(
-                        ::sails_type_registry::prelude::alloc::string::String::from(
-                            ::core::stringify!(u32),
-                        ),
-                    )
-                    .annotate("f1")
-                    .value("v")
-                    .ty(ty);
+                v_builder = v_builder.field("f").annotate("f1").value("v").ty(ty);
             }
             v_builder.finish_variant()
         };
@@ -39,25 +30,11 @@ impl ::sails_type_registry::TypeInfo for Complex {
                 .doc("Variant with unnamed fields");
             {
                 let ty = { registry.register_type::<u64>() };
-                v_builder = v_builder
-                    .unnamed()
-                    .type_name(
-                        ::sails_type_registry::prelude::alloc::string::String::from(
-                            ::core::stringify!(u64),
-                        ),
-                    )
-                    .ty(ty);
+                v_builder = v_builder.unnamed().ty(ty);
             }
             {
                 let ty = { registry.register_type::<String>() };
-                v_builder = v_builder
-                    .unnamed()
-                    .type_name(
-                        ::sails_type_registry::prelude::alloc::string::String::from(
-                            ::core::stringify!(String),
-                        ),
-                    )
-                    .ty(ty);
+                v_builder = v_builder.unnamed().ty(ty);
             }
             v_builder.finish_variant()
         };

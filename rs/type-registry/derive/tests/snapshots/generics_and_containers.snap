@@ -46,15 +46,7 @@ for Generics<T, N> {
                         ::sails_type_registry::ty::Type::builder().applied(base_id, args),
                     )
             };
-            builder = builder
-                .field("matrix")
-                .type_name(
-                    ::sails_type_registry::prelude::alloc::string::String::from(
-                        ::core::stringify!(Vec < Vec < T > >),
-                    ),
-                )
-                .doc("Nested generics")
-                .ty(ty);
+            builder = builder.field("matrix").doc("Nested generics").ty(ty);
         }
         {
             let ty = {
@@ -70,15 +62,7 @@ for Generics<T, N> {
                             .array(inner_id, N as u32),
                     )
             };
-            builder = builder
-                .field("data")
-                .type_name(
-                    ::sails_type_registry::prelude::alloc::string::String::from(
-                        ::core::stringify!([T; N]),
-                    ),
-                )
-                .doc("Array with const param")
-                .ty(ty);
+            builder = builder.field("data").doc("Array with const param").ty(ty);
         }
         {
             let ty = {
@@ -107,15 +91,7 @@ for Generics<T, N> {
                         ::sails_type_registry::ty::Type::builder().applied(base_id, args),
                     )
             };
-            builder = builder
-                .field("result")
-                .type_name(
-                    ::sails_type_registry::prelude::alloc::string::String::from(
-                        ::core::stringify!(Result < Option < T >, String >),
-                    ),
-                )
-                .doc("Complex path with generics")
-                .ty(ty);
+            builder = builder.field("result").doc("Complex path with generics").ty(ty);
         }
         builder.build()
     }

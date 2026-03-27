@@ -1,12 +1,10 @@
-extern crate alloc;
-
 use alloc::{borrow::Cow, boxed::Box, rc::Rc, sync::Arc};
 use core::{
     marker::PhantomData,
     ops::{Range, RangeInclusive},
     time::Duration,
 };
-
+use sails_type_registry::alloc;
 use sails_type_registry::{Registry, ty::TypeDef};
 
 #[test]

@@ -99,7 +99,6 @@ pub struct Variant {
 pub struct Field {
     pub name: Option<String>,
     pub ty: TypeRef,
-    pub type_name: Option<String>,
     pub docs: Vec<String>,
     pub annotations: Vec<Annotation>,
 }

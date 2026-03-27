@@ -1,5 +1,3 @@
-extern crate alloc;
-
 use gprimitives::{ActorId, CodeId, H160, H256, MessageId, U256};
 use sails_type_registry::{
     Registry,

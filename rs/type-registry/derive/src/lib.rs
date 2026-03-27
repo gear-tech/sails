@@ -385,13 +385,10 @@ impl DeriveContext {
         fields: &Fields,
         builder_ident: &Ident,
     ) -> syn::Result<proc_macro2::TokenStream> {
-        let registry = &self.registry;
-
         let field_tokens = fields
             .iter()
             .map(|f| {
                 let field_ty = &f.ty;
-                let field_type_name = quote! { #registry::prelude::alloc::string::String::from(::core::stringify!(#field_ty)) };
                 let field_annotations = self.extract_annotations(&f.attrs)?;
                 let field_docs = self.extract_docs(&f.attrs);
 
@@ -408,7 +405,6 @@ impl DeriveContext {
                     {
                         let ty = #field_type_tokens;
                         #builder_ident = #builder_ident .#field_method(#field_args)
-                            .type_name(#field_type_name)
                             #(.doc(#field_docs))*
                             #(#field_annotations)*
                             .ty(ty);

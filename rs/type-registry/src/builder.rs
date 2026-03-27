@@ -38,7 +38,6 @@ struct FieldsBuilder<P> {
     fields: Vec<Field>,
     current_name: Option<Option<String>>,
     current_metadata: Metadata,
-    current_type_name: Option<String>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -208,11 +207,6 @@ impl VariantBuilder {
         self
     }
 
-    pub fn type_name(mut self, type_name: impl Into<String>) -> Self {
-        self.fields_builder.type_name(type_name);
-        self
-    }
-
     pub fn ty(mut self, ty: TypeRef) -> Self {
         self.fields_builder.ty(ty);
         self
@@ -270,11 +264,6 @@ impl CompositeBuilder {
         self
     }
 
-    pub fn type_name(mut self, type_name: impl Into<String>) -> Self {
-        self.fields_builder.type_name(type_name);
-        self
-    }
-
     pub fn ty(mut self, ty: TypeRef) -> Self {
         self.fields_builder.ty(ty);
         self
@@ -311,7 +300,6 @@ impl<P> FieldsBuilder<P> {
             fields: Vec::new(),
             current_name: None,
             current_metadata: Metadata::default(),
-            current_type_name: None,
         }
     }
 
@@ -323,16 +311,11 @@ impl<P> FieldsBuilder<P> {
         self.current_name = Some(None);
     }
 
-    fn type_name(&mut self, type_name: impl Into<String>) {
-        self.current_type_name = Some(type_name.into());
-    }
-
     fn ty(&mut self, ty: TypeRef) {
         if let Some(name) = self.current_name.take() {
             self.fields.push(Field {
                 name,
                 ty,
-                type_name: self.current_type_name.take(),
                 docs: core::mem::take(&mut self.current_metadata.docs),
                 annotations: core::mem::take(&mut self.current_metadata.annotations),
             });

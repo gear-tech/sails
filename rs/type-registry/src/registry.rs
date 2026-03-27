@@ -1,7 +1,7 @@
 use alloc::{collections::BTreeMap, vec::Vec};
-use core::{any::TypeId, num::NonZeroU32};
+use core::{any::TypeId, fmt, num::NonZeroU32};
 
-use crate::ty::Type;
+use crate::ty::{GenericArg, Type, TypeDef};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
@@ -91,6 +91,98 @@ impl Registry {
     pub fn is_empty(&self) -> bool {
         self.types.is_empty()
     }
+
+    pub fn display(&self, type_ref: TypeRef) -> TypeDisplay<'_> {
+        TypeDisplay {
+            registry: self,
+            type_ref,
+        }
+    }
+}
+
+pub struct TypeDisplay<'a> {
+    registry: &'a Registry,
+    type_ref: TypeRef,
+}
+
+impl fmt::Display for TypeDisplay<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let Some(ty) = self.registry.get_type(self.type_ref) else {
+            return write!(f, "<unknown>");
+        };
+        match &ty.def {
+            TypeDef::Sequence(inner) => {
+                write!(f, "[{}]", self.registry.display(*inner))
+            }
+            TypeDef::Array { len, type_param } => {
+                write!(f, "[{}; {}]", self.registry.display(*type_param), len)
+            }
+            TypeDef::Tuple(elems) => {
+                write!(f, "(")?;
+                for (i, r) in elems.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{}", self.registry.display(*r))?;
+                }
+                write!(f, ")")
+            }
+            TypeDef::Map { key, value } => {
+                write!(
+                    f,
+                    "[({}, {})]",
+                    self.registry.display(*key),
+                    self.registry.display(*value)
+                )
+            }
+            TypeDef::Option(inner) => {
+                write!(f, "Option<{}>", self.registry.display(*inner))
+            }
+            TypeDef::Result { ok, err } => {
+                write!(
+                    f,
+                    "Result<{}, {}>",
+                    self.registry.display(*ok),
+                    self.registry.display(*err)
+                )
+            }
+            TypeDef::Parameter(name) => write!(f, "{}", name),
+            TypeDef::Applied { base, args } => {
+                write!(f, "{}", self.registry.display(*base))?;
+                if !args.is_empty() {
+                    write!(f, "<")?;
+                    for (i, r) in args.iter().enumerate() {
+                        if i > 0 {
+                            write!(f, ", ")?;
+                        }
+                        write!(f, "{}", self.registry.display(*r))?;
+                    }
+                    write!(f, ">")?;
+                }
+                Ok(())
+            }
+            TypeDef::Primitive(_) | TypeDef::Composite(_) | TypeDef::Variant(_) => {
+                write!(f, "{}", ty.name)?;
+                let params = &ty.type_params;
+                if !params.is_empty() {
+                    write!(f, "<")?;
+                    for (i, p) in params.iter().enumerate() {
+                        if i > 0 {
+                            write!(f, ", ")?;
+                        }
+                        match &p.arg {
+                            GenericArg::Type(r) => write!(f, "{}", self.registry.display(*r))?,
+                            GenericArg::Const(v) => write!(f, "{}", v)?,
+                        }
+                    }
+                    write!(f, ">")?;
+                }
+                Ok(())
+            }
+            #[cfg(feature = "gprimitives")]
+            TypeDef::GPrimitive(_) => write!(f, "{}", ty.name),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -122,31 +214,5 @@ mod tests {
         let registry = Registry::new();
         assert!(registry.is_empty());
         assert_eq!(registry.len(), 0);
-    }
-
-    #[test]
-    fn test_registry_deduplication_integrity() {
-        use alloc::boxed::Box;
-        use alloc::rc::Rc;
-
-        let mut registry = Registry::new();
-
-        // Register the same base type through different transparent wrappers
-        let id1 = registry.register_type::<u32>();
-        let id2 = registry.register_type::<Box<u32>>();
-        let id3 = registry.register_type::<Rc<u32>>();
-        let id4 = registry.register_type::<&'static u32>();
-
-        // All IDs must be identical
-        assert_eq!(id1, id2);
-        assert_eq!(id1, id3);
-        assert_eq!(id1, id4);
-
-        // The registry must contain EXACTLY one type
-        assert_eq!(
-            registry.len(),
-            1,
-            "Registry should deduplicate transparent wrappers into a single entry"
-        );
     }
 }

@@ -55,6 +55,7 @@ impl UserDefinedEntry {
                 });
                 fields
             }
+            sails_idl_meta::TypeDef::Alias(_) => Vec::new(),
         }
     }
 }

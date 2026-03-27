@@ -174,6 +174,9 @@ export class TypeResolver {
       }
       return { _enum: result };
     }
+    if (type.kind === 'alias') {
+      return this.getTypeDeclString(type.target, generics, 'field');
+    }
     throw new Error('Unknown type :: ' + JSON.stringify(type));
   }
 

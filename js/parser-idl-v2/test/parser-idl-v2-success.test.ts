@@ -20,4 +20,26 @@ describe('parser-v2 success', () => {
       'Chaos'
     ]);
   });
+
+  test('parses idl with aliases', async () => {
+    const { SailsIdlParser } = await import('../src/parser.js');
+    const parser = new SailsIdlParser();
+    await parser.init();
+
+    const idl = `
+      service S {
+        types {
+          struct T { f: u32 }
+          alias A = T;
+        }
+      }
+    `;
+    const doc = parser.parse(idl);
+
+    const types = doc.services?.[0].types;
+    expect(types?.[1].name).toBe('A');
+    expect(types?.[1].kind).toBe('alias');
+    // @ts-ignore
+    expect(types?.[1].target).toEqual({ kind: 'named', name: 'T' });
+  });
 });

@@ -1,8 +1,7 @@
-extern crate alloc;
-
 use alloc::collections::{BTreeMap, BTreeSet, BinaryHeap, VecDeque};
 use alloc::vec::Vec;
 use core::num::NonZeroU32;
+use sails_type_registry::alloc;
 
 use sails_type_registry::{Registry, ty::TypeDef};
 

@@ -110,7 +110,7 @@ export type PrimitiveType =
   | 'H256'
   | 'U256';
 
-export type Type = ITypeStruct | ITypeEnum;
+export type Type = ITypeStruct | ITypeEnum | ITypeAlias;
 
 export interface ITypeBase extends IDocAnnotated {
   name: string;
@@ -125,6 +125,11 @@ export interface ITypeStruct extends ITypeBase {
 export interface ITypeEnum extends ITypeBase {
   kind: 'enum';
   variants: IEnumVariant[];
+}
+
+export interface ITypeAlias extends ITypeBase {
+  kind: 'alias';
+  target: TypeDecl;
 }
 
 export interface ITypeParameter {

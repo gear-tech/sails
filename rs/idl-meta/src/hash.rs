@@ -81,6 +81,7 @@ fn hash_type(
             }
             hash.finalize()
         }
+        TypeDef::Alias(alias_def) => hash_type_decl(&alias_def.target, type_map, type_params)?,
     };
     Ok(bytes)
 }
@@ -529,5 +530,30 @@ mod tests {
             },
             map
         );
+    }
+
+    #[test]
+    fn hash_alias_is_same_as_target() {
+        let mut map = BTreeMap::new();
+        let target = TypeDecl::Primitive(PrimitiveType::U32);
+        let alias = Type {
+            name: "MyAlias".to_string(),
+            type_params: vec![],
+            def: TypeDef::Alias(AliasDef {
+                target: target.clone(),
+            }),
+            docs: vec![],
+            annotations: vec![],
+        };
+        map.insert("MyAlias", &alias);
+
+        let struct_hash = hash_type_decl(&target, &map, None).unwrap();
+        let alias_decl = TypeDecl::Named {
+            name: "MyAlias".to_string(),
+            generics: vec![],
+        };
+        let alias_hash = hash_type_decl(&alias_decl, &map, None).unwrap();
+
+        assert_eq!(struct_hash, alias_hash);
     }
 }

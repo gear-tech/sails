@@ -1,7 +1,5 @@
-extern crate alloc;
-
 use alloc::{boxed::Box, collections::BTreeMap, string::String, vec::Vec};
-
+use sails_type_registry::alloc;
 use sails_type_registry::{Registry, TypeInfo, ty::TypeDef};
 
 #[test]

@@ -39,6 +39,13 @@ impl TypeGenerator {
             ast::TypeDef::Enum(def) => {
                 tokens.append(self.render_enum(&ty.name, &ty.type_params, def))
             }
+            ast::TypeDef::Alias(def) => {
+                let generics = render_type_params(&ty.type_params);
+                let target = self.ts_type_decl(&def.target);
+                quote_in! { *tokens =>
+                    export type $(&ty.name)$(generics) = $target;
+                }
+            }
         }
         tokens.line();
     }

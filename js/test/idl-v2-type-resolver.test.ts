@@ -275,3 +275,60 @@ describe('type-resolver-v2 structs', () => {
     });
   });
 });
+
+describe('type-resolver-v2 aliases', () => {
+  test('simple alias', () => {
+    const userType: any = {
+      kind: 'alias',
+      name: 'MyU32',
+      target: 'u32',
+    };
+
+    const resolver = new TypeResolver([userType]);
+
+    expect(resolver.getTypeDef(userType)).toBe('u32');
+
+    const encoded = resolver.registry.createType('MyU32', 123);
+    expect(encoded.toJSON()).toBe(123);
+  });
+
+  test('alias to struct', () => {
+    const structType: Type = {
+      kind: 'struct',
+      name: 'SimpleStruct',
+      fields: [{ name: 'a', type: 'u32' }],
+    };
+    const aliasType: any = {
+      kind: 'alias',
+      name: 'StructAlias',
+      target: named('SimpleStruct'),
+    };
+
+    const resolver = new TypeResolver([structType, aliasType]);
+
+    expect(resolver.getTypeDef(aliasType)).toBe('SimpleStruct');
+
+    const encoded = resolver.registry.createType('StructAlias', { a: 123 });
+    expect(encoded.toJSON()).toEqual({ a: 123 });
+  });
+
+  test('generic alias', () => {
+    const aliasType: any = {
+      kind: 'alias',
+      name: 'GenericAlias',
+      type_params: [{ name: 'T' }],
+      target: named('Option', [named('T')]),
+    };
+
+    const resolver = new TypeResolver([aliasType]);
+
+    const decl = resolver.getTypeDeclString(named('GenericAlias', ['u32']));
+    expect(decl).toBe('GenericAlias<u32>');
+
+    const encoded = resolver.registry.createType('GenericAlias<u32>', 123);
+    expect(encoded.toJSON()).toBe(123);
+
+    const encodedNull = resolver.registry.createType('GenericAlias<u32>', null);
+    expect(encodedNull.toJSON()).toBe(null);
+  });
+});

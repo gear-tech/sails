@@ -1,6 +1,5 @@
-extern crate alloc;
-
 use alloc::string::String;
+use sails_type_registry::alloc;
 use sails_type_registry::ty::{GenericArg, TypeDef};
 use sails_type_registry::{Registry, TypeInfo};
 

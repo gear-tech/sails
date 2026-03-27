@@ -79,15 +79,7 @@ where
                         sails_rs::type_info::ty::Type::builder().applied(base_id, args),
                     )
             };
-            builder = builder
-                .field("next")
-                .type_name(
-                    sails_rs::type_info::prelude::alloc::string::String::from(
-                        ::core::stringify!(Option < Box < Container < T, U, SIZE > > >),
-                    ),
-                )
-                .doc("Recursive field")
-                .ty(ty);
+            builder = builder.field("next").doc("Recursive field").ty(ty);
         }
         {
             let ty = {
@@ -103,11 +95,6 @@ where
             };
             builder = builder
                 .field("data")
-                .type_name(
-                    sails_rs::type_info::prelude::alloc::string::String::from(
-                        ::core::stringify!([T; SIZE]),
-                    ),
-                )
                 .doc("Field with many annotations")
                 .annotate("indexed")
                 .annotate("secret")
@@ -133,26 +120,11 @@ where
                         sails_rs::type_info::ty::Type::builder().applied(base_id, args),
                     )
             };
-            builder = builder
-                .field("mapped")
-                .type_name(
-                    sails_rs::type_info::prelude::alloc::string::String::from(
-                        ::core::stringify!(BTreeMap < String, U >),
-                    ),
-                )
-                .ty(ty);
+            builder = builder.field("mapped").ty(ty);
         }
         {
             let ty = { registry.register_type::<(u32, bool, String)>() };
-            builder = builder
-                .field("meta")
-                .type_name(
-                    sails_rs::type_info::prelude::alloc::string::String::from(
-                        ::core::stringify!((u32, bool, String)),
-                    ),
-                )
-                .doc("Tuple field")
-                .ty(ty);
+            builder = builder.field("meta").doc("Tuple field").ty(ty);
         }
         builder.build()
     }
