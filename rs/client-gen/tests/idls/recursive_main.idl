@@ -1,0 +1,7 @@
+!@include: middle.idl
+
+service Main {
+    functions {
+        DoMain();
+    }
+}

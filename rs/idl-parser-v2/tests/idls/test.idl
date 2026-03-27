@@ -6,6 +6,9 @@ service Ownable {
 }
 
 service Tippable {
+    functions {
+        Tip();
+    }
 }
 
 /// Canvas service

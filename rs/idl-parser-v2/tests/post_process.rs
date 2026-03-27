@@ -33,7 +33,6 @@ fn validate_scoping_fails_on_sibling_service_type_usage() {
     let err = result.expect_err("Should have failed due to sibling service type usage");
     assert!(err.to_string().contains("Unknown type 'TypeX'"));
 }
-
 #[test]
 fn validate_mixed_fields_fails() {
     let src = include_str!("idls/post_process_mixed_fields.idl");
@@ -43,6 +42,33 @@ fn validate_mixed_fields_fails() {
             "Mixing named and unnamed fields in a struct or enum variant is not allowed."
         )
     );
+}
+
+#[test]
+fn validate_duplicate_interface_id_fails() {
+    let src = r#"
+        service S1 {
+            functions {
+                Do();
+            }
+        }
+        service S2 {
+            functions {
+                Do();
+            }
+        }
+        program P {
+            services {
+                S1: S1,
+                S2: S2,
+            }
+        }
+    "#;
+    let err = parse_idl(src).expect_err("Should have failed due to duplicate interface_id");
+    let err_str = err.to_string();
+    assert!(err_str.contains("duplicate interface_id"));
+    assert!(err_str.contains("S1"));
+    assert!(err_str.contains("S2"));
 }
 
 #[test]
