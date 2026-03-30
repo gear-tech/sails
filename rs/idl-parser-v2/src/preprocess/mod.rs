@@ -8,6 +8,7 @@ pub mod fs;
 pub mod git;
 
 /// The result of loading an IDL source — content and a unique id used for deduplication.
+#[derive(Debug)]
 pub struct IdlSource {
     pub content: String,
     /// Unique identifier (e.g. canonical file path or full git:// URL).
@@ -49,49 +50,40 @@ fn preprocess_recursive(
     visited: &mut BTreeSet<String>,
     out: &mut String,
 ) -> Result<()> {
-    let source = find_loader(loaders, path)?.load(path)?;
+    let loader = loaders
+        .iter()
+        .find(|l| l.can_load(path))
+        .ok_or_else(|| Error::Preprocess(alloc::format!("No loader can handle path: {path}")))?;
+
+    let source = loader.load(path)?;
 
     if !visited.insert(source.id) {
         return Ok(());
     }
 
-    source
-        .content
-        .lines()
-        .try_fold((), |_, line| -> Result<()> {
-            let trimmed = line.trim();
+    for line in source.content.lines() {
+        let trimmed = line.trim();
 
-            if trimmed.starts_with("!@include:") {
-                let include_path = trimmed
-                    .strip_prefix("!@include:")
-                    .map(|s| s.trim().trim_matches(|c| c == '"' || c == '\''))
-                    .ok_or_else(|| Error::Preprocess("Invalid include directive".to_string()))?;
+        if let Some(rest) = trimmed.strip_prefix("!@include:") {
+            let include_path = rest.trim().trim_matches(|c| c == '"' || c == '\'');
 
-                let next_path = find_loader(loaders, path)?.resolve(path, include_path)?;
-                preprocess_recursive(&next_path, loaders, visited, out)?;
+            if include_path.is_empty() {
+                return Err(Error::Preprocess("Invalid include directive".to_string()));
+            }
 
-                if !out.is_empty() && !out.ends_with('\n') {
-                    out.push('\n');
-                }
-            } else {
-                out.push_str(line);
+            let next_path = loader.resolve(path, include_path)?;
+            preprocess_recursive(&next_path, loaders, visited, out)?;
+
+            if !out.is_empty() && !out.ends_with('\n') {
                 out.push('\n');
             }
-            Ok(())
-        })?;
-
-    Ok(())
-}
-
-fn find_loader<'a>(loaders: &[&'a dyn IdlLoader], path: &str) -> Result<&'a dyn IdlLoader> {
-    for &loader in loaders {
-        if loader.can_load(path) {
-            return Ok(loader);
+        } else {
+            out.push_str(line);
+            out.push('\n');
         }
     }
-    Err(Error::Preprocess(alloc::format!(
-        "No loader can handle path: {path}"
-    )))
+
+    Ok(())
 }
 
 #[cfg(test)]

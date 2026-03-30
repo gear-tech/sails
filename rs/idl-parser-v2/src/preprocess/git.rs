@@ -2,15 +2,18 @@ use super::{IdlLoader, IdlSource};
 use crate::error::{Error, Result};
 use alloc::format;
 use alloc::string::{String, ToString};
-use alloc::vec::Vec;
-use std::path::Path;
+use std::path::{Component, Path};
 use std::process::{Command, Stdio};
 
 /// Loads IDL files from git repositories.
 ///
-/// URL format: `git://{host}/{owner}/{repo}/{branch_or_tag}/{file_path}`
+/// URL format: `git://{host}/{owner}/{repo}/{branch_or_tag}[:]{file_path}`
 ///
-/// Example: `!@include: git://github.com/gear-tech/sails/master/examples/demo/client/demo_client.idl`
+/// To support branch names with slashes, use `:` to separate the branch from the file path.
+///
+/// Examples:
+/// - `git://github.com/gear-tech/sails/master/examples/demo.idl`
+/// - `git://github.com/gear-tech/sails/feat/git-include:examples/demo.idl`
 pub struct GitLoader;
 
 impl IdlLoader for GitLoader {
@@ -27,18 +30,15 @@ impl IdlLoader for GitLoader {
     }
 
     fn resolve(&self, base_path: &str, include_path: &str) -> Result<String> {
-        let base_dir = base_path
-            .rsplit_once('/')
-            .map(|(d, _)| d)
-            .unwrap_or(base_path);
-        let joined = format!("{base_dir}/{include_path}");
-        Ok(normalize_git_path(&joined))
+        if include_path.contains("://") || include_path.starts_with('/') {
+            return Ok(include_path.to_string());
+        }
+        let pos = base_path.rfind(['/', ':']).unwrap_or(0);
+        Ok(format!("{}{}", &base_path[..pos + 1], include_path))
     }
 }
 
 /// Downloads a single file from a git repository and returns its content.
-///
-/// URL format: `git://{host}/{owner}/{repo}/{branch_or_tag}/{file_path}`
 fn git_fetch(url: &str) -> Result<String> {
     check_git_available()?;
 
@@ -46,31 +46,65 @@ fn git_fetch(url: &str) -> Result<String> {
         .strip_prefix("git://")
         .ok_or_else(|| Error::Preprocess(format!("Invalid git URL: {url}")))?;
 
-    let parts: Vec<&str> = rest.splitn(5, '/').collect();
-    if parts.len() < 5 {
+    // Parse host, owner, repo
+    let mut parts = rest.splitn(4, '/');
+    let host = parts
+        .next()
+        .filter(|s| !s.is_empty())
+        .ok_or_else(|| Error::Preprocess("Missing host".to_string()))?;
+    let owner = parts
+        .next()
+        .filter(|s| !s.is_empty())
+        .ok_or_else(|| Error::Preprocess("Missing owner".to_string()))?;
+    let repo = parts
+        .next()
+        .filter(|s| !s.is_empty())
+        .ok_or_else(|| Error::Preprocess("Missing repo".to_string()))?;
+    let remainder = parts
+        .next()
+        .filter(|s| !s.is_empty())
+        .ok_or_else(|| Error::Preprocess("Missing branch and file path".to_string()))?;
+
+    let remainder = remainder.strip_prefix("blob/").unwrap_or(remainder);
+
+    // Split remainder into branch (rev) and file path.
+    // Use ':' as a primary separator to support branches with slashes.
+    // Fallback to the first '/' if ':' is not present.
+    let (rev, file_path) = if let Some((r, p)) = remainder.split_once(':') {
+        (r, p)
+    } else {
+        remainder
+            .split_once('/')
+            .ok_or_else(|| Error::Preprocess(
+                "Missing file path. If your branch name contains slashes, use ':' to separate it from the path (e.g., branch/name:path/to/file.idl)".to_string()
+            ))?
+    };
+
+    if rev.is_empty() {
+        return Err(Error::Preprocess("Missing branch/tag".to_string()));
+    }
+    if file_path.is_empty() {
+        return Err(Error::Preprocess("Missing file path".to_string()));
+    }
+
+    if Path::new(file_path)
+        .components()
+        .any(|c| matches!(c, Component::ParentDir))
+    {
         return Err(Error::Preprocess(format!(
-            "Git URL must be git://host/owner/repo/branch_or_tag/file_path, got: {url}"
+            "Path traversal detected in URL: {url}"
         )));
     }
 
-    let repo_url = format!("https://{}/{}/{}", parts[0], parts[1], parts[2]);
-    let rev = parts[3];
-    let file_path = parts[4];
-    let file_name = Path::new(file_path)
-        .file_name()
-        .and_then(|n| n.to_str())
-        .unwrap_or("out.idl");
-
+    let repo_url = format!("https://{host}/{owner}/{repo}");
     let tmp = tempfile::tempdir()
         .map_err(|e| Error::Preprocess(format!("Failed to create temp dir: {e}")))?;
     let dir = tmp.path();
 
     run(dir, &["git", "init"])?;
+    run(dir, &["git", "sparse-checkout", "init", "--no-cone"])?;
+    run(dir, &["git", "sparse-checkout", "set", file_path])?;
     run(dir, &["git", "remote", "add", "origin", &repo_url])?;
-    run(dir, &["git", "config", "core.sparseCheckout", "true"])?;
-
-    std::fs::write(dir.join(".git/info/sparse-checkout"), file_path)
-        .map_err(|e| Error::Preprocess(format!("Failed to write sparse-checkout: {e}")))?;
 
     run(
         dir,
@@ -87,14 +121,7 @@ fn git_fetch(url: &str) -> Result<String> {
 
     run(dir, &["git", "checkout", "FETCH_HEAD"])?;
 
-    let out_path = dir.join(file_name);
-    let actual_path = if out_path.exists() {
-        out_path
-    } else {
-        dir.join(file_path)
-    };
-
-    std::fs::read_to_string(&actual_path)
+    std::fs::read_to_string(dir.join(file_path))
         .map_err(|e| Error::Preprocess(format!("Failed to read fetched IDL '{url}': {e}")))
 }
 
@@ -131,28 +158,10 @@ fn run(dir: &Path, args: &[&str]) -> Result<()> {
         return Err(Error::Preprocess(format!(
             "git command `{}` failed: {}",
             args.join(" "),
-            String::from_utf8_lossy(&output.stderr)
+            String::from_utf8_lossy(&output.stderr).trim()
         )));
     }
     Ok(())
-}
-
-/// Resolves `..` and `.` segments in a git:// URL.
-///
-/// Example: `git://github.com/org/repo/main/a/../b/c.idl` → `git://github.com/org/repo/main/b/c.idl`
-fn normalize_git_path(url: &str) -> String {
-    let (scheme, rest) = url.split_once("://").unwrap_or(("", url));
-    let mut segments: Vec<&str> = Vec::new();
-    for seg in rest.split('/') {
-        match seg {
-            "." | "" => {}
-            ".." => {
-                segments.pop();
-            }
-            s => segments.push(s),
-        }
-    }
-    format!("{}://{}", scheme, segments.join("/"))
 }
 
 #[cfg(test)]
@@ -174,33 +183,77 @@ mod tests {
         let result = loader
             .resolve("git://github.com/org/repo/main/a/b/c.idl", "../d.idl")
             .unwrap();
-        assert_eq!(result, "git://github.com/org/repo/main/a/d.idl");
+        assert_eq!(result, "git://github.com/org/repo/main/a/b/../d.idl");
     }
 
     #[test]
-    fn test_git_resolve_two_levels_up() {
+    fn test_git_resolve_absolute_fs_path() {
         let loader = GitLoader;
         let result = loader
-            .resolve(
-                "git://github.com/org/repo/main/a/b/c.idl",
-                "../../types.idl",
-            )
+            .resolve("git://github.com/org/repo/main/a.idl", "/etc/types.idl")
             .unwrap();
-        assert_eq!(result, "git://github.com/org/repo/main/types.idl");
+        assert_eq!(result, "/etc/types.idl");
     }
 
     #[test]
-    fn test_normalize_no_dots() {
-        let url = "git://github.com/org/repo/main/idls/common.idl";
-        assert_eq!(normalize_git_path(url), url);
+    fn test_git_resolve_different_git_url() {
+        let loader = GitLoader;
+        let other_url = "git://github.com/other/repo/main/types.idl";
+        let result = loader
+            .resolve("git://github.com/org/repo/main/a.idl", other_url)
+            .unwrap();
+        assert_eq!(result, other_url);
     }
 
     #[test]
-    fn test_normalize_with_dotdot() {
-        let url = "git://github.com/org/repo/main/a/../b/c.idl";
-        assert_eq!(
-            normalize_git_path(url),
-            "git://github.com/org/repo/main/b/c.idl"
-        );
+    fn test_git_url_parsing_errors() {
+        let loader = GitLoader;
+
+        let cases = [
+            ("git://", "Missing host"),
+            ("git://github.com/", "Missing owner"),
+            ("git://github.com/gear-tech/", "Missing repo"),
+            (
+                "git://github.com/gear-tech/sails/",
+                "Missing branch and file path",
+            ),
+            (
+                "git://github.com/gear-tech/sails/:path.idl",
+                "Missing branch/tag",
+            ),
+            (
+                "git://github.com/gear-tech/sails/master:",
+                "Missing file path",
+            ),
+        ];
+
+        for (url, expected_err) in cases {
+            let err = loader.load(url).unwrap_err().to_string();
+            assert!(
+                err.contains(expected_err),
+                "URL '{}' should fail with '{}', but got '{}'",
+                url,
+                expected_err,
+                err
+            );
+        }
+    }
+
+    #[test]
+    fn test_git_url_complex_branch() {
+        let loader = GitLoader;
+        // Test that resolve works with ':'
+        let result = loader
+            .resolve("git://github.com/org/repo/feat/v1:a.idl", "b.idl")
+            .unwrap();
+        assert_eq!(result, "git://github.com/org/repo/feat/v1:b.idl");
+    }
+
+    #[test]
+    fn test_path_traversal_protection() {
+        let loader = GitLoader;
+        let url = "git://github.com/org/repo/master/../../etc/passwd";
+        let err = loader.load(url).unwrap_err().to_string();
+        assert!(err.contains("Path traversal detected"));
     }
 }
