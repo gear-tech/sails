@@ -1,5 +1,5 @@
 
-!@sails: 1.0.0-beta.1
+!@sails: 1.0.0-beta.2
 
 service RmrkCatalog@0xb810a541ab5d5389 {
     functions {
