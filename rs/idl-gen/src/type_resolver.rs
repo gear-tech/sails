@@ -1740,6 +1740,80 @@ mod tests {
         }
     }
 
+    #[test]
+    fn recursive_generic_transparent_wrapper_stays_flat() {
+        #[allow(dead_code)]
+        #[derive(TypeInfo)]
+        struct Recursive<T> {
+            next: Option<Box<Recursive<T>>>,
+            value: T,
+        }
+
+        let mut registry = Registry::new();
+        let recursive_id = registry.register_type::<Recursive<u32>>();
+
+        let portable_registry = &registry;
+        let resolver = TypeResolver::from_registry(portable_registry);
+
+        let TypeDecl::Named { name, .. } = resolver.get(recursive_id).unwrap() else {
+            panic!("Expected named type")
+        };
+        let recursive = resolver.get_user_defined(name).unwrap();
+
+        let next_ty = recursive
+            .meta_fields()
+            .iter()
+            .find(|f| f.name.as_deref() == Some("next"))
+            .map(|f| f.type_decl.to_string())
+            .unwrap();
+
+        assert_eq!(next_ty, "Option<Recursive<T>>");
+    }
+
+    #[test]
+    fn nested_const_generic_arguments_keep_consts_in_base_name() {
+        #[allow(dead_code)]
+        #[derive(TypeInfo)]
+        struct Wrapper<T, const N: usize> {
+            value: T,
+            bytes: [u8; N],
+        }
+
+        #[allow(dead_code)]
+        #[derive(TypeInfo)]
+        struct Holder<T, const N: usize> {
+            inner: Wrapper<T, N>,
+            maybe: Option<Box<Wrapper<T, N>>>,
+        }
+
+        let mut registry = Registry::new();
+        let holder_id = registry.register_type::<Holder<u32, 16>>();
+
+        let portable_registry = &registry;
+        let resolver = TypeResolver::from_registry(portable_registry);
+
+        let TypeDecl::Named { name, .. } = resolver.get(holder_id).unwrap() else {
+            panic!("Expected named type")
+        };
+        let holder = resolver.get_user_defined(name).unwrap();
+
+        let inner_ty = holder
+            .meta_fields()
+            .iter()
+            .find(|f| f.name.as_deref() == Some("inner"))
+            .map(|f| f.type_decl.to_string())
+            .unwrap();
+        let maybe_ty = holder
+            .meta_fields()
+            .iter()
+            .find(|f| f.name.as_deref() == Some("maybe"))
+            .map(|f| f.type_decl.to_string())
+            .unwrap();
+
+        assert_eq!(inner_ty, "WrapperN16<T>");
+        assert_eq!(maybe_ty, "Option<WrapperN16<T>>");
+    }
+
     // Types for same_name_different_modules test
     #[allow(dead_code)]
     mod same_name_test {
