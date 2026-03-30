@@ -2,100 +2,96 @@ use crate::error::{Error, Result};
 use alloc::collections::BTreeSet;
 use alloc::string::{String, ToString};
 
-/// Trait for loading IDL content from a path.
+#[cfg(feature = "std")]
+pub mod fs;
+#[cfg(feature = "std")]
+pub mod git;
+
+/// The result of loading an IDL source — content and a unique id used for deduplication.
+pub struct IdlSource {
+    pub content: String,
+    /// Unique identifier (e.g. canonical file path or full git:// URL).
+    pub id: String,
+}
+
+/// Trait for loading IDL content from a path or URL.
+///
+/// Implement this trait to support custom IDL sources (local files, git, HTTP, etc.).
+/// A loader is responsible for three things:
+/// - declaring which paths it can handle (`can_load`)
+/// - loading the raw IDL content (`load`)
+/// - resolving relative include paths relative to a base (`resolve`)
 pub trait IdlLoader {
-    /// Unique identifier for the IDL content (e.g. canonical path or git URL).
-    type Id: Ord + Clone;
+    /// Returns `true` if this loader can handle the given path or URL.
+    fn can_load(&self, path: &str) -> bool;
 
-    /// Load the content and its unique identifier of the IDL file at the given path.
-    fn load(&self, path: &str) -> Result<(String, Self::Id)>;
+    /// Loads the IDL source at `path`, returning its content and a unique id.
+    fn load(&self, path: &str) -> Result<IdlSource>;
 
-    /// Resolve a relative include path based on the current file path.
+    /// Resolves a relative `include_path` against `base_path`.
     fn resolve(&self, base_path: &str, include_path: &str) -> Result<String>;
 }
 
-/// Preprocesses the IDL source, starting from the given path,
-/// resolving `!@include` directives recursively.
+/// Preprocesses the IDL source starting from `path`, resolving `!@include` directives.
 ///
-/// Each file (identified by `IdlLoader::Id`) is included at most once.
-pub fn preprocess<L: IdlLoader>(path: &str, loader: &L) -> Result<String> {
+/// `loaders` are tried in order — the first one where `can_load(path)` returns `true` is used.
+/// Each file (identified by `IdlSource::id`) is included at most once.
+pub fn preprocess(path: &str, loaders: &[&dyn IdlLoader]) -> Result<String> {
     let mut visited = BTreeSet::new();
     let mut result = String::new();
-    preprocess_recursive(path, loader, &mut visited, &mut result)?;
+    preprocess_recursive(path, loaders, &mut visited, &mut result)?;
     Ok(result)
 }
 
-fn preprocess_recursive<L: IdlLoader>(
+fn preprocess_recursive(
     path: &str,
-    loader: &L,
-    visited: &mut BTreeSet<L::Id>,
+    loaders: &[&dyn IdlLoader],
+    visited: &mut BTreeSet<String>,
     out: &mut String,
 ) -> Result<()> {
-    let (src, unique_id) = loader.load(path)?;
+    let source = find_loader(loaders, path)?.load(path)?;
 
-    if !visited.insert(unique_id) {
-        // If already visited, we just return to prevent duplication/cycle
+    if !visited.insert(source.id) {
         return Ok(());
     }
 
-    src.lines().try_fold((), |_, line| -> Result<()> {
-        let trimmed = line.trim();
+    source
+        .content
+        .lines()
+        .try_fold((), |_, line| -> Result<()> {
+            let trimmed = line.trim();
 
-        if trimmed.starts_with("!@include:") {
-            let next_path = trimmed
-                .strip_prefix("!@include:")
-                .map(|s| s.trim().trim_matches(|c| c == '"' || c == '\''))
-                .ok_or_else(|| Error::Preprocess("Invalid include directive".to_string()))
-                .and_then(|include_path| loader.resolve(path, include_path))?;
+            if trimmed.starts_with("!@include:") {
+                let include_path = trimmed
+                    .strip_prefix("!@include:")
+                    .map(|s| s.trim().trim_matches(|c| c == '"' || c == '\''))
+                    .ok_or_else(|| Error::Preprocess("Invalid include directive".to_string()))?;
 
-            preprocess_recursive(&next_path, loader, visited, out)?;
+                let next_path = find_loader(loaders, path)?.resolve(path, include_path)?;
+                preprocess_recursive(&next_path, loaders, visited, out)?;
 
-            if !out.is_empty() && !out.ends_with('\n') {
+                if !out.is_empty() && !out.ends_with('\n') {
+                    out.push('\n');
+                }
+            } else {
+                out.push_str(line);
                 out.push('\n');
             }
-        } else {
-            out.push_str(line);
-            out.push('\n');
-        }
-        Ok(())
-    })?;
+            Ok(())
+        })?;
 
     Ok(())
 }
 
-#[cfg(feature = "std")]
-pub mod fs {
-    use super::IdlLoader;
-    use crate::error::{Error, Result};
-    use alloc::format;
-    use alloc::string::{String, ToString};
-    use std::fs;
-    use std::path::Path;
-
-    /// A simple loader that reads IDL files from the local file system.
-    pub struct FsLoader;
-
-    impl IdlLoader for FsLoader {
-        type Id = String;
-
-        fn load(&self, path: &str) -> Result<(String, Self::Id)> {
-            let content = fs::read_to_string(path).map_err(|e| {
-                Error::Preprocess(format!("Failed to read IDL file at '{}': {}", path, e))
-            })?;
-            let id = Path::new(path)
-                .canonicalize()
-                .map(|p| p.to_string_lossy().into_owned())
-                .unwrap_or_else(|_| path.to_string());
-            Ok((content, id))
-        }
-
-        fn resolve(&self, base_path: &str, include_path: &str) -> Result<String> {
-            let base = Path::new(base_path);
-            let parent = base.parent().unwrap_or(Path::new("."));
-            let resolved = parent.join(include_path);
-            Ok(resolved.to_string_lossy().into_owned())
+fn find_loader<'a>(loaders: &[&'a dyn IdlLoader], path: &str) -> Result<&'a dyn IdlLoader> {
+    for &loader in loaders {
+        if loader.can_load(path) {
+            return Ok(loader);
         }
     }
+    Err(Error::Preprocess(alloc::format!(
+        "No loader can handle path: {path}"
+    )))
 }
 
 #[cfg(test)]
@@ -107,16 +103,20 @@ mod tests {
     struct MapLoader(BTreeMap<String, String>);
 
     impl IdlLoader for MapLoader {
-        type Id = String;
+        fn can_load(&self, _path: &str) -> bool {
+            true
+        }
 
-        fn load(&self, path: &str) -> Result<(String, Self::Id)> {
+        fn load(&self, path: &str) -> Result<IdlSource> {
             let content = self
                 .0
                 .get(path)
                 .cloned()
                 .ok_or_else(|| Error::Preprocess(format!("File not found: {path}")))?;
-
-            Ok((content, path.to_string()))
+            Ok(IdlSource {
+                content,
+                id: path.to_string(),
+            })
         }
 
         fn resolve(&self, base_path: &str, include_path: &str) -> Result<String> {
@@ -142,7 +142,7 @@ mod tests {
         );
 
         let loader = MapLoader(files);
-        let result = preprocess("main.idl", &loader).unwrap();
+        let result = preprocess("main.idl", &[&loader]).unwrap();
         assert!(result.contains("service Leaf"));
         assert!(result.contains("service Middle"));
         assert!(result.contains("service Main"));
@@ -160,9 +160,8 @@ mod tests {
         );
 
         let loader = MapLoader(files);
-        let result = preprocess("main.idl", &loader).unwrap();
+        let result = preprocess("main.idl", &[&loader]).unwrap();
 
-        // Count occurrences of "struct Common"
         let count = result.matches("struct Common").count();
         assert_eq!(count, 1); // Should be included only once
     }
@@ -209,7 +208,7 @@ mod tests {
         );
 
         let loader = MapLoader(files);
-        let result = preprocess("main.idl", &loader).unwrap();
+        let result = preprocess("main.idl", &[&loader]).unwrap();
 
         let doc = crate::parse_idl(&result).expect("Failed to parse preprocessed IDL");
 

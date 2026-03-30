@@ -22,9 +22,11 @@ mod post_process;
 pub mod preprocess;
 pub mod visitor;
 
-pub use preprocess::IdlLoader;
 #[cfg(feature = "std")]
 pub use preprocess::fs::FsLoader;
+#[cfg(feature = "std")]
+pub use preprocess::git::GitLoader;
+pub use preprocess::{IdlLoader, IdlSource};
 
 // Sails IDL v2 — parser using `pest-rs`
 use crate::error::{Error, Result};
@@ -54,9 +56,12 @@ pub fn parse_idl(src: &str) -> Result<IdlDoc> {
     Ok(doc)
 }
 
-/// Parses the IDL source from the given path using a custom loader.
-pub fn parse_idl_with_loader<L: IdlLoader>(path: &str, loader: &L) -> Result<IdlDoc> {
-    let src = preprocess::preprocess(path, loader)?;
+/// Parses the IDL source from the given path using a slice of loaders.
+///
+/// Loaders are tried in order — the first one where `can_load(path)` returns `true` is used.
+/// Use [`FsLoader`] for local files and [`GitLoader`] for `git://` URLs.
+pub fn parse_idl_with_loaders(path: &str, loaders: &[&dyn IdlLoader]) -> Result<IdlDoc> {
+    let src = preprocess::preprocess(path, loaders)?;
     parse_idl(&src)
 }
 
