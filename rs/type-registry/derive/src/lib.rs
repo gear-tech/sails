@@ -289,6 +289,44 @@ impl DeriveContext {
             .collect()
     }
 
+    fn is_const_param_type(&self, ty: &syn::Type) -> bool {
+        matches!(
+            ty,
+            syn::Type::Path(tp)
+                if tp
+                    .path
+                    .get_ident()
+                    .is_some_and(|ident| self.const_param_names.contains(&ident.to_string()))
+        )
+    }
+
+    fn transparent_wrapper_inner_type<'a>(&self, tp: &'a syn::TypePath) -> Option<&'a syn::Type> {
+        let last_segment = tp.path.segments.last()?;
+        let wrapper = last_segment.ident.to_string();
+        if !matches!(wrapper.as_str(), "Box" | "Rc" | "Arc" | "Cow") {
+            return None;
+        }
+
+        let syn::PathArguments::AngleBracketed(args) = &last_segment.arguments else {
+            return None;
+        };
+
+        let type_args: Vec<_> = args
+            .args
+            .iter()
+            .filter_map(|arg| match arg {
+                syn::GenericArgument::Type(ty) => Some(ty),
+                _ => None,
+            })
+            .collect();
+
+        match wrapper.as_str() {
+            "Cow" => type_args.last().copied(),
+            _ if type_args.len() == 1 => type_args.first().copied(),
+            _ => None,
+        }
+    }
+
     fn generate_field_type_tokens(&self, ty: &syn::Type) -> proc_macro2::TokenStream {
         let registry = &self.registry;
 
@@ -298,6 +336,10 @@ impl DeriveContext {
 
         match ty {
             syn::Type::Path(tp) => {
+                if let Some(inner_ty) = self.transparent_wrapper_inner_type(tp) {
+                    return self.generate_field_type_tokens(inner_ty);
+                }
+
                 if let Some(ident) = tp.path.get_ident()
                     && self.type_param_names.contains(&ident.to_string())
                 {
@@ -316,7 +358,9 @@ impl DeriveContext {
                 {
                     let mut arg_tokens = Vec::new();
                     for arg in &args.args {
-                        if let syn::GenericArgument::Type(inner_ty) = arg {
+                        if let syn::GenericArgument::Type(inner_ty) = arg
+                            && !self.is_const_param_type(inner_ty)
+                        {
                             arg_tokens.push(self.generate_field_type_tokens(inner_ty));
                         }
                     }

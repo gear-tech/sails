@@ -1,5 +1,6 @@
 ---
 source: rs/type-registry/derive/src/lib.rs
+assertion_line: 528
 expression: formatted
 ---
 #[automatically_derived]
@@ -24,22 +25,12 @@ for Generics<T, N> {
             let ty = {
                 let base_id = registry.register_type::<Vec<Vec<T>>>();
                 let args = ::sails_type_registry::prelude::alloc::vec![
-                    {
-                        let base_id = registry.register_type::<Vec<T>>();
-                        let args = ::sails_type_registry::prelude::alloc::vec![
-                            registry
-                                .register_type_def(
-                                    ::sails_type_registry::ty::Type::builder()
-                                        .name("T")
-                                        .parameter("T"),
-                                ),
-                        ];
-                        registry
-                            .register_type_def(
-                                ::sails_type_registry::ty::Type::builder()
-                                    .applied(base_id, args),
-                            )
-                    },
+                    { let base_id = registry.register_type:: < Vec < T > > (); let args =
+                    ::sails_type_registry::prelude::alloc::vec![registry
+                    .register_type_def(::sails_type_registry::ty::Type::builder()
+                    .name("T").parameter("T"))]; registry
+                    .register_type_def(::sails_type_registry::ty::Type::builder()
+                    .applied(base_id, args)) }
                 ];
                 registry
                     .register_type_def(
@@ -68,23 +59,13 @@ for Generics<T, N> {
             let ty = {
                 let base_id = registry.register_type::<Result<Option<T>, String>>();
                 let args = ::sails_type_registry::prelude::alloc::vec![
-                    {
-                        let base_id = registry.register_type::<Option<T>>();
-                        let args = ::sails_type_registry::prelude::alloc::vec![
-                            registry
-                                .register_type_def(
-                                    ::sails_type_registry::ty::Type::builder()
-                                        .name("T")
-                                        .parameter("T"),
-                                ),
-                        ];
-                        registry
-                            .register_type_def(
-                                ::sails_type_registry::ty::Type::builder()
-                                    .applied(base_id, args),
-                            )
-                    },
-                    { registry.register_type::<String>() },
+                    { let base_id = registry.register_type:: < Option < T > > (); let
+                    args = ::sails_type_registry::prelude::alloc::vec![registry
+                    .register_type_def(::sails_type_registry::ty::Type::builder()
+                    .name("T").parameter("T"))]; registry
+                    .register_type_def(::sails_type_registry::ty::Type::builder()
+                    .applied(base_id, args)) }, { registry.register_type:: < String > ()
+                    }
                 ];
                 registry
                     .register_type_def(

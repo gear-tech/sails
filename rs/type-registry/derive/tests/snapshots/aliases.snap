@@ -1,5 +1,6 @@
 ---
 source: rs/type-registry/derive/src/lib.rs
+assertion_line: 528
 expression: formatted
 ---
 #[automatically_derived]
@@ -20,12 +21,8 @@ impl<T: ::sails_type_registry::TypeInfo> ::sails_type_registry::TypeInfo for Ali
             let ty = {
                 let base_id = registry.register_type::<Outer<T>>();
                 let args = ::sails_type_registry::prelude::alloc::vec![
-                    registry
-                        .register_type_def(
-                            ::sails_type_registry::ty::Type::builder()
-                                .name("T")
-                                .parameter("T"),
-                        ),
+                    registry.register_type_def(::sails_type_registry::ty::Type::builder()
+                    .name("T").parameter("T"))
                 ];
                 registry
                     .register_type_def(
@@ -41,12 +38,8 @@ impl<T: ::sails_type_registry::TypeInfo> ::sails_type_registry::TypeInfo for Ali
             let ty = {
                 let base_id = registry.register_type::<Middle<T>>();
                 let args = ::sails_type_registry::prelude::alloc::vec![
-                    registry
-                        .register_type_def(
-                            ::sails_type_registry::ty::Type::builder()
-                                .name("T")
-                                .parameter("T"),
-                        ),
+                    registry.register_type_def(::sails_type_registry::ty::Type::builder()
+                    .name("T").parameter("T"))
                 ];
                 registry
                     .register_type_def(
