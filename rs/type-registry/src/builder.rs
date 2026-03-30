@@ -5,25 +5,25 @@ use crate::ty::{
 };
 use alloc::{string::String, vec::Vec};
 
-#[derive(Debug, Clone, Default)]
-pub struct TypeBuilder {
-    module_path: String,
-    name: String,
-    type_params: Vec<TypeParameter>,
+#[derive(Debug, Clone)]
+pub struct FieldBuilder<P> {
+    parent: P,
+    name: Option<String>,
     metadata: Metadata,
-    pending_param_name: Option<String>,
 }
 
 #[derive(Debug, Clone)]
 pub struct VariantBuilder {
-    fields_builder: FieldsBuilder<VariantDefBuilder>,
+    parent: VariantDefBuilder,
     name: String,
     metadata: Metadata,
+    fields: Vec<Field>,
 }
 
 #[derive(Debug, Clone)]
 pub struct CompositeBuilder {
-    fields_builder: FieldsBuilder<TypeBuilder>,
+    type_builder: TypeBuilder,
+    fields: Vec<Field>,
 }
 
 #[derive(Debug, Clone)]
@@ -33,17 +33,173 @@ pub struct VariantDefBuilder {
 }
 
 #[derive(Debug, Clone)]
-struct FieldsBuilder<P> {
-    parent: P,
-    fields: Vec<Field>,
-    current_name: Option<Option<String>>,
-    current_metadata: Metadata,
+pub struct ParamBuilder {
+    inner: TypeBuilder,
+    param_name: String,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct TypeBuilder {
+    module_path: String,
+    name: String,
+    type_params: Vec<TypeParameter>,
+    metadata: Metadata,
 }
 
 #[derive(Debug, Clone, Default)]
 struct Metadata {
     docs: Vec<String>,
     annotations: Vec<Annotation>,
+}
+
+pub trait PushField: Sized {
+    fn push_field(&mut self, field: Field);
+}
+
+impl<P: PushField> FieldBuilder<P> {
+    pub fn ty(mut self, ty: TypeRef) -> P {
+        self.parent.push_field(Field {
+            name: self.name,
+            ty,
+            docs: self.metadata.docs,
+            annotations: self.metadata.annotations,
+        });
+        self.parent
+    }
+}
+
+impl<P> FieldBuilder<P> {
+    pub fn doc(mut self, doc: impl Into<String>) -> Self {
+        self.metadata.doc(doc);
+        self
+    }
+
+    pub fn annotate(mut self, name: impl Into<String>) -> Self {
+        self.metadata.annotate(name);
+        self
+    }
+
+    pub fn value(mut self, value: impl Into<String>) -> Self {
+        self.metadata.value(value);
+        self
+    }
+}
+
+impl VariantBuilder {
+    pub fn field(self, name: impl Into<String>) -> FieldBuilder<Self> {
+        FieldBuilder {
+            parent: self,
+            name: Some(name.into()),
+            metadata: Metadata::default(),
+        }
+    }
+
+    pub fn unnamed(self) -> FieldBuilder<Self> {
+        FieldBuilder {
+            parent: self,
+            name: None,
+            metadata: Metadata::default(),
+        }
+    }
+
+    pub fn doc(mut self, doc: impl Into<String>) -> Self {
+        self.metadata.doc(doc);
+        self
+    }
+
+    pub fn annotate(mut self, name: impl Into<String>) -> Self {
+        self.metadata.annotate(name);
+        self
+    }
+
+    pub fn value(mut self, value: impl Into<String>) -> Self {
+        self.metadata.value(value);
+        self
+    }
+
+    pub fn finish_variant(mut self) -> VariantDefBuilder {
+        self.parent.variants.push(Variant {
+            name: self.name,
+            fields: self.fields,
+            docs: self.metadata.docs,
+            annotations: self.metadata.annotations,
+        });
+        self.parent
+    }
+}
+
+impl CompositeBuilder {
+    pub fn field(self, name: impl Into<String>) -> FieldBuilder<Self> {
+        FieldBuilder {
+            parent: self,
+            name: Some(name.into()),
+            metadata: Metadata::default(),
+        }
+    }
+
+    pub fn unnamed(self) -> FieldBuilder<Self> {
+        FieldBuilder {
+            parent: self,
+            name: None,
+            metadata: Metadata::default(),
+        }
+    }
+
+    pub fn doc(mut self, doc: impl Into<String>) -> Self {
+        self.type_builder.metadata.doc(doc);
+        self
+    }
+
+    pub fn annotate(mut self, name: impl Into<String>) -> Self {
+        self.type_builder.metadata.annotate(name);
+        self
+    }
+
+    pub fn value(mut self, value: impl Into<String>) -> Self {
+        self.type_builder.metadata.value(value);
+        self
+    }
+
+    pub fn build(self) -> Type {
+        self.type_builder.build(TypeDef::Composite(Composite {
+            fields: self.fields,
+        }))
+    }
+}
+
+impl VariantDefBuilder {
+    pub fn add_variant(self, name: impl Into<String>) -> VariantBuilder {
+        VariantBuilder {
+            parent: self,
+            name: name.into(),
+            metadata: Metadata::default(),
+            fields: Vec::new(),
+        }
+    }
+
+    pub fn build(self) -> Type {
+        self.type_builder.build(TypeDef::Variant(VariantDef {
+            variants: self.variants,
+        }))
+    }
+}
+
+impl ParamBuilder {
+    pub fn arg(mut self, arg: TypeRef) -> TypeBuilder {
+        self.inner.type_params.push(TypeParameter {
+            name: self.param_name,
+            arg: GenericArg::Type(arg),
+        });
+        self.inner
+    }
+
+    pub fn val(mut self, val: impl Into<String>) -> TypeBuilder {
+        self.inner.type_params.push(TypeParameter {
+            name: self.param_name,
+            arg: GenericArg::Const(val.into()),
+        });
+        self.inner
+    }
 }
 
 impl TypeBuilder {
@@ -61,34 +217,11 @@ impl TypeBuilder {
         self
     }
 
-    pub fn type_param(mut self, name: impl Into<String>) -> Self {
-        self.pending_param_name = Some(name.into());
-        self
-    }
-
-    pub fn const_param(mut self, name: impl Into<String>) -> Self {
-        self.pending_param_name = Some(name.into());
-        self
-    }
-
-    pub fn arg(mut self, arg: TypeRef) -> Self {
-        if let Some(name) = self.pending_param_name.take() {
-            self.type_params.push(TypeParameter {
-                name,
-                arg: GenericArg::Type(arg),
-            });
+    pub fn param(self, name: impl Into<String>) -> ParamBuilder {
+        ParamBuilder {
+            inner: self,
+            param_name: name.into(),
         }
-        self
-    }
-
-    pub fn val(mut self, val: impl Into<String>) -> Self {
-        if let Some(name) = self.pending_param_name.take() {
-            self.type_params.push(TypeParameter {
-                name,
-                arg: GenericArg::Const(val.into()),
-            });
-        }
-        self
     }
 
     pub fn doc(mut self, doc: impl Into<String>) -> Self {
@@ -149,7 +282,8 @@ impl TypeBuilder {
 
     pub fn composite(self) -> CompositeBuilder {
         CompositeBuilder {
-            fields_builder: FieldsBuilder::new(self),
+            type_builder: self,
+            fields: Vec::new(),
         }
     }
 
@@ -172,184 +306,6 @@ impl TypeBuilder {
     }
 }
 
-impl VariantBuilder {
-    pub fn field(mut self, name: impl Into<String>) -> Self {
-        self.fields_builder.field(name);
-        self
-    }
-
-    pub fn unnamed(mut self) -> Self {
-        self.fields_builder.unnamed();
-        self
-    }
-
-    pub fn doc(mut self, doc: impl Into<String>) -> Self {
-        let doc = doc.into();
-        if !self.fields_builder.try_doc(doc.clone()) {
-            self.metadata.doc(doc);
-        }
-        self
-    }
-
-    pub fn annotate(mut self, name: impl Into<String>) -> Self {
-        let name = name.into();
-        if !self.fields_builder.try_annotate(name.clone()) {
-            self.metadata.annotate(name);
-        }
-        self
-    }
-
-    pub fn value(mut self, value: impl Into<String>) -> Self {
-        let value = value.into();
-        if !self.fields_builder.try_value(value.clone()) {
-            self.metadata.value(value);
-        }
-        self
-    }
-
-    pub fn ty(mut self, ty: TypeRef) -> Self {
-        self.fields_builder.ty(ty);
-        self
-    }
-
-    pub fn finish_variant(self) -> VariantDefBuilder {
-        let fields = self.fields_builder.fields;
-        let mut parent = self.fields_builder.parent;
-        parent.variants.push(Variant {
-            name: self.name,
-            fields,
-            docs: self.metadata.docs,
-            annotations: self.metadata.annotations,
-        });
-        parent
-    }
-
-    pub fn build(self) -> Type {
-        self.finish_variant().build()
-    }
-}
-
-impl CompositeBuilder {
-    pub fn field(mut self, name: impl Into<String>) -> Self {
-        self.fields_builder.field(name);
-        self
-    }
-
-    pub fn unnamed(mut self) -> Self {
-        self.fields_builder.unnamed();
-        self
-    }
-
-    pub fn doc(mut self, doc: impl Into<String>) -> Self {
-        let doc = doc.into();
-        if !self.fields_builder.try_doc(doc.clone()) {
-            self.fields_builder.parent.metadata.doc(doc);
-        }
-        self
-    }
-
-    pub fn annotate(mut self, name: impl Into<String>) -> Self {
-        let name = name.into();
-        if !self.fields_builder.try_annotate(name.clone()) {
-            self.fields_builder.parent.metadata.annotate(name);
-        }
-        self
-    }
-
-    pub fn value(mut self, value: impl Into<String>) -> Self {
-        let value = value.into();
-        if !self.fields_builder.try_value(value.clone()) {
-            self.fields_builder.parent.metadata.value(value);
-        }
-        self
-    }
-
-    pub fn ty(mut self, ty: TypeRef) -> Self {
-        self.fields_builder.ty(ty);
-        self
-    }
-
-    pub fn build(self) -> Type {
-        let fields = self.fields_builder.fields;
-        self.fields_builder
-            .parent
-            .build(TypeDef::Composite(Composite { fields }))
-    }
-}
-
-impl VariantDefBuilder {
-    pub fn add_variant(self, name: impl Into<String>) -> VariantBuilder {
-        VariantBuilder {
-            fields_builder: FieldsBuilder::new(self),
-            name: name.into(),
-            metadata: Metadata::default(),
-        }
-    }
-
-    pub fn build(self) -> Type {
-        self.type_builder.build(TypeDef::Variant(VariantDef {
-            variants: self.variants,
-        }))
-    }
-}
-
-impl<P> FieldsBuilder<P> {
-    fn new(parent: P) -> Self {
-        Self {
-            parent,
-            fields: Vec::new(),
-            current_name: None,
-            current_metadata: Metadata::default(),
-        }
-    }
-
-    fn field(&mut self, name: impl Into<String>) {
-        self.current_name = Some(Some(name.into()));
-    }
-
-    fn unnamed(&mut self) {
-        self.current_name = Some(None);
-    }
-
-    fn ty(&mut self, ty: TypeRef) {
-        if let Some(name) = self.current_name.take() {
-            self.fields.push(Field {
-                name,
-                ty,
-                docs: core::mem::take(&mut self.current_metadata.docs),
-                annotations: core::mem::take(&mut self.current_metadata.annotations),
-            });
-        }
-    }
-
-    fn try_doc(&mut self, doc: String) -> bool {
-        if self.current_name.is_some() {
-            self.current_metadata.doc(doc);
-            true
-        } else {
-            false
-        }
-    }
-
-    fn try_annotate(&mut self, name: String) -> bool {
-        if self.current_name.is_some() {
-            self.current_metadata.annotate(name);
-            true
-        } else {
-            false
-        }
-    }
-
-    fn try_value(&mut self, value: String) -> bool {
-        if self.current_name.is_some() {
-            self.current_metadata.value(value);
-            true
-        } else {
-            false
-        }
-    }
-}
-
 impl Metadata {
     fn doc(&mut self, doc: impl Into<String>) {
         self.docs.push(doc.into());
@@ -366,5 +322,17 @@ impl Metadata {
         if let Some(ann) = self.annotations.last_mut() {
             ann.value = Some(value.into());
         }
+    }
+}
+
+impl PushField for CompositeBuilder {
+    fn push_field(&mut self, field: Field) {
+        self.fields.push(field);
+    }
+}
+
+impl PushField for VariantBuilder {
+    fn push_field(&mut self, field: Field) {
+        self.fields.push(field);
     }
 }

@@ -12,16 +12,15 @@ for Generics<T, N> {
         let mut type_builder = ::sails_type_registry::builder::TypeBuilder::new()
             .module_path(::core::module_path!())
             .name("Generics");
-        {
-            let arg_id = { registry.register_type::<T>() };
-            type_builder = type_builder.type_param("T").arg(arg_id);
-        }
+        type_builder = type_builder.param("T").arg({ registry.register_type::<T>() });
         type_builder = type_builder
-            .const_param("N")
+            .param("N")
             .val(::sails_type_registry::prelude::alloc::format!("{}", N));
         let mut builder = type_builder.composite();
-        {
-            let ty = {
+        builder = builder
+            .field("matrix")
+            .doc("Nested generics")
+            .ty({
                 let base_id = registry.register_type::<Vec<Vec<T>>>();
                 let args = ::sails_type_registry::prelude::alloc::vec![
                     {
@@ -45,11 +44,11 @@ for Generics<T, N> {
                     .register_type_def(
                         ::sails_type_registry::ty::Type::builder().applied(base_id, args),
                     )
-            };
-            builder = builder.field("matrix").doc("Nested generics").ty(ty);
-        }
-        {
-            let ty = {
+            });
+        builder = builder
+            .field("data")
+            .doc("Array with const param")
+            .ty({
                 let inner_id = registry
                     .register_type_def(
                         ::sails_type_registry::ty::Type::builder()
@@ -61,11 +60,11 @@ for Generics<T, N> {
                         ::sails_type_registry::ty::Type::builder()
                             .array(inner_id, N as u32),
                     )
-            };
-            builder = builder.field("data").doc("Array with const param").ty(ty);
-        }
-        {
-            let ty = {
+            });
+        builder = builder
+            .field("result")
+            .doc("Complex path with generics")
+            .ty({
                 let base_id = registry.register_type::<Result<Option<T>, String>>();
                 let args = ::sails_type_registry::prelude::alloc::vec![
                     {
@@ -90,9 +89,7 @@ for Generics<T, N> {
                     .register_type_def(
                         ::sails_type_registry::ty::Type::builder().applied(base_id, args),
                     )
-            };
-            builder = builder.field("result").doc("Complex path with generics").ty(ty);
-        }
+            });
         builder.build()
     }
 }

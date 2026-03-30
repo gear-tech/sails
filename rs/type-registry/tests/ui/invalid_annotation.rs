@@ -1,7 +1,7 @@
 use sails_type_registry::TypeInfo;
 
 #[derive(TypeInfo)]
-#[type_info(id = 42)] // Integer values are not supported in IDL V2!
+#[type_info(id = 42)] // Integer values are not supported
 struct User {
     id: u32,
 }

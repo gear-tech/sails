@@ -11,13 +11,12 @@ impl<T: ::sails_type_registry::TypeInfo> ::sails_type_registry::TypeInfo for Ali
         let mut type_builder = ::sails_type_registry::builder::TypeBuilder::new()
             .module_path(::core::module_path!())
             .name("Aliases");
-        {
-            let arg_id = { registry.register_type::<T>() };
-            type_builder = type_builder.type_param("T").arg(arg_id);
-        }
+        type_builder = type_builder.param("T").arg({ registry.register_type::<T>() });
         let mut builder = type_builder.composite();
-        {
-            let ty = {
+        builder = builder
+            .field("field")
+            .doc("Deeply nested aliases: Result<Vec<(T, bool)>, String>")
+            .ty({
                 let base_id = registry.register_type::<Outer<T>>();
                 let args = ::sails_type_registry::prelude::alloc::vec![
                     registry
@@ -31,14 +30,11 @@ impl<T: ::sails_type_registry::TypeInfo> ::sails_type_registry::TypeInfo for Ali
                     .register_type_def(
                         ::sails_type_registry::ty::Type::builder().applied(base_id, args),
                     )
-            };
-            builder = builder
-                .field("field")
-                .doc("Deeply nested aliases: Result<Vec<(T, bool)>, String>")
-                .ty(ty);
-        }
-        {
-            let ty = {
+            });
+        builder = builder
+            .field("direct")
+            .doc("Direct use of intermediate alias")
+            .ty({
                 let base_id = registry.register_type::<Middle<T>>();
                 let args = ::sails_type_registry::prelude::alloc::vec![
                     registry
@@ -52,12 +48,7 @@ impl<T: ::sails_type_registry::TypeInfo> ::sails_type_registry::TypeInfo for Ali
                     .register_type_def(
                         ::sails_type_registry::ty::Type::builder().applied(base_id, args),
                     )
-            };
-            builder = builder
-                .field("direct")
-                .doc("Direct use of intermediate alias")
-                .ty(ty);
-        }
+            });
         builder.build()
     }
 }
