@@ -6422,7 +6422,6 @@ dependencies = [
 name = "sails-idl-parser-v2"
 version = "1.0.0-beta.2"
 dependencies = [
- "git-download",
  "paste",
  "pest",
  "pest_derive",
