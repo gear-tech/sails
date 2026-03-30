@@ -369,6 +369,23 @@ impl ProgramGenerator {
         self.root_rust_toolchain()
             .write_into(&mut rust_toolchain_toml)?;
 
+        // add sails-rs refs
+        self.cargo_add_sails_rs(manifest_path, Normal, self.ethereum.then_some("ethexe"))?;
+        self.cargo_add_sails_rs(
+            manifest_path,
+            Build,
+            Some(if self.ethereum {
+                "ethexe,build"
+            } else {
+                "build"
+            }),
+        )?;
+
+        // update `sails-rs` if not path ref and not offline
+        if self.sails_path.is_none() && !self.offline {
+            cargo_update(manifest_path, Some("sails-rs"))?;
+        }
+
         Ok(())
     }
 
@@ -385,18 +402,6 @@ impl ProgramGenerator {
         // add app ref
         cargo_add(manifest_path, [self.app_name()], Normal, None, self.offline)?;
         cargo_add(manifest_path, [self.app_name()], Build, None, self.offline)?;
-
-        // add sails-rs refs
-        self.cargo_add_sails_rs(manifest_path, Normal, self.ethereum.then_some("ethexe"))?;
-        self.cargo_add_sails_rs(
-            manifest_path,
-            Build,
-            Some(if self.ethereum {
-                "ethexe,build"
-            } else {
-                "build"
-            }),
-        )?;
 
         Ok(())
     }
@@ -671,6 +676,37 @@ where
         .context("failed to execute `cargo add` command")?
         .exit_result()
         .context("failed to run `cargo add` command")?;
+
+    Ok(())
+}
+
+fn cargo_update<P: AsRef<Path>>(manifest_path: P, package: Option<&str>) -> anyhow::Result<()> {
+    let cargo_command = cargo_command();
+    if let Some(package) = package {
+        println!(
+            "   cargo update: {} -> {}",
+            package,
+            manifest_path.as_ref().display()
+        );
+    } else {
+        println!("   cargo update: {}", manifest_path.as_ref().display());
+    }
+
+    let mut cmd = Command::new(cargo_command);
+    cmd.stdout(Stdio::null()).arg("update");
+
+    if let Some(package) = package {
+        cmd.arg(package);
+    }
+
+    cmd.arg("--manifest-path")
+        .arg(manifest_path.as_ref())
+        .arg("--quiet");
+
+    cmd.status()
+        .context("failed to execute `cargo update` command")?
+        .exit_result()
+        .context("failed to run `cargo update` command")?;
 
     Ok(())
 }
