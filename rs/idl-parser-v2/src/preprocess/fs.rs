@@ -9,10 +9,6 @@ use std::path::Path;
 pub struct FsLoader;
 
 impl IdlLoader for FsLoader {
-    fn can_load(&self, path: &str) -> bool {
-        !path.starts_with("git://")
-    }
-
     fn load(&self, path: &str) -> Result<IdlSource> {
         let content = fs::read_to_string(path)
             .map_err(|e| Error::Preprocess(format!("Failed to read IDL file at '{path}': {e}")))?;
@@ -23,13 +19,17 @@ impl IdlLoader for FsLoader {
         Ok(IdlSource { content, id })
     }
 
-    fn resolve(&self, base_path: &str, include_path: &str) -> Result<String> {
+    fn resolve(&self, base_path: &str, include_path: &str) -> Option<String> {
+        if base_path.contains("://") {
+            return None;
+        }
+
         if include_path.contains("://") || include_path.starts_with('/') {
-            return Ok(include_path.to_string());
+            return Some(include_path.to_string());
         }
         let base = Path::new(base_path);
         let parent = base.parent().unwrap_or(Path::new("."));
         let resolved = parent.join(include_path);
-        Ok(resolved.to_string_lossy().into_owned())
+        Some(resolved.to_string_lossy().into_owned())
     }
 }

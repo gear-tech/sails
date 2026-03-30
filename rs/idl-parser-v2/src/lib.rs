@@ -58,7 +58,7 @@ pub fn parse_idl(src: &str) -> Result<IdlDoc> {
 
 /// Parses the IDL source from the given path using a slice of loaders.
 ///
-/// Loaders are tried in order — the first one where `can_load(path)` returns `true` is used.
+/// Loaders are tried in order — the first one that resolves the path is used.
 /// Use [`FsLoader`] for local files and [`GitLoader`] for `git://` URLs.
 pub fn parse_idl_with_loaders(path: &str, loaders: &[&dyn IdlLoader]) -> Result<IdlDoc> {
     let src = preprocess::preprocess(path, loaders)?;

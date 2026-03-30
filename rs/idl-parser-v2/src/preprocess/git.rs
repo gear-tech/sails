@@ -17,10 +17,6 @@ use std::process::{Command, Stdio};
 pub struct GitLoader;
 
 impl IdlLoader for GitLoader {
-    fn can_load(&self, path: &str) -> bool {
-        path.starts_with("git://")
-    }
-
     fn load(&self, path: &str) -> Result<IdlSource> {
         let content = git_fetch(path)?;
         Ok(IdlSource {
@@ -29,12 +25,16 @@ impl IdlLoader for GitLoader {
         })
     }
 
-    fn resolve(&self, base_path: &str, include_path: &str) -> Result<String> {
+    fn resolve(&self, base_path: &str, include_path: &str) -> Option<String> {
+        if !base_path.starts_with("git://") {
+            return None;
+        }
+
         if include_path.contains("://") || include_path.starts_with('/') {
-            return Ok(include_path.to_string());
+            return Some(include_path.to_string());
         }
         let pos = base_path.rfind(['/', ':']).unwrap_or(0);
-        Ok(format!("{}{}", &base_path[..pos + 1], include_path))
+        Some(format!("{}{}", &base_path[..pos + 1], include_path))
     }
 }
 
