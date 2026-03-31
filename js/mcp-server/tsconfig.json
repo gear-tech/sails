@@ -1,0 +1,10 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "declaration": false,
+    "resolveJsonModule": true,
+    "removeComments": true,
+    "outDir": "./dist"
+  },
+  "include": ["src"]
+}
