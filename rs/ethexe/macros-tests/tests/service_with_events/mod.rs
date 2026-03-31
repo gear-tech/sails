@@ -6,7 +6,6 @@ pub struct MyServiceWithEvents(pub u8);
 #[event]
 #[derive(TypeInfo, Encode, Clone, Debug, PartialEq, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
-#[type_info(crate = sails_rs::type_info)]
 #[reflect_hash(crate = sails_rs)]
 pub enum MyEvents {
     Event1,

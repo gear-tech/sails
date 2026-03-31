@@ -4,7 +4,6 @@ use sails_rs::prelude::*;
 #[sails_rs::event]
 #[derive(Clone, Debug, PartialEq, Encode, TypeInfo, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
-#[type_info(crate = sails_rs::type_info)]
 #[reflect_hash(crate = sails_rs)]
 pub enum PartialIdlEvents {
     FirstDone,

@@ -6536,7 +6536,7 @@ dependencies = [
 
 [[package]]
 name = "sails-type-registry"
-version = "1.0.0-beta.1"
+version = "1.0.0-beta.2"
 dependencies = [
  "gprimitives",
  "insta",
@@ -6547,7 +6547,7 @@ dependencies = [
 
 [[package]]
 name = "sails-type-registry-derive"
-version = "1.0.0-beta.1"
+version = "1.0.0-beta.2"
 dependencies = [
  "insta",
  "prettyplease",
