@@ -1,5 +1,6 @@
 import type { RegisteredProgram } from './registry.js';
-import type { IServiceUnit, IServiceFunc, IFuncParam, IServiceEvent, TypeDecl } from 'sails-js-types';
+import type { IServiceUnit, IServiceFunc, IFuncParam, IServiceEvent } from 'sails-js-types';
+import { TypeResolver } from 'sails-js';
 
 function interfaceIdToString(id: any): string | null {
   if (!id) return null;
@@ -8,48 +9,28 @@ function interfaceIdToString(id: any): string | null {
   return null;
 }
 
-function typeDeclToString(td: TypeDecl): string {
-  if (!td) return 'unknown';
-  if (typeof td === 'string') return td;
-  if ('primitive' in td) return td.primitive;
-  if ('optional' in td) return `Option<${typeDeclToString(td.optional)}>`;
-  if ('vec' in td) return `Vec<${typeDeclToString(td.vec)}>`;
-  if ('result' in td) return `Result<${typeDeclToString(td.result.ok)}, ${typeDeclToString(td.result.err)}>`;
-  if ('map' in td) return `BTreeMap<${typeDeclToString(td.map.key)}, ${typeDeclToString(td.map.value)}>`;
-  if ('fixedArray' in td) return `[${typeDeclToString(td.fixedArray.type)}; ${td.fixedArray.len}]`;
-  if ('tuple' in td) return `(${td.tuple.map(typeDeclToString).join(', ')})`;
-  if ('userDefined' in td) {
-    const name = td.userDefined.name;
-    if (td.userDefined.params?.length) {
-      return `${name}<${td.userDefined.params.map(typeDeclToString).join(', ')}>`;
-    }
-    return name;
-  }
-  return JSON.stringify(td);
-}
-
-function summarizeParams(params: IFuncParam[]) {
+function summarizeParams(params: IFuncParam[], resolver: TypeResolver) {
   return params.map((p) => ({
     name: p.name,
-    type: typeDeclToString(p.type),
+    type: resolver.getTypeDeclString(p.type),
   }));
 }
 
-function summarizeFunc(func: IServiceFunc, idx: number) {
+function summarizeFunc(func: IServiceFunc, idx: number, resolver: TypeResolver) {
   const entryIdAnn = func.annotations?.find(([k]) => k === 'entry-id');
   const entryId = entryIdAnn ? Number(entryIdAnn[1]) : idx;
   return {
     name: func.name,
     kind: func.kind ?? 'command',
     entry_id: entryId,
-    params: summarizeParams(func.params),
-    return_type: func.output ? typeDeclToString(func.output) : 'void',
-    throws: func.throws ? typeDeclToString(func.throws) : undefined,
+    params: summarizeParams(func.params ?? [], resolver),
+    return_type: func.output && func.output !== '()' ? resolver.getTypeDeclString(func.output) : 'void',
+    throws: func.throws ? resolver.getTypeDeclString(func.throws) : undefined,
     docs: func.docs?.join('\n') || undefined,
   };
 }
 
-function summarizeEvent(event: IServiceEvent, idx: number) {
+function summarizeEvent(event: IServiceEvent, idx: number, resolver: TypeResolver) {
   const entryIdAnn = event.annotations?.find(([k]) => k === 'entry-id');
   const entryId = entryIdAnn ? Number(entryIdAnn[1]) : idx;
   return {
@@ -57,7 +38,7 @@ function summarizeEvent(event: IServiceEvent, idx: number) {
     entry_id: entryId,
     fields: event.fields?.map((f) => ({
       name: f.name,
-      type: typeDeclToString(f.type),
+      type: resolver.getTypeDeclString(f.type),
     })) ?? [],
     docs: event.docs?.join('\n') || undefined,
   };
@@ -76,12 +57,13 @@ function findServiceUnit(entry: RegisteredProgram, serviceName: string): IServic
 
 export function summarizeProgram(entry: RegisteredProgram) {
   const doc = entry.doc;
+  const resolver = entry.program.typeResolver;
   return {
     program: entry.name,
-    constructors: doc.program?.ctors?.map((c, idx) => ({
+    constructors: doc.program?.ctors?.map((c) => ({
       name: c.name,
-      params: summarizeParams(c.params),
-      throws: c.throws ? typeDeclToString(c.throws) : undefined,
+      params: summarizeParams(c.params ?? [], resolver),
+      throws: c.throws ? resolver.getTypeDeclString(c.throws) : undefined,
       docs: c.docs?.join('\n') || undefined,
     })) ?? [],
     services: doc.program?.services?.map((expo) => {
@@ -101,15 +83,33 @@ export function summarizeProgram(entry: RegisteredProgram) {
 
 export function summarizeService(entry: RegisteredProgram, serviceName: string) {
   const unit = findServiceUnit(entry, serviceName);
+  const resolver = entry.program.services[serviceName].typeResolver;
   return {
     name: unit.name,
     interface_id: interfaceIdToString(unit.interface_id),
-    functions: unit.funcs?.map(summarizeFunc) ?? [],
-    events: unit.events?.map(summarizeEvent) ?? [],
-    types: unit.types?.map((t) => ({
-      name: t.name,
-      def: t.def,
-    })) ?? [],
+    functions: unit.funcs?.map((f, i) => summarizeFunc(f, i, resolver)) ?? [],
+    events: unit.events?.map((e, i) => summarizeEvent(e, i, resolver)) ?? [],
+    types: unit.types?.map((t) => {
+      if (t.kind === 'struct') {
+        return {
+          name: t.name,
+          kind: 'struct',
+          fields: t.fields.map((f) => ({ name: f.name, type: resolver.getTypeDeclString(f.type) })),
+        };
+      } else if (t.kind === 'enum') {
+        return {
+          name: t.name,
+          kind: 'enum',
+          variants: t.variants.map((v) => v.name),
+        };
+      } else {
+        return {
+          name: t.name,
+          kind: 'alias',
+          target: resolver.getTypeDeclString(t.target),
+        };
+      }
+    }) ?? [],
     extends: unit.extends?.map((e) => ({
       name: e.name,
       interface_id: interfaceIdToString(e.interface_id),
@@ -124,6 +124,7 @@ export function summarizeFunction(
   funcName: string,
 ) {
   const unit = findServiceUnit(entry, serviceName);
+  const resolver = entry.program.services[serviceName].typeResolver;
   const allFuncs = unit.funcs ?? [];
   const idx = allFuncs.findIndex((f) => f.name === funcName);
   if (idx === -1) {
@@ -133,11 +134,8 @@ export function summarizeFunction(
     );
   }
   const func = allFuncs[idx];
-  const detail = summarizeFunc(func, idx);
-
-  // Also include the service context
   return {
-    ...detail,
+    ...summarizeFunc(func, idx, resolver),
     service: serviceName,
     interface_id: interfaceIdToString(unit.interface_id),
   };

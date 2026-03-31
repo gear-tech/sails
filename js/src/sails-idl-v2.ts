@@ -364,6 +364,11 @@ export class SailsService implements ISailsService {
     return this._typeResolver.registry;
   }
 
+  /** #### TypeResolver with registered types from the ServiceUnit */
+  get typeResolver() {
+    return this._typeResolver;
+  }
+
   private _getFunctions(service: IServiceUnit): {
     funcs: Record<string, SailsServiceFunc>;
     queries: Record<string, SailsServiceQuery>;

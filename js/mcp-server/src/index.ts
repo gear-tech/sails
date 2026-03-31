@@ -8,6 +8,7 @@ import { registerCodecTools } from './tools/codec-tools.js';
 import { registerHeaderTools } from './tools/header-tools.js';
 import { registerTypeTools } from './tools/type-tools.js';
 import { registerUtilTools } from './tools/util-tools.js';
+import { registerAbiTools } from './tools/abi-tools.js';
 import { registerResources } from './resources.js';
 
 const server = new McpServer(
@@ -31,6 +32,7 @@ registerCodecTools(server);
 registerHeaderTools(server);
 registerTypeTools(server);
 registerUtilTools(server);
+registerAbiTools(server);
 registerResources(server);
 
 // Initialize the WASM parser eagerly so first tool call is fast
