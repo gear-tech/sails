@@ -1,7 +1,10 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 use core::{any::TypeId, fmt, num::NonZeroU32};
 
-use crate::ty::{GenericArg, Type, TypeDef};
+use crate::{
+    MetaType,
+    ty::{GenericArg, Type, TypeDef},
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
@@ -19,6 +22,7 @@ impl TypeRef {
 
 pub trait TypeInfo: 'static {
     type Identity: ?Sized + 'static;
+    const META: MetaType = MetaType::new::<Self>();
     fn type_info(registry: &mut Registry) -> Type;
 }
 

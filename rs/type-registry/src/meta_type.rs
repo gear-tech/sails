@@ -5,7 +5,7 @@ use core::{
     hash::{Hash, Hasher},
 };
 
-use crate::registry::{Registry, TypeInfo, TypeRef};
+use crate::registry::{Registry, TypeInfo};
 use crate::ty::Type;
 
 #[derive(Clone, Copy)]
@@ -15,7 +15,7 @@ pub struct MetaType {
 }
 
 impl MetaType {
-    pub fn new<T>() -> Self
+    pub const fn new<T>() -> Self
     where
         T: TypeInfo + ?Sized,
     {
@@ -25,16 +25,12 @@ impl MetaType {
         }
     }
 
-    pub fn type_id(&self) -> TypeId {
+    pub const fn type_id(&self) -> TypeId {
         self.type_id
     }
 
     pub fn type_info(&self, registry: &mut Registry) -> Type {
         (self.fn_type_info)(registry)
-    }
-
-    pub fn register(&self, registry: &mut Registry) -> TypeRef {
-        registry.register_meta_type(*self)
     }
 }
 

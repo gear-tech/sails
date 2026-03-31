@@ -1,7 +1,7 @@
 use super::*;
 use crate::type_resolver::TypeResolver;
 use sails_type_registry::{
-    Registry, TypeRef,
+    Registry, TypeInfo, TypeRef,
     ty::{GenericArg, TypeDef, Variant},
 };
 
@@ -26,16 +26,16 @@ fn get_type_args(
 pub struct ProgramBuilder {
     registry: Registry,
     ctors_type_id: TypeRef,
-    service_expos: Vec<(&'static str, AnyServiceMeta)>,
+    service_expos: &'static [(&'static str, AnyServiceMeta)],
 }
 
 impl ProgramBuilder {
     /// Build a new program builder with the constructors and services registered in metadata.
     pub fn new<P: ProgramMeta>() -> Self {
         let mut registry = Registry::new();
-        let ctors = P::constructors();
+        let ctors = P::ConstructorsMeta::META;
         let ctors_type_id = registry.register_meta_type(ctors);
-        let service_expos = P::services().collect();
+        let service_expos = P::SERVICES;
 
         Self {
             registry,
@@ -131,7 +131,7 @@ impl ProgramBuilder {
 
         let expos: Result<Vec<_>> = self
             .service_expos
-            .into_iter()
+            .iter()
             .enumerate()
             .map(|(idx, (route, meta))| {
                 let interface_id = meta.interface_id();
@@ -143,7 +143,7 @@ impl ProgramBuilder {
                         "service `{route}@{interface_id}` not defined"
                     )));
                 };
-                let route = if service.name.name == route {
+                let route = if service.name.name == *route {
                     None
                 } else {
                     Some(route.to_string())
@@ -519,7 +519,7 @@ mod tests {
         struct TestProgram<C: TypeInfo>(PhantomData<C>);
         impl<C: TypeInfo> ProgramMeta for TestProgram<C> {
             type ConstructorsMeta = C;
-            const SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
+            const SERVICES: &'static [(&'static str, AnyServiceMeta)] = &[];
             const ASYNC: bool = false;
         }
 
@@ -528,9 +528,8 @@ mod tests {
     }
 
     fn test_service_units<S: ServiceMeta>(service_name: &'static str) -> Result<Vec<ServiceUnit>> {
-        let meta = AnyServiceMeta::new::<S>();
         let mut services = Vec::new();
-        ServiceBuilder::new(service_name, &meta).build(&mut services)?;
+        ServiceBuilder::new(service_name, &S::META).build(&mut services)?;
         Ok(services)
     }
 
@@ -687,10 +686,10 @@ mod tests {
         struct TestProgram;
         impl ProgramMeta for TestProgram {
             type ConstructorsMeta = utils::SimpleCtors;
-            const SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[
-                ("TestService1", AnyServiceMeta::new::<TestService>),
-                ("TestService2", AnyServiceMeta::new::<TestService>),
-                ("TestService3", AnyServiceMeta::new::<TestService>),
+            const SERVICES: &'static [(&'static str, AnyServiceMeta)] = &[
+                ("TestService1", TestService::META),
+                ("TestService2", TestService::META),
+                ("TestService3", TestService::META),
             ];
             const ASYNC: bool = false;
         }
@@ -760,7 +759,7 @@ mod tests {
     //     struct TestProgram;
     //     impl ProgramMeta for TestProgram {
     //         type ConstructorsMeta = utils::SimpleCtors;
-    //         const SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[
+    //         const SERVICES: &'static [(&'static str, AnyServiceMeta)] = &[
     //             ("TestService", AnyServiceMeta::new::<TestService>),
     //             ("TestService", AnyServiceMeta::new::<TestService>),
     //         ];
@@ -1345,10 +1344,8 @@ mod tests {
         struct TestProgram;
         impl ProgramMeta for TestProgram {
             type ConstructorsMeta = utils::SimpleCtors;
-            const SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[
-                ("Service1", AnyServiceMeta::new::<Service1>),
-                ("Service2", AnyServiceMeta::new::<Service2>),
-            ];
+            const SERVICES: &'static [(&'static str, AnyServiceMeta)] =
+                &[("Service1", Service1::META), ("Service2", Service2::META)];
             const ASYNC: bool = false;
         }
 
@@ -1405,10 +1402,8 @@ mod tests {
         struct TestProgram;
         impl ProgramMeta for TestProgram {
             type ConstructorsMeta = utils::SimpleCtors;
-            const SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[
-                ("Service1", AnyServiceMeta::new::<Service1>),
-                ("Service2", AnyServiceMeta::new::<Service2>),
-            ];
+            const SERVICES: &'static [(&'static str, AnyServiceMeta)] =
+                &[("Service1", Service1::META), ("Service2", Service2::META)];
             const ASYNC: bool = false;
         }
 
@@ -2577,13 +2572,13 @@ mod tests {
         struct TestProgram;
         impl ProgramMeta for TestProgram {
             type ConstructorsMeta = utils::SimpleCtors;
-            const SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[
-                ("Service11", AnyServiceMeta::new::<Service1>),
-                ("Service12", AnyServiceMeta::new::<Service1>),
-                ("Service13", AnyServiceMeta::new::<Service1>),
-                ("Service21", AnyServiceMeta::new::<Service2>),
-                ("Service22", AnyServiceMeta::new::<Service2>),
-                ("Service31", AnyServiceMeta::new::<Service3>),
+            const SERVICES: &'static [(&'static str, AnyServiceMeta)] = &[
+                ("Service11", Service1::META),
+                ("Service12", Service1::META),
+                ("Service13", Service1::META),
+                ("Service21", Service2::META),
+                ("Service22", Service2::META),
+                ("Service31", Service3::META),
             ];
             const ASYNC: bool = false;
         }

@@ -2,8 +2,8 @@ use gprimitives::*;
 use meta_params::*;
 use sails_idl_gen::{program, service};
 use sails_idl_meta::{
-    AnyServiceMeta, AnyServiceMetaFn, BaseServiceMeta, Identifiable, InterfaceId, MethodMetadata,
-    ProgramMeta, ServiceMeta,
+    AnyServiceMeta, BaseServiceMeta, Identifiable, InterfaceId, MethodMetadata, ProgramMeta,
+    ServiceMeta,
 };
 use sails_type_registry::TypeInfo;
 use std::{collections::BTreeMap, result::Result as StdResult};
@@ -240,8 +240,8 @@ struct TestProgramWithEmptyCtorsMeta;
 impl ProgramMeta for TestProgramWithEmptyCtorsMeta {
     type ConstructorsMeta = EmptyCtorsMeta;
 
-    const SERVICES: &'static [(&'static str, AnyServiceMetaFn)] =
-        &[("Service", AnyServiceMeta::new::<TestServiceMeta>)];
+    const SERVICES: &'static [(&'static str, AnyServiceMeta)] =
+        &[("Service", TestServiceMeta::META)];
 
     const ASYNC: bool = false;
 }
@@ -261,8 +261,7 @@ struct TestProgramWithNonEmptyCtorsMeta;
 impl ProgramMeta for TestProgramWithNonEmptyCtorsMeta {
     type ConstructorsMeta = NonEmptyCtorsMeta;
 
-    const SERVICES: &'static [(&'static str, AnyServiceMetaFn)] =
-        &[("Test", AnyServiceMeta::new::<TestServiceMeta>)];
+    const SERVICES: &'static [(&'static str, AnyServiceMeta)] = &[("Test", TestServiceMeta::META)];
 
     const ASYNC: bool = false;
 }
@@ -272,9 +271,9 @@ struct TestProgramWithMultipleServicesMeta;
 impl ProgramMeta for TestProgramWithMultipleServicesMeta {
     type ConstructorsMeta = EmptyCtorsMeta;
 
-    const SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[
-        ("Service", AnyServiceMeta::new::<TestServiceMeta>),
-        ("SomeService", AnyServiceMeta::new::<TestServiceMeta>),
+    const SERVICES: &'static [(&'static str, AnyServiceMeta)] = &[
+        ("Service", TestServiceMeta::META),
+        ("SomeService", TestServiceMeta::META),
     ];
 
     const ASYNC: bool = false;

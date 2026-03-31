@@ -108,7 +108,10 @@ fn test_meta_type_registration() {
     ];
 
     // Register all of them
-    let refs: alloc::vec::Vec<_> = types.iter().map(|m| m.register(&mut registry)).collect();
+    let refs: alloc::vec::Vec<_> = types
+        .into_iter()
+        .map(|m| registry.register_meta_type(m))
+        .collect();
 
     // Verify registrations
     assert!(registry.is_type::<u32>(refs[0]));
