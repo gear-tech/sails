@@ -190,6 +190,18 @@ impl<'a> ServiceInterfaceId<'a> {
         for name in names {
             _ = self.compute_service_id(name.as_str())?;
         }
+
+        let mut seen_ids = BTreeMap::new();
+        for service in &self.doc.services {
+            let id = service.name.interface_id.expect("interface_id must be set");
+            if let Some(other_name) = seen_ids.insert(id.as_u64(), &service.name.name) {
+                return Err(Error::Validation(format!(
+                    "duplicate interface_id {id} found for services `{}` and `{}`",
+                    other_name, service.name.name
+                )));
+            }
+        }
+
         if let Some(program) = &mut self.doc.program {
             for expo in &mut program.services {
                 let id = self.computed.get(&expo.name.name).ok_or_else(|| {

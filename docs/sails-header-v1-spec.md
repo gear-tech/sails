@@ -57,7 +57,7 @@ Byte offset  Field          Size (bytes)  Description
 
 ### Interface ID
 
-See [REFLECT_HASH_SPEC](REFLECT_HASH_SPEC.md)
+See [reflect-hash-spec](reflect-hash-spec.md)
 
 ### Entry ID
 

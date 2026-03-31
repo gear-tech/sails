@@ -26,6 +26,7 @@ env:
     sails-idl-meta
     sails-idl-parser
     sails-idl-parser-v2
+    sails-idl-embed
     sails-idl-gen
     sails-sol-gen
     sails-client-gen
@@ -51,7 +52,7 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -129,7 +130,7 @@ jobs:
 
     steps:
       - name: Checkout Code from Release Branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ needs.prepare.outputs.rc_branch }}
 
@@ -163,7 +164,7 @@ jobs:
           cp ./examples/no-svcs-prog/wasm/no_svcs_prog.idl ./assets/no_svcs_prog/no_svcs_prog.idl
 
       - name: Upload Assets
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sails-assets
           path: ./assets/
@@ -183,7 +184,7 @@ jobs:
 
     steps:
       - name: Checkout Code from Release Branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ needs.prepare.outputs.rc_branch }}
 
@@ -252,13 +253,13 @@ jobs:
 
     steps:
       - name: Checkout Code from Release Branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ needs.prepare.outputs.rc_branch }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download Assets
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: sails-assets
           path: ./assets

@@ -13,6 +13,8 @@ pub enum Error {
     Validation(String),
     #[error("Parse error: {0}")]
     Parse(String),
+    #[error("Preprocess error: {0}")]
+    Preprocess(String),
 }
 
 // A newtype wrapper for `pest::error::Error` to provide a custom `Debug`

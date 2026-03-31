@@ -1,0 +1,13 @@
+!@include: service_a.idl
+
+program Main {
+    constructors {
+        New();
+    }
+    services {
+        ServiceA: ServiceA;
+    }
+    types {
+        alias MyResult = ResultData;
+    }
+}

@@ -12,6 +12,8 @@ pub use hex;
 #[doc(hidden)]
 pub use paste;
 pub use prelude::*;
+#[cfg(feature = "idl-embed")]
+pub use sails_idl_embed::{embed_idl, embed_idl_to_file, extract_idl, extract_idl_from_file};
 #[cfg(all(feature = "idl-gen", not(target_arch = "wasm32")))]
 pub use sails_idl_gen::generate_idl;
 #[cfg(all(feature = "idl-gen", feature = "std", not(target_arch = "wasm32")))]

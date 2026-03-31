@@ -1,0 +1,7 @@
+!@include: leaf.idl
+
+service Middle {
+    functions {
+        DoMiddle();
+    }
+}

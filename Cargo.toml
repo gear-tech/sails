@@ -1,5 +1,5 @@
 [workspace.package]
-version = "1.0.0-beta.1"
+version = "1.0.0-beta.2"
 authors = ["Gear Technologies"]
 edition = "2024"
 license = "GPL-3.0"
@@ -37,6 +37,7 @@ members = [
     "rs/cli",
     "rs/client-gen",
     "rs/client-gen-js",
+    "rs/idl-embed",
     "rs/idl-gen",
     "rs/idl-meta",
     "rs/idl-parser",
@@ -61,6 +62,7 @@ members = [
 sails-idl-meta = { path = "rs/idl-meta" }
 sails-idl-parser = { path = "rs/idl-parser" }
 sails-idl-parser-v2 = { path = "rs/idl-parser-v2", default-features = false }
+sails-idl-embed = { path = "rs/idl-embed" }
 sails-idl-gen = { path = "rs/idl-gen" }
 sails-client-gen = { path = "rs/client-gen" }
 sails-client-gen-js = { path = "rs/client-gen-js" }
