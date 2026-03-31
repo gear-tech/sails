@@ -35,9 +35,9 @@ impl MyProgram {
 }
 impl sails_rs::meta::ProgramMeta for MyProgram {
     type ConstructorsMeta = meta_in_program::ConstructorsMeta;
-    const SERVICES: &'static [(&'static str, sails_rs::meta::AnyServiceMetaFn)] = &[
-        ("Svc1", sails_rs::meta::AnyServiceMeta::new::<MyService>),
-        ("Service2", sails_rs::meta::AnyServiceMeta::new::<MyService>),
+    const SERVICES: &'static [(&'static str, sails_rs::meta::AnyServiceMeta)] = &[
+        ("Svc1", <MyService as sails_rs::meta::ServiceMeta>::META),
+        ("Service2", <MyService as sails_rs::meta::ServiceMeta>::META),
     ];
     const ASYNC: bool = <MyService as sails_rs::meta::ServiceMeta>::ASYNC
         || <MyService as sails_rs::meta::ServiceMeta>::ASYNC;

@@ -57,13 +57,13 @@ pub mod program {
 
 pub mod service {
     use super::*;
-    use sails_idl_meta::{AnyServiceMeta, ServiceMeta};
+    use sails_idl_meta::ServiceMeta;
 
     pub fn generate_idl<S: ServiceMeta>(
         service_name: &str,
         mut idl_writer: impl core::fmt::Write,
     ) -> Result<()> {
-        let doc = build_service_ast(service_name, AnyServiceMeta::new::<S>())?;
+        let doc = build_service_ast(service_name, S::META)?;
         doc.render_into(&mut idl_writer)?;
         Ok(())
     }
@@ -89,8 +89,8 @@ pub mod service {
 
 fn build_program_ast<P: ProgramMeta>(program_name: Option<&str>) -> Result<IdlDoc> {
     let mut services = Vec::new();
-    for (name, meta) in P::services() {
-        builder::ServiceBuilder::new(name, &meta).build(&mut services)?;
+    for (name, meta) in P::SERVICES {
+        builder::ServiceBuilder::new(name, meta).build(&mut services)?;
     }
     let program = if let Some(name) = program_name {
         Some(builder::ProgramBuilder::new::<P>().build(name.to_string(), &services)?)

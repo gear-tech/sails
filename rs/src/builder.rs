@@ -274,13 +274,13 @@ mod tests {
 
     struct P;
 
-    #[derive(TypeInfo)]
+    #[derive(crate::TypeInfo)]
     #[type_info(crate = crate::type_info)]
     struct Meta;
 
     impl ProgramMeta for P {
         type ConstructorsMeta = Meta;
-        const SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] = &[];
+        const SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMeta)] = &[];
         const ASYNC: bool = false;
     }
 

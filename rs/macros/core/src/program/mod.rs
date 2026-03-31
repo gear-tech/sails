@@ -257,7 +257,7 @@ impl ProgramBuilder {
             impl #generics #sails_path::meta::ProgramMeta for #program_type_path #program_type_constraints {
                 type ConstructorsMeta = meta_in_program::ConstructorsMeta;
 
-                const SERVICES: &'static [(&'static str, #sails_path::meta::AnyServiceMetaFn)] = &[
+                const SERVICES: &'static [(&'static str, #sails_path::meta::AnyServiceMeta)] = &[
                     #(#services_meta),*
                 ];
                 const ASYNC: bool = #( #meta_asyncness )||*;
@@ -645,7 +645,7 @@ impl FnBuilder<'_> {
         let route = &self.route;
         let service_type = &self.result_type;
         quote!(
-            ( #route , #sails_path::meta::AnyServiceMeta::new::< #service_type >)
+            ( #route , < #service_type as #sails_path::meta::ServiceMeta >::META )
         )
     }
 
