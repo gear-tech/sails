@@ -1,5 +1,5 @@
 
-!@sails: 1.0.0-beta.1
+!@sails: 1.0.0-beta.2
 
 service Inspector@0xdf7978e4f1d11ddd {
     functions {

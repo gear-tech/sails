@@ -6426,6 +6426,7 @@ dependencies = [
  "pest",
  "pest_derive",
  "sails-idl-meta",
+ "tempfile",
  "thiserror 2.0.18",
 ]
 
