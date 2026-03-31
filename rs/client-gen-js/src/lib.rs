@@ -1,6 +1,6 @@
 use anyhow::{Context, Result, bail};
 use root_generator::RootGenerator;
-use sails_idl_parser_v2::{FsLoader, parse_idl, preprocess};
+use sails_idl_parser_v2::{FsLoader, GitLoader, parse_idl, preprocess};
 use std::{fs, path::Path};
 use type_generator::TypeGenerator;
 
@@ -55,7 +55,7 @@ impl<'a> JsClientGenerator<IdlPath<'a>> {
     pub fn generate(self) -> Result<String> {
         let idl_path = self.idl.0;
         let path_str = idl_path.to_string_lossy();
-        let idl = preprocess::preprocess(&path_str, &FsLoader)
+        let idl = preprocess::preprocess(&path_str, &[&FsLoader, &GitLoader])
             .with_context(|| format!("Failed to preprocess IDL from {}", idl_path.display()))?;
         self.with_idl(&idl).generate()
     }
@@ -102,7 +102,7 @@ mod tests {
     #[test]
     fn test_js_generator_includes() {
         let path = "tests/idls/includes/main.idl";
-        let result = preprocess::preprocess(path, &FsLoader).expect("Failed to preprocess IDL");
+        let result = preprocess::preprocess(path, &[&FsLoader]).expect("Failed to preprocess IDL");
 
         assert!(result.contains("struct ResultData"));
         assert!(result.contains("enum Error"));
