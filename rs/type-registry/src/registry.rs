@@ -58,13 +58,16 @@ impl Registry {
         self.types[(next_id - 1) as usize] = actual_type;
         type_ref
     }
+
     pub fn register_type_def(&mut self, mut ty: Type) -> TypeRef {
         ty.def = self.normalize_def(ty.def);
 
-        if let Some((id, _)) = self
-            .types()
-            .find(|(_, existing_ty)| existing_ty.name == ty.name && existing_ty.def == ty.def)
-        {
+        if let Some((id, _)) = self.types().find(|(_, existing_ty)| {
+            existing_ty.module_path == ty.module_path
+                && existing_ty.name == ty.name
+                && existing_ty.type_params == ty.type_params
+                && existing_ty.def == ty.def
+        }) {
             return id;
         }
 
@@ -227,6 +230,7 @@ impl fmt::Display for TypeDisplay<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ty::{GenericArg, Type, TypeParameter};
     use core::mem::size_of;
 
     #[test]
@@ -253,5 +257,43 @@ mod tests {
         let registry = Registry::new();
         assert!(registry.is_empty());
         assert_eq!(registry.len(), 0);
+    }
+
+    #[test]
+    fn register_type_def_distinguishes_module_path_and_type_params() {
+        let mut registry = Registry::new();
+        let bool_ref = registry.register_type::<bool>();
+
+        let first = registry.register_type_def(
+            Type::builder()
+                .module_path("a::mod")
+                .name("Wrapper")
+                .param("T")
+                .arg(bool_ref)
+                .tuple(alloc::vec![]),
+        );
+        let second = registry.register_type_def(
+            Type::builder()
+                .module_path("b::mod")
+                .name("Wrapper")
+                .param("T")
+                .arg(bool_ref)
+                .tuple(alloc::vec![]),
+        );
+        let third = registry.register_type_def(Type {
+            module_path: "a::mod".into(),
+            name: "Wrapper".into(),
+            type_params: alloc::vec![TypeParameter {
+                name: "N".into(),
+                arg: GenericArg::Const("10".into()),
+            }],
+            def: crate::ty::TypeDef::Tuple(alloc::vec![]),
+            docs: alloc::vec![],
+            annotations: alloc::vec![],
+        });
+
+        assert_ne!(first, second);
+        assert_ne!(first, third);
+        assert_ne!(second, third);
     }
 }
