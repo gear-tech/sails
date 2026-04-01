@@ -6,26 +6,41 @@ use crate::{
     ty::{GenericArg, Type, TypeDef},
 };
 
+/// Stable reference to a type stored in a [`Registry`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
 pub struct TypeRef(NonZeroU32);
 
 impl TypeRef {
+    /// Creates a new non-zero type reference.
     pub fn new(id: u32) -> Self {
         Self(NonZeroU32::new(id).expect("Type ID must not be zero"))
     }
 
+    /// Returns the raw numeric identifier.
     pub fn get(&self) -> u32 {
         self.0.get()
     }
 }
 
+/// Trait for exposing a Rust type as portable metadata.
+///
+/// Implementations describe the type through [`type_info`](Self::type_info)
+/// and define an [`Identity`](Self::Identity) used for deduplication in a
+/// [`Registry`].
 pub trait TypeInfo: 'static {
+    /// Canonical identity used when interning the type in a registry.
     type Identity: ?Sized + 'static;
+    /// Type-erased handle to this type's metadata entry point.
     const META: MetaType = MetaType::new::<Self>();
+    /// Builds the portable metadata description of this type.
     fn type_info(registry: &mut Registry) -> Type;
 }
 
+/// Deduplicated table of portable type metadata.
+///
+/// A registry interns each type once by identity and assigns a compact
+/// [`TypeRef`] that can be reused by nested metadata definitions.
 #[derive(Default, Debug, Clone)]
 pub struct Registry {
     type_table: BTreeMap<TypeId, TypeRef>,
@@ -33,14 +48,17 @@ pub struct Registry {
 }
 
 impl Registry {
+    /// Creates an empty registry.
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Registers `T` and returns its [`TypeRef`].
     pub fn register_type<T: TypeInfo + ?Sized>(&mut self) -> TypeRef {
         self.register_meta_type(crate::meta_type::MetaType::new::<T>())
     }
 
+    /// Registers a type through its type-erased [`MetaType`] handle.
     pub fn register_meta_type(&mut self, meta: crate::meta_type::MetaType) -> TypeRef {
         let type_id = meta.type_id();
 
@@ -59,6 +77,10 @@ impl Registry {
         type_ref
     }
 
+    /// Registers a type definition directly.
+    ///
+    /// The definition is normalized before insertion and deduplicated by module
+    /// path, name, type parameters, and normalized definition.
     pub fn register_type_def(&mut self, mut ty: Type) -> TypeRef {
         ty.def = self.normalize_def(ty.def);
 
@@ -109,16 +131,19 @@ impl Registry {
         def
     }
 
+    /// Returns the metadata entry for `type_ref`.
     pub fn get_type(&self, type_ref: TypeRef) -> Option<&Type> {
         let index = (type_ref.get() as usize).checked_sub(1)?;
         self.types.get(index)
     }
 
+    /// Returns `true` when `type_ref` points to the registered identity of `T`.
     pub fn is_type<T: TypeInfo + ?Sized>(&self, type_ref: TypeRef) -> bool {
         let type_id = TypeId::of::<T::Identity>();
         self.type_table.get(&type_id) == Some(&type_ref)
     }
 
+    /// Iterates over all registered type entries in insertion order.
     pub fn types(&self) -> impl Iterator<Item = (TypeRef, &Type)> {
         self.types
             .iter()
@@ -126,14 +151,17 @@ impl Registry {
             .map(|(i, t)| (TypeRef::new((i as u32) + 1), t))
     }
 
+    /// Returns the number of registered type entries.
     pub fn len(&self) -> usize {
         self.types.len()
     }
 
+    /// Returns `true` when the registry has no entries.
     pub fn is_empty(&self) -> bool {
         self.types.is_empty()
     }
 
+    /// Returns a display helper for rendering a type reference.
     pub fn display(&self, type_ref: TypeRef) -> TypeDisplay<'_> {
         TypeDisplay {
             registry: self,
@@ -142,6 +170,10 @@ impl Registry {
     }
 }
 
+/// Formatter wrapper used by [`Registry::display`].
+///
+/// The rendered form is intended for diagnostics and human-readable names, not
+/// as a canonical serialization format.
 pub struct TypeDisplay<'a> {
     registry: &'a Registry,
     type_ref: TypeRef,
