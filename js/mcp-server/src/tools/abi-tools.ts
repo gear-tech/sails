@@ -18,27 +18,65 @@ import type { TypeDecl, IIdlDoc, IServiceUnit, IServiceFunc, IStructField } from
 export function typeDeclToSolidity(td: TypeDecl): string {
   if (typeof td === 'string') {
     switch (td) {
-      case 'bool': return 'bool';
-      case 'u8': return 'uint8';
-      case 'u16': return 'uint16';
-      case 'u32': return 'uint32';
-      case 'u64': return 'uint64';
-      case 'u128': return 'uint128';
-      case 'U256': return 'uint256';
-      case 'i8': return 'int8';
-      case 'i16': return 'int16';
-      case 'i32': return 'int32';
-      case 'i64': return 'int64';
-      case 'i128': return 'int128';
-      case 'String': return 'string';
-      case 'ActorId': return 'address';
+      case 'bool': {
+        return 'bool';
+      }
+      case 'u8': {
+        return 'uint8';
+      }
+      case 'u16': {
+        return 'uint16';
+      }
+      case 'u32': {
+        return 'uint32';
+      }
+      case 'u64': {
+        return 'uint64';
+      }
+      case 'u128': {
+        return 'uint128';
+      }
+      case 'U256': {
+        return 'uint256';
+      }
+      case 'i8': {
+        return 'int8';
+      }
+      case 'i16': {
+        return 'int16';
+      }
+      case 'i32': {
+        return 'int32';
+      }
+      case 'i64': {
+        return 'int64';
+      }
+      case 'i128': {
+        return 'int128';
+      }
+      case 'String': {
+        return 'string';
+      }
+      case 'ActorId': {
+        return 'address';
+      }
       case 'H256':
       case 'CodeId':
-      case 'MessageId': return 'bytes32';
-      case 'H160': return 'bytes20';
-      case '()': throw new Error('Void type () has no Solidity representation');
-      case 'char': throw new Error('char type is not supported in Solidity ABI');
-      default: throw new Error(`Unsupported primitive type in ABI: ${td}`);
+      case 'MessageId': {
+        return 'bytes32';
+      }
+      case 'H160': {
+        return 'bytes20';
+      }
+      case '()': {
+        throw new Error('Void type () has no Solidity representation');
+      }
+      case 'char': {
+        throw new Error('char type is not supported in Solidity ABI');
+      }
+      default: {
+        throw new Error(`Unsupported primitive type in ABI: ${td}`);
+      }
     }
   }
   if (td.kind === 'slice') {
@@ -128,14 +166,10 @@ function isIndexed(field: IStructField): boolean {
 
 function generateSolidity(doc: IIdlDoc, baseName: string): string {
   const services = doc.services ?? [];
-  const lines: string[] = [];
+  const lines: string[] = ['// SPDX-License-Identifier: UNLICENSED', 'pragma solidity ^0.8.26;', '', `interface I${baseName} {`];
 
-  lines.push('// SPDX-License-Identifier: UNLICENSED');
-  lines.push('pragma solidity ^0.8.26;');
-  lines.push('');
 
   // Contract 1: Interface
-  lines.push(`interface I${baseName} {`);
   for (const unit of services) {
     for (const func of unit.funcs ?? []) {
       const solName = solFuncName(unit.name, func.name);
@@ -169,11 +203,7 @@ function generateSolidity(doc: IIdlDoc, baseName: string): string {
       lines.push(`    event ${event.name}(${fieldList});`);
     }
   }
-  lines.push('}');
-  lines.push('');
-
-  // Contract 2: Abi (pure selector functions)
-  lines.push(`abstract contract ${baseName}Abi {`);
+  lines.push('}', '', `abstract contract ${baseName}Abi {`);
   for (const unit of services) {
     for (const func of unit.funcs ?? []) {
       const solName = solFuncName(unit.name, func.name);
@@ -182,16 +212,10 @@ function generateSolidity(doc: IIdlDoc, baseName: string): string {
         ...(func.params ?? []).map((p) => typeDeclToSolidity(p.type)),
       ];
       const sig = buildSignature(solName, paramTypes);
-      lines.push(`    function ${solName}_sig() public pure returns (bytes4) {`);
-      lines.push(`        return bytes4(keccak256("${sig}"));`);
-      lines.push(`    }`);
+      lines.push(`    function ${solName}_sig() public pure returns (bytes4) {`, `        return bytes4(keccak256("${sig}"));`, `    }`);
     }
   }
-  lines.push('}');
-  lines.push('');
-
-  // Contract 3: Callbacks interface
-  lines.push(`interface I${baseName}Callbacks {`);
+  lines.push('}', '', `interface I${baseName}Callbacks {`);
   for (const unit of services) {
     for (const func of unit.funcs ?? []) {
       if (func.output && func.output !== '()') {
@@ -201,14 +225,7 @@ function generateSolidity(doc: IIdlDoc, baseName: string): string {
       }
     }
   }
-  lines.push('}');
-  lines.push('');
-
-  // Contract 4: Caller (abstract helper)
-  lines.push(`abstract contract ${baseName}Caller {`);
-  lines.push(`    address public immutable program;`);
-  lines.push(`    constructor(address _program) { program = _program; }`);
-  lines.push('');
+  lines.push('}', '', `abstract contract ${baseName}Caller {`, `    address public immutable program;`, `    constructor(address _program) { program = _program; }`, '');
   for (const unit of services) {
     for (const func of unit.funcs ?? []) {
       const solName = solFuncName(unit.name, func.name);
@@ -219,10 +236,8 @@ function generateSolidity(doc: IIdlDoc, baseName: string): string {
       const passArgs = (func.params ?? []).map((p) => p.name).join(', ');
       const callArgs = passArgs ? `false, ${passArgs}` : 'false';
       lines.push(
-        `    function ${solName}(${paramList}) internal${payableKw} returns (bytes32 messageId) {`,
-      );
-      lines.push(`        return I${baseName}(program).${solName}(${callArgs});`);
-      lines.push(`    }`);
+        `    function ${solName}(${paramList}) internal${payableKw} returns (bytes32 messageId) {`, `        return I${baseName}(program).${solName}(${callArgs});`
+        , `    }`);
     }
   }
   lines.push('}');
@@ -267,8 +282,8 @@ export function registerAbiTools(server: McpServer) {
             },
           ],
         };
-      } catch (err: any) {
-        return { isError: true, content: [{ type: 'text', text: err.message }] };
+      } catch (error: any) {
+        return { isError: true, content: [{ type: 'text', text: error.message }] };
       }
     },
   );
@@ -277,7 +292,7 @@ export function registerAbiTools(server: McpServer) {
     'sails_solidity_signature',
     {
       description:
-        'Compute the Solidity function/event signature and 4-byte selector for an IDL function or event. ' +
+        'Compute the Solidity function signature + 4-byte selector, or the event signature + full topic hash. ' +
         'Functions include the implicit bool _callReply first param. ' +
         'Function names follow ethexe convention: camelCase(ServiceName + FunctionName).',
       inputSchema: {
@@ -327,18 +342,18 @@ export function registerAbiTools(server: McpServer) {
           }
           const fieldTypes = (event.fields ?? []).map((f) => typeDeclToSolidity(f.type));
           const sig = buildSignature(targetName, fieldTypes);
-          const sel = computeSelector(sig);
+          const topic = keccak256(toHex(sig));
           return {
             content: [
               {
                 type: 'text',
-                text: JSON.stringify({ signature: sig, selector: sel }, null, 2),
+                text: JSON.stringify({ signature: sig, topic }, null, 2),
               },
             ],
           };
         }
-      } catch (err: any) {
-        return { isError: true, content: [{ type: 'text', text: err.message }] };
+      } catch (error: any) {
+        return { isError: true, content: [{ type: 'text', text: error.message }] };
       }
     },
   );
@@ -405,10 +420,10 @@ export function registerAbiTools(server: McpServer) {
             },
           ],
         };
-      } catch (err: any) {
+      } catch (error: any) {
         return {
           isError: true,
-          content: [{ type: 'text', text: `ABI encode error: ${err.message}` }],
+          content: [{ type: 'text', text: `ABI encode error: ${error.message}` }],
         };
       }
     },
@@ -457,9 +472,9 @@ export function registerAbiTools(server: McpServer) {
               );
               const [callReply, ...funcArgs] = decoded;
               const argsObj: Record<string, unknown> = {};
-              (func.params ?? []).forEach((p, i) => {
+              for (const [i, p] of (func.params ?? []).entries()) {
                 argsObj[p.name] = funcArgs[i];
-              });
+              }
 
               return {
                 content: [
@@ -485,10 +500,10 @@ export function registerAbiTools(server: McpServer) {
         throw new Error(
           `No function matches selector ${callSelector} in program "${programName}"`,
         );
-      } catch (err: any) {
+      } catch (error: any) {
         return {
           isError: true,
-          content: [{ type: 'text', text: `ABI decode error: ${err.message}` }],
+          content: [{ type: 'text', text: `ABI decode error: ${error.message}` }],
         };
       }
     },
@@ -546,10 +561,10 @@ export function registerAbiTools(server: McpServer) {
             },
           ],
         };
-      } catch (err: any) {
+      } catch (error: any) {
         return {
           isError: true,
-          content: [{ type: 'text', text: `ABI decode error: ${err.message}` }],
+          content: [{ type: 'text', text: `ABI decode error: ${error.message}` }],
         };
       }
     },
@@ -582,8 +597,8 @@ export function registerAbiTools(server: McpServer) {
         }
 
         const allFields = event.fields ?? [];
-        const indexedFields = allFields.filter(isIndexed);
-        const dataFields = allFields.filter((f) => !isIndexed(f));
+        const indexedFields = allFields.filter((field) => isIndexed(field));
+        const dataFields = allFields.filter((field) => !isIndexed(field));
 
         // Event signature hash → topic[0]
         const fieldTypes = allFields.map((f) => typeDeclToSolidity(f.type));
@@ -618,10 +633,10 @@ export function registerAbiTools(server: McpServer) {
             },
           ],
         };
-      } catch (err: any) {
+      } catch (error: any) {
         return {
           isError: true,
-          content: [{ type: 'text', text: `ABI event encode error: ${err.message}` }],
+          content: [{ type: 'text', text: `ABI event encode error: ${error.message}` }],
         };
       }
     },
@@ -675,12 +690,12 @@ export function registerAbiTools(server: McpServer) {
         }
 
         const allFields = targetEvent.fields ?? [];
-        const indexedFields = allFields.filter(isIndexed);
-        const dataFields = allFields.filter((f) => !isIndexed(f));
+        const indexedFields = allFields.filter((field) => isIndexed(field));
+        const dataFields = allFields.filter((field) => !isIndexed(field));
         const result: Record<string, unknown> = {};
 
         // Decode indexed fields from topics[1..]
-        indexedFields.forEach((field, i) => {
+        for (const [i, field] of indexedFields.entries()) {
           const topic = topics[i + 1];
           if (topic) {
             const solType = typeDeclToSolidity(field.type);
@@ -693,7 +708,7 @@ export function registerAbiTools(server: McpServer) {
             );
             result[field.name ?? `indexed_${i}`] = decoded[0];
           }
-        });
+        }
 
         // Decode non-indexed from data
         if (dataFields.length > 0 && data && data !== '0x') {
@@ -701,9 +716,9 @@ export function registerAbiTools(server: McpServer) {
             toAbiParam(f.name ?? '', f.type),
           );
           const decoded = decodeAbiParameters(dataParams, data as `0x${string}`);
-          dataFields.forEach((f, i) => {
+          for (const [i, f] of dataFields.entries()) {
             result[f.name ?? `data_${i}`] = decoded[i];
-          });
+          }
         }
 
         return {
@@ -714,10 +729,10 @@ export function registerAbiTools(server: McpServer) {
             },
           ],
         };
-      } catch (err: any) {
+      } catch (error: any) {
         return {
           isError: true,
-          content: [{ type: 'text', text: `ABI event decode error: ${err.message}` }],
+          content: [{ type: 'text', text: `ABI event decode error: ${error.message}` }],
         };
       }
     },
@@ -749,10 +764,10 @@ export function registerAbiTools(server: McpServer) {
         return {
           content: [{ type: 'text', text: solidity }],
         };
-      } catch (err: any) {
+      } catch (error: any) {
         return {
           isError: true,
-          content: [{ type: 'text', text: `Solidity generation error: ${err.message}` }],
+          content: [{ type: 'text', text: `Solidity generation error: ${error.message}` }],
         };
       }
     },

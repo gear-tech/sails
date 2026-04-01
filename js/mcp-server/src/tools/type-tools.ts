@@ -45,19 +45,12 @@ export function registerTypeTools(server: McpServer) {
         for (const { scope, types } of searchScopes) {
           const found = types.find((t: any) => t.name === type_name);
           if (found) {
+            const { name, ...definition } = found;
             return {
               content: [
                 {
                   type: 'text',
-                  text: JSON.stringify(
-                    {
-                      name: found.name,
-                      scope,
-                      definition: found.def,
-                    },
-                    null,
-                    2,
-                  ),
+                  text: JSON.stringify({ name, scope, definition }, null, 2),
                 },
               ],
             };
@@ -75,10 +68,10 @@ export function registerTypeTools(server: McpServer) {
         throw new Error(
           `Type "${type_name}" not found. Available types: [${allTypes.join(', ')}]`,
         );
-      } catch (err: any) {
+      } catch (error: any) {
         return {
           isError: true,
-          content: [{ type: 'text', text: err.message }],
+          content: [{ type: 'text', text: error.message }],
         };
       }
     },
@@ -116,10 +109,10 @@ export function registerTypeTools(server: McpServer) {
             },
           ],
         };
-      } catch (err: any) {
+      } catch (error: any) {
         return {
           isError: true,
-          content: [{ type: 'text', text: `Encode type error: ${err.message}` }],
+          content: [{ type: 'text', text: `Encode type error: ${error.message}` }],
         };
       }
     },
@@ -160,10 +153,10 @@ export function registerTypeTools(server: McpServer) {
             },
           ],
         };
-      } catch (err: any) {
+      } catch (error: any) {
         return {
           isError: true,
-          content: [{ type: 'text', text: `Decode type error: ${err.message}` }],
+          content: [{ type: 'text', text: `Decode type error: ${error.message}` }],
         };
       }
     },

@@ -1,17 +1,17 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { readFile } from 'node:fs/promises';
-import { resolve, dirname } from 'node:path';
+import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // Resolve paths relative to the repo root (js/mcp-server -> repo root)
 function repoRoot(): string {
-  const thisDir = dirname(fileURLToPath(import.meta.url));
-  return resolve(thisDir, '..', '..', '..');
+  const thisDir = path.dirname(fileURLToPath(import.meta.url));
+  return path.resolve(thisDir, '..', '..', '..');
 }
 
 async function readRepoFile(relativePath: string): Promise<string> {
-  const fullPath = resolve(repoRoot(), relativePath);
-  return readFile(fullPath, 'utf-8');
+  const fullPath = path.resolve(repoRoot(), relativePath);
+  return readFile(fullPath, 'utf8');
 }
 
 export function registerResources(server: McpServer) {

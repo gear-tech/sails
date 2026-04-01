@@ -1,7 +1,8 @@
 import { describe, test, expect, beforeAll } from 'bun:test';
 import { SailsIdlParser } from 'sails-js-parser-idl-v2';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { registry } from '../src/registry';
-import { typeDeclToSolidity } from '../src/tools/abi-tools';
+import { registerAbiTools, typeDeclToSolidity } from '../src/tools/abi-tools';
 import {
   encodeAbiParameters,
   decodeAbiParameters,
@@ -17,12 +18,32 @@ const thisDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(thisDir, '..', '..', '..');
 const demoIdlPath = resolve(repoRoot, 'js/test/demo-v2/demo.idl');
 
+type ToolResult = { isError?: boolean; content: { type: string; text: string }[] };
+
+function makeServer() {
+  const server = new McpServer({ name: 'test', version: '0.0.0' });
+  registerAbiTools(server);
+  return server;
+}
+
+async function callTool(server: McpServer, name: string, args: Record<string, unknown>): Promise<ToolResult> {
+  const result = await (server as any)._registeredTools[name].handler(args);
+  return result as ToolResult;
+}
+
+function json(result: ToolResult) {
+  return JSON.parse(result.content[0].text);
+}
+
+let server: McpServer;
+
 beforeAll(async () => {
   const parser = new SailsIdlParser();
   await parser.init();
   const idl = await readFile(demoIdlPath, 'utf-8');
   const doc = parser.parse(idl);
   registry.register('DemoClient', doc);
+  server = makeServer();
 });
 
 // ---------------------------------------------------------------------------
@@ -158,6 +179,43 @@ describe('event topic computation', () => {
     const t1 = keccak256(toHex('Added(uint32)'));
     const t2 = keccak256(toHex('Subtracted(uint32)'));
     expect(t1).not.toBe(t2);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Tool behavior
+// ---------------------------------------------------------------------------
+
+describe('sails_solidity_signature tool', () => {
+  test('returns a 4-byte selector for functions', async () => {
+    const result = await callTool(server, 'sails_solidity_signature', {
+      program: 'DemoClient',
+      service: 'Counter',
+      name: 'Add',
+      kind: 'function',
+    });
+
+    expect(result.isError).toBeFalsy();
+    expect(json(result)).toMatchObject({
+      signature: 'counterAdd(bool,uint32)',
+      selector: keccak256(toHex('counterAdd(bool,uint32)')).slice(0, 10),
+      solidity_name: 'counterAdd',
+    });
+  });
+
+  test('returns the full topic hash for events', async () => {
+    const result = await callTool(server, 'sails_solidity_signature', {
+      program: 'DemoClient',
+      service: 'Counter',
+      name: 'Added',
+      kind: 'event',
+    });
+
+    expect(result.isError).toBeFalsy();
+    expect(json(result)).toEqual({
+      signature: 'Added(uint32)',
+      topic: keccak256(toHex('Added(uint32)')),
+    });
   });
 });
 

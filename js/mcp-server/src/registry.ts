@@ -1,4 +1,4 @@
-import { SailsProgram, SailsService } from 'sails-js';
+import { SailsProgram } from 'sails-js';
 import type { IIdlDoc } from 'sails-js-types';
 
 export interface RegisteredProgram {
@@ -37,7 +37,7 @@ class ProgramRegistry {
   }
 
   list(): RegisteredProgram[] {
-    return Array.from(this.programs.values());
+    return [...this.programs.values()];
   }
 
   has(name: string): boolean {

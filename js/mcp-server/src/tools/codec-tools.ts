@@ -71,10 +71,10 @@ export function registerCodecTools(server: McpServer) {
             },
           ],
         };
-      } catch (err: any) {
+      } catch (error: any) {
         return {
           isError: true,
-          content: [{ type: 'text', text: `Encode error: ${err.message}` }],
+          content: [{ type: 'text', text: `Encode error: ${error.message}` }],
         };
       }
     },
@@ -107,10 +107,10 @@ export function registerCodecTools(server: McpServer) {
             },
           ],
         };
-      } catch (err: any) {
+      } catch (error: any) {
         return {
           isError: true,
-          content: [{ type: 'text', text: `Decode error: ${err.message}` }],
+          content: [{ type: 'text', text: `Decode error: ${error.message}` }],
         };
       }
     },
@@ -142,10 +142,10 @@ export function registerCodecTools(server: McpServer) {
             },
           ],
         };
-      } catch (err: any) {
+      } catch (error: any) {
         return {
           isError: true,
-          content: [{ type: 'text', text: `Decode error: ${err.message}` }],
+          content: [{ type: 'text', text: `Decode error: ${error.message}` }],
         };
       }
     },
@@ -181,10 +181,10 @@ export function registerCodecTools(server: McpServer) {
         return {
           content: [{ type: 'text', text: JSON.stringify({ hex }, null, 2) }],
         };
-      } catch (err: any) {
+      } catch (error: any) {
         return {
           isError: true,
-          content: [{ type: 'text', text: `Encode error: ${err.message}` }],
+          content: [{ type: 'text', text: `Encode error: ${error.message}` }],
         };
       }
     },
@@ -252,10 +252,10 @@ export function registerCodecTools(server: McpServer) {
         throw new Error(
           `Could not match event in service "${serviceName}". No event entry_id matched the payload header.`,
         );
-      } catch (err: any) {
+      } catch (error: any) {
         return {
           isError: true,
-          content: [{ type: 'text', text: `Event decode error: ${err.message}` }],
+          content: [{ type: 'text', text: `Event decode error: ${error.message}` }],
         };
       }
     },

@@ -42,7 +42,7 @@ async function parseWasmCustomSection(
 
   // WASM magic: \0asm
   if (wasm.length < 8) return null;
-  if (view.getUint32(0, true) !== 0x6d736100) return null; // \0asm in LE
+  if (view.getUint32(0, true) !== 0x6D_73_61_00) return null; // \0asm in LE
   offset = 4;
 
   // WASM version
@@ -115,7 +115,7 @@ function readLeb128(bytes: Uint8Array, offset: number): { value: number; bytesRe
 
   while (offset + bytesRead < bytes.length) {
     const byte = bytes[offset + bytesRead];
-    result |= (byte & 0x7f) << shift;
+    result |= (byte & 0x7F) << shift;
     bytesRead++;
     if ((byte & 0x80) === 0) break;
     shift += 7;

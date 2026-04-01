@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { resolve, dirname } from 'node:path';
+import path from 'node:path';
 
 interface IdlSource {
   content: string;
@@ -16,16 +16,16 @@ interface IdlLoader {
  * Resolves relative include paths against the directory of the including file.
  */
 class FsLoader implements IdlLoader {
-  async load(path: string): Promise<IdlSource> {
-    const canonical = resolve(path);
-    const content = await readFile(canonical, 'utf-8');
+  async load(filePath: string): Promise<IdlSource> {
+    const canonical = path.resolve(filePath);
+    const content = await readFile(canonical, 'utf8');
     return { content, id: canonical };
   }
 
   resolve(basePath: string, includePath: string): string | null {
     if (includePath.startsWith('git://')) return null;
-    const baseDir = dirname(resolve(basePath));
-    return resolve(baseDir, includePath);
+    const baseDir = path.dirname(path.resolve(basePath));
+    return path.resolve(baseDir, includePath);
   }
 }
 
@@ -119,7 +119,7 @@ async function preprocessRecursive(
 
     if (trimmed.startsWith('!@include:')) {
       const rest = trimmed.slice('!@include:'.length).trim();
-      const includePath = rest.replace(/^["']|["']$/g, '');
+      const includePath = rest.replaceAll(/^["']|["']$/g, '');
 
       if (!includePath) {
         throw new Error('Invalid include directive');
@@ -139,7 +139,7 @@ async function preprocessRecursive(
       await preprocessRecursive(nextPath, loaders, visited, out);
 
       // Ensure newline after included content
-      if (out.length > 0 && !out[out.length - 1].endsWith('\n')) {
+      if (out.length > 0 && !out.at(-1).endsWith('\n')) {
         out.push('\n');
       }
     } else {

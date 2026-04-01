@@ -37,10 +37,10 @@ export function registerSourceTools(server: McpServer) {
         return {
           content: [{ type: 'text', text: JSON.stringify(summary, null, 2) }],
         };
-      } catch (err: any) {
+      } catch (error: any) {
         return {
           isError: true,
-          content: [{ type: 'text', text: `Load IDL error: ${err.message}` }],
+          content: [{ type: 'text', text: `Load IDL error: ${error.message}` }],
         };
       }
     },
@@ -82,10 +82,10 @@ export function registerSourceTools(server: McpServer) {
             },
           ],
         };
-      } catch (err: any) {
+      } catch (error: any) {
         return {
           isError: true,
-          content: [{ type: 'text', text: `WASM extract error: ${err.message}` }],
+          content: [{ type: 'text', text: `WASM extract error: ${error.message}` }],
         };
       }
     },

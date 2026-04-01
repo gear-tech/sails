@@ -8,13 +8,13 @@ function hexToBytes(hex: string): Uint8Array {
   if (h.length % 2 !== 0) h = '0' + h;
   const bytes = new Uint8Array(h.length / 2);
   for (let i = 0; i < bytes.length; i++) {
-    bytes[i] = parseInt(h.slice(i * 2, i * 2 + 2), 16);
+    bytes[i] = Number.parseInt(h.slice(i * 2, i * 2 + 2), 16);
   }
   return bytes;
 }
 
 function bytesToHex(bytes: Uint8Array): string {
-  return '0x' + Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join('');
+  return '0x' + [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 export function registerHeaderTools(server: McpServer) {
@@ -59,10 +59,10 @@ export function registerHeaderTools(server: McpServer) {
             },
           ],
         };
-      } catch (err: any) {
+      } catch (error: any) {
         return {
           isError: true,
-          content: [{ type: 'text', text: `Header parse error: ${err.message}` }],
+          content: [{ type: 'text', text: `Header parse error: ${error.message}` }],
         };
       }
     },
@@ -78,7 +78,7 @@ export function registerHeaderTools(server: McpServer) {
         interface_id: z
           .string()
           .describe('Interface ID as hex string (e.g. "0x579d6daba41b7d82")'),
-        entry_id: z.number().int().min(0).max(65535).describe('Entry ID (u16, 0-65535)'),
+        entry_id: z.number().int().min(0).max(65_535).describe('Entry ID (u16, 0-65535)'),
         route_idx: z.number().int().min(0).max(255).default(0).describe('Route index (u8, 0-255)'),
       },
       annotations: { readOnlyHint: true },
@@ -96,7 +96,7 @@ export function registerHeaderTools(server: McpServer) {
               text: JSON.stringify(
                 {
                   hex: bytesToHex(bytes),
-                  bytes: Array.from(bytes),
+                  bytes: [...bytes],
                 },
                 null,
                 2,
@@ -104,10 +104,10 @@ export function registerHeaderTools(server: McpServer) {
             },
           ],
         };
-      } catch (err: any) {
+      } catch (error: any) {
         return {
           isError: true,
-          content: [{ type: 'text', text: `Header build error: ${err.message}` }],
+          content: [{ type: 'text', text: `Header build error: ${error.message}` }],
         };
       }
     },
@@ -159,10 +159,10 @@ export function registerHeaderTools(server: McpServer) {
             },
           ],
         };
-      } catch (err: any) {
+      } catch (error: any) {
         return {
           isError: true,
-          content: [{ type: 'text', text: err.message }],
+          content: [{ type: 'text', text: error.message }],
         };
       }
     },
@@ -204,10 +204,10 @@ export function registerHeaderTools(server: McpServer) {
         return {
           content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
         };
-      } catch (err: any) {
+      } catch (error: any) {
         return {
           isError: true,
-          content: [{ type: 'text', text: err.message }],
+          content: [{ type: 'text', text: error.message }],
         };
       }
     },

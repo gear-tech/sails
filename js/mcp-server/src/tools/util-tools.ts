@@ -1,16 +1,14 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { SailsMessageHeader } from 'sails-js-parser-idl-v2';
+import { MAGIC_BYTES, SailsMessageHeader } from 'sails-js-parser-idl-v2';
 import { registry } from '../registry.js';
-
-const SAILS_MAGIC = new Uint8Array([0x47, 0x4d]); // "GM"
 
 function hexToBytes(hex: string): Uint8Array {
   let h = hex.startsWith('0x') ? hex.slice(2) : hex;
   if (h.length % 2 !== 0) h = '0' + h;
   const bytes = new Uint8Array(h.length / 2);
   for (let i = 0; i < bytes.length; i++) {
-    bytes[i] = parseInt(h.slice(i * 2, i * 2 + 2), 16);
+    bytes[i] = Number.parseInt(h.slice(i * 2, i * 2 + 2), 16);
   }
   return bytes;
 }
@@ -84,7 +82,7 @@ export function registerUtilTools(server: McpServer) {
         }
 
         // Check for Sails magic bytes "GM" (0x47 0x4D)
-        if (bytes[0] === SAILS_MAGIC[0] && bytes[1] === SAILS_MAGIC[1]) {
+        if (bytes[0] === MAGIC_BYTES[0] && bytes[1] === MAGIC_BYTES[1]) {
           const details: any = { encoding: 'scale', magic: 'GM (0x474D)' };
 
           if (bytes.length >= 16) {
@@ -105,7 +103,7 @@ export function registerUtilTools(server: McpServer) {
         }
 
         // No Sails magic - likely ABI encoding (4-byte selector)
-        const selector = '0x' + Array.from(bytes.slice(0, 4)).map((b) => b.toString(16).padStart(2, '0')).join('');
+        const selector = `0x${Array.from(bytes.subarray(0, 4), (byte) => byte.toString(16).padStart(2, '0')).join('')}`;
         return {
           content: [
             {
@@ -123,10 +121,10 @@ export function registerUtilTools(server: McpServer) {
             },
           ],
         };
-      } catch (err: any) {
+      } catch (error: any) {
         return {
           isError: true,
-          content: [{ type: 'text', text: `Detection error: ${err.message}` }],
+          content: [{ type: 'text', text: `Detection error: ${error.message}` }],
         };
       }
     },
@@ -252,10 +250,10 @@ export function registerUtilTools(server: McpServer) {
             },
           ],
         };
-      } catch (err: any) {
+      } catch (error: any) {
         return {
           isError: true,
-          content: [{ type: 'text', text: `Explain error: ${err.message}` }],
+          content: [{ type: 'text', text: `Explain error: ${error.message}` }],
         };
       }
     },

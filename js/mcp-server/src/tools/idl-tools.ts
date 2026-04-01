@@ -43,10 +43,10 @@ export function registerIdlTools(server: McpServer) {
         return {
           content: [{ type: 'text', text: JSON.stringify(summary, null, 2) }],
         };
-      } catch (err: any) {
+      } catch (error: any) {
         return {
           isError: true,
-          content: [{ type: 'text', text: `IDL parse error: ${err.message}` }],
+          content: [{ type: 'text', text: `IDL parse error: ${error.message}` }],
         };
       }
     },
@@ -70,13 +70,13 @@ export function registerIdlTools(server: McpServer) {
         return {
           content: [{ type: 'text', text: JSON.stringify({ valid: true, errors: null }, null, 2) }],
         };
-      } catch (err: any) {
+      } catch (error: any) {
         return {
           content: [
             {
               type: 'text',
               text: JSON.stringify(
-                { valid: false, errors: [err.message] },
+                { valid: false, errors: [error.message] },
                 null,
                 2,
               ),
@@ -106,10 +106,10 @@ export function registerIdlTools(server: McpServer) {
         return {
           content: [{ type: 'text', text: JSON.stringify(detail, null, 2) }],
         };
-      } catch (err: any) {
+      } catch (error: any) {
         return {
           isError: true,
-          content: [{ type: 'text', text: err.message }],
+          content: [{ type: 'text', text: error.message }],
         };
       }
     },
@@ -136,10 +136,10 @@ export function registerIdlTools(server: McpServer) {
         return {
           content: [{ type: 'text', text: JSON.stringify(detail, null, 2) }],
         };
-      } catch (err: any) {
+      } catch (error: any) {
         return {
           isError: true,
-          content: [{ type: 'text', text: err.message }],
+          content: [{ type: 'text', text: error.message }],
         };
       }
     },

@@ -1,5 +1,6 @@
 import { describe, test, expect, beforeAll } from 'bun:test';
 import { SailsIdlParser } from 'sails-js-parser-idl-v2';
+import { SailsMessageHeader, InterfaceId } from 'sails-js-parser-idl-v2';
 import { registry } from '../src/registry';
 import { readFile } from 'node:fs/promises';
 import { resolve, dirname } from 'node:path';
@@ -47,6 +48,17 @@ describe('SCALE codec encoding/decoding', () => {
     const decoded = addFn.decodePayload(hex);
 
     expect(decoded).toEqual({ value: 42 });
+  });
+
+  test('decodePayload rejects payloads for a different function header', () => {
+    const entry = registry.getOrThrow('DemoClient');
+    const counter = entry.program.services['Counter'];
+    const addFn = counter.functions['Add'];
+    const subFn = counter.functions['Sub'];
+
+    const subPayload = subFn.encodePayload(42);
+
+    expect(() => addFn.decodePayload(subPayload)).toThrow(/Header mismatch/);
   });
 
   test('encode then decode result round-trip', () => {
@@ -108,5 +120,30 @@ describe('SCALE codec encoding/decoding', () => {
     expect(hex.startsWith('0x474d')).toBe(true);
     // No args = just 16-byte header
     expect(hex.length).toBe(34);
+  });
+
+  test('decodePayload returns empty args for a no-arg query payload', () => {
+    const entry = registry.getOrThrow('DemoClient');
+    const valueFn = entry.program.services['Counter'].queries['Value'];
+
+    const hex = valueFn.encodePayload();
+
+    expect(valueFn.decodePayload(hex)).toEqual({});
+  });
+
+  test('event decode rejects payloads for a different event header', () => {
+    const entry = registry.getOrThrow('DemoClient');
+    const counter = entry.program.services['Counter'];
+    const added = counter.events['Added'];
+    const subtracted = counter.events['Subtracted'];
+    const header = SailsMessageHeader.v1(
+      InterfaceId.fromString('0x579d6daba41b7d82'),
+      1,
+      counter.routeIdx,
+    );
+    const payload = counter.registry.createType('([u8; 16], u32)', [header.toBytes(), 7]).toHex();
+
+    expect(subtracted.decode(payload)).toBe(7);
+    expect(() => added.decode(payload)).toThrow(/Header mismatch/);
   });
 });

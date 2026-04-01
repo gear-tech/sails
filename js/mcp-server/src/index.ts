@@ -36,9 +36,11 @@ registerAbiTools(server);
 registerResources(server);
 
 // Initialize the WASM parser eagerly so first tool call is fast
-getParser().catch((err) => {
-  console.error('Warning: Failed to pre-initialize IDL parser:', err.message);
-});
+try {
+  await getParser();
+} catch (error: any) {
+  console.error('Warning: Failed to pre-initialize IDL parser:', error.message);
+}
 
 // Start the stdio transport
 const transport = new StdioServerTransport();
