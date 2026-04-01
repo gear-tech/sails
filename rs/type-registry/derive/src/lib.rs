@@ -13,7 +13,7 @@ pub fn type_info_derive(input: TokenStream) -> TokenStream {
 }
 
 fn process_derive(mut input: DeriveInput) -> syn::Result<TokenStream2> {
-    let registry = resolve_registry_path(&input);
+    let registry = resolve_registry_path(&input)?;
     let name = &input.ident;
     let name_str = name.to_string();
 
@@ -101,18 +101,20 @@ fn process_derive(mut input: DeriveInput) -> syn::Result<TokenStream2> {
     })
 }
 
-fn resolve_registry_path(input: &DeriveInput) -> TokenStream2 {
+fn resolve_registry_path(input: &DeriveInput) -> syn::Result<TokenStream2> {
     let mut path = None;
     for attr in &input.attrs {
         if attr.path().is_ident("type_info") {
-            let _ = attr.parse_nested_meta(|meta| {
+            attr.parse_nested_meta(|meta| {
                 if meta.path.is_ident("crate") {
                     path = Some(meta.value()?.parse::<syn::Path>()?);
+                } else if meta.input.peek(syn::Token![=]) {
+                    let _: syn::Expr = meta.value()?.parse()?;
                 }
                 Ok(())
-            });
+            })?;
             if let p @ Some(_) = path {
-                return quote!(#p);
+                return Ok(quote!(#p));
             }
         }
     }
@@ -125,14 +127,14 @@ fn resolve_registry_path(input: &DeriveInput) -> TokenStream2 {
                     quote!(::#i)
                 }
             };
-            return if crate_name == "sails-rs" {
+            return Ok(if crate_name == "sails-rs" {
                 quote!(#ident::type_info)
             } else {
                 ident
-            };
+            });
         }
     }
-    quote!(::sails_type_registry)
+    Ok(quote!(::sails_type_registry))
 }
 
 fn extract_docs(attrs: &[syn::Attribute]) -> Vec<TokenStream2> {
@@ -165,7 +167,7 @@ fn extract_annotations(attrs: &[syn::Attribute]) -> syn::Result<Vec<TokenStream2
                 .ok_or_else(|| meta.error("expected identifier"))?;
             let ident_str = ident.to_string();
             if ident_str == "crate" {
-                let _: syn::Expr = meta.value()?.parse()?;
+                let _: syn::Path = meta.value()?.parse()?;
                 return Ok(());
             }
 
