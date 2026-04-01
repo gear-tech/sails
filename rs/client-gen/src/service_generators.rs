@@ -21,7 +21,6 @@ pub(crate) struct ServiceGenerator<'ast> {
     types_tokens: Tokens,
     mocks_tokens: Tokens,
     interface_id: sails_idl_meta::InterfaceId,
-    entry_ids: HashMap<&'ast str, u16>,
     no_derive_traits: bool,
 }
 
@@ -46,7 +45,6 @@ impl<'ast> ServiceGenerator<'ast> {
             types_tokens: Tokens::new(),
             mocks_tokens: Tokens::new(),
             interface_id,
-            entry_ids: HashMap::new(),
             no_derive_traits,
         }
     }
@@ -132,27 +130,6 @@ impl<'ast> ServiceGenerator<'ast> {
 // using quote_in instead of tokens.append
 impl<'ast> Visitor<'ast> for ServiceGenerator<'ast> {
     fn visit_service_unit(&mut self, service: &'ast ast::ServiceUnit) {
-        // `service`` is normalized here - funcs, events, extends are sorted
-        for (idx, func) in service.funcs.iter().enumerate() {
-            let entry_id = func
-                .annotations
-                .iter()
-                .find(|(k, _)| k == "entry-id")
-                .and_then(|(_, v)| v.as_ref()?.parse::<u16>().ok())
-                .unwrap_or(idx as u16);
-            self.entry_ids.insert(func.name.as_str(), entry_id);
-        }
-
-        for (idx, event) in service.events.iter().enumerate() {
-            let entry_id = event
-                .annotations
-                .iter()
-                .find(|(k, _)| k == "entry-id")
-                .and_then(|(_, v)| v.as_ref()?.parse::<u16>().ok())
-                .unwrap_or(idx as u16);
-            self.entry_ids.insert(event.name.as_str(), entry_id);
-        }
-
         visitor::accept_service_unit(service, self);
 
         for service_ident in &service.extends {
@@ -180,7 +157,6 @@ impl<'ast> Visitor<'ast> for ServiceGenerator<'ast> {
             let mut events_mod_gen = EventsModuleGenerator::new(
                 self.service_name,
                 self.sails_path,
-                self.entry_ids.clone(),
             );
             events_mod_gen.visit_service_unit(service);
             self.events_tokens = events_mod_gen.finalize();
@@ -231,7 +207,7 @@ impl<'ast> Visitor<'ast> for ServiceGenerator<'ast> {
         };
 
         let params_with_types_super = &fn_args_with_types_path(&func.params, "super");
-        let entry_id = self.entry_ids.get(func.name.as_str()).copied().unwrap_or(0);
+        let entry_id = func.entry_id;
 
         quote_in! { self.io_tokens =>
             $(self.sails_path)::io_struct_impl!($fn_name ($params_with_types_super) -> $io_output_type, $entry_id, <super::$(self.service_name)Impl as $(self.sails_path)::client::Identifiable>::INTERFACE_ID);

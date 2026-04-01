@@ -74,6 +74,7 @@ impl ProgramBuilder {
                             name: c.name.to_string(),
                             params,
                             throws,
+                            entry_id: 0,
                             docs: c.docs.iter().map(|s| s.to_string()).collect(),
                             annotations: vec![],
                         })
@@ -334,6 +335,7 @@ impl<'a> ServiceBuilder<'a> {
                             output,
                             throws,
                             kind: FunctionKind::Command,
+                            entry_id: 0,
                             docs: c.docs.iter().map(|s| s.to_string()).collect(),
                             annotations: vec![],
                         })
@@ -404,6 +406,7 @@ impl<'a> ServiceBuilder<'a> {
                             output,
                             throws,
                             kind: FunctionKind::Query,
+                            entry_id: 0,
                             docs: c.docs.iter().map(|s| s.to_string()).collect(),
                             annotations: vec![("query".to_string(), None)],
                         })
@@ -441,6 +444,7 @@ impl<'a> ServiceBuilder<'a> {
                 Ok(ServiceEvent {
                     name: v.name.to_string(),
                     def: StructDef { fields },
+                    entry_id: 0,
                     docs: v.docs.iter().map(|d| d.to_string()).collect(),
                     annotations: vec![],
                 })
@@ -641,6 +645,7 @@ mod tests {
                 }],
                 docs: vec![],
                 throws: None,
+                entry_id: 0,
                 annotations: vec![]
             }]
         );
@@ -1573,6 +1578,7 @@ mod tests {
                             annotations: vec![],
                         }],
                     },
+                    entry_id: 0,
                     docs: vec![],
                     annotations: vec![],
                 },
@@ -1594,6 +1600,7 @@ mod tests {
                             },
                         ],
                     },
+                    entry_id: 1,
                     docs: vec![],
                     annotations: vec![],
                 },
@@ -1607,12 +1614,14 @@ mod tests {
                             annotations: vec![],
                         }],
                     },
+                    entry_id: 2,
                     docs: vec![],
                     annotations: vec![],
                 },
                 ServiceEvent {
                     name: "Zero".to_string(),
                     def: StructDef { fields: vec![] },
+                    entry_id: 3,
                     docs: vec![],
                     annotations: vec![],
                 },

@@ -56,7 +56,10 @@ pub fn validate_and_post_process(doc: &mut IdlDoc) -> Result<()> {
         return Err(Error::Validation(error_messages.join("\n")));
     }
 
-    // 5. Compute `interface_id` for each service in doc
+    // 5. Validate entry_ids
+    validate_entry_ids(doc)?;
+
+    // 6. Compute `interface_id` for each service in doc
     let mut service_ids = ServiceInterfaceId::new(doc);
     service_ids.update_service_id()?;
 
@@ -270,4 +273,65 @@ impl<'a> ServiceInterfaceId<'a> {
         self.computed.insert(name.to_string(), id);
         Ok(id)
     }
+}
+
+fn validate_entry_ids(doc: &IdlDoc) -> Result<()> {
+    for service in &doc.services {
+        let is_partial = service.annotations.iter().any(|(k, _)| k == "partial");
+
+        // For @partial services all funcs/events must have explicit @entry-id annotations,
+        // because the sorted position in the array does not reflect the real on-chain index.
+        if is_partial {
+            for func in &service.funcs {
+                if !func.annotations.iter().any(|(k, _)| k == "entry-id") {
+                    return Err(Error::Validation(format!(
+                        "service `{}`: function `{}` is missing `@entry-id` annotation (required for @partial services)",
+                        service.name.name, func.name
+                    )));
+                }
+            }
+            for event in &service.events {
+                if !event.annotations.iter().any(|(k, _)| k == "entry-id") {
+                    return Err(Error::Validation(format!(
+                        "service `{}`: event `{}` is missing `@entry-id` annotation (required for @partial services)",
+                        service.name.name, event.name
+                    )));
+                }
+            }
+        }
+
+        // entry_ids must be unique within funcs and within events
+        let mut seen = alloc::collections::BTreeSet::new();
+        for func in &service.funcs {
+            if !seen.insert(func.entry_id) {
+                return Err(Error::Validation(format!(
+                    "service `{}`: duplicate entry_id {} among functions",
+                    service.name.name, func.entry_id
+                )));
+            }
+        }
+        seen.clear();
+        for event in &service.events {
+            if !seen.insert(event.entry_id) {
+                return Err(Error::Validation(format!(
+                    "service `{}`: duplicate entry_id {} among events",
+                    service.name.name, event.entry_id
+                )));
+            }
+        }
+    }
+
+    if let Some(program) = &doc.program {
+        let mut seen = alloc::collections::BTreeSet::new();
+        for ctor in &program.ctors {
+            if !seen.insert(ctor.entry_id) {
+                return Err(Error::Validation(format!(
+                    "program `{}`: duplicate entry_id {} among constructors",
+                    program.name, ctor.entry_id
+                )));
+            }
+        }
+    }
+
+    Ok(())
 }

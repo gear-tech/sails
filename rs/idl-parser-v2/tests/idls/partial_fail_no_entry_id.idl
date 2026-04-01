@@ -1,7 +1,6 @@
 @partial
-service Canvas {
+service Canvas@0x1234567890abcdef {
   functions {
-    @entry-id: 0
     PointStatus() -> bool;
   }
 }

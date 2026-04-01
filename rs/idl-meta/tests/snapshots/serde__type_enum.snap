@@ -17,6 +17,7 @@ expression: serialized
     {
       "name": "Unit",
       "fields": [],
+      "entry_id": 0,
       "docs": [
         "Unit-like Variant"
       ]
@@ -28,6 +29,7 @@ expression: serialized
           "type": "u32"
         }
       ],
+      "entry_id": 0,
       "docs": [
         "Tuple-like Variant"
       ]
@@ -60,6 +62,7 @@ expression: serialized
           ]
         }
       ],
+      "entry_id": 0,
       "docs": [
         "Tuple-like Variant with field docs"
       ]
@@ -88,6 +91,7 @@ expression: serialized
           }
         }
       ],
+      "entry_id": 0,
       "docs": [
         "Struct-like Variant"
       ]
@@ -125,6 +129,7 @@ expression: serialized
           }
         }
       ],
+      "entry_id": 0,
       "docs": [
         "Generic Struct-like Variant"
       ]
