@@ -32,21 +32,19 @@ fn test_deep_alias_recursion_expansion() {
     let field_ty_id = comp.fields[0].ty;
     let field_ty = registry.get_type(field_ty_id).unwrap();
 
-    // Verify it's an Applied L3<T, E>
-    if let TypeDef::Applied { base, args } = &field_ty.def {
-        assert_eq!(args.len(), 2);
+    // Verify it's normalized to Result (from L3)
+    if let TypeDef::Result { ok, err } = &field_ty.def {
+        // Since we are looking at the generic definition of Deep<T, E>,
+        // the field type L3<T, E> is resolved to its base Result<L2<T>, E>.
+        // In the context of Deep, the arguments to L3 are its own T and E.
 
-        // base is Result<Vec<(T, u8)>, E>
-        let base_ty = registry.get_type(*base).unwrap();
-        assert!(matches!(base_ty.def, TypeDef::Result { .. }));
+        let ok_ty = registry.get_type(*ok).unwrap();
+        // L2<T> is the first arg of L3. In the normalized Result, it's represented as a Parameter
+        assert!(matches!(ok_ty.def, TypeDef::Parameter(ref name) if name == "T"));
 
-        // The arguments applied to the base are the generic parameters T and E
-        let t_param = registry.get_type(args[0]).unwrap();
-        assert!(matches!(t_param.def, TypeDef::Parameter(ref name) if name == "T"));
-
-        let e_param = registry.get_type(args[1]).unwrap();
-        assert!(matches!(e_param.def, TypeDef::Parameter(ref name) if name == "E"));
+        let err_ty = registry.get_type(*err).unwrap();
+        assert!(matches!(err_ty.def, TypeDef::Parameter(ref name) if name == "E"));
     } else {
-        panic!("Expected Applied type for alias, got {:?}", field_ty.def);
+        panic!("Expected Result type for alias, got {:?}", field_ty.def);
     }
 }

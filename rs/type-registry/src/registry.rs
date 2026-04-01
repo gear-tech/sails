@@ -58,17 +58,52 @@ impl Registry {
         self.types[(next_id - 1) as usize] = actual_type;
         type_ref
     }
+    pub fn register_type_def(&mut self, mut ty: Type) -> TypeRef {
+        ty.def = self.normalize_def(ty.def);
 
-    pub fn register_type_def(&mut self, ty: Type) -> TypeRef {
-        for (id, existing_ty) in self.types() {
-            if existing_ty.name == ty.name && existing_ty.def == ty.def {
-                return id;
-            }
+        if let Some((id, _)) = self
+            .types()
+            .find(|(_, existing_ty)| existing_ty.name == ty.name && existing_ty.def == ty.def)
+        {
+            return id;
         }
+
         let next_id = (self.types.len() as u32) + 1;
         let type_ref = TypeRef::new(next_id);
         self.types.push(ty);
         type_ref
+    }
+
+    fn normalize_def(&self, def: TypeDef) -> TypeDef {
+        if let TypeDef::Applied { base, args } = def {
+            if let Some(base_ty) = self.get_type(base) {
+                match &base_ty.def {
+                    TypeDef::Option(_) if !args.is_empty() => return TypeDef::Option(args[0]),
+                    TypeDef::Result { .. } if args.len() >= 2 => {
+                        return TypeDef::Result {
+                            ok: args[0],
+                            err: args[1],
+                        };
+                    }
+                    TypeDef::Sequence(_) if !args.is_empty() => return TypeDef::Sequence(args[0]),
+                    TypeDef::Array { len, .. } if !args.is_empty() => {
+                        return TypeDef::Array {
+                            len: *len,
+                            type_param: args[0],
+                        };
+                    }
+                    TypeDef::Map { .. } if args.len() >= 2 => {
+                        return TypeDef::Map {
+                            key: args[0],
+                            value: args[1],
+                        };
+                    }
+                    _ => {}
+                }
+            }
+            return TypeDef::Applied { base, args };
+        }
+        def
     }
 
     pub fn get_type(&self, type_ref: TypeRef) -> Option<&Type> {

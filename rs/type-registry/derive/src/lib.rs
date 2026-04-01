@@ -45,25 +45,53 @@ fn process_derive(mut input: DeriveInput) -> syn::Result<TokenStream2> {
         &type_param_names,
         &const_param_names,
     )?;
-    let type_params_builder = input.generics.params.iter().filter_map(|p| match p {
+
+    let type_params_count = input.generics.type_params().count();
+    let type_params_registration = input.generics.params.iter().filter_map(|p| match p {
         GenericParam::Type(tp) => {
             let ty = &tp.ident;
             let name = ty.to_string();
-            Some(quote! { type_builder = type_builder.param(#name).arg({ registry.register_type::<#ty>() }); })
-        }
-        GenericParam::Const(cp) => {
-            let ident = &cp.ident;
-            let name = ident.to_string();
-            Some(quote! { type_builder = type_builder.param(#name).val(#registry::prelude::alloc::format!("{}", #ident)); })
+            Some(quote! {
+                let arg_id = registry.register_type::<#ty>();
+                args.push((#name, arg_id));
+            })
         }
         _ => None,
     });
+
+    let type_params_builder = input.generics.params.iter().filter_map(|p| match p {
+        GenericParam::Type(_) => Some(quote! {
+            if let Some((name, arg_id)) = args.next() {
+                type_builder = type_builder.param(name).arg(arg_id);
+            }
+        }),
+        GenericParam::Const(cp) => {
+            let ident = &cp.ident;
+            let name = ident.to_string();
+            Some(quote! {
+                type_builder = type_builder.param(#name).val(#registry::prelude::alloc::format!("{}", #ident));
+            })
+        }
+        _ => None,
+    });
+
+    let type_params_prelude = if type_params_count > 0 {
+        quote! {
+            let mut args: #registry::prelude::alloc::vec::Vec<(&'static str, _)> = #registry::prelude::alloc::vec![];
+            #(#type_params_registration)*
+            let mut args = args.into_iter();
+        }
+    } else {
+        quote! {}
+    };
 
     Ok(quote! {
         #[automatically_derived]
         impl #impl_generics #registry::TypeInfo for #name #ty_generics #where_clause {
             type Identity = Self;
             fn type_info(registry: &mut #registry::Registry) -> #registry::ty::Type {
+                #type_params_prelude
+
                 let mut type_builder = #registry::builder::TypeBuilder::new()
                     .module_path(::core::module_path!())
                     .name(#name_str)
@@ -166,6 +194,51 @@ fn extract_annotations(attrs: &[syn::Attribute]) -> syn::Result<Vec<TokenStream2
     Ok(anns)
 }
 
+fn contains_generic_param(ty: &Type, params: &[String], consts: &[String]) -> bool {
+    if params.is_empty() && consts.is_empty() {
+        return false;
+    }
+    match ty {
+        Type::Path(tp) => {
+            if let Some(ident) = tp.path.get_ident() {
+                if params.contains(&ident.to_string()) {
+                    return true;
+                }
+            }
+            if let Some(last) = tp.path.segments.last()
+                && let syn::PathArguments::AngleBracketed(args) = &last.arguments
+            {
+                for arg in &args.args {
+                    if let syn::GenericArgument::Type(inner) = arg
+                        && contains_generic_param(inner, params, consts)
+                    {
+                        return true;
+                    }
+                }
+            }
+            false
+        }
+        Type::Reference(tr) => contains_generic_param(&tr.elem, params, consts),
+        Type::Array(ta) => {
+            if contains_generic_param(&ta.elem, params, consts) {
+                return true;
+            }
+            if let syn::Expr::Path(ep) = &ta.len
+                && let Some(ident) = ep.path.get_ident()
+                && consts.contains(&ident.to_string())
+            {
+                return true;
+            }
+            false
+        }
+        Type::Tuple(tt) => tt
+            .elems
+            .iter()
+            .any(|e| contains_generic_param(e, params, consts)),
+        _ => false,
+    }
+}
+
 fn is_const_param_type(ty: &Type, consts: &[String]) -> bool {
     matches!(
         ty,
@@ -179,8 +252,10 @@ fn is_const_param_type(ty: &Type, consts: &[String]) -> bool {
 
 fn transparent_wrapper_inner_type(tp: &syn::TypePath) -> Option<&Type> {
     let last_segment = tp.path.segments.last()?;
-    let wrapper = last_segment.ident.to_string();
-    if !matches!(wrapper.as_str(), "Box" | "Rc" | "Arc" | "Cow") {
+    if !matches!(
+        last_segment.ident.to_string().as_str(),
+        "Box" | "Rc" | "Arc" | "Cow"
+    ) {
         return None;
     }
 
@@ -197,10 +272,12 @@ fn transparent_wrapper_inner_type(tp: &syn::TypePath) -> Option<&Type> {
         })
         .collect();
 
-    match wrapper.as_str() {
-        "Cow" => type_args.last().copied(),
-        _ if type_args.len() == 1 => type_args.first().copied(),
-        _ => None,
+    if last_segment.ident == "Cow" {
+        type_args.last().copied()
+    } else if type_args.len() == 1 {
+        type_args.first().copied()
+    } else {
+        None
     }
 }
 
@@ -209,14 +286,15 @@ fn transform_type_to_tokens(
     registry: &TokenStream2,
     params: &[String],
     consts: &[String],
-) -> Option<TokenStream2> {
+) -> TokenStream2 {
+    if !contains_generic_param(ty, params, consts) {
+        return quote! { { registry.register_type::<#ty>() } };
+    }
+
     match ty {
         Type::Path(tp) => {
             if let Some(inner_ty) = transparent_wrapper_inner_type(tp) {
-                return Some(
-                    transform_type_to_tokens(inner_ty, registry, params, consts)
-                        .unwrap_or_else(|| quote! { { registry.register_type::<#inner_ty>() } }),
-                );
+                return transform_type_to_tokens(inner_ty, registry, params, consts);
             }
 
             if let Some(ident) = tp
@@ -225,88 +303,62 @@ fn transform_type_to_tokens(
                 .filter(|i| params.contains(&i.to_string()))
             {
                 let id = ident.to_string();
-                return Some(
-                    quote! { registry.register_type_def(#registry::ty::Type::builder().name(#id).parameter(#id)) },
-                );
+                return quote! {
+                    registry.register_type_def(#registry::ty::Type::builder().name(#id).parameter(#id))
+                };
             }
+
             if let Some(last) = tp.path.segments.last()
                 && let syn::PathArguments::AngleBracketed(args) = &last.arguments
             {
-                let mut has_gen = false;
                 let mut arg_tokens = Vec::new();
                 for arg in &args.args {
                     if let syn::GenericArgument::Type(inner) = arg {
                         if !is_const_param_type(inner, consts) {
-                            if let Some(toks) =
-                                transform_type_to_tokens(inner, registry, params, consts)
-                            {
-                                has_gen = true;
-                                arg_tokens.push(toks);
-                            } else {
-                                arg_tokens.push(quote! { { registry.register_type::<#inner>() } });
-                            }
+                            arg_tokens
+                                .push(transform_type_to_tokens(inner, registry, params, consts));
                         }
                     }
                 }
-                if has_gen {
-                    return Some(quote! {
+                if !arg_tokens.is_empty() {
+                    return quote! {
                         {
                             let base_id = registry.register_type::<#ty>();
                             let args = #registry::prelude::alloc::vec![#(#arg_tokens),*];
                             registry.register_type_def(#registry::ty::Type::builder().applied(base_id, args))
                         }
-                    });
+                    };
                 }
             }
-            None
+            quote! { { registry.register_type::<#ty>() } }
         }
         Type::Reference(tr) => {
             if let Type::Slice(ts) = &*tr.elem {
-                transform_type_to_tokens(&ts.elem, registry, params, consts).map(|inner| quote! {
+                let inner = transform_type_to_tokens(&ts.elem, registry, params, consts);
+                quote! {
                     { let inner_id = #inner; registry.register_type_def(#registry::ty::Type::builder().sequence(inner_id)) }
-                })
+                }
             } else {
                 transform_type_to_tokens(&tr.elem, registry, params, consts)
             }
         }
         Type::Array(ta) => {
-            let is_const = matches!(&ta.len, syn::Expr::Path(ep) if ep.path.get_ident().is_some_and(|i| consts.contains(&i.to_string())));
-            if let Some(inner) = transform_type_to_tokens(&ta.elem, registry, params, consts) {
-                let len = &ta.len;
-                Some(
-                    quote! { { let inner_id = #inner; registry.register_type_def(#registry::ty::Type::builder().array(inner_id, #len as u32)) } },
-                )
-            } else if is_const {
-                let elem = &ta.elem;
-                let inner = quote! { { registry.register_type::<#elem>() } };
-                let len = &ta.len;
-                Some(
-                    quote! { { let inner_id = #inner; registry.register_type_def(#registry::ty::Type::builder().array(inner_id, #len as u32)) } },
-                )
-            } else {
-                None
+            let inner = transform_type_to_tokens(&ta.elem, registry, params, consts);
+            let len = &ta.len;
+            quote! {
+                { let inner_id = #inner; registry.register_type_def(#registry::ty::Type::builder().array(inner_id, #len as u32)) }
             }
         }
         Type::Tuple(tt) => {
-            let mut has_gen = false;
             let mut elem_tokens = Vec::new();
             for inner in &tt.elems {
-                if let Some(toks) = transform_type_to_tokens(inner, registry, params, consts) {
-                    has_gen = true;
-                    elem_tokens.push(toks);
-                } else {
-                    elem_tokens.push(quote! { { registry.register_type::<#inner>() } });
-                }
+                elem_tokens.push(transform_type_to_tokens(inner, registry, params, consts));
             }
-            if has_gen {
-                Some(quote! {
-                    { let ids = #registry::prelude::alloc::vec![#(#elem_tokens),*]; registry.register_type_def(#registry::ty::Type::builder().tuple(ids)) }
-                })
-            } else {
-                None
+            quote! {
+                { let ids = #registry::prelude::alloc::vec![#(#elem_tokens),*]; registry.register_type_def(#registry::ty::Type::builder().tuple(ids)) }
             }
         }
-        _ => None,
+        _ => quote! { { registry.register_type::<#ty>() } },
     }
 }
 
@@ -329,11 +381,13 @@ fn generate_fields(
                 },
             );
             let f_ty = &f.ty;
-            let ty_tokens = transform_type_to_tokens(f_ty, registry, params, consts)
-                .unwrap_or_else(|| quote! { { registry.register_type::<#f_ty>() } });
+            let ty_tokens = transform_type_to_tokens(f_ty, registry, params, consts);
 
             Ok(quote! {
-                builder = builder.#method(#args) #(.doc(#docs))* #(#anns)* .ty(#ty_tokens);
+                {
+                    let ty = #ty_tokens;
+                    builder = builder.#method(#args) #(.doc(#docs))* #(#anns)* .ty(ty);
+                }
             })
         })
         .collect::<syn::Result<TokenStream2>>()
@@ -349,7 +403,11 @@ fn generate_def_tokens(
     match data {
         Data::Struct(s) => {
             let fields = generate_fields(&s.fields, registry, params, consts)?;
-            Ok(quote! { let mut builder = type_builder.composite(); #fields builder.build() })
+            Ok(quote! {
+                let mut builder = type_builder.composite();
+                #fields
+                builder.build()
+            })
         }
         Data::Enum(e) => {
             let variants = e.variants.iter().map(|v| {
@@ -358,15 +416,20 @@ fn generate_def_tokens(
                 let vanns = extract_annotations(&v.attrs)?;
                 let fields = generate_fields(&v.fields, registry, params, consts)?;
                 Ok(quote! {
-                    builder = {
-                        let mut builder = builder.add_variant(#vname) #(.doc(#vdocs))* #(#vanns)*;
+                    {
+                        let mut v_builder = builder.add_variant(#vname) #(.doc(#vdocs))* #(#vanns)*;
+                        let mut builder = v_builder;
                         #fields
                         builder.finish_variant()
-                    };
+                    }
                 })
-            }).collect::<syn::Result<TokenStream2>>()?;
+            }).collect::<syn::Result<Vec<TokenStream2>>>()?;
 
-            Ok(quote! { let mut builder = type_builder.variant(); #variants builder.build() })
+            Ok(quote! {
+                let mut builder = type_builder.variant();
+                #(builder = #variants;)*
+                builder.build()
+            })
         }
         Data::Union(_) => Err(syn::Error::new(
             name.span(),

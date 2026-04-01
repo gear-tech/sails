@@ -195,57 +195,19 @@ impl<'a> TypeResolver<'a> {
                 }
             }
             TypeDef::Applied { base, args } => {
-                let base_ty = self
-                    .registry
+                self.registry
                     .get_type(*base)
                     .ok_or(Error::TypeIdIsUnknown(base.get()))?;
 
-                match &base_ty.def {
-                    TypeDef::Option(_) if !args.is_empty() => TypeDecl::Named {
-                        name: "Option".to_string(),
-                        generics: vec![self.resolve_by_id_inner(args[0], type_args)?],
-                    },
-                    TypeDef::Result { .. } if args.len() >= 2 => TypeDecl::Named {
-                        name: "Result".to_string(),
-                        generics: vec![
-                            self.resolve_by_id_inner(args[0], type_args)?,
-                            self.resolve_by_id_inner(args[1], type_args)?,
-                        ],
-                    },
-                    TypeDef::Sequence(_) if !args.is_empty() => TypeDecl::Slice {
-                        item: Box::new(self.resolve_by_id_inner(args[0], type_args)?),
-                    },
-                    TypeDef::Array { len, .. } if !args.is_empty() => TypeDecl::Array {
-                        item: Box::new(self.resolve_by_id_inner(args[0], type_args)?),
-                        len: *len,
-                    },
-                    TypeDef::Map { .. } if args.len() >= 2 => TypeDecl::Slice {
-                        item: Box::new(TypeDecl::Tuple {
-                            types: vec![
-                                self.resolve_by_id_inner(args[0], type_args)?,
-                                self.resolve_by_id_inner(args[1], type_args)?,
-                            ],
-                        }),
-                    },
-                    TypeDef::Tuple(_) => {
-                        let mut types = Vec::new();
-                        for arg in args {
-                            types.push(self.resolve_by_id_inner(*arg, type_args)?);
-                        }
-                        TypeDecl::Tuple { types }
+                let base_decl = self.resolve_by_id_inner(*base, &BTreeMap::new())?;
+                if let TypeDecl::Named { name, .. } = base_decl {
+                    let mut generics = Vec::new();
+                    for arg in args {
+                        generics.push(self.resolve_by_id_inner(*arg, type_args)?);
                     }
-                    _ => {
-                        let base_decl = self.resolve_by_id_inner(*base, type_args)?;
-                        if let TypeDecl::Named { name, .. } = base_decl {
-                            let mut generics = Vec::new();
-                            for arg in args {
-                                generics.push(self.resolve_by_id_inner(*arg, type_args)?);
-                            }
-                            TypeDecl::Named { name, generics }
-                        } else {
-                            base_decl
-                        }
-                    }
+                    TypeDecl::Named { name, generics }
+                } else {
+                    base_decl
                 }
             }
         };
@@ -847,7 +809,7 @@ mod tests {
         assert_eq!(n8_name_2, "GenericConstStructN8O8<u8>");
         assert_eq!(n32_name, "GenericConstStructN32O8<u8>");
         assert_eq!(n256_name, "GenericConstStructN256O832<u8>");
-        assert_eq!(n32u256_name, "TestsGenericConstStructN32O8<U256>");
+        assert_eq!(n32u256_name, "GenericConstStructN32O8<U256>");
     }
 
     #[test]
@@ -1665,7 +1627,7 @@ mod tests {
         let enum_n8_bool_decl = resolver.get(enum_n8_bool_id).unwrap().to_string();
 
         assert_eq!(struct_n8_u32_decl, "ConstGenericStructN8<u32>");
-        assert_eq!(struct_n8_string_decl, "TestsConstGenericStructN8<String>");
+        assert_eq!(struct_n8_string_decl, "ConstGenericStructN8<String>");
         assert_eq!(struct_n16_u32_decl, "ConstGenericStructN16<u32>");
         assert_eq!(two_const_decl, "TwoConstGenericStructM8N4<u64, H256>");
         assert_eq!(enum_n8_bool_decl, "ConstGenericEnumN8<bool>");

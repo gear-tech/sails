@@ -83,3 +83,67 @@ fn test_mutually_recursive_types() {
         panic!("Expected Composite, got {:?}", ping_ty.def);
     }
 }
+
+#[test]
+fn test_option_with_generic_param() {
+    #[derive(TypeInfo)]
+    struct Wrapper<T> {
+        _inner: Option<T>,
+    }
+
+    let mut registry = Registry::new();
+    let wrapper_ref = registry.register_type::<Wrapper<u32>>();
+    let wrapper_ty = registry.get_type(wrapper_ref).unwrap();
+
+    if let TypeDef::Composite(c) = &wrapper_ty.def {
+        let opt_ref = c.fields[0].ty;
+        let opt_ty = registry.get_type(opt_ref).unwrap();
+
+        if let TypeDef::Option(_) = &opt_ty.def {
+            // Success
+        } else {
+            panic!("Expected Option, got {:?}", opt_ty.def);
+        }
+    }
+}
+
+#[test]
+fn test_const_generics_complex() {
+    #[derive(TypeInfo)]
+    struct ConstWrapper<T, const N: usize> {
+        _data: [T; N],
+        _nested: [Option<T>; N],
+    }
+
+    let mut registry = Registry::new();
+    let wrapper_ref = registry.register_type::<ConstWrapper<u32, 10>>();
+    let wrapper_ty = registry.get_type(wrapper_ref).unwrap();
+
+    assert_eq!(wrapper_ty.type_params.len(), 2);
+    assert_eq!(wrapper_ty.type_params[0].name, "T");
+    assert_eq!(wrapper_ty.type_params[1].name, "N");
+
+    if let TypeDef::Composite(c) = &wrapper_ty.def {
+        assert_eq!(c.fields.len(), 2);
+
+        // Check _data: [T; N]
+        let data_ref = c.fields[0].ty;
+        let data_ty = registry.get_type(data_ref).unwrap();
+        if let TypeDef::Array { len, .. } = &data_ty.def {
+            assert_eq!(*len, 10);
+        } else {
+            panic!("Expected Array, got {:?}", data_ty.def);
+        }
+
+        // Check _nested: [Option<T>; N]
+        let nested_ref = c.fields[1].ty;
+        let nested_ty = registry.get_type(nested_ref).unwrap();
+        if let TypeDef::Array { len, type_param } = &nested_ty.def {
+            assert_eq!(*len, 10);
+            let inner_ty = registry.get_type(*type_param).unwrap();
+            assert!(matches!(inner_ty.def, TypeDef::Option(_)));
+        } else {
+            panic!("Expected Array, got {:?}", nested_ty.def);
+        }
+    }
+}
