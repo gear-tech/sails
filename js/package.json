@@ -44,6 +44,8 @@
   "scripts": {
     "prebuild": "rm -rf lib",
     "build": "rollup --config rollup.config.js",
+    "build:bun": "bun run build.ts",
+    "test:bun": "bun x pnpm@10.30.2 --filter sails-js --filter sails-js-parser --filter sails-js-parser-idl-v2 --filter sails-js-types --filter sails-js-util -r build:bun && bun run test/setup.ts && bun run test/run.ts",
     "test": "pnpm jest --runInBand",
     "pack-build": "pnpm pack --out sails-js.tgz"
   },

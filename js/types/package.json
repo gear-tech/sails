@@ -17,7 +17,8 @@
   },
   "scripts": {
     "prebuild": "rm -rf lib",
-    "build": "rollup --config rollup.config.js"
+    "build": "rollup --config rollup.config.js",
+    "build:bun": "bun run build.ts"
   },
   "files": [
     "lib"
