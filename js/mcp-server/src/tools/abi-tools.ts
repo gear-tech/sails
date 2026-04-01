@@ -53,7 +53,7 @@ export function typeDeclToSolidity(td: TypeDecl): string {
   if (td.kind === 'named') {
     throw new Error(
       `Named type "${td.name}" is not supported in Sails ABI encoding. ` +
-        'Only primitives, slices, and fixed arrays are allowed.',
+      'Only primitives, slices, and fixed arrays are allowed.',
     );
   }
   throw new Error(`Unknown TypeDecl: ${JSON.stringify(td)}`);
@@ -567,7 +567,7 @@ export function registerAbiTools(server: McpServer) {
         service: z.string().describe('Service name'),
         event: z.string().describe('Event name'),
         fields: z
-          .record(z.any())
+          .record(z.string(), z.any())
           .describe('Event field values as a JSON object { fieldName: value }'),
       },
       annotations: { readOnlyHint: true },

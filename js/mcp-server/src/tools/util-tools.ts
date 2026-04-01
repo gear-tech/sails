@@ -170,7 +170,6 @@ export function registerUtilTools(server: McpServer) {
           };
         }
 
-        const targetIidU64 = header.interfaceId.asU64();
         const targetEntryId = header.entryId;
 
         // Search all services for a match
