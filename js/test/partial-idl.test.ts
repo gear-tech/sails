@@ -16,9 +16,11 @@ describe('partial service and entry-id', () => {
       @partial
       service PartialService@0x1234567890abcdef {
         functions {
+          @entry-id: 0
           AMethodDefaultId0() -> bool;
           @entry-id: 5
           BMethodWithId5() -> bool;
+          @entry-id: 2
           CMethodDefaultId2() -> u32;
         }
       }

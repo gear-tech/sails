@@ -84,12 +84,14 @@ class ServiceExpo extends ServiceIdent implements IServiceExpo {
 class CtorFunc implements ICtorFunc {
   public readonly name: string;
   public readonly params?: FuncParam[];
+  public readonly entry_id: number;
   public readonly docs?: string[];
   public readonly annotations?: AnnotationEntry[];
 
   constructor(data: ICtorFunc) {
     this.name = data.name;
     this.params = mapArray(data.params, (param) => new FuncParam(param));
+    this.entry_id = data.entry_id ?? 0;
     this.docs = data.docs;
     this.annotations = data.annotations;
   }
@@ -120,6 +122,7 @@ class ServiceFunc implements IServiceFunc {
   public readonly output: TypeDecl;
   public readonly throws?: TypeDecl;
   public readonly kind: FunctionKind;
+  public readonly entry_id: number;
   public readonly docs?: string[];
   public readonly annotations?: AnnotationEntry[];
 
@@ -129,6 +132,7 @@ class ServiceFunc implements IServiceFunc {
     this.output = data.output;
     this.throws = data.throws;
     this.kind = data.kind;
+    this.entry_id = data.entry_id ?? 0;
     this.docs = data.docs;
     this.annotations = data.annotations;
   }
@@ -225,12 +229,14 @@ class StructField implements IStructField {
 class EnumVariant implements IEnumVariant {
   public readonly name: string;
   public readonly fields: StructField[];
+  public readonly entry_id: number;
   public readonly docs?: string[];
   public readonly annotations?: AnnotationEntry[];
 
   constructor(data: IEnumVariant) {
     this.name = data.name;
     this.fields = data.fields.map((field: IStructField) => new StructField(field));
+    this.entry_id = data.entry_id ?? 0;
     this.docs = data.docs;
     this.annotations = data.annotations;
   }
@@ -258,6 +264,7 @@ const normalizeStructField = (data: IStructField): IStructField => normalizeDocA
 const normalizeEnumVariant = (data: IEnumVariant): IEnumVariant => ({
   ...normalizeDocAnnotated(data),
   fields: (data.fields ?? []).map((data: IStructField) => normalizeStructField(data)),
+  entry_id: data.entry_id ?? 0,
 });
 
 const normalizeType = (data: Type): Type => {
@@ -296,6 +303,7 @@ const normalizeFuncParam = (data: IFuncParam): IFuncParam => data;
 const normalizeCtorFunc = (data: ICtorFunc): ICtorFunc => ({
   ...normalizeDocAnnotated(data),
   params: (data.params ?? []).map((data: IFuncParam) => normalizeFuncParam(data)),
+  entry_id: data.entry_id ?? 0,
 });
 
 const normalizeServiceIdent = (data: IServiceIdent): IServiceIdent => ({
@@ -311,6 +319,7 @@ const normalizeServiceExpo = (data: IServiceExpo): IServiceExpo => ({
 const normalizeServiceFunc = (data: IServiceFunc): IServiceFunc => ({
   ...normalizeDocAnnotated(data),
   params: (data.params ?? []).map((data: IFuncParam) => normalizeFuncParam(data)),
+  entry_id: data.entry_id ?? 0,
 });
 
 const normalizeServiceUnit = (data: IServiceUnit): IServiceUnit => ({
