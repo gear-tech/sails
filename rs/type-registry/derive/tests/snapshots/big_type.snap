@@ -15,6 +15,12 @@ where
     fn type_info(
         registry: &mut sails_rs::type_info::Registry,
     ) -> sails_rs::type_info::ty::Type {
+        let mut args: sails_rs::type_info::prelude::alloc::vec::Vec<(&'static str, _)> = sails_rs::type_info::prelude::alloc::vec![];
+        let arg_id = registry.register_type::<T>();
+        args.push(("T", arg_id));
+        let arg_id = registry.register_type::<U>();
+        args.push(("U", arg_id));
+        let mut args = args.into_iter();
         let mut type_builder = sails_rs::type_info::builder::TypeBuilder::new()
             .module_path(::core::module_path!())
             .name("Container")
@@ -22,16 +28,18 @@ where
             .annotate("attr1")
             .value("val1")
             .annotate("attr2");
-        type_builder = type_builder.param("T").arg({ registry.register_type::<T>() });
-        type_builder = type_builder.param("U").arg({ registry.register_type::<U>() });
+        if let Some((name, arg_id)) = args.next() {
+            type_builder = type_builder.param(name).arg(arg_id);
+        }
+        if let Some((name, arg_id)) = args.next() {
+            type_builder = type_builder.param(name).arg(arg_id);
+        }
         type_builder = type_builder
             .param("SIZE")
             .val(sails_rs::type_info::prelude::alloc::format!("{}", SIZE));
         let mut builder = type_builder.composite();
-        builder = builder
-            .field("next")
-            .doc("Recursive field")
-            .ty({
+        {
+            let ty = {
                 let base_id = registry
                     .register_type::<Option<Box<Container<T, U, SIZE>>>>();
                 let args = sails_rs::type_info::prelude::alloc::vec![
@@ -62,16 +70,11 @@ where
                     .register_type_def(
                         sails_rs::type_info::ty::Type::builder().applied(base_id, args),
                     )
-            });
-        builder = builder
-            .field("data")
-            .doc("Field with many annotations")
-            .annotate("indexed")
-            .annotate("secret")
-            .value("true")
-            .annotate("range")
-            .value("0..100")
-            .ty({
+            };
+            builder = builder.field("next").doc("Recursive field").ty(ty);
+        }
+        {
+            let ty = {
                 let inner_id = registry
                     .register_type_def(
                         sails_rs::type_info::ty::Type::builder().name("T").parameter("T"),
@@ -81,10 +84,19 @@ where
                         sails_rs::type_info::ty::Type::builder()
                             .array(inner_id, SIZE as u32),
                     )
-            });
-        builder = builder
-            .field("mapped")
-            .ty({
+            };
+            builder = builder
+                .field("data")
+                .doc("Field with many annotations")
+                .annotate("indexed")
+                .annotate("secret")
+                .value("true")
+                .annotate("range")
+                .value("0..100")
+                .ty(ty);
+        }
+        {
+            let ty = {
                 let base_id = registry.register_type::<BTreeMap<String, U>>();
                 let args = sails_rs::type_info::prelude::alloc::vec![
                     { registry.register_type::<String>() },
@@ -99,11 +111,13 @@ where
                     .register_type_def(
                         sails_rs::type_info::ty::Type::builder().applied(base_id, args),
                     )
-            });
-        builder = builder
-            .field("meta")
-            .doc("Tuple field")
-            .ty({ registry.register_type::<(u32, bool, String)>() });
+            };
+            builder = builder.field("mapped").ty(ty);
+        }
+        {
+            let ty = { registry.register_type::<(u32, bool, String)>() };
+            builder = builder.field("meta").doc("Tuple field").ty(ty);
+        }
         builder.build()
     }
 }

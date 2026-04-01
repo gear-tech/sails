@@ -4669,7 +4669,7 @@ dependencies = [
 
 [[package]]
 name = "sails-type-registry"
-version = "1.0.0-beta.1"
+version = "1.0.0-beta.2"
 dependencies = [
  "gprimitives",
  "sails-type-registry-derive",
@@ -4677,7 +4677,7 @@ dependencies = [
 
 [[package]]
 name = "sails-type-registry-derive"
-version = "1.0.0-beta.1"
+version = "1.0.0-beta.2"
 dependencies = [
  "proc-macro-crate 3.5.0",
  "proc-macro2",

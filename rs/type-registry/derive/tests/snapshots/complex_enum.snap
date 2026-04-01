@@ -19,19 +19,24 @@ impl ::sails_type_registry::TypeInfo for Complex {
                 .add_variant("V1")
                 .doc("Variant with named fields and annotations")
                 .annotate("v1");
-            builder = builder
-                .field("f")
-                .annotate("f1")
-                .value("v")
-                .ty({ registry.register_type::<u32>() });
+            {
+                let ty = { registry.register_type::<u32>() };
+                builder = builder.field("f").annotate("f1").value("v").ty(ty);
+            }
             builder.finish_variant()
         };
         builder = {
             let mut builder = builder
                 .add_variant("V2")
                 .doc("Variant with unnamed fields");
-            builder = builder.unnamed().ty({ registry.register_type::<u64>() });
-            builder = builder.unnamed().ty({ registry.register_type::<String>() });
+            {
+                let ty = { registry.register_type::<u64>() };
+                builder = builder.unnamed().ty(ty);
+            }
+            {
+                let ty = { registry.register_type::<String>() };
+                builder = builder.unnamed().ty(ty);
+            }
             builder.finish_variant()
         };
         builder = {
