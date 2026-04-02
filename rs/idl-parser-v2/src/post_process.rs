@@ -8,6 +8,7 @@ use alloc::{
     collections::BTreeMap,
     format,
     string::{String, ToString},
+    vec,
     vec::Vec,
 };
 use core::str::FromStr;
@@ -26,27 +27,21 @@ const ALLOWED_TYPES: &[&str] = &[
 pub fn validate_and_post_process(doc: &mut IdlDoc) -> Result<()> {
     let mut validator = Validator::new();
 
-    // 1. Manually set up the program-level scope so it persists across all sibling service visits.
-    let program_scope_start = validator.names_stack.len();
+    // 1. Program types are added to the root scope so they remain visible to all services.
     if let Some(program) = &doc.program {
         for ty in &program.types {
-            validator.add_type_to_current_scope(&ty.name);
+            validator.add_type(&ty.name);
         }
-    }
-
-    // 2. Traverse the program itself to validate its own nodes.
-    if let Some(program) = &doc.program {
+        // 2. Validate the program unit (ctors, type references, field consistency).
         validator.visit_program_unit(program);
     }
 
-    // 3. Traverse each service. The program scope is still on the stack.
+    // 3. Validate each service unit (funcs, events, types, field consistency).
     for service in &doc.services {
         validator.visit_service_unit(service);
     }
 
-    // 4. Manually pop the program scope after the entire traversal is complete.
-    validator.unwind_scope(program_scope_start);
-
+    // 4. Collect and return any validation errors found above.
     if !validator.errors.is_empty() {
         let error_messages: Vec<String> = validator
             .errors
@@ -56,7 +51,10 @@ pub fn validate_and_post_process(doc: &mut IdlDoc) -> Result<()> {
         return Err(Error::Validation(error_messages.join("\n")));
     }
 
-    // 5. Compute `interface_id` for each service in doc
+    // 5. Validate entry_ids: check uniqueness and that @partial services have explicit @entry-id.
+    validate_entry_ids(doc)?;
+
+    // 6. Compute and assign `interface_id` for each service.
     let mut service_ids = ServiceInterfaceId::new(doc);
     service_ids.update_service_id()?;
 
@@ -64,69 +62,52 @@ pub fn validate_and_post_process(doc: &mut IdlDoc) -> Result<()> {
 }
 
 struct Validator<'a> {
-    // Counts of active type names in the current scope chain.
-    active_names: BTreeMap<&'a str, u32>,
-    // Stack of all visible type names, used for rewinding scopes.
-    names_stack: Vec<&'a str>,
+    scopes: Vec<Vec<&'a str>>,
     errors: Vec<Error>,
 }
 
 impl<'a> Validator<'a> {
     fn new() -> Self {
         Self {
-            active_names: BTreeMap::new(),
-            names_stack: Vec::new(),
+            scopes: vec![vec![]],
             errors: Vec::new(),
         }
     }
 
-    fn unwind_scope(&mut self, start_index: usize) {
-        // Remove types defined in this scope from the active set
-        for name in self.names_stack.drain(start_index..) {
-            if let Some(count) = self.active_names.get_mut(name) {
-                *count -= 1;
-                if *count == 0 {
-                    self.active_names.remove(name);
-                }
-            }
-        }
+    fn push_scope(&mut self) {
+        self.scopes.push(Vec::new());
     }
 
-    fn add_type_to_current_scope(&mut self, name: &'a str) {
-        self.names_stack.push(name);
-        *self.active_names.entry(name).or_insert(0) += 1;
+    fn pop_scope(&mut self) {
+        self.scopes.pop();
+    }
+
+    fn add_type(&mut self, name: &'a str) {
+        self.scopes.last_mut().unwrap().push(name);
     }
 
     fn is_type_known(&self, name: &str) -> bool {
-        if ALLOWED_TYPES.contains(&name) {
-            return true;
-        }
-        self.active_names.contains_key(name)
+        ALLOWED_TYPES.contains(&name) || self.scopes.iter().any(|s| s.contains(&name))
     }
 }
 
 impl<'a> visitor::Visitor<'a> for Validator<'a> {
     fn visit_service_unit(&mut self, service: &'a ast::ServiceUnit) {
-        let scope_start = self.names_stack.len();
+        self.push_scope();
         for ty in &service.types {
-            self.add_type_to_current_scope(&ty.name);
+            self.add_type(&ty.name);
         }
-
         visitor::accept_service_unit(service, self);
-
-        self.unwind_scope(scope_start);
+        self.pop_scope();
     }
 
     fn visit_type(&mut self, ty: &'a ast::Type) {
-        let scope_start = self.names_stack.len();
+        self.push_scope();
         for param in &ty.type_params {
-            self.add_type_to_current_scope(&param.name);
+            self.add_type(&param.name);
         }
-
-        // Now that generics are in scope, traverse the type's definition.
         visitor::accept_type(ty, self);
-
-        self.unwind_scope(scope_start);
+        self.pop_scope();
     }
 
     fn visit_named_type_decl(&mut self, name: &'a str, generics: &'a [ast::TypeDecl]) {
@@ -246,9 +227,7 @@ impl<'a> ServiceInterfaceId<'a> {
             ext.interface_id = Some(*id);
         }
 
-        let is_partial = service.annotations.iter().any(|(k, _)| k == "partial");
-
-        let id = if is_partial {
+        let id = if service.is_partial() {
             service.name.interface_id.ok_or_else(|| {
                 Error::Validation(format!(
                     "service `{name}` is marked as `@partial` but does not have an explicit `interface_id` (e.g. `service {name}@0x...`)"
@@ -270,4 +249,105 @@ impl<'a> ServiceInterfaceId<'a> {
         self.computed.insert(name.to_string(), id);
         Ok(id)
     }
+}
+
+fn validate_entry_ids(doc: &IdlDoc) -> Result<()> {
+    for service in &doc.services {
+        let is_partial = service.is_partial();
+
+        for func in &service.funcs {
+            validate_entry_id_annotation(
+                "service",
+                &service.name.name,
+                "function",
+                &func.name,
+                &func.annotations,
+                is_partial,
+            )?;
+        }
+        for event in &service.events {
+            validate_entry_id_annotation(
+                "service",
+                &service.name.name,
+                "event",
+                &event.name,
+                &event.annotations,
+                is_partial,
+            )?;
+        }
+
+        // entry_ids must be unique within funcs and within events
+        let mut seen = alloc::collections::BTreeSet::new();
+        for func in &service.funcs {
+            if !seen.insert(func.entry_id) {
+                return Err(Error::Validation(format!(
+                    "service `{}`: duplicate entry_id {} among functions",
+                    service.name.name, func.entry_id
+                )));
+            }
+        }
+        seen.clear();
+        for event in &service.events {
+            if !seen.insert(event.entry_id) {
+                return Err(Error::Validation(format!(
+                    "service `{}`: duplicate entry_id {} among events",
+                    service.name.name, event.entry_id
+                )));
+            }
+        }
+    }
+
+    if let Some(program) = &doc.program {
+        let mut seen = alloc::collections::BTreeSet::new();
+        for ctor in &program.ctors {
+            validate_entry_id_annotation(
+                "program",
+                &program.name,
+                "constructor",
+                &ctor.name,
+                &ctor.annotations,
+                false,
+            )?;
+            if !seen.insert(ctor.entry_id) {
+                return Err(Error::Validation(format!(
+                    "program `{}`: duplicate entry_id {} among constructors",
+                    program.name, ctor.entry_id
+                )));
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn validate_entry_id_annotation(
+    owner_kind: &str,
+    owner_name: &str,
+    item_kind: &str,
+    item_name: &str,
+    annotations: &[(String, Option<String>)],
+    required: bool,
+) -> Result<()> {
+    let Some((_, value)) = annotations.iter().find(|(k, _)| k == "entry-id") else {
+        if required {
+            return Err(Error::Validation(format!(
+                "{owner_kind} `{owner_name}`: {item_kind} `{item_name}` is missing `@entry-id` annotation (required for @partial services)"
+            )));
+        }
+        return Ok(());
+    };
+
+    let Some(value) = value.as_deref() else {
+        return Err(Error::Validation(format!(
+            "{owner_kind} `{owner_name}`: {item_kind} `{item_name}` has invalid `@entry-id` value (expected a u16)"
+        )));
+    };
+
+    value.parse::<u16>().map_err(|_| {
+        Error::Validation(format!(
+            "{owner_kind} `{owner_name}`: {item_kind} `{item_name}` has invalid `@entry-id` value `{value}` (expected a u16)"
+        ))
+    })?;
+
+    Ok(())
 }

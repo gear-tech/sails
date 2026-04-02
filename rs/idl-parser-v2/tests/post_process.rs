@@ -72,6 +72,44 @@ fn validate_duplicate_interface_id_fails() {
 }
 
 #[test]
+fn validate_invalid_entry_id_fails_for_regular_service() {
+    let src = r#"
+        service Canvas {
+            functions {
+                @entry-id: foo
+                Draw();
+            }
+        }
+    "#;
+    let err = parse_idl(src).expect_err("Should have failed due to invalid @entry-id");
+    assert!(
+        err.to_string().contains(
+            "service `Canvas`: function `Draw` has invalid `@entry-id` value `foo` (expected a u16)"
+        ),
+        "unexpected error: {err}"
+    );
+}
+
+#[test]
+fn validate_invalid_entry_id_fails_for_constructor() {
+    let src = r#"
+        program Demo {
+            constructors {
+                @entry-id: nope
+                New();
+            }
+        }
+    "#;
+    let err = parse_idl(src).expect_err("Should have failed due to invalid constructor @entry-id");
+    assert!(
+        err.to_string().contains(
+            "program `Demo`: constructor `New` has invalid `@entry-id` value `nope` (expected a u16)"
+        ),
+        "unexpected error: {err}"
+    );
+}
+
+#[test]
 fn parse_doc_annotation_works() {
     const SRC: &str = include_str!("../tests/idls/doc_annotation.idl");
     let doc = parse_idl(SRC).expect("parse idl");
