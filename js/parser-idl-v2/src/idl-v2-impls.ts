@@ -84,12 +84,14 @@ class ServiceExpo extends ServiceIdent implements IServiceExpo {
 class CtorFunc implements ICtorFunc {
   public readonly name: string;
   public readonly params?: FuncParam[];
+  public readonly throws?: TypeDecl;
   public readonly docs?: string[];
   public readonly annotations?: AnnotationEntry[];
 
   constructor(data: ICtorFunc) {
     this.name = data.name;
     this.params = mapArray(data.params, (param) => new FuncParam(param));
+    this.throws = data.throws;
     this.docs = data.docs;
     this.annotations = data.annotations;
   }
