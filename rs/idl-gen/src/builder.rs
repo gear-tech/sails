@@ -134,14 +134,16 @@ impl ProgramBuilder {
             })
             .collect();
 
-        Ok(ProgramUnit {
+        let mut program = ProgramUnit {
             name,
             ctors,
             services: expos?,
             types,
             docs: vec![],
             annotations: vec![],
-        })
+        };
+        program.normalize();
+        Ok(program)
     }
 }
 
@@ -614,6 +616,13 @@ mod tests {
 
         // Check that all constructors have parsed
         assert_eq!(meta.ctors.len(), 3);
+        assert_eq!(
+            meta.ctors
+                .iter()
+                .map(|ctor| ctor.entry_id)
+                .collect::<Vec<_>>(),
+            vec![0, 1, 2]
+        );
     }
 
     /// Test successful creation with valid constructors and services
