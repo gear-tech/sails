@@ -106,12 +106,7 @@ impl ProgramUnit {
     /// Must be called after parsing, before any reordering.
     pub fn normalize(&mut self) {
         for (idx, ctor) in self.ctors.iter_mut().enumerate() {
-            ctor.entry_id = ctor
-                .annotations
-                .iter()
-                .find(|(k, _)| k == "entry-id")
-                .and_then(|(_, v)| v.as_ref()?.parse::<u16>().ok())
-                .unwrap_or(idx as u16);
+            ctor.entry_id = entry_id_from_annotations(&ctor.annotations, idx as u16);
         }
     }
 }
@@ -285,20 +280,10 @@ impl ServiceUnit {
         // Assign entry_id AFTER sort: use @entry-id annotation if present,
         // otherwise the post-sort (alphabetical) index, which matches scale-codec ordering.
         for (idx, func) in self.funcs.iter_mut().enumerate() {
-            func.entry_id = func
-                .annotations
-                .iter()
-                .find(|(k, _)| k == "entry-id")
-                .and_then(|(_, v)| v.as_ref()?.parse::<u16>().ok())
-                .unwrap_or(idx as u16);
+            func.entry_id = entry_id_from_annotations(&func.annotations, idx as u16);
         }
         for (idx, event) in self.events.iter_mut().enumerate() {
-            event.entry_id = event
-                .annotations
-                .iter()
-                .find(|(k, _)| k == "entry-id")
-                .and_then(|(_, v)| v.as_ref()?.parse::<u16>().ok())
-                .unwrap_or(idx as u16);
+            event.entry_id = entry_id_from_annotations(&event.annotations, idx as u16);
         }
     }
 
@@ -309,6 +294,14 @@ impl ServiceUnit {
     pub fn is_partial(&self) -> bool {
         self.annotations.iter().any(|(k, _)| k == "partial")
     }
+}
+
+fn entry_id_from_annotations(annotations: &[(String, Option<String>)], fallback: u16) -> u16 {
+    annotations
+        .iter()
+        .find(|(k, _)| k == "entry-id")
+        .and_then(|(_, v)| v.as_ref()?.parse::<u16>().ok())
+        .unwrap_or(fallback)
 }
 
 /// Service function entry inside `service { functions { ... } }`.

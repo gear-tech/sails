@@ -255,25 +255,25 @@ fn validate_entry_ids(doc: &IdlDoc) -> Result<()> {
     for service in &doc.services {
         let is_partial = service.is_partial();
 
-        // For @partial services all funcs/events must have explicit @entry-id annotations,
-        // because the sorted position in the array does not reflect the real on-chain index.
-        if is_partial {
-            for func in &service.funcs {
-                validate_partial_service_entry_id(
-                    &service.name.name,
-                    "function",
-                    &func.name,
-                    &func.annotations,
-                )?;
-            }
-            for event in &service.events {
-                validate_partial_service_entry_id(
-                    &service.name.name,
-                    "event",
-                    &event.name,
-                    &event.annotations,
-                )?;
-            }
+        for func in &service.funcs {
+            validate_entry_id_annotation(
+                "service",
+                &service.name.name,
+                "function",
+                &func.name,
+                &func.annotations,
+                is_partial,
+            )?;
+        }
+        for event in &service.events {
+            validate_entry_id_annotation(
+                "service",
+                &service.name.name,
+                "event",
+                &event.name,
+                &event.annotations,
+                is_partial,
+            )?;
         }
 
         // entry_ids must be unique within funcs and within events
@@ -300,6 +300,14 @@ fn validate_entry_ids(doc: &IdlDoc) -> Result<()> {
     if let Some(program) = &doc.program {
         let mut seen = alloc::collections::BTreeSet::new();
         for ctor in &program.ctors {
+            validate_entry_id_annotation(
+                "program",
+                &program.name,
+                "constructor",
+                &ctor.name,
+                &ctor.annotations,
+                false,
+            )?;
             if !seen.insert(ctor.entry_id) {
                 return Err(Error::Validation(format!(
                     "program `{}`: duplicate entry_id {} among constructors",
@@ -312,25 +320,32 @@ fn validate_entry_ids(doc: &IdlDoc) -> Result<()> {
     Ok(())
 }
 
-fn validate_partial_service_entry_id(
-    service_name: &str,
+fn validate_entry_id_annotation(
+    owner_kind: &str,
+    owner_name: &str,
     item_kind: &str,
     item_name: &str,
     annotations: &[(String, Option<String>)],
+    required: bool,
 ) -> Result<()> {
-    let Some(value) = annotations
-        .iter()
-        .find(|(k, _)| k == "entry-id")
-        .and_then(|(_, v)| v.as_deref())
-    else {
+    let Some((_, value)) = annotations.iter().find(|(k, _)| k == "entry-id") else {
+        if required {
+            return Err(Error::Validation(format!(
+                "{owner_kind} `{owner_name}`: {item_kind} `{item_name}` is missing `@entry-id` annotation (required for @partial services)"
+            )));
+        }
+        return Ok(());
+    };
+
+    let Some(value) = value.as_deref() else {
         return Err(Error::Validation(format!(
-            "service `{service_name}`: {item_kind} `{item_name}` is missing `@entry-id` annotation (required for @partial services)"
+            "{owner_kind} `{owner_name}`: {item_kind} `{item_name}` has invalid `@entry-id` value (expected a u16)"
         )));
     };
 
     value.parse::<u16>().map_err(|_| {
         Error::Validation(format!(
-            "service `{service_name}`: {item_kind} `{item_name}` has invalid `@entry-id` value `{value}` (expected a u16)"
+            "{owner_kind} `{owner_name}`: {item_kind} `{item_name}` has invalid `@entry-id` value `{value}` (expected a u16)"
         ))
     })?;
 
