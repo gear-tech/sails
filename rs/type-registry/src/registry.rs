@@ -53,7 +53,9 @@ impl Registry {
         Self::default()
     }
 
-    /// Registers `T` and returns its [`TypeRef`].
+    /// Registers a Rust type using its `TypeId` (fast-path).
+    ///
+    /// Primary method for static types. Returns cached `TypeRef` if already registered.
     pub fn register_type<T: TypeInfo + ?Sized>(&mut self) -> TypeRef {
         self.register_meta_type(crate::meta_type::MetaType::new::<T>())
     }
@@ -77,18 +79,28 @@ impl Registry {
         type_ref
     }
 
-    /// Registers a type definition directly.
+    /// Registers a type definition by its structure (no `TypeId` cache).
     ///
-    /// The definition is normalized before insertion and deduplicated by module
-    /// path, name, type parameters, and normalized definition.
+    /// Used by macros and parsers when a native Rust `TypeId` is unavailable.
     pub fn register_type_def(&mut self, mut ty: Type) -> TypeRef {
         ty.def = self.normalize_def(ty.def);
 
         if let Some((id, _)) = self.types().find(|(_, existing_ty)| {
-            existing_ty.module_path == ty.module_path
-                && existing_ty.name == ty.name
-                && existing_ty.type_params == ty.type_params
-                && existing_ty.def == ty.def
+            if existing_ty.name != ty.name || existing_ty.module_path != ty.module_path {
+                return false;
+            }
+
+            if existing_ty.type_params != ty.type_params {
+                return false;
+            }
+
+            // For nominal types (Structs, Enums)
+            if !ty.name.is_empty() {
+                return true;
+            }
+
+            // For structural types (Tuples, Arrays, Primitives)
+            existing_ty.def == ty.def
         }) {
             return id;
         }
@@ -327,5 +339,44 @@ mod tests {
         assert_ne!(first, second);
         assert_ne!(first, third);
         assert_ne!(second, third);
+    }
+
+    #[test]
+    fn register_type_def_nominal_vs_structural() {
+        let mut registry = Registry::new();
+
+        // Nominal types (Structs/Enums): same path+name = same TypeRef
+        let nominal1 = registry.register_type_def(
+            Type::builder()
+                .module_path("m")
+                .name("A")
+                .tuple(alloc::vec![]),
+        );
+        let nominal2 = registry.register_type_def(
+            Type::builder()
+                .module_path("m")
+                .name("A")
+                .composite()
+                .build(),
+        );
+        assert_eq!(
+            nominal1, nominal2,
+            "Nominal types should match by path and name"
+        );
+
+        // Structural types (Tuples/Arrays): no name = deep compare structure
+        let struct1 = registry.register_type_def(Type::builder().tuple(alloc::vec![]));
+        let u8_id = registry.register_type::<u8>();
+        let struct2 = registry.register_type_def(Type::builder().array(u8_id, 32));
+        assert_ne!(
+            struct1, struct2,
+            "Structural types should NOT match if definitions differ"
+        );
+
+        let struct3 = registry.register_type_def(Type::builder().array(u8_id, 32));
+        assert_eq!(
+            struct2, struct3,
+            "Structural types should match if definitions are identical"
+        );
     }
 }
