@@ -224,19 +224,19 @@ impl sails_rs::gstd::services::Service for InheritedService {
 }
 mod inherited_service_meta {
     use super::*;
+    const INTERFACE_ID: sails_rs::meta::InterfaceId = {
+        let mut final_hash = sails_rs::keccak_const::Keccak256::new();
+        final_hash = final_hash.update(&sails_rs::hash_fn!(query OwnFirst() -> u32));
+        final_hash = final_hash.update(&sails_rs::hash_fn!(query OwnSecond() -> u32));
+        final_hash = final_hash
+            .update(
+                &<super::BaseService as sails_rs::meta::Identifiable>::INTERFACE_ID.0,
+            );
+        let hash = final_hash.finalize();
+        sails_rs::meta::InterfaceId::from_bytes_32(hash)
+    };
     impl sails_rs::meta::Identifiable for super::InheritedService {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = {
-            let mut final_hash = sails_rs::keccak_const::Keccak256::new();
-            final_hash = final_hash.update(&sails_rs::hash_fn!(query OwnFirst() -> u32));
-            final_hash = final_hash
-                .update(&sails_rs::hash_fn!(query OwnSecond() -> u32));
-            final_hash = final_hash
-                .update(
-                    &<super::BaseService as sails_rs::meta::Identifiable>::INTERFACE_ID.0,
-                );
-            let hash = final_hash.finalize();
-            sails_rs::meta::InterfaceId::from_bytes_32(hash)
-        };
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = INTERFACE_ID;
     }
     impl sails_rs::meta::ServiceMeta for super::InheritedService {
         type CommandsMeta = CommandsMeta;
@@ -288,12 +288,10 @@ mod inherited_service_meta {
         ::METHODS, "Foo",); ID },
     );
     sails_rs::invocation_io!(
-        pub struct __OwnFirstParams {}, interface_id = < super::InheritedService as
-        sails_rs::meta::Identifiable > ::INTERFACE_ID, entry_id = 0u16,
+        pub struct __OwnFirstParams {}, interface_id = INTERFACE_ID, entry_id = 0u16,
     );
     sails_rs::invocation_io!(
-        pub struct __OwnSecondParams {}, interface_id = < super::InheritedService as
-        sails_rs::meta::Identifiable > ::INTERFACE_ID, entry_id = 1u16,
+        pub struct __OwnSecondParams {}, interface_id = INTERFACE_ID, entry_id = 1u16,
     );
     #[derive(sails_rs::TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]

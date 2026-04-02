@@ -385,26 +385,23 @@ impl sails_rs::gstd::services::Service for ReferenceService {
 }
 mod reference_service_meta {
     use super::*;
+    const INTERFACE_ID: sails_rs::meta::InterfaceId = {
+        let mut final_hash = sails_rs::keccak_const::Keccak256::new();
+        final_hash = final_hash
+            .update(&sails_rs::hash_fn!(command AddByte(u8) -> & 'static [u8]));
+        final_hash = final_hash
+            .update(&sails_rs::hash_fn!(query Baked() -> & 'static str));
+        final_hash = final_hash
+            .update(&sails_rs::hash_fn!(query FirstByte() -> Option < & 'static u8 >));
+        final_hash = final_hash
+            .update(&sails_rs::hash_fn!(command Incr() -> & 'static ReferenceCount));
+        final_hash = final_hash
+            .update(&sails_rs::hash_fn!(query LastByte() -> Option < & 'static u8 >));
+        let hash = final_hash.finalize();
+        sails_rs::meta::InterfaceId::from_bytes_32(hash)
+    };
     impl sails_rs::meta::Identifiable for super::ReferenceService {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = {
-            let mut final_hash = sails_rs::keccak_const::Keccak256::new();
-            final_hash = final_hash
-                .update(&sails_rs::hash_fn!(command AddByte(u8) -> & 'static [u8]));
-            final_hash = final_hash
-                .update(&sails_rs::hash_fn!(query Baked() -> & 'static str));
-            final_hash = final_hash
-                .update(
-                    &sails_rs::hash_fn!(query FirstByte() -> Option < & 'static u8 >),
-                );
-            final_hash = final_hash
-                .update(&sails_rs::hash_fn!(command Incr() -> & 'static ReferenceCount));
-            final_hash = final_hash
-                .update(
-                    &sails_rs::hash_fn!(query LastByte() -> Option < & 'static u8 >),
-                );
-            let hash = final_hash.finalize();
-            sails_rs::meta::InterfaceId::from_bytes_32(hash)
-        };
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = INTERFACE_ID;
     }
     impl sails_rs::meta::ServiceMeta for super::ReferenceService {
         type CommandsMeta = CommandsMeta;
@@ -446,25 +443,20 @@ mod reference_service_meta {
         const ASYNC: bool = true;
     }
     sails_rs::invocation_io!(
-        pub struct __AddByteParams { pub (super) byte : u8, }, interface_id = <
-        super::ReferenceService as sails_rs::meta::Identifiable > ::INTERFACE_ID,
-        entry_id = 0u16,
+        pub struct __AddByteParams { pub (super) byte : u8, }, interface_id =
+        INTERFACE_ID, entry_id = 0u16,
     );
     sails_rs::invocation_io!(
-        pub struct __BakedParams {}, interface_id = < super::ReferenceService as
-        sails_rs::meta::Identifiable > ::INTERFACE_ID, entry_id = 1u16,
+        pub struct __BakedParams {}, interface_id = INTERFACE_ID, entry_id = 1u16,
     );
     sails_rs::invocation_io!(
-        pub struct __FirstByteParams {}, interface_id = < super::ReferenceService as
-        sails_rs::meta::Identifiable > ::INTERFACE_ID, entry_id = 2u16,
+        pub struct __FirstByteParams {}, interface_id = INTERFACE_ID, entry_id = 2u16,
     );
     sails_rs::invocation_io!(
-        pub struct __IncrParams {}, interface_id = < super::ReferenceService as
-        sails_rs::meta::Identifiable > ::INTERFACE_ID, entry_id = 3u16,
+        pub struct __IncrParams {}, interface_id = INTERFACE_ID, entry_id = 3u16,
     );
     sails_rs::invocation_io!(
-        pub struct __LastByteParams {}, interface_id = < super::ReferenceService as
-        sails_rs::meta::Identifiable > ::INTERFACE_ID, entry_id = 4u16,
+        pub struct __LastByteParams {}, interface_id = INTERFACE_ID, entry_id = 4u16,
     );
     #[derive(sails_rs::TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]

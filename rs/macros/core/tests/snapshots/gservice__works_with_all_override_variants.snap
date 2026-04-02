@@ -195,12 +195,13 @@ impl sails_rs::gstd::services::Service for InheritedService {
 }
 mod inherited_service_meta {
     use super::*;
+    const INTERFACE_ID: sails_rs::meta::InterfaceId = {
+        let mut final_hash = sails_rs::keccak_const::Keccak256::new();
+        let hash = final_hash.finalize();
+        sails_rs::meta::InterfaceId::from_bytes_32(hash)
+    };
     impl sails_rs::meta::Identifiable for super::InheritedService {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = {
-            let mut final_hash = sails_rs::keccak_const::Keccak256::new();
-            let hash = final_hash.finalize();
-            sails_rs::meta::InterfaceId::from_bytes_32(hash)
-        };
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = INTERFACE_ID;
     }
     impl sails_rs::meta::ServiceMeta for super::InheritedService {
         type CommandsMeta = CommandsMeta;
