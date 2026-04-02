@@ -176,7 +176,7 @@ where
 }
 mod my_generic_events_service_meta {
     use super::*;
-    const INTERFACE_ID: sails_rs::meta::InterfaceId = {
+    const __SERVICE_INTERFACE_ID: sails_rs::meta::InterfaceId = {
         let mut final_hash = sails_rs::keccak_const::Keccak256::new();
         final_hash = final_hash.update(&sails_rs::hash_fn!(command DoThis() -> u32));
         final_hash = final_hash
@@ -188,7 +188,7 @@ mod my_generic_events_service_meta {
     where
         T: Clone,
     {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = INTERFACE_ID;
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = __SERVICE_INTERFACE_ID;
     }
     impl<'a, T> sails_rs::meta::ServiceMeta for super::MyGenericEventsService<'a, T>
     where
@@ -209,7 +209,8 @@ mod my_generic_events_service_meta {
         const ASYNC: bool = false;
     }
     sails_rs::invocation_io!(
-        pub struct __DoThisParams {}, interface_id = INTERFACE_ID, entry_id = 0u16,
+        pub struct __DoThisParams {}, interface_id = __SERVICE_INTERFACE_ID, entry_id =
+        0u16,
     );
     #[derive(sails_rs::TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]

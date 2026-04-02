@@ -168,7 +168,7 @@ for VftMetadata<M> {
 }
 mod vft_metadata_meta {
     use super::*;
-    const INTERFACE_ID: sails_rs::meta::InterfaceId = {
+    const __SERVICE_INTERFACE_ID: sails_rs::meta::InterfaceId = {
         let mut final_hash = sails_rs::keccak_const::Keccak256::new();
         final_hash = final_hash.update(&sails_rs::hash_fn!(query Decimals() -> u8));
         final_hash = final_hash.update(&sails_rs::hash_fn!(query Name() -> String));
@@ -178,7 +178,7 @@ mod vft_metadata_meta {
     };
     impl<M: InfallibleStorage<Item = Metadata>> sails_rs::meta::Identifiable
     for super::VftMetadata<M> {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = INTERFACE_ID;
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = __SERVICE_INTERFACE_ID;
     }
     impl<M: InfallibleStorage<Item = Metadata>> sails_rs::meta::ServiceMeta
     for super::VftMetadata<M> {
@@ -209,13 +209,16 @@ mod vft_metadata_meta {
         const ASYNC: bool = false;
     }
     sails_rs::invocation_io!(
-        pub struct __DecimalsParams {}, interface_id = INTERFACE_ID, entry_id = 0u16,
+        pub struct __DecimalsParams {}, interface_id = __SERVICE_INTERFACE_ID, entry_id =
+        0u16,
     );
     sails_rs::invocation_io!(
-        pub struct __NameParams {}, interface_id = INTERFACE_ID, entry_id = 1u16,
+        pub struct __NameParams {}, interface_id = __SERVICE_INTERFACE_ID, entry_id =
+        1u16,
     );
     sails_rs::invocation_io!(
-        pub struct __SymbolParams {}, interface_id = INTERFACE_ID, entry_id = 2u16,
+        pub struct __SymbolParams {}, interface_id = __SERVICE_INTERFACE_ID, entry_id =
+        2u16,
     );
     #[derive(sails_rs::TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
