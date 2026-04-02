@@ -154,10 +154,7 @@ impl<'ast> Visitor<'ast> for ServiceGenerator<'ast> {
         self.mocks_tokens.extend(mock_gen.finalize());
 
         if !service.events.is_empty() {
-            let mut events_mod_gen = EventsModuleGenerator::new(
-                self.service_name,
-                self.sails_path,
-            );
+            let mut events_mod_gen = EventsModuleGenerator::new(self.service_name, self.sails_path);
             events_mod_gen.visit_service_unit(service);
             self.events_tokens = events_mod_gen.finalize();
         }

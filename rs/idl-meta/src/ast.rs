@@ -209,10 +209,7 @@ pub struct CtorFunc {
         serde(default, skip_serializing_if = "Option::is_none")
     )]
     pub throws: Option<TypeDecl>,
-    #[cfg_attr(
-        feature = "serde",
-        serde(default)
-    )]
+    #[cfg_attr(feature = "serde", serde(default))]
     pub entry_id: u16,
     #[cfg_attr(
         feature = "serde",
@@ -278,6 +275,7 @@ pub struct ServiceUnit {
 
 impl ServiceUnit {
     /// Stabilize ordering for deterministic output and comparisons.
+    ///
     /// Also computes `entry_id` for each func and event from `@entry-id` annotation,
     /// falling back to declaration-order index.
     pub fn normalize(&mut self) {
@@ -303,6 +301,14 @@ impl ServiceUnit {
                 .unwrap_or(idx as u16);
         }
     }
+
+    /// Returns `true` if the service is annotated with `@partial`.
+    ///
+    /// Partial services describe a subset of an existing on-chain service and require
+    /// explicit `@entry-id` annotations on all functions and events.
+    pub fn is_partial(&self) -> bool {
+        self.annotations.iter().any(|(k, _)| k == "partial")
+    }
 }
 
 /// Service function entry inside `service { functions { ... } }`.
@@ -323,10 +329,7 @@ pub struct ServiceFunc {
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     pub throws: Option<TypeDecl>,
     pub kind: FunctionKind,
-    #[cfg_attr(
-        feature = "serde",
-        serde(default)
-    )]
+    #[cfg_attr(feature = "serde", serde(default))]
     pub entry_id: u16,
     #[cfg_attr(
         feature = "serde",
@@ -828,10 +831,7 @@ pub struct EnumVariant {
     pub name: String,
     #[cfg_attr(feature = "serde", serde(flatten))]
     pub def: StructDef,
-    #[cfg_attr(
-        feature = "serde",
-        serde(default)
-    )]
+    #[cfg_attr(feature = "serde", serde(default))]
     pub entry_id: u16,
     #[cfg_attr(
         feature = "serde",

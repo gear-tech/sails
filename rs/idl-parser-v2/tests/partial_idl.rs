@@ -26,6 +26,26 @@ fn validate_partial_service_fails_without_entry_id() {
 }
 
 #[test]
+fn validate_partial_service_fails_with_invalid_entry_id() {
+    let src = r#"
+        @partial
+        service Canvas@0x1234567890abcdef {
+          functions {
+            @entry-id: foo
+            PointStatus() -> bool;
+          }
+        }
+    "#;
+    let err = parse_idl(src)
+        .expect_err("Should fail due to invalid @entry-id on function in @partial service");
+    assert!(
+        err.to_string()
+            .contains("has invalid `@entry-id` value `foo` (expected a u16)"),
+        "unexpected error: {err}"
+    );
+}
+
+#[test]
 fn validate_partial_service_fails_without_id() {
     let src = include_str!("idls/partial_fail.idl");
     let err =
