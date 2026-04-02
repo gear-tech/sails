@@ -261,10 +261,10 @@ const normalizeDocAnnotated = <T extends IDocAnnotated>(data: T): T => ({
 
 const normalizeStructField = (data: IStructField): IStructField => normalizeDocAnnotated(data);
 
-const normalizeEnumVariant = (data: IEnumVariant): IEnumVariant => ({
+const normalizeEnumVariant = (data: IEnumVariant, fallbackEntryId = 0): IEnumVariant => ({
   ...normalizeDocAnnotated(data),
   fields: (data.fields ?? []).map((data: IStructField) => normalizeStructField(data)),
-  entry_id: data.entry_id ?? 0,
+  entry_id: data.entry_id ?? fallbackEntryId,
 });
 
 const normalizeType = (data: Type): Type => {
@@ -300,10 +300,10 @@ const normalizeType = (data: Type): Type => {
 /// Do nothig, leave it for the future-proof
 const normalizeFuncParam = (data: IFuncParam): IFuncParam => data;
 
-const normalizeCtorFunc = (data: ICtorFunc): ICtorFunc => ({
+const normalizeCtorFunc = (data: ICtorFunc, fallbackEntryId: number): ICtorFunc => ({
   ...normalizeDocAnnotated(data),
   params: (data.params ?? []).map((data: IFuncParam) => normalizeFuncParam(data)),
-  entry_id: data.entry_id ?? 0,
+  entry_id: data.entry_id ?? fallbackEntryId,
 });
 
 const normalizeServiceIdent = (data: IServiceIdent): IServiceIdent => ({
@@ -316,24 +316,24 @@ const normalizeServiceExpo = (data: IServiceExpo): IServiceExpo => ({
   interface_id: data.interface_id ? InterfaceId.from(data.interface_id) : undefined,
 });
 
-const normalizeServiceFunc = (data: IServiceFunc): IServiceFunc => ({
+const normalizeServiceFunc = (data: IServiceFunc, fallbackEntryId: number): IServiceFunc => ({
   ...normalizeDocAnnotated(data),
   params: (data.params ?? []).map((data: IFuncParam) => normalizeFuncParam(data)),
-  entry_id: data.entry_id ?? 0,
+  entry_id: data.entry_id ?? fallbackEntryId,
 });
 
 const normalizeServiceUnit = (data: IServiceUnit): IServiceUnit => ({
   ...normalizeDocAnnotated(data),
   interface_id: data.interface_id ? InterfaceId.from(data.interface_id) : undefined,
   extends: (data.extends ?? []).map((data: IServiceIdent) => normalizeServiceIdent(data)),
-  funcs: (data.funcs ?? []).map((data: IServiceFunc) => normalizeServiceFunc(data)),
-  events: (data.events ?? []).map((data: IEnumVariant) => normalizeEnumVariant(data)),
+  funcs: (data.funcs ?? []).map((data: IServiceFunc, idx: number) => normalizeServiceFunc(data, idx)),
+  events: (data.events ?? []).map((data: IEnumVariant, idx: number) => normalizeEnumVariant(data, idx)),
   types: (data.types ?? []).map((data: Type) => normalizeType(data)),
 });
 
 const normalizeProgramUnit = (data: IProgramUnit): IProgramUnit => ({
   ...normalizeDocAnnotated(data),
-  ctors: (data.ctors ?? []).map((data: ICtorFunc) => normalizeCtorFunc(data)),
+  ctors: (data.ctors ?? []).map((data: ICtorFunc, idx: number) => normalizeCtorFunc(data, idx)),
   services: (data.services ?? []).map((data: IServiceExpo) => normalizeServiceExpo(data)),
   types: (data.types ?? []).map((data: Type) => normalizeType(data)),
 });
