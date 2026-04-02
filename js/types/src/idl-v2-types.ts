@@ -36,6 +36,7 @@ export interface IServiceExpo extends IServiceIdent, IDocAnnotated {
 export interface ICtorFunc extends IDocAnnotated {
   name: string;
   params?: IFuncParam[];
+  entry_id?: number;
   throws?: TypeDecl;
 }
 
@@ -52,6 +53,7 @@ export interface IServiceFunc extends IDocAnnotated {
   output: TypeDecl;
   throws?: TypeDecl;
   kind: FunctionKind;
+  entry_id?: number;
 }
 
 export type FunctionKind = 'command' | 'query';
@@ -146,4 +148,5 @@ export interface IStructField extends IDocAnnotated {
 export interface IEnumVariant extends IDocAnnotated {
   name: string;
   fields: IStructField[];
+  entry_id?: number;
 }
