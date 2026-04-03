@@ -207,8 +207,8 @@ export class SailsProgram {
     const program = this._doc.program;
     const funcs: Record<string, ISailsCtorFuncParams> = {};
 
-    for (const [entry_id, func] of program.ctors.entries()) {
-      const header = SailsMessageHeader.v1(InterfaceId.zero(), entry_id, 0);
+    for (const func of program.ctors) {
+      const header = SailsMessageHeader.v1(InterfaceId.zero(), func.entry_id ?? 0, 0);
       const params = func.params.map((p: IFuncParam) => ({
         name: p.name,
         type: this._typeResolver.getTypeDeclString(p.type),
@@ -371,9 +371,8 @@ export class SailsService implements ISailsService {
     const funcs: Record<string, SailsServiceFunc> = {};
     const queries: Record<string, SailsServiceQuery> = {};
 
-    for (const [idx, func] of service.funcs.entries()) {
-      const entryIdAnn = func.annotations?.find(([k]) => k === 'entry-id');
-      const entry_id = entryIdAnn ? Number(entryIdAnn[1]) : idx;
+    for (const func of service.funcs) {
+      const entry_id = func.entry_id ?? 0;
       const header = SailsMessageHeader.v1(InterfaceId.from(service.interface_id), entry_id, this.routeIdx);
       const params: ISailsFuncArg[] = func.params.map((p: IFuncParam) => ({
         name: p.name,
@@ -464,9 +463,8 @@ export class SailsService implements ISailsService {
     const events: Record<string, ISailsServiceEvent> = {};
     const interfaceIdu64: bigint = InterfaceId.from(service.interface_id).asU64();
 
-    for (const [idx, event] of service.events.entries()) {
-      const entryIdAnn = event.annotations?.find(([k]) => k === 'entry-id');
-      const entryId = entryIdAnn ? Number(entryIdAnn[1]) : idx;
+    for (const event of service.events) {
+      const entryId = event.entry_id ?? 0;
       const t = event.fields?.length ? this._typeResolver.getStructDef(event.fields) : 'Null';
       const typeStr = event.fields?.length ? this._typeResolver.getStructDef(event.fields, {}, true) : 'Null';
       events[event.name] = {

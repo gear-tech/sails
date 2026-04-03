@@ -353,6 +353,7 @@ fn parse_enum_variant(p: Pair<Rule>) -> Result<EnumVariant> {
     Ok(EnumVariant {
         name,
         def: StructDef { fields },
+        entry_id: 0,
         docs,
         annotations,
     })
@@ -401,6 +402,7 @@ fn parse_func(p: Pair<Rule>) -> Result<ServiceFunc> {
         output,
         throws,
         kind,
+        entry_id: 0,
         docs,
         annotations,
     })
@@ -482,6 +484,7 @@ fn parse_ctor_func(p: Pair<Rule>) -> Result<CtorFunc> {
         name,
         params,
         throws,
+        entry_id: 0,
         docs,
         annotations,
     })
@@ -543,14 +546,16 @@ fn parse_program(p: Pair<Rule>) -> Result<ProgramUnit> {
             }
         }
     }
-    Ok(ProgramUnit {
+    let mut program = ProgramUnit {
         name,
         ctors,
         services,
         types,
         docs,
         annotations,
-    })
+    };
+    program.normalize();
+    Ok(program)
 }
 
 // ------------------------------ Helpers --------------------------------------
@@ -713,6 +718,7 @@ mod tests {
                     generics: vec![]
                 }),
                 kind: FunctionKind::Command,
+                entry_id: 0,
                 annotations: vec![],
                 docs: vec![
                     "Sets color for the point.".to_string(),

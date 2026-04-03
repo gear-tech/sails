@@ -1,6 +1,5 @@
 use genco::prelude::*;
 use sails_idl_parser_v2::{ast, visitor, visitor::Visitor};
-use std::collections::HashMap;
 
 use crate::helpers::generate_doc_comments;
 
@@ -8,20 +7,14 @@ pub(crate) struct EventsModuleGenerator<'ast> {
     service_name: &'ast str,
     sails_path: &'ast str,
     tokens: rust::Tokens,
-    entry_ids: HashMap<&'ast str, u16>,
 }
 
 impl<'ast> EventsModuleGenerator<'ast> {
-    pub(crate) fn new(
-        service_name: &'ast str,
-        sails_path: &'ast str,
-        entry_ids: HashMap<&'ast str, u16>,
-    ) -> Self {
+    pub(crate) fn new(service_name: &'ast str, sails_path: &'ast str) -> Self {
         Self {
             service_name,
             sails_path,
             tokens: rust::Tokens::new(),
-            entry_ids,
         }
     }
 
@@ -55,7 +48,7 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator<'ast> {
                 pub fn entry_id(&self) -> u16 {
                     match self {
                         $(for event in &service.events join ($['\r']) =>
-                            Self::$(&event.name) { .. } => $(self.entry_ids.get(event.name.as_str()).copied().unwrap_or(0)),
+                            Self::$(&event.name) { .. } => $(event.entry_id),
                         )
                     }
                 }
@@ -81,11 +74,7 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator<'ast> {
         generate_doc_comments(&mut self.tokens, &event.docs);
 
         let variant_name = &event.name;
-        let entry_id = self
-            .entry_ids
-            .get(event.name.as_str())
-            .copied()
-            .unwrap_or(0);
+        let entry_id = event.entry_id;
 
         if event.def.is_unit() {
             quote_in! { self.tokens =>
