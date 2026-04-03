@@ -11,9 +11,9 @@ ServiceIdent = @{ Ident ~ ("@0x" ~ HEX_DIGIT+)? }
 // ---------- Docs & Annotations ----------
 GlobalAnn = { WHITESPACE* ~ "!@" ~ AnnKey ~ (":" ~ StrToEol)? }
 LocalAnn  = { WHITESPACE* ~ "@" ~ AnnKey ~ (":" ~ StrToEol)? }
-DocLine   = { WHITESPACE* ~ "///" ~ StrToEol }
+DocLine   = ${ WHITE_SPACE* ~ "///" ~ StrToEol }
 
-DocsAndAnnotations = _{ (DocLine | LocalAnn)+ }
+DocsAndAnnotations = _{ WHITESPACE* ~ (DocLine | LocalAnn)+ }
 
 // ---------- Types ----------
 TypeDecl = _{ Tuple | Slice | Array | Primitive | Named }

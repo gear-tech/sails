@@ -574,11 +574,10 @@ fn parse_docs_and_annotations(pairs: &mut Pairs<Rule>) -> Result<(Vec<String>, V
                     if d.as_rule() == Rule::StrToEol {
                         docs.push(
                             d.as_str()
-                                .trim()
-                                .trim_start_matches("///")
-                                .trim()
+                                .strip_prefix(' ')
+                                .unwrap_or(d.as_str())
                                 .to_string(),
-                        )
+                        );
                     }
                 }
             }
@@ -666,6 +665,7 @@ mod tests {
             docs,
             vec![
                 "Returns the number of roles assigned to the specified member.",
+                "",
                 "# Arguments",
                 "* `member_id` - The account identifier.",
             ],
