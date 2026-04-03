@@ -35,6 +35,7 @@ expression: serialized
           }
         }
       ],
+      "entry_id": 0,
       "docs": [
         "Program constructor (called once at the very beginning of the program lifetime)"
       ]
@@ -42,6 +43,7 @@ expression: serialized
     {
       "name": "Default",
       "params": [],
+      "entry_id": 1,
       "docs": [
         "Another program constructor",
         "(called once at the very beginning of the program lifetime)"
