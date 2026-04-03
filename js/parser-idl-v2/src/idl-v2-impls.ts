@@ -85,6 +85,7 @@ class CtorFunc implements ICtorFunc {
   public readonly name: string;
   public readonly params?: FuncParam[];
   public readonly entry_id: number;
+  public readonly throws?: TypeDecl;
   public readonly docs?: string[];
   public readonly annotations?: AnnotationEntry[];
 
@@ -92,6 +93,7 @@ class CtorFunc implements ICtorFunc {
     this.name = data.name;
     this.params = mapArray(data.params, (param) => new FuncParam(param));
     this.entry_id = data.entry_id ?? 0;
+    this.throws = data.throws;
     this.docs = data.docs;
     this.annotations = data.annotations;
   }

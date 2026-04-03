@@ -1,5 +1,5 @@
 import { GearApi, HexString, UserMessageSent } from '@gear-js/api';
-import { u8aToHex } from '@polkadot/util';
+import { u8aToHex, u8aToU8a } from '@polkadot/util';
 
 import type {
   TypeDecl,
@@ -96,6 +96,28 @@ const _getArgsForTxBuilder = (args: any[], params: ISailsFuncArg[]) => {
   if (params.length === 0) return null;
   if (params.length === 1) return args[0];
   return args.slice(0, params.length);
+};
+
+const _assertMatchingHeader = (
+  payload: Uint8Array | HexString,
+  expected: SailsMessageHeader,
+  target: string,
+) => {
+  const { ok, header } = SailsMessageHeader.tryFromBytes(u8aToU8a(payload));
+  if (!ok || !header) {
+    throw new Error(`Invalid Sails header for ${target}`);
+  }
+
+  if (
+    header.interfaceId.asU64() !== expected.interfaceId.asU64() ||
+    header.entryId !== expected.entryId
+  ) {
+    throw new Error(
+      `Header mismatch for ${target}: expected interface_id=${expected.interfaceId.toString()} ` +
+      `entry_id=${expected.entryId}, got interface_id=${header.interfaceId.toString()} ` +
+      `entry_id=${header.entryId}`,
+    );
+  }
 };
 
 export class SailsProgram {
@@ -232,7 +254,12 @@ export class SailsProgram {
 
           return payload.toHex();
         },
-        decodePayload: <T = any>(bytes: Uint8Array | string) => {
+        decodePayload: <T = any>(bytes: Uint8Array | HexString) => {
+          _assertMatchingHeader(bytes, header, `constructor "${func.name}"`);
+          if (params.length === 0) {
+            return {} as T;
+          }
+
           const payload = this.registry.createType(`([u8; 16], ${params.map((p) => p.type).join(', ')})`, bytes);
           const result = {} as Record<string, any>;
           for (const [i, param] of params.entries()) {
@@ -364,6 +391,11 @@ export class SailsService implements ISailsService {
     return this._typeResolver.registry;
   }
 
+  /** #### TypeResolver with registered types from the ServiceUnit */
+  get typeResolver() {
+    return this._typeResolver;
+  }
+
   private _getFunctions(service: IServiceUnit): {
     funcs: Record<string, SailsServiceFunc>;
     queries: Record<string, SailsServiceQuery>;
@@ -442,6 +474,11 @@ export class SailsService implements ISailsService {
           return payload.toHex();
         },
         decodePayload: <T = any>(bytes: HexString) => {
+          _assertMatchingHeader(bytes, header, `${service.name}.${func.name}`);
+          if (params.length === 0) {
+            return {} as T;
+          }
+
           const payload = this.registry.createType(`([u8; 16], ${params.map((p) => p.type).join(', ')})`, bytes);
           const result = {} as Record<string, any>;
           for (const [i, param] of params.entries()) {
@@ -465,6 +502,7 @@ export class SailsService implements ISailsService {
 
     for (const event of service.events) {
       const entryId = event.entry_id ?? 0;
+      const header = SailsMessageHeader.v1(InterfaceId.from(service.interface_id), entryId, this.routeIdx);
       const t = event.fields?.length ? this._typeResolver.getStructDef(event.fields) : 'Null';
       const typeStr = event.fields?.length ? this._typeResolver.getStructDef(event.fields, {}, true) : 'Null';
       events[event.name] = {
@@ -483,6 +521,7 @@ export class SailsService implements ISailsService {
           return false;
         },
         decode: (payload: HexString) => {
+          _assertMatchingHeader(payload, header, `${service.name}.${event.name}`);
           const data = this.registry.createType(`([u8; 16], ${typeStr})`, payload);
           return data[1].toJSON();
         },
