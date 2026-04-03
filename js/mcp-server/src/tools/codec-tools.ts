@@ -158,12 +158,14 @@ export function registerCodecTools(server: McpServer) {
         'Encode a program constructor call to hex. Used for program initialization (upload_program / create_program).',
       inputSchema: {
         program: z.string().describe('Registered program name'),
-        constructor: z.string().describe('Constructor name (e.g. "New", "Default")'),
+        // Avoid the field name "constructor": MCP arguments are validated as a record,
+        // and that key is unsafe in the current SDK stack.
+        ctor: z.string().describe('Constructor name (e.g. "New", "Default")'),
         args: z.array(z.any()).default([]).describe('Constructor arguments as JSON array'),
       },
       annotations: { readOnlyHint: true },
     },
-    async ({ program: programName, constructor: ctorName, args }) => {
+    async ({ program: programName, ctor: ctorName, args }) => {
       try {
         const entry = registry.getOrThrow(programName);
         const ctors = entry.program.ctors;

@@ -28,6 +28,23 @@ async function callTool(server: McpServer, name: string, args: Record<string, un
   return result as ToolResult;
 }
 
+async function callToolViaProtocol(
+  server: McpServer,
+  name: string,
+  args: Record<string, unknown>,
+): Promise<ToolResult> {
+  const result = await (server.server as any)._requestHandlers.get('tools/call')(
+    {
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'tools/call',
+      params: { name, arguments: args },
+    },
+    {},
+  );
+  return result as ToolResult;
+}
+
 function json(result: ToolResult) {
   return JSON.parse(result.content[0].text);
 }
@@ -89,6 +106,22 @@ describe('tool routing', () => {
       event: 'Subtracted',
       data: 7,
       auto_detected: true,
+    });
+  });
+
+  test('sails_encode_constructor works through MCP protocol using ctor argument', async () => {
+    const entry = registry.getOrThrow(PROGRAM);
+    const expected = entry.program.ctors?.Default.encodePayload();
+
+    const result = await callToolViaProtocol(server, 'sails_encode_constructor', {
+      program: PROGRAM,
+      ctor: 'Default',
+      args: [],
+    });
+
+    expect(result.isError).toBeFalsy();
+    expect(json(result)).toMatchObject({
+      hex: expected,
     });
   });
 });
