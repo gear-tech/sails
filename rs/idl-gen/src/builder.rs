@@ -98,6 +98,7 @@ impl ProgramBuilder {
                     name: c.name.to_string(),
                     params,
                     throws,
+                    entry_id: 0,
                     docs: c.docs.iter().map(|s| s.to_string()).collect(),
                     annotations: c
                         .annotations
@@ -159,14 +160,16 @@ impl ProgramBuilder {
             })
             .collect();
 
-        Ok(ProgramUnit {
+        let mut program = ProgramUnit {
             name,
             ctors,
             services: expos?,
             types,
             docs: vec![],
             annotations: vec![],
-        })
+        };
+        program.normalize();
+        Ok(program)
     }
 }
 
@@ -347,6 +350,7 @@ impl<'a> ServiceBuilder<'a> {
                     params,
                     output,
                     throws,
+                    entry_id: 0,
                     docs: c.docs.iter().map(|s| s.to_string()).collect(),
                     annotations: c
                         .annotations
@@ -423,6 +427,7 @@ impl<'a> ServiceBuilder<'a> {
                     params,
                     output,
                     throws,
+                    entry_id: 0,
                     docs: c.docs.iter().map(|s| s.to_string()).collect(),
                     annotations,
                 });
@@ -461,6 +466,7 @@ impl<'a> ServiceBuilder<'a> {
             events.push(ServiceEvent {
                 name: v.name.to_string(),
                 def: StructDef { fields },
+                entry_id: 0,
                 docs: v.docs.iter().map(|d| d.to_string()).collect(),
                 annotations: v
                     .annotations
@@ -633,6 +639,13 @@ mod tests {
 
         // Check that all constructors have parsed
         assert_eq!(meta.ctors.len(), 3);
+        assert_eq!(
+            meta.ctors
+                .iter()
+                .map(|ctor| ctor.entry_id)
+                .collect::<Vec<_>>(),
+            vec![0, 1, 2]
+        );
     }
 
     /// Test successful creation with valid constructors and services
@@ -661,6 +674,7 @@ mod tests {
                     type_decl: TypeDecl::Primitive(PrimitiveType::U32),
                 }],
                 throws: None,
+                entry_id: 0,
                 docs: vec![],
                 annotations: vec![],
             }],
@@ -1590,6 +1604,7 @@ mod tests {
                             annotations: vec![],
                         }],
                     },
+                    entry_id: 0,
                     docs: vec![],
                     annotations: vec![],
                 },
@@ -1611,6 +1626,7 @@ mod tests {
                             },
                         ],
                     },
+                    entry_id: 1,
                     docs: vec![],
                     annotations: vec![],
                 },
@@ -1624,12 +1640,14 @@ mod tests {
                             annotations: vec![],
                         }],
                     },
+                    entry_id: 2,
                     docs: vec![],
                     annotations: vec![],
                 },
                 ServiceEvent {
                     name: "Zero".to_string(),
                     def: StructDef { fields: vec![] },
+                    entry_id: 3,
                     docs: vec![],
                     annotations: vec![],
                 },

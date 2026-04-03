@@ -60,6 +60,7 @@ expression: serialized
         ]
       },
       "kind": "command",
+      "entry_id": 0,
       "docs": [
         "Some func",
         "With multiline doc"
@@ -97,7 +98,8 @@ expression: serialized
       "variants": [
         {
           "name": "One",
-          "fields": []
+          "fields": [],
+          "entry_id": 0
         },
         {
           "name": "Two",
@@ -105,7 +107,8 @@ expression: serialized
             {
               "type": "u32"
             }
-          ]
+          ],
+          "entry_id": 0
         },
         {
           "name": "Three",
@@ -119,7 +122,8 @@ expression: serialized
                 ]
               }
             }
-          ]
+          ],
+          "entry_id": 0
         },
         {
           "name": "Four",
@@ -138,7 +142,8 @@ expression: serialized
                 ]
               }
             }
-          ]
+          ],
+          "entry_id": 0
         },
         {
           "name": "Five",
@@ -155,7 +160,8 @@ expression: serialized
                 ]
               ]
             }
-          ]
+          ],
+          "entry_id": 0
         },
         {
           "name": "Six",
@@ -168,7 +174,8 @@ expression: serialized
                 ]
               }
             }
-          ]
+          ],
+          "entry_id": 0
         }
       ]
     }

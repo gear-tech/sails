@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use root_generator::RootGenerator;
-use sails_idl_parser_v2::{FsLoader, parse_idl, preprocess, visitor};
+use sails_idl_parser_v2::{FsLoader, GitLoader, parse_idl, preprocess, visitor};
 use std::{collections::HashMap, fs, io::Write, path::Path};
 
 mod ctor_generators;
@@ -103,7 +103,7 @@ impl<'ast> ClientGenerator<'ast, IdlPath<'ast>> {
         let idl_path = self.idl.0;
 
         let path_str = idl_path.to_string_lossy();
-        let idl = preprocess::preprocess(&path_str, &FsLoader)
+        let idl = preprocess::preprocess(&path_str, &[&FsLoader, &GitLoader])
             .with_context(|| format!("Failed to open {} for reading", idl_path.display()))?;
 
         self.with_idl(&idl)
@@ -116,7 +116,7 @@ impl<'ast> ClientGenerator<'ast, IdlPath<'ast>> {
         let idl_path = self.idl.0;
 
         let path_str = idl_path.to_string_lossy();
-        let idl = preprocess::preprocess(&path_str, &FsLoader)
+        let idl = preprocess::preprocess(&path_str, &[&FsLoader, &GitLoader])
             .with_context(|| format!("Failed to open {} for reading", idl_path.display()))?;
 
         self.with_idl(&idl)
@@ -217,12 +217,13 @@ fn pretty_with_rustfmt(code: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use sails_idl_parser_v2::{FsLoader, preprocess};
+    use sails_idl_parser_v2::{FsLoader, GitLoader, preprocess};
 
     #[test]
     fn test_resolve_idl_from_path() {
         let path = "tests/idls/recursive_main.idl";
-        let result = preprocess::preprocess(path, &FsLoader).expect("Failed to resolve nested IDL");
+        let result =
+            preprocess::preprocess(path, &[&FsLoader]).expect("Failed to resolve nested IDL");
 
         assert!(result.contains("service Leaf"));
         assert!(result.contains("service Middle"));
@@ -232,7 +233,8 @@ mod tests {
     #[test]
     fn test_resolve_nested_idl() {
         let path = "tests/idls/nested/main.idl";
-        let result = preprocess::preprocess(path, &FsLoader).expect("Failed to resolve nested IDL");
+        let result =
+            preprocess::preprocess(path, &[&FsLoader]).expect("Failed to resolve nested IDL");
 
         assert!(result.contains("service A"));
         assert!(result.contains("service B"));
@@ -243,6 +245,27 @@ mod tests {
             common_count, 1,
             "struct Common should be included only once, but found {}",
             common_count
+        );
+    }
+
+    #[test]
+    #[ignore]
+    fn test_git_include_demo() {
+        let path = "tests/idls/git_include/main.idl";
+        let result = preprocess::preprocess(path, &[&FsLoader, &GitLoader])
+            .expect("Failed to preprocess git include chain");
+
+        let doc = sails_idl_parser_v2::parse_idl(&result)
+            .expect("Failed to parse IDL from git include chain");
+
+        let service_names: Vec<_> = doc.services.iter().map(|s| s.name.to_string()).collect();
+        assert!(
+            service_names.iter().any(|n| n.contains("PingPong")),
+            "Expected PingPong service from demo_client.idl, got: {service_names:?}"
+        );
+        assert!(
+            service_names.iter().any(|n| n.contains("Counter")),
+            "Expected Counter service from demo_client.idl, got: {service_names:?}"
         );
     }
 }

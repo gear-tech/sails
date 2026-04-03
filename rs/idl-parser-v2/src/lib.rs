@@ -22,9 +22,11 @@ mod post_process;
 pub mod preprocess;
 pub mod visitor;
 
-pub use preprocess::IdlLoader;
 #[cfg(feature = "std")]
 pub use preprocess::fs::FsLoader;
+#[cfg(feature = "std")]
+pub use preprocess::git::GitLoader;
+pub use preprocess::{IdlLoader, IdlSource};
 
 // Sails IDL v2 — parser using `pest-rs`
 use crate::error::{Error, Result};
@@ -54,9 +56,12 @@ pub fn parse_idl(src: &str) -> Result<IdlDoc> {
     Ok(doc)
 }
 
-/// Parses the IDL source from the given path using a custom loader.
-pub fn parse_idl_with_loader<L: IdlLoader>(path: &str, loader: &L) -> Result<IdlDoc> {
-    let src = preprocess::preprocess(path, loader)?;
+/// Parses the IDL source from the given path using a slice of loaders.
+///
+/// Loaders are tried in order — the first one that resolves the path is used.
+/// Use [`FsLoader`] for local files and [`GitLoader`] for `git://` URLs.
+pub fn parse_idl_with_loaders(path: &str, loaders: &[&dyn IdlLoader]) -> Result<IdlDoc> {
+    let src = preprocess::preprocess(path, loaders)?;
     parse_idl(&src)
 }
 
@@ -348,6 +353,7 @@ fn parse_enum_variant(p: Pair<Rule>) -> Result<EnumVariant> {
     Ok(EnumVariant {
         name,
         def: StructDef { fields },
+        entry_id: 0,
         docs,
         annotations,
     })
@@ -396,6 +402,7 @@ fn parse_func(p: Pair<Rule>) -> Result<ServiceFunc> {
         output,
         throws,
         kind,
+        entry_id: 0,
         docs,
         annotations,
     })
@@ -477,6 +484,7 @@ fn parse_ctor_func(p: Pair<Rule>) -> Result<CtorFunc> {
         name,
         params,
         throws,
+        entry_id: 0,
         docs,
         annotations,
     })
@@ -538,14 +546,16 @@ fn parse_program(p: Pair<Rule>) -> Result<ProgramUnit> {
             }
         }
     }
-    Ok(ProgramUnit {
+    let mut program = ProgramUnit {
         name,
         ctors,
         services,
         types,
         docs,
         annotations,
-    })
+    };
+    program.normalize();
+    Ok(program)
 }
 
 // ------------------------------ Helpers --------------------------------------
@@ -708,6 +718,7 @@ mod tests {
                     generics: vec![]
                 }),
                 kind: FunctionKind::Command,
+                entry_id: 0,
                 annotations: vec![],
                 docs: vec![
                     "Sets color for the point.".to_string(),

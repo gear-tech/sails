@@ -266,6 +266,7 @@ impl<'a> TypeResolver<'a> {
                         Ok(EnumVariant {
                             name: v.name.to_string(),
                             def: StructDef { fields },
+                            entry_id: 0,
                             docs: v.docs.iter().map(|d| d.to_string()).collect(),
                             annotations: v
                                 .annotations
@@ -1121,6 +1122,7 @@ mod tests {
             EnumVariant {
                 name: "Unit".to_string(),
                 def: StructDef { fields: vec![] },
+                entry_id: 0,
                 docs: vec![],
                 annotations: vec![],
             },
@@ -1142,6 +1144,7 @@ mod tests {
                         },
                     ],
                 },
+                entry_id: 0,
                 docs: vec![],
                 annotations: vec![],
             },
@@ -1163,6 +1166,7 @@ mod tests {
                         },
                     ],
                 },
+                entry_id: 0,
                 docs: vec![],
                 annotations: vec![],
             },
