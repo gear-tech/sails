@@ -178,7 +178,7 @@ impl ServiceBuilder<'_> {
 
             // 2. Overrides
             if let Some(base_path) = &fn_builder.overrides {
-                let base_path_wo_lifetimes = shared::remove_lifetimes(base_path);
+                let base_path_wo_lifetimes = shared::strip_lifetimes_only(base_path);
                 let base_id = quote! { <#base_path_wo_lifetimes as #sails_path::meta::Identifiable>::INTERFACE_ID };
 
                 if let Some(id) = fn_builder.override_entry_id {
@@ -374,7 +374,7 @@ impl ServiceBuilder<'_> {
         // 2. Overrides
         for fn_builder in &self.service_handlers {
             if let Some(base_path) = &fn_builder.overrides {
-                let base_path_wo_lifetimes = shared::remove_lifetimes(base_path);
+                let base_path_wo_lifetimes = shared::strip_lifetimes_only(base_path);
                 let base_id = quote! { <#base_path_wo_lifetimes as #sails_path::meta::Identifiable>::INTERFACE_ID };
                 let is_async = fn_builder.is_async();
 
@@ -398,7 +398,7 @@ impl ServiceBuilder<'_> {
         }
         // 3. Base service delegation
         let base_delegations = self.base_types.iter().enumerate().map(|(idx, base_type)| {
-            let path_wo_lifetimes = shared::remove_lifetimes(base_type);
+            let path_wo_lifetimes = shared::strip_lifetimes_only(base_type);
             quote! {
                 (id, eid) if #sails_path::meta::service_has_interface_id(&T::BASE_SERVICES[#idx], id) => {
                     return <<#path_wo_lifetimes as #sails_path::gstd::services::Service>::Exposure as #sails_path::gstd::services::Exposure>::check_asyncness(id, eid);

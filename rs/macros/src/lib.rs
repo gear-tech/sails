@@ -17,7 +17,9 @@ use proc_macro_error::proc_macro_error;
 ///              for details.
 /// - `extends` - specifies a list of other services the service extends using the mixin pattern.
 ///               See [documentation](https://github.com/gear-tech/sails?tab=readme-ov-file#service-extending-mixins)
-///               for details.
+///               for details. When the `impl` block has type or const generic parameters, the
+///               extended service path must use concrete types, e.g.
+///               `extends = BaseService<ConcreteStorage>` instead of `extends = BaseService<T>`.
 ///
 /// # Examples
 ///

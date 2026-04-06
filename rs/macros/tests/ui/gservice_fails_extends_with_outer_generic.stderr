@@ -1,0 +1,5 @@
+error: generic type parameters are not allowed in `extends` paths; use a concrete type instead, e.g. `extends = BaseService<ConcreteStorage>`
+ --> tests/ui/gservice_fails_extends_with_outer_generic.rs:7:21
+  |
+7 | #[service(extends = BaseService<T>)]
+  |                     ^^^^^^^^^^^^^^

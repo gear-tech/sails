@@ -2,12 +2,12 @@
 source: rs/macros/core/tests/gservice.rs
 expression: result
 ---
-pub struct SomeServiceExposure<T> {
+pub struct ChildServiceExposure<T> {
     route_idx: u8,
     inner: T,
 }
 impl<T: sails_rs::meta::ServiceMeta> sails_rs::gstd::services::Exposure
-for SomeServiceExposure<T> {
+for ChildServiceExposure<T> {
     fn interface_id() -> sails_rs::meta::InterfaceId {
         <T as sails_rs::meta::Identifiable>::INTERFACE_ID
     }
@@ -25,36 +25,45 @@ for SomeServiceExposure<T> {
             (id, 0u16) if id == <T as sails_rs::meta::Identifiable>::INTERFACE_ID => {
                 Some(false)
             }
-            (id, 1u16) if id == <T as sails_rs::meta::Identifiable>::INTERFACE_ID => {
-                Some(false)
+            (
+                id,
+                eid,
+            ) if sails_rs::meta::service_has_interface_id(
+                &T::BASE_SERVICES[0usize],
+                id,
+            ) => {
+                return <<BaseService<
+                    u8,
+                > as sails_rs::gstd::services::Service>::Exposure as sails_rs::gstd::services::Exposure>::check_asyncness(
+                    id,
+                    eid,
+                );
             }
             _ => None,
         }
     }
 }
-impl<T: sails_rs::meta::ServiceMeta> sails_rs::gstd::services::ExposureWithEvents
-for SomeServiceExposure<T> {
-    type Events = SomeEvents;
-}
-impl<T> core::ops::Deref for SomeServiceExposure<T> {
+impl<T> core::ops::Deref for ChildServiceExposure<T> {
     type Target = T;
     fn deref(&self) -> &Self::Target {
         &self.inner
     }
 }
-impl<T> core::ops::DerefMut for SomeServiceExposure<T> {
+impl<T> core::ops::DerefMut for ChildServiceExposure<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
     }
 }
-impl SomeServiceExposure<SomeService> {
-    #[export]
-    pub fn do_this(&mut self) -> u32 {
-        42
+#[allow(clippy::from_over_into)]
+impl<T: SomeBound> Into<BaseService<u8>> for ChildServiceExposure<ChildService<T>> {
+    fn into(self) -> BaseService<u8> {
+        self.inner.into()
     }
+}
+impl<T: SomeBound> ChildServiceExposure<ChildService<T>> {
     #[export]
-    pub fn this(&self) -> bool {
-        true
+    pub fn foo(&self) -> u32 {
+        0
     }
     pub fn try_handle(
         mut self,
@@ -69,15 +78,17 @@ impl SomeServiceExposure<SomeService> {
                 id,
                 0u16,
             ) if id
-                == <self::SomeService as sails_rs::meta::Identifiable>::INTERFACE_ID => {
-                let request: some_service_meta::__DoThisParams = sails_rs::scale_codec::Decode::decode(
+                == <self::ChildService<
+                    T,
+                > as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+                let request: child_service_meta::__FooParams = sails_rs::scale_codec::Decode::decode(
                         &mut input,
                     )
                     .expect("Failed to decode params");
-                let result = self.do_this();
+                let result = self.foo();
                 let value = 0u128;
                 if !sails_rs::gstd::is_empty_tuple::<u32>() {
-                    <some_service_meta::__DoThisParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                    <child_service_meta::__FooParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
                         &result,
                         self.route_idx,
                         |encoded_result| result_handler(encoded_result, value),
@@ -89,25 +100,19 @@ impl SomeServiceExposure<SomeService> {
             }
             (
                 id,
-                1u16,
-            ) if id
-                == <self::SomeService as sails_rs::meta::Identifiable>::INTERFACE_ID => {
-                let request: some_service_meta::__ThisParams = sails_rs::scale_codec::Decode::decode(
-                        &mut input,
-                    )
-                    .expect("Failed to decode params");
-                let result = self.this();
-                let value = 0u128;
-                if !sails_rs::gstd::is_empty_tuple::<bool>() {
-                    <some_service_meta::__ThisParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
-                        &result,
+                eid,
+            ) if sails_rs::meta::service_has_interface_id(
+                &<self::ChildService<
+                    T,
+                > as sails_rs::meta::ServiceMeta>::BASE_SERVICES[0usize],
+                id,
+            ) => {
+                let base_service: BaseService<u8> = self.inner.into();
+                return sails_rs::gstd::services::Service::expose(
+                        base_service,
                         self.route_idx,
-                        |encoded_result| result_handler(encoded_result, value),
-                    );
-                } else if false && value > 0 {
-                    result_handler(&[], value);
-                }
-                return Some(());
+                    )
+                    .try_handle(interface_id, entry_id, input, result_handler);
             }
             _ => None,
         }
@@ -121,16 +126,29 @@ impl SomeServiceExposure<SomeService> {
     ) -> Option<()> {
         use sails_rs::gstd::{InvocationIo, CommandReply};
         match (interface_id, entry_id) {
+            (
+                id,
+                eid,
+            ) if sails_rs::meta::service_has_interface_id(
+                &<self::ChildService<
+                    T,
+                > as sails_rs::meta::ServiceMeta>::BASE_SERVICES[0usize],
+                id,
+            ) => {
+                let base_service: BaseService<u8> = self.inner.into();
+                return sails_rs::gstd::services::Service::expose(
+                        base_service,
+                        self.route_idx,
+                    )
+                    .try_handle_async(interface_id, entry_id, input, result_handler)
+                    .await;
+            }
             _ => None,
         }
     }
-    pub fn emit_event(&self, event: SomeEvents) -> sails_rs::errors::Result<()> {
-        use sails_rs::gstd::services::ExposureWithEvents;
-        self.emitter().emit_event(event)
-    }
 }
-impl sails_rs::gstd::services::Service for SomeService {
-    type Exposure = SomeServiceExposure<Self>;
+impl<T: SomeBound> sails_rs::gstd::services::Service for ChildService<T> {
+    type Exposure = ChildServiceExposure<Self>;
     fn expose(self, route_idx: u8) -> Self::Exposure {
         Self::Exposure {
             route_idx,
@@ -138,61 +156,54 @@ impl sails_rs::gstd::services::Service for SomeService {
         }
     }
 }
-mod some_service_meta {
+mod child_service_meta {
     use super::*;
     const __SERVICE_INTERFACE_ID: sails_rs::meta::InterfaceId = {
         let mut final_hash = sails_rs::keccak_const::Keccak256::new();
-        final_hash = final_hash.update(&sails_rs::hash_fn!(command DoThis() -> u32));
-        final_hash = final_hash.update(&sails_rs::hash_fn!(query This() -> bool));
+        final_hash = final_hash.update(&sails_rs::hash_fn!(query Foo() -> u32));
         final_hash = final_hash
-            .update(&<SomeEvents as sails_rs::sails_reflect_hash::ReflectHash>::HASH);
+            .update(
+                &<super::BaseService<u8> as sails_rs::meta::Identifiable>::INTERFACE_ID.0,
+            );
         let hash = final_hash.finalize();
         sails_rs::meta::InterfaceId::from_bytes_32(hash)
     };
-    impl sails_rs::meta::Identifiable for super::SomeService {
+    impl<T: SomeBound> sails_rs::meta::Identifiable for super::ChildService<T> {
         const INTERFACE_ID: sails_rs::meta::InterfaceId = __SERVICE_INTERFACE_ID;
     }
-    impl sails_rs::meta::ServiceMeta for super::SomeService {
+    impl<T: SomeBound> sails_rs::meta::ServiceMeta for super::ChildService<T> {
         type CommandsMeta = CommandsMeta;
         type QueriesMeta = QueriesMeta;
         type EventsMeta = EventsMeta;
-        const BASE_SERVICES: &'static [sails_rs::meta::BaseServiceMeta] = &[];
+        const BASE_SERVICES: &'static [sails_rs::meta::BaseServiceMeta] = &[
+            sails_rs::meta::BaseServiceMeta::new::<super::BaseService<u8>>("BaseService"),
+        ];
         const METHODS: &'static [sails_rs::meta::MethodMetadata] = &[
             sails_rs::meta::MethodMetadata {
-                name: "DoThis",
+                name: "Foo",
                 entry_id: 0u16,
-                hash: sails_rs::hash_fn!(command DoThis() -> u32),
-                is_async: false,
-            },
-            sails_rs::meta::MethodMetadata {
-                name: "This",
-                entry_id: 1u16,
-                hash: sails_rs::hash_fn!(query This() -> bool),
+                hash: sails_rs::hash_fn!(query Foo() -> u32),
                 is_async: false,
             },
         ];
-        const ASYNC: bool = false;
+        const ASYNC: bool = <super::BaseService<
+            u8,
+        > as sails_rs::meta::ServiceMeta>::ASYNC;
     }
     sails_rs::invocation_io!(
-        pub struct __DoThisParams {}, interface_id = __SERVICE_INTERFACE_ID, entry_id =
+        pub struct __FooParams {}, interface_id = __SERVICE_INTERFACE_ID, entry_id =
         0u16,
-    );
-    sails_rs::invocation_io!(
-        pub struct __ThisParams {}, interface_id = __SERVICE_INTERFACE_ID, entry_id =
-        1u16,
     );
     #[derive(sails_rs::TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
-    pub enum CommandsMeta {
-        DoThis(__DoThisParams, u32),
-    }
+    pub enum CommandsMeta {}
     #[derive(sails_rs::TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum QueriesMeta {
-        This(__ThisParams, bool),
+        Foo(__FooParams, u32),
     }
     #[derive(sails_rs::TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum NoEvents {}
-    pub type EventsMeta = SomeEvents;
+    pub type EventsMeta = NoEvents;
 }

@@ -170,17 +170,18 @@ where
 }
 mod some_service_meta {
     use super::*;
+    const __SERVICE_INTERFACE_ID: sails_rs::meta::InterfaceId = {
+        let mut final_hash = sails_rs::keccak_const::Keccak256::new();
+        final_hash = final_hash.update(&sails_rs::hash_fn!(command DoThis() -> u32));
+        let hash = final_hash.finalize();
+        sails_rs::meta::InterfaceId::from_bytes_32(hash)
+    };
     impl<'a, 'b, T, U> sails_rs::meta::Identifiable for super::SomeService<'a, 'b, T, U>
     where
         T: Clone,
         U: Iterator<Item = u32>,
     {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = {
-            let mut final_hash = sails_rs::keccak_const::Keccak256::new();
-            final_hash = final_hash.update(&sails_rs::hash_fn!(command DoThis() -> u32));
-            let hash = final_hash.finalize();
-            sails_rs::meta::InterfaceId::from_bytes_32(hash)
-        };
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = __SERVICE_INTERFACE_ID;
     }
     impl<'a, 'b, T, U> sails_rs::meta::ServiceMeta for super::SomeService<'a, 'b, T, U>
     where
@@ -202,8 +203,8 @@ mod some_service_meta {
         const ASYNC: bool = false;
     }
     sails_rs::invocation_io!(
-        pub struct __DoThisParams {}, interface_id = < super::SomeService as
-        sails_rs::meta::Identifiable > ::INTERFACE_ID, entry_id = 0u16,
+        pub struct __DoThisParams {}, interface_id = __SERVICE_INTERFACE_ID, entry_id =
+        0u16,
     );
     #[derive(sails_rs::TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
@@ -225,7 +226,7 @@ where
 {
     const METHODS: &'static [sails_rs::solidity::MethodExpo] = &[
         (
-            <SomeService as sails_rs::meta::Identifiable>::INTERFACE_ID,
+            <SomeService<T, U> as sails_rs::meta::Identifiable>::INTERFACE_ID,
             0u16,
             "DoThis",
             <<(

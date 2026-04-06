@@ -5,9 +5,10 @@ use proc_macro2::Span;
 use quote::ToTokens;
 use std::collections::BTreeMap;
 use syn::{
-    FnArg, GenericArgument, Generics, Ident, ImplItem, ImplItemFn, ItemImpl, Lifetime, Pat, Path,
-    PathArguments, PathSegment, ReturnType, Signature, Token, Type, TypeImplTrait, TypeParamBound,
-    TypePath, TypeReference, TypeTuple, WhereClause, punctuated::Punctuated, spanned::Spanned,
+    FnArg, GenericArgument, GenericParam, Generics, Ident, ImplItem, ImplItemFn, ItemImpl,
+    Lifetime, Pat, Path, PathArguments, PathSegment, ReturnType, Signature, Token, Type,
+    TypeImplTrait, TypeParamBound, TypePath, TypeReference, TypeTuple, WhereClause,
+    punctuated::Punctuated, spanned::Spanned,
 };
 
 pub(crate) fn impl_type_refs(item_impl_type: &Type) -> (&TypePath, &PathArguments, &Ident) {
@@ -216,17 +217,99 @@ fn replace_lifetime_with_static_in_path_args(path_args: PathArguments) -> PathAr
     }
 }
 
-pub(crate) fn remove_lifetimes(path: &Path) -> Path {
+/// Removes only lifetime arguments from a path, preserving type/const args.
+/// e.g. `BaseService<ConcreteStorage, 'a>` → `BaseService<ConcreteStorage>`
+pub(crate) fn strip_lifetimes_only(path: &Path) -> Path {
     let mut segments: Punctuated<PathSegment, Token![::]> = Punctuated::new();
     for s in &path.segments {
+        let arguments = match &s.arguments {
+            PathArguments::AngleBracketed(args) => {
+                let filtered: Punctuated<GenericArgument, _> = args
+                    .args
+                    .iter()
+                    .filter(|a| !matches!(a, GenericArgument::Lifetime(_)))
+                    .cloned()
+                    .collect();
+                if filtered.is_empty() {
+                    PathArguments::None
+                } else {
+                    let mut new_args = args.clone();
+                    new_args.args = filtered;
+                    PathArguments::AngleBracketed(new_args)
+                }
+            }
+            other => other.clone(),
+        };
         segments.push(PathSegment {
             ident: s.ident.clone(),
-            arguments: PathArguments::None,
+            arguments,
         });
     }
     Path {
         leading_colon: path.leading_colon,
         segments,
+    }
+}
+
+/// Returns true if any type/const arg in the path references an outer generic param
+/// from the given `impl<...>` generics. Used to detect `extends = Base<T>` where T is outer.
+pub(crate) fn path_uses_outer_type_or_const_generics(path: &Path, generics: &Generics) -> bool {
+    let outer_names: Vec<String> = generics
+        .params
+        .iter()
+        .filter_map(|p| match p {
+            GenericParam::Type(t) => Some(t.ident.to_string()),
+            GenericParam::Const(c) => Some(c.ident.to_string()),
+            GenericParam::Lifetime(_) => None,
+        })
+        .collect();
+
+    if outer_names.is_empty() {
+        return false;
+    }
+
+    path_args_use_idents(path, &outer_names)
+}
+
+fn path_args_use_idents(path: &Path, names: &[String]) -> bool {
+    path.segments.iter().any(|seg| match &seg.arguments {
+        PathArguments::AngleBracketed(args) => args.args.iter().any(|arg| match arg {
+            GenericArgument::Type(ty) => type_uses_idents(ty, names),
+            GenericArgument::Const(expr) => expr_uses_idents(expr, names),
+            _ => false,
+        }),
+        _ => false,
+    })
+}
+
+fn type_uses_idents(ty: &Type, names: &[String]) -> bool {
+    match ty {
+        Type::Path(tp) => {
+            // Check if the type itself is a named generic (e.g. just `T`)
+            if tp.qself.is_none() && tp.path.segments.len() == 1 {
+                let ident = &tp.path.segments[0].ident;
+                if names.iter().any(|n| ident == n.as_str()) {
+                    return true;
+                }
+            }
+            path_args_use_idents(&tp.path, names)
+        }
+        Type::Reference(r) => type_uses_idents(&r.elem, names),
+        Type::Slice(s) => type_uses_idents(&s.elem, names),
+        Type::Array(a) => type_uses_idents(&a.elem, names),
+        Type::Tuple(t) => t.elems.iter().any(|e| type_uses_idents(e, names)),
+        _ => false,
+    }
+}
+
+fn expr_uses_idents(expr: &syn::Expr, names: &[String]) -> bool {
+    match expr {
+        syn::Expr::Path(ep) => ep
+            .path
+            .segments
+            .iter()
+            .any(|s| names.iter().any(|n| s.ident == n.as_str())),
+        _ => false,
     }
 }
 

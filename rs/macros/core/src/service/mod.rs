@@ -156,6 +156,30 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         );
     }
 
+    // Validate that extends/overrides paths don't reference outer type/const generics.
+    // Use a concrete type instead, e.g. `extends = BaseService<ConcreteStorage>`.
+    let generics = &service_builder.generics;
+    for base_path in service_builder.base_types {
+        if shared::path_uses_outer_type_or_const_generics(base_path, generics) {
+            abort!(
+                base_path,
+                "generic type parameters are not allowed in `extends` paths; \
+                 use a concrete type instead, e.g. `extends = BaseService<ConcreteStorage>`"
+            );
+        }
+    }
+    for handler in &service_builder.service_handlers {
+        if let Some(override_path) = &handler.overrides
+            && shared::path_uses_outer_type_or_const_generics(override_path, generics)
+        {
+            abort!(
+                override_path,
+                "generic type parameters are not allowed in `overrides` paths; \
+                 use a concrete type instead, e.g. `overrides = BaseService<ConcreteStorage>`"
+            );
+        }
+    }
+
     let meta_module = service_builder.meta_module();
 
     let exposure_struct = service_builder.exposure_struct();
@@ -247,7 +271,7 @@ impl FnBuilder<'_> {
         }
     }
 
-    fn params_struct(&self, service_path: &TypePath) -> TokenStream {
+    fn params_struct(&self, own_interface_id: &TokenStream) -> TokenStream {
         let sails_path = self.sails_path;
         let params_struct_ident = &self.params_struct_ident;
         let params_struct_members = self.params().map(|(ident, ty)| quote!(#ident: #ty));
@@ -255,7 +279,7 @@ impl FnBuilder<'_> {
         let (interface_id_computation, entry_id_computation) = if let Some(base_path) =
             &self.overrides
         {
-            let base_path_wo_lifetimes = shared::remove_lifetimes(base_path);
+            let base_path_wo_lifetimes = shared::strip_lifetimes_only(base_path);
             let name = &self.route;
             let entry_id_check = if let Some(id) = self.override_entry_id {
                 quote! { #id }
@@ -276,11 +300,7 @@ impl FnBuilder<'_> {
             )
         } else {
             let entry_id = &self.entry_id;
-            let path_wo_lifetimes = shared::remove_lifetimes(&service_path.path);
-            (
-                quote! { <super:: #path_wo_lifetimes as #sails_path::meta::Identifiable>::INTERFACE_ID },
-                quote! { #entry_id },
-            )
+            (quote! { #own_interface_id }, quote! { #entry_id })
         };
 
         quote!(

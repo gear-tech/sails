@@ -13,7 +13,7 @@ impl ServiceBuilder<'_> {
         // TODO [future]: remove the duplicates check for the Sails binary protocol
         let mut base_names = BTreeSet::new();
         let base_services_meta = self.base_types.iter().map(|base_type| {
-            let path_wo_lifetimes = shared::remove_lifetimes(base_type);
+            let path_wo_lifetimes = shared::strip_lifetimes_only(base_type);
             let base_type_pathless_name = path_wo_lifetimes
                 .segments
                 .last()
@@ -45,7 +45,7 @@ impl ServiceBuilder<'_> {
             quote!(false)
         } else {
             let base_asyncness = self.base_types.iter().map(|base_type| {
-                let path_wo_lifetimes = shared::remove_lifetimes(base_type);
+                let path_wo_lifetimes = shared::strip_lifetimes_only(base_type);
 
                 quote! {
                     <super:: #path_wo_lifetimes as #sails_path::meta::ServiceMeta>::ASYNC
@@ -60,8 +60,10 @@ impl ServiceBuilder<'_> {
         let override_validations = self.generate_override_validations();
 
         quote! {
+            const __SERVICE_INTERFACE_ID: #sails_path::meta::InterfaceId = #interface_id_computation;
+
             impl #generics #sails_path::meta::Identifiable for super:: #service_type_path #service_type_constraints {
-                const INTERFACE_ID: #sails_path::meta::InterfaceId = #interface_id_computation;
+                const INTERFACE_ID: #sails_path::meta::InterfaceId = __SERVICE_INTERFACE_ID;
             }
 
             impl #generics #sails_path::meta::ServiceMeta for super:: #service_type_path #service_type_constraints {
@@ -88,11 +90,12 @@ impl ServiceBuilder<'_> {
 
         let no_events_type = Path::from(Ident::new("NoEvents", Span::call_site()));
         let events_type = self.events_type.unwrap_or(&no_events_type);
+        let interface_id_ident = quote!(__SERVICE_INTERFACE_ID);
 
         let invocation_params_structs = self
             .service_handlers
             .iter()
-            .map(|fn_builder| fn_builder.params_struct(self.type_path));
+            .map(|fn_builder| fn_builder.params_struct(&interface_id_ident));
         let commands_meta_variants = self
             .service_handlers
             .iter()
@@ -164,7 +167,7 @@ impl ServiceBuilder<'_> {
         // Handle base services if present
         let base_services_hash = if !self.base_types.is_empty() {
             let base_service_ids = self.base_types.iter().map(|base_type| {
-                let path_wo_lifetimes = shared::remove_lifetimes(base_type);
+                let path_wo_lifetimes = shared::strip_lifetimes_only(base_type);
                 quote!(final_hash = final_hash.update(&<super:: #path_wo_lifetimes as #sails_path::meta::Identifiable>::INTERFACE_ID.0);)
             });
 
@@ -226,7 +229,7 @@ impl ServiceBuilder<'_> {
                     quote! { None }
                 };
 
-                let base_path_wo_lifetimes = shared::remove_lifetimes(base_path);
+                let base_path_wo_lifetimes = shared::strip_lifetimes_only(base_path);
                 let current_fn_hash = FnHashBuilder::from_handler(handler, sails_path)
                     .with_override_name(quote!(base_name))
                     .build();

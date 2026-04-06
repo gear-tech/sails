@@ -1,0 +1,5 @@
+error: generic type parameters are not allowed in `overrides` paths; use a concrete type instead, e.g. `overrides = BaseService<ConcreteStorage>`
+ --> tests/ui/gservice_fails_overrides_with_outer_generic.rs:9:26
+  |
+9 |     #[export(overrides = BaseService<T>)]
+  |                          ^^^^^^^^^^^^^^
