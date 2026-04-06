@@ -25,14 +25,14 @@ export async function prepareTestFixtures() {
     fs.mkdirSync('test/demo', { recursive: true });
   }
 
-  if (!USE_LOCAL_BUILD) {
+  if (USE_LOCAL_BUILD) {
+    fs.cpSync('../examples/demo/client/demo_client.idl', 'test/demo/demo.idl');
+    fs.cpSync('../target/wasm32-gear/release/demo.opt.wasm', 'test/demo/demo.wasm');
+  } else {
     await Promise.all([
       downloadAndWriteFile('demo.wasm', 'test/demo/demo.wasm'),
       downloadAndWriteFile('demo.idl', 'test/demo/demo.idl'),
     ]);
-  } else {
-    fs.cpSync('../examples/demo/client/demo_client.idl', 'test/demo/demo.idl');
-    fs.cpSync('../target/wasm32-gear/release/demo.opt.wasm', 'test/demo/demo.wasm');
   }
 
   const parser = await SailsIdlParser.new();

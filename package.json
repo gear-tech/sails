@@ -44,7 +44,6 @@
     "typescript-eslint": "^8.46.4"
   },
   "scripts": {
-    "preinstall": "npx only-allow pnpm",
     "build:sails": "pnpm --filter sails-js build",
     "build:cli": "pnpm --filter sails-js-cli build",
     "build:parser": "pnpm --filter sails-js-parser build",

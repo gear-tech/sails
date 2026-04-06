@@ -1,6 +1,7 @@
+import { SailsIdlParser } from '..';
+
 describe('parser-v2 success', () => {
   test('parses demo.idl', async () => {
-    const { SailsIdlParser } = await import('../src/parser.js');
     const parser = new SailsIdlParser();
     await parser.init();
 
@@ -17,12 +18,13 @@ describe('parser-v2 success', () => {
       'References',
       'ThisThat',
       'ValueFee',
-      'Chaos'
+      'Validator',
+      'Chaos',
+      'Chain'
     ]);
   });
 
   test('parses idl with aliases', async () => {
-    const { SailsIdlParser } = await import('../src/parser.js');
     const parser = new SailsIdlParser();
     await parser.init();
 
