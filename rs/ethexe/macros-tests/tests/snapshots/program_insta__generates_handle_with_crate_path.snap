@@ -9,14 +9,14 @@ impl MyProgram {
 }
 impl sails_rename::meta::ProgramMeta for MyProgram {
     type ConstructorsMeta = meta_in_program::ConstructorsMeta;
-    const SERVICES: &'static [(&'static str, sails_rename::meta::AnyServiceMetaFn)] = &[];
+    const SERVICES: &'static [(&'static str, sails_rename::meta::AnyServiceMeta)] = &[];
     const ASYNC: bool = false;
 }
 mod meta_in_program {
     use super::*;
     sails_rename::invocation_io!(pub struct __CreateParams {}, entry_id = 0u16,);
     #[derive(sails_rename::TypeInfo)]
-    #[scale_info(crate = sails_rename::scale_info)]
+    #[type_info(crate = sails_rename::type_info)]
     pub enum ConstructorsMeta {
         Create(__CreateParams),
     }

@@ -237,16 +237,16 @@ mod extended_lifetime_meta {
         sails_rs::meta::Identifiable > ::INTERFACE_ID, entry_id = 1u16,
     );
     #[derive(sails_rs::TypeInfo)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[type_info(crate = sails_rs::type_info)]
     pub enum CommandsMeta {}
     #[derive(sails_rs::TypeInfo)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[type_info(crate = sails_rs::type_info)]
     pub enum QueriesMeta {
         ExtendedName(__ExtendedNameParams, String),
         Name(__NameParams, String),
     }
     #[derive(sails_rs::TypeInfo)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[type_info(crate = sails_rs::type_info)]
     pub enum NoEvents {}
     pub type EventsMeta = NoEvents;
 }

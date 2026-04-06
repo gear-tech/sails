@@ -2,10 +2,10 @@ use gprimitives::*;
 use meta_params::*;
 use sails_idl_gen::{program, service};
 use sails_idl_meta::{
-    AnyServiceMeta, AnyServiceMetaFn, BaseServiceMeta, Identifiable, InterfaceId, MethodMetadata,
-    ProgramMeta, ServiceMeta,
+    AnyServiceMeta, BaseServiceMeta, Identifiable, InterfaceId, MethodMetadata, ProgramMeta,
+    ServiceMeta,
 };
-use scale_info::{StaticTypeInfo, TypeInfo};
+use sails_type_registry::TypeInfo;
 use std::{collections::BTreeMap, result::Result as StdResult};
 
 #[allow(dead_code)]
@@ -191,9 +191,9 @@ impl<C, Q, E, const ID: u64> Identifiable for GenericService<C, Q, E, ID> {
 
 impl<C, Q, E, const ID: u64> ServiceMeta for GenericService<C, Q, E, ID>
 where
-    C: StaticTypeInfo,
-    Q: StaticTypeInfo,
-    E: StaticTypeInfo,
+    C: TypeInfo,
+    Q: TypeInfo,
+    E: TypeInfo,
 {
     type CommandsMeta = C;
     type QueriesMeta = Q;
@@ -216,9 +216,9 @@ impl<C, Q, E, B, const ID: u64> Identifiable for GenericServiceWithBase<C, Q, E,
 
 impl<C, Q, E, B, const ID: u64> ServiceMeta for GenericServiceWithBase<C, Q, E, B, ID>
 where
-    C: StaticTypeInfo,
-    Q: StaticTypeInfo,
-    E: StaticTypeInfo,
+    C: TypeInfo,
+    Q: TypeInfo,
+    E: TypeInfo,
     B: ServiceMeta + 'static,
 {
     type CommandsMeta = C;
@@ -240,8 +240,8 @@ struct TestProgramWithEmptyCtorsMeta;
 impl ProgramMeta for TestProgramWithEmptyCtorsMeta {
     type ConstructorsMeta = EmptyCtorsMeta;
 
-    const SERVICES: &'static [(&'static str, AnyServiceMetaFn)] =
-        &[("Service", AnyServiceMeta::new::<TestServiceMeta>)];
+    const SERVICES: &'static [(&'static str, AnyServiceMeta)] =
+        &[("Service", TestServiceMeta::META)];
 
     const ASYNC: bool = false;
 }
@@ -261,8 +261,7 @@ struct TestProgramWithNonEmptyCtorsMeta;
 impl ProgramMeta for TestProgramWithNonEmptyCtorsMeta {
     type ConstructorsMeta = NonEmptyCtorsMeta;
 
-    const SERVICES: &'static [(&'static str, AnyServiceMetaFn)] =
-        &[("Test", AnyServiceMeta::new::<TestServiceMeta>)];
+    const SERVICES: &'static [(&'static str, AnyServiceMeta)] = &[("Test", TestServiceMeta::META)];
 
     const ASYNC: bool = false;
 }
@@ -272,9 +271,9 @@ struct TestProgramWithMultipleServicesMeta;
 impl ProgramMeta for TestProgramWithMultipleServicesMeta {
     type ConstructorsMeta = EmptyCtorsMeta;
 
-    const SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[
-        ("Service", AnyServiceMeta::new::<TestServiceMeta>),
-        ("SomeService", AnyServiceMeta::new::<TestServiceMeta>),
+    const SERVICES: &'static [(&'static str, AnyServiceMeta)] = &[
+        ("Service", TestServiceMeta::META),
+        ("SomeService", TestServiceMeta::META),
     ];
 
     const ASYNC: bool = false;

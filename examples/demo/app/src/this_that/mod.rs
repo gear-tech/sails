@@ -60,13 +60,11 @@ impl MyService {
 #[allow(dead_code)]
 #[derive(Debug, Decode, TypeInfo, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
 #[reflect_hash(crate = sails_rs::sails_reflect_hash)]
 pub struct TupleStruct(bool);
 
 #[derive(Debug, Decode, TypeInfo, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
 #[reflect_hash(crate = sails_rs::sails_reflect_hash)]
 pub struct DoThatParam {
     pub p1: NonZeroU32,
@@ -76,7 +74,6 @@ pub struct DoThatParam {
 
 #[derive(Debug, Decode, TypeInfo, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
 #[reflect_hash(crate = sails_rs::sails_reflect_hash)]
 pub enum ManyVariants {
     One,
@@ -89,7 +86,6 @@ pub enum ManyVariants {
 
 #[derive(Debug, Encode, TypeInfo, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
 #[reflect_hash(crate = sails_rs::sails_reflect_hash)]
 pub enum ManyVariantsReply {
     One,

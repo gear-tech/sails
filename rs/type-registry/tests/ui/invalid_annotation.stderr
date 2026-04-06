@@ -1,0 +1,5 @@
+error: expected string literal
+ --> tests/ui/invalid_annotation.rs:4:13
+  |
+4 | #[type_info(id = 42)] // Integer values are not supported
+  |             ^^^^^^^

@@ -10,16 +10,15 @@ mod hash;
 use alloc::{
     format,
     string::{String, ToString as _},
+    vec::Vec,
 };
 #[cfg(feature = "ast")]
 pub use ast::*;
 use parity_scale_codec::{Decode, Encode, Error};
-use scale_info::{MetaType, StaticTypeInfo, prelude::vec::Vec};
+use sails_type_registry::{MetaType, TypeInfo};
 
 mod header;
 pub use header::*;
-
-pub type AnyServiceMetaFn = fn() -> AnyServiceMeta;
 
 /// A trait for types that have a static Interface ID.
 pub trait Identifiable {
@@ -151,16 +150,16 @@ impl Decode for InterfaceId {
 pub struct BaseServiceMeta {
     pub name: &'static str,
     pub interface_id: InterfaceId,
-    pub meta: AnyServiceMetaFn,
+    pub meta: AnyServiceMeta,
     pub base: &'static [BaseServiceMeta],
 }
 
 impl BaseServiceMeta {
-    pub const fn new<S: ServiceMeta>(name: &'static str) -> Self {
+    pub const fn new<S: ServiceMeta + ?Sized>(name: &'static str) -> Self {
         Self {
             name,
             interface_id: S::INTERFACE_ID,
-            meta: AnyServiceMeta::new::<S>,
+            meta: S::META,
             base: S::BASE_SERVICES,
         }
     }
@@ -176,48 +175,34 @@ pub struct MethodMetadata {
 }
 
 pub trait ServiceMeta: Identifiable {
-    type CommandsMeta: StaticTypeInfo;
-    type QueriesMeta: StaticTypeInfo;
-    type EventsMeta: StaticTypeInfo;
+    type CommandsMeta: TypeInfo;
+    type QueriesMeta: TypeInfo;
+    type EventsMeta: TypeInfo;
     /// The order of base services here is lexicographical by their names
     const BASE_SERVICES: &'static [BaseServiceMeta];
     /// The order of base services here is lexicographical by their names
     // const BASE_SERVICES_IDS: &'static [AnyServiceIds];
     const METHODS: &'static [MethodMetadata];
     const ASYNC: bool;
-
-    fn commands() -> MetaType {
-        MetaType::new::<Self::CommandsMeta>()
-    }
-
-    fn queries() -> MetaType {
-        MetaType::new::<Self::QueriesMeta>()
-    }
-
-    fn events() -> MetaType {
-        MetaType::new::<Self::EventsMeta>()
-    }
-
-    fn base_services() -> &'static [BaseServiceMeta] {
-        Self::BASE_SERVICES
-    }
+    const META: AnyServiceMeta = AnyServiceMeta::new::<Self>();
 }
 
+#[derive(Debug, Clone)]
 pub struct AnyServiceMeta {
     commands: MetaType,
     queries: MetaType,
     events: MetaType,
-    base_services: Vec<BaseServiceMeta>,
+    base_services: &'static [BaseServiceMeta],
     interface_id: InterfaceId,
 }
 
 impl AnyServiceMeta {
-    pub fn new<S: ServiceMeta>() -> Self {
+    pub const fn new<S: ServiceMeta + ?Sized>() -> Self {
         Self {
-            commands: S::commands(),
-            queries: S::queries(),
-            events: S::events(),
-            base_services: S::BASE_SERVICES.to_vec(),
+            commands: S::CommandsMeta::META,
+            queries: S::QueriesMeta::META,
+            events: S::EventsMeta::META,
+            base_services: S::BASE_SERVICES,
             interface_id: S::INTERFACE_ID,
         }
     }
@@ -237,7 +222,7 @@ impl AnyServiceMeta {
     pub fn base_services(&self) -> impl Iterator<Item = (&'static str, AnyServiceMeta)> {
         self.base_services
             .iter()
-            .map(|base| (base.name, (base.meta)()))
+            .map(|base| (base.name, base.meta.clone()))
     }
 
     pub fn interface_id(&self) -> InterfaceId {
@@ -246,17 +231,9 @@ impl AnyServiceMeta {
 }
 
 pub trait ProgramMeta {
-    type ConstructorsMeta: StaticTypeInfo;
-    const SERVICES: &'static [(&'static str, AnyServiceMetaFn)];
+    type ConstructorsMeta: TypeInfo;
+    const SERVICES: &'static [(&'static str, AnyServiceMeta)];
     const ASYNC: bool;
-
-    fn constructors() -> MetaType {
-        MetaType::new::<Self::ConstructorsMeta>()
-    }
-
-    fn services() -> impl Iterator<Item = (&'static str, AnyServiceMeta)> {
-        Self::SERVICES.iter().map(|&(s, f)| (s, f()))
-    }
 }
 
 pub const fn count_base_services<S: ServiceMeta>() -> usize {

@@ -175,17 +175,17 @@ mod some_service_meta {
         = 1u16,
     );
     #[derive(sails_rename::TypeInfo)]
-    #[scale_info(crate = sails_rename::scale_info)]
+    #[type_info(crate = sails_rename::type_info)]
     pub enum CommandsMeta {
         DoThis(__DoThisParams, u32),
     }
     #[derive(sails_rename::TypeInfo)]
-    #[scale_info(crate = sails_rename::scale_info)]
+    #[type_info(crate = sails_rename::type_info)]
     pub enum QueriesMeta {
         This(__ThisParams, bool),
     }
     #[derive(sails_rename::TypeInfo)]
-    #[scale_info(crate = sails_rename::scale_info)]
+    #[type_info(crate = sails_rename::type_info)]
     pub enum NoEvents {}
     pub type EventsMeta = NoEvents;
 }
