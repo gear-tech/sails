@@ -5,9 +5,10 @@ use proc_macro2::Span;
 use quote::ToTokens;
 use std::collections::BTreeMap;
 use syn::{
-    FnArg, GenericArgument, Generics, Ident, ImplItem, ImplItemFn, ItemImpl, Lifetime, Pat, Path,
-    PathArguments, PathSegment, ReturnType, Signature, Token, Type, TypeImplTrait, TypeParamBound,
-    TypePath, TypeReference, TypeTuple, WhereClause, punctuated::Punctuated, spanned::Spanned,
+    FnArg, GenericArgument, GenericParam, Generics, Ident, ImplItem, ImplItemFn, ItemImpl,
+    Lifetime, Pat, Path, PathArguments, PathSegment, ReturnType, Signature, Token, Type,
+    TypeImplTrait, TypeParamBound, TypePath, TypeReference, TypeTuple, WhereClause,
+    punctuated::Punctuated, spanned::Spanned,
 };
 
 pub(crate) fn impl_type_refs(item_impl_type: &Type) -> (&TypePath, &PathArguments, &Ident) {
@@ -216,6 +217,7 @@ fn replace_lifetime_with_static_in_path_args(path_args: PathArguments) -> PathAr
     }
 }
 
+#[cfg(feature = "ethexe")]
 pub(crate) fn remove_lifetimes(path: &Path) -> Path {
     let mut segments: Punctuated<PathSegment, Token![::]> = Punctuated::new();
     for s in &path.segments {
@@ -224,6 +226,82 @@ pub(crate) fn remove_lifetimes(path: &Path) -> Path {
             arguments: PathArguments::None,
         });
     }
+    Path {
+        leading_colon: path.leading_colon,
+        segments,
+    }
+}
+
+/// Removes only lifetime arguments from a path, preserving type/const args.
+/// e.g. `BaseService<T, 'a>` → `BaseService<T>`, `BaseService<'a>` → `BaseService`
+pub(crate) fn strip_lifetimes_only(path: &Path) -> Path {
+    let mut segments: Punctuated<PathSegment, Token![::]> = Punctuated::new();
+    for s in &path.segments {
+        let arguments = match &s.arguments {
+            PathArguments::AngleBracketed(args) => {
+                let filtered: Punctuated<GenericArgument, _> = args
+                    .args
+                    .iter()
+                    .filter(|a| !matches!(a, GenericArgument::Lifetime(_)))
+                    .cloned()
+                    .collect();
+                if filtered.is_empty() {
+                    PathArguments::None
+                } else {
+                    let mut new_args = args.clone();
+                    new_args.args = filtered;
+                    PathArguments::AngleBracketed(new_args)
+                }
+            }
+            other => other.clone(),
+        };
+        segments.push(PathSegment {
+            ident: s.ident.clone(),
+            arguments,
+        });
+    }
+    Path {
+        leading_colon: path.leading_colon,
+        segments,
+    }
+}
+
+/// Returns true if the path's last segment has non-lifetime generic args (type or const params).
+/// e.g. `BaseService<T>` → true, `BaseService<'a>` → false, `BaseService` → false
+pub(crate) fn has_non_lifetime_path_args(path: &Path) -> bool {
+    path.segments
+        .last()
+        .map(|s| match &s.arguments {
+            PathArguments::AngleBracketed(args) => args
+                .args
+                .iter()
+                .any(|a| !matches!(a, GenericArgument::Lifetime(_))),
+            _ => false,
+        })
+        .unwrap_or(false)
+}
+
+/// Returns true if the generics contain any non-lifetime params (type or const params).
+/// e.g. `impl<T: Bound> Service<T>` → true, `impl<'a> Service<'a>` → false
+pub(crate) fn has_type_generics(generics: &Generics) -> bool {
+    generics
+        .params
+        .iter()
+        .any(|p| !matches!(p, GenericParam::Lifetime(_)))
+}
+
+/// Generates the meta module path for a service type path.
+/// e.g. `BaseService<T>` → `base_service_meta`, `some::Base<T>` → `some::base_meta`
+pub(crate) fn service_meta_module_path(path: &Path) -> Path {
+    let mut segments = path.segments.clone();
+    let last = segments
+        .last_mut()
+        .expect("service path should have at least one segment");
+    last.ident = Ident::new(
+        &format!("{}_meta", last.ident.to_string().to_case(Case::Snake)),
+        Span::call_site(),
+    );
+    last.arguments = PathArguments::None;
     Path {
         leading_colon: path.leading_colon,
         segments,

@@ -255,25 +255,37 @@ impl FnBuilder<'_> {
         let (interface_id_computation, entry_id_computation) = if let Some(base_path) =
             &self.overrides
         {
-            let base_path_wo_lifetimes = shared::remove_lifetimes(base_path);
+            let base_path_wo_lifetimes = shared::strip_lifetimes_only(base_path);
             let name = &self.route;
+
+            let (interface_id_expr, methods_expr) = if shared::has_non_lifetime_path_args(base_path)
+            {
+                let base_meta = shared::service_meta_module_path(&base_path_wo_lifetimes);
+                (
+                    quote! { super::#base_meta::__SERVICE_INTERFACE_ID },
+                    quote! { super::#base_meta::__SERVICE_METHODS },
+                )
+            } else {
+                (
+                    quote! { <super::#base_path_wo_lifetimes as #sails_path::meta::Identifiable>::INTERFACE_ID },
+                    quote! { <super::#base_path_wo_lifetimes as #sails_path::meta::ServiceMeta>::METHODS },
+                )
+            };
+
             let entry_id_check = if let Some(id) = self.override_entry_id {
                 quote! { #id }
             } else {
                 quote! {
                     {
                         const ID: u16 = #sails_path::meta::find_id(
-                            <super::#base_path_wo_lifetimes as #sails_path::meta::ServiceMeta>::METHODS,
+                            #methods_expr,
                             #name,
                         );
                         ID
                     }
                 }
             };
-            (
-                quote! { <super::#base_path_wo_lifetimes as #sails_path::meta::Identifiable>::INTERFACE_ID },
-                entry_id_check,
-            )
+            (interface_id_expr, entry_id_check)
         } else {
             let entry_id = &self.entry_id;
             (quote! { #own_interface_id }, quote! { #entry_id })

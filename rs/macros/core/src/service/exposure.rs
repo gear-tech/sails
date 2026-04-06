@@ -3,6 +3,19 @@ use proc_macro2::TokenStream;
 use quote::quote;
 
 impl ServiceBuilder<'_> {
+    fn needs_concrete_exposure_impl(&self) -> bool {
+        shared::has_type_generics(&self.generics)
+            && (self
+                .base_types
+                .iter()
+                .any(shared::has_non_lifetime_path_args)
+                || self
+                    .service_handlers
+                    .iter()
+                    .filter_map(|h| h.overrides.as_ref())
+                    .any(shared::has_non_lifetime_path_args))
+    }
+
     pub(super) fn exposure_struct(&self) -> TokenStream {
         let sails_path = self.sails_path;
         let exposure_ident = &self.exposure_ident;
@@ -11,13 +24,54 @@ impl ServiceBuilder<'_> {
 
         let check_asyncness_impl = self.check_asyncness_impl();
 
-        let exposure_with_events = self.events_type.map(|events_type| {
-            quote! {
-                impl<T: #sails_path::meta::ServiceMeta> #sails_path::gstd::services::ExposureWithEvents for #exposure_ident<T> {
-                    type Events = #events_type;
+        let (exposure_trait_impl, exposure_with_events) = if self.needs_concrete_exposure_impl() {
+            let generics = &self.generics;
+            let service_type_path = self.type_path;
+            let service_type_constraints = self.type_constraints();
+            let trait_impl = quote! {
+                impl #generics #sails_path::gstd::services::Exposure for #exposure_ident< #service_type_path > #service_type_constraints {
+                    fn interface_id() -> #sails_path::meta::InterfaceId {
+                        <#service_type_path as #sails_path::meta::Identifiable>::INTERFACE_ID
+                    }
+
+                    fn route_idx(&self) -> u8 {
+                        self. #route_idx_ident
+                    }
+
+                    #check_asyncness_impl
                 }
-            }
-        });
+            };
+            let with_events = self.events_type.map(|events_type| {
+                quote! {
+                    impl #generics #sails_path::gstd::services::ExposureWithEvents for #exposure_ident< #service_type_path > #service_type_constraints {
+                        type Events = #events_type;
+                    }
+                }
+            });
+            (trait_impl, with_events)
+        } else {
+            let trait_impl = quote! {
+                impl<T: #sails_path::meta::ServiceMeta> #sails_path::gstd::services::Exposure for #exposure_ident<T> {
+                    fn interface_id() -> #sails_path::meta::InterfaceId {
+                        <T as #sails_path::meta::Identifiable>::INTERFACE_ID
+                    }
+
+                    fn route_idx(&self) -> u8 {
+                        self. #route_idx_ident
+                    }
+
+                    #check_asyncness_impl
+                }
+            };
+            let with_events = self.events_type.map(|events_type| {
+                quote! {
+                    impl<T: #sails_path::meta::ServiceMeta> #sails_path::gstd::services::ExposureWithEvents for #exposure_ident<T> {
+                        type Events = #events_type;
+                    }
+                }
+            });
+            (trait_impl, with_events)
+        };
 
         let exposure_into_base = self.exposure_into_base_impl();
 
@@ -27,17 +81,7 @@ impl ServiceBuilder<'_> {
                 #inner_ident : T,
             }
 
-            impl<T: #sails_path::meta::ServiceMeta> #sails_path::gstd::services::Exposure for #exposure_ident<T> {
-                fn interface_id() -> #sails_path::meta::InterfaceId {
-                    <T as #sails_path::meta::Identifiable>::INTERFACE_ID
-                }
-
-                fn route_idx(&self) -> u8 {
-                    self. #route_idx_ident
-                }
-
-                #check_asyncness_impl
-            }
+            #exposure_trait_impl
 
             #exposure_with_events
 
@@ -178,7 +222,7 @@ impl ServiceBuilder<'_> {
 
             // 2. Overrides
             if let Some(base_path) = &fn_builder.overrides {
-                let base_path_wo_lifetimes = shared::remove_lifetimes(base_path);
+                let base_path_wo_lifetimes = shared::strip_lifetimes_only(base_path);
                 let base_id = quote! { <#base_path_wo_lifetimes as #sails_path::meta::Identifiable>::INTERFACE_ID };
 
                 if let Some(id) = fn_builder.override_entry_id {
@@ -187,10 +231,16 @@ impl ServiceBuilder<'_> {
                     });
                 } else {
                     let name = &fn_builder.route;
+                    let methods_expr = if shared::has_non_lifetime_path_args(base_path) {
+                        let base_meta = shared::service_meta_module_path(&base_path_wo_lifetimes);
+                        quote! { #base_meta::__SERVICE_METHODS }
+                    } else {
+                        quote! { <#base_path_wo_lifetimes as #sails_path::meta::ServiceMeta>::METHODS }
+                    };
                     match_arms.push(quote! {
                         (id, eid) if id == #base_id && eid == {
                             const ID: u16 = #sails_path::meta::find_id(
-                                <#base_path_wo_lifetimes as #sails_path::meta::ServiceMeta>::METHODS,
+                                #methods_expr,
                                 #name,
                             );
                             ID
@@ -346,20 +396,38 @@ impl ServiceBuilder<'_> {
     fn check_asyncness_impl(&self) -> TokenStream {
         let sails_path = self.sails_path;
 
-        // Here `T` is Service Type
-        let service_asyncness_check = quote! {
-            if !T::ASYNC {
-                // Return early if service is not async.
-                // If there's no matching route for the input,
-                // the error will be returned on the `try_handle` call.
-                return Some(false);
+        // For generic services with generic base types, `T` in `impl<T: ServiceMeta> Exposure<T>`
+        // refers to the concrete service type (e.g. ChildService<U>), not the service's own generic.
+        // So `BaseService<T>` would be wrong. Use the service type path directly in that case.
+        let concrete = self.needs_concrete_exposure_impl();
+        let service_type_path = self.type_path;
+
+        let service_asyncness_check = if concrete {
+            quote! {
+                if !<#service_type_path as #sails_path::meta::ServiceMeta>::ASYNC {
+                    return Some(false);
+                }
             }
+        } else {
+            quote! {
+                if !T::ASYNC {
+                    // Return early if service is not async.
+                    // If there's no matching route for the input,
+                    // the error will be returned on the `try_handle` call.
+                    return Some(false);
+                }
+            }
+        };
+
+        let own_id = if concrete {
+            quote! { <#service_type_path as #sails_path::meta::Identifiable>::INTERFACE_ID }
+        } else {
+            quote! { <T as #sails_path::meta::Identifiable>::INTERFACE_ID }
         };
 
         let mut match_arms = Vec::new();
 
         // 1. Own methods
-        let own_id = quote! { <T as #sails_path::meta::Identifiable>::INTERFACE_ID };
         for fn_builder in &self.service_handlers {
             if !fn_builder.export || fn_builder.overrides.is_some() {
                 continue;
@@ -374,7 +442,7 @@ impl ServiceBuilder<'_> {
         // 2. Overrides
         for fn_builder in &self.service_handlers {
             if let Some(base_path) = &fn_builder.overrides {
-                let base_path_wo_lifetimes = shared::remove_lifetimes(base_path);
+                let base_path_wo_lifetimes = shared::strip_lifetimes_only(base_path);
                 let base_id = quote! { <#base_path_wo_lifetimes as #sails_path::meta::Identifiable>::INTERFACE_ID };
                 let is_async = fn_builder.is_async();
 
@@ -384,10 +452,16 @@ impl ServiceBuilder<'_> {
                     });
                 } else {
                     let name = &fn_builder.route;
+                    let methods_expr = if shared::has_non_lifetime_path_args(base_path) {
+                        let base_meta = shared::service_meta_module_path(&base_path_wo_lifetimes);
+                        quote! { #base_meta::__SERVICE_METHODS }
+                    } else {
+                        quote! { <#base_path_wo_lifetimes as #sails_path::meta::ServiceMeta>::METHODS }
+                    };
                     match_arms.push(quote! {
                         (id, eid) if id == #base_id && eid == {
                             const ID: u16 = #sails_path::meta::find_id(
-                                <#base_path_wo_lifetimes as #sails_path::meta::ServiceMeta>::METHODS,
+                                #methods_expr,
                                 #name,
                             );
                             ID
@@ -398,9 +472,14 @@ impl ServiceBuilder<'_> {
         }
         // 3. Base service delegation
         let base_delegations = self.base_types.iter().enumerate().map(|(idx, base_type)| {
-            let path_wo_lifetimes = shared::remove_lifetimes(base_type);
+            let path_wo_lifetimes = shared::strip_lifetimes_only(base_type);
+            let base_services_expr = if concrete {
+                quote! { <#service_type_path as #sails_path::meta::ServiceMeta>::BASE_SERVICES }
+            } else {
+                quote! { T::BASE_SERVICES }
+            };
             quote! {
-                (id, eid) if #sails_path::meta::service_has_interface_id(&T::BASE_SERVICES[#idx], id) => {
+                (id, eid) if #sails_path::meta::service_has_interface_id(&#base_services_expr[#idx], id) => {
                     return <<#path_wo_lifetimes as #sails_path::gstd::services::Service>::Exposure as #sails_path::gstd::services::Exposure>::check_asyncness(id, eid);
                 }
             }

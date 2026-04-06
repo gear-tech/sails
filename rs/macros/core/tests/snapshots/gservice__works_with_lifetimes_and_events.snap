@@ -120,7 +120,7 @@ where
 }
 mod my_generic_events_service_meta {
     use super::*;
-    const __SERVICE_INTERFACE_ID: sails_rs::meta::InterfaceId = {
+    pub(crate) const __SERVICE_INTERFACE_ID: sails_rs::meta::InterfaceId = {
         let mut final_hash = sails_rs::keccak_const::Keccak256::new();
         final_hash = final_hash.update(&sails_rs::hash_fn!(command DoThis() -> u32));
         final_hash = final_hash
@@ -128,6 +128,14 @@ mod my_generic_events_service_meta {
         let hash = final_hash.finalize();
         sails_rs::meta::InterfaceId::from_bytes_32(hash)
     };
+    pub(crate) const __SERVICE_METHODS: &'static [sails_rs::meta::MethodMetadata] = &[
+        sails_rs::meta::MethodMetadata {
+            name: "DoThis",
+            entry_id: 0u16,
+            hash: sails_rs::hash_fn!(command DoThis() -> u32),
+            is_async: false,
+        },
+    ];
     impl<'a, T> sails_rs::meta::Identifiable for super::MyGenericEventsService<'a, T>
     where
         T: Clone,
@@ -142,14 +150,7 @@ mod my_generic_events_service_meta {
         type QueriesMeta = QueriesMeta;
         type EventsMeta = EventsMeta;
         const BASE_SERVICES: &'static [sails_rs::meta::BaseServiceMeta] = &[];
-        const METHODS: &'static [sails_rs::meta::MethodMetadata] = &[
-            sails_rs::meta::MethodMetadata {
-                name: "DoThis",
-                entry_id: 0u16,
-                hash: sails_rs::hash_fn!(command DoThis() -> u32),
-                is_async: false,
-            },
-        ];
+        const METHODS: &'static [sails_rs::meta::MethodMetadata] = __SERVICE_METHODS;
         const ASYNC: bool = false;
     }
     sails_rs::invocation_io!(
