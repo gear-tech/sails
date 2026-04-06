@@ -226,7 +226,7 @@ where
 {
     const METHODS: &'static [sails_rs::solidity::MethodExpo] = &[
         (
-            <SomeService as sails_rs::meta::Identifiable>::INTERFACE_ID,
+            <SomeService<T, U> as sails_rs::meta::Identifiable>::INTERFACE_ID,
             0u16,
             "DoThis",
             <<(

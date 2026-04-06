@@ -233,7 +233,7 @@ where
 {
     const METHODS: &'static [sails_rs::solidity::MethodExpo] = &[
         (
-            <MyGenericEventsService as sails_rs::meta::Identifiable>::INTERFACE_ID,
+            <MyGenericEventsService<T> as sails_rs::meta::Identifiable>::INTERFACE_ID,
             0u16,
             "DoThis",
             <<(
