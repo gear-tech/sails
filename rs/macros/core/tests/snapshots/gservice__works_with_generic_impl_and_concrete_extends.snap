@@ -6,10 +6,10 @@ pub struct ChildServiceExposure<T> {
     route_idx: u8,
     inner: T,
 }
-impl<T: MetadataStorage> sails_rs::gstd::services::Exposure
-for ChildServiceExposure<ChildService<T>> {
+impl<T: sails_rs::meta::ServiceMeta> sails_rs::gstd::services::Exposure
+for ChildServiceExposure<T> {
     fn interface_id() -> sails_rs::meta::InterfaceId {
-        <ChildService<T> as sails_rs::meta::Identifiable>::INTERFACE_ID
+        <T as sails_rs::meta::Identifiable>::INTERFACE_ID
     }
     fn route_idx(&self) -> u8 {
         self.route_idx
@@ -18,31 +18,22 @@ for ChildServiceExposure<ChildService<T>> {
         interface_id: sails_rs::meta::InterfaceId,
         entry_id: u16,
     ) -> Option<bool> {
-        if !<ChildService<T> as sails_rs::meta::ServiceMeta>::ASYNC {
+        if !T::ASYNC {
             return Some(false);
         }
         match (interface_id, entry_id) {
-            (
-                id,
-                eid,
-            ) if id == <BaseService<T> as sails_rs::meta::Identifiable>::INTERFACE_ID
-                && eid
-                    == {
-                        const ID: u16 = sails_rs::meta::find_id(
-                            base_service_meta::__SERVICE_METHODS,
-                            "Foo",
-                        );
-                        ID
-                    } => Some(false),
+            (id, 0u16) if id == <T as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+                Some(false)
+            }
             (
                 id,
                 eid,
             ) if sails_rs::meta::service_has_interface_id(
-                &<ChildService<T> as sails_rs::meta::ServiceMeta>::BASE_SERVICES[0usize],
+                &T::BASE_SERVICES[0usize],
                 id,
             ) => {
                 return <<BaseService<
-                    T,
+                    u8,
                 > as sails_rs::gstd::services::Service>::Exposure as sails_rs::gstd::services::Exposure>::check_asyncness(
                     id,
                     eid,
@@ -64,15 +55,15 @@ impl<T> core::ops::DerefMut for ChildServiceExposure<T> {
     }
 }
 #[allow(clippy::from_over_into)]
-impl<T: MetadataStorage> Into<BaseService<T>> for ChildServiceExposure<ChildService<T>> {
-    fn into(self) -> BaseService<T> {
+impl<T: SomeBound> Into<BaseService<u8>> for ChildServiceExposure<ChildService<T>> {
+    fn into(self) -> BaseService<u8> {
         self.inner.into()
     }
 }
-impl<T: MetadataStorage> ChildServiceExposure<ChildService<T>> {
-    #[export(overrides = BaseService<T>)]
+impl<T: SomeBound> ChildServiceExposure<ChildService<T>> {
+    #[export]
     pub fn foo(&self) -> u32 {
-        200
+        0
     }
     pub fn try_handle(
         mut self,
@@ -85,16 +76,11 @@ impl<T: MetadataStorage> ChildServiceExposure<ChildService<T>> {
         match (interface_id, entry_id) {
             (
                 id,
-                eid,
-            ) if id == <BaseService<T> as sails_rs::meta::Identifiable>::INTERFACE_ID
-                && eid
-                    == {
-                        const ID: u16 = sails_rs::meta::find_id(
-                            base_service_meta::__SERVICE_METHODS,
-                            "Foo",
-                        );
-                        ID
-                    } => {
+                0u16,
+            ) if id
+                == <self::ChildService<
+                    T,
+                > as sails_rs::meta::Identifiable>::INTERFACE_ID => {
                 let request: child_service_meta::__FooParams = sails_rs::scale_codec::Decode::decode(
                         &mut input,
                     )
@@ -121,7 +107,7 @@ impl<T: MetadataStorage> ChildServiceExposure<ChildService<T>> {
                 > as sails_rs::meta::ServiceMeta>::BASE_SERVICES[0usize],
                 id,
             ) => {
-                let base_service: BaseService<T> = self.inner.into();
+                let base_service: BaseService<u8> = self.inner.into();
                 return sails_rs::gstd::services::Service::expose(
                         base_service,
                         self.route_idx,
@@ -149,7 +135,7 @@ impl<T: MetadataStorage> ChildServiceExposure<ChildService<T>> {
                 > as sails_rs::meta::ServiceMeta>::BASE_SERVICES[0usize],
                 id,
             ) => {
-                let base_service: BaseService<T> = self.inner.into();
+                let base_service: BaseService<u8> = self.inner.into();
                 return sails_rs::gstd::services::Service::expose(
                         base_service,
                         self.route_idx,
@@ -161,7 +147,7 @@ impl<T: MetadataStorage> ChildServiceExposure<ChildService<T>> {
         }
     }
 }
-impl<T: MetadataStorage> sails_rs::gstd::services::Service for ChildService<T> {
+impl<T: SomeBound> sails_rs::gstd::services::Service for ChildService<T> {
     type Exposure = ChildServiceExposure<Self>;
     fn expose(self, route_idx: u8) -> Self::Exposure {
         Self::Exposure {
@@ -172,61 +158,50 @@ impl<T: MetadataStorage> sails_rs::gstd::services::Service for ChildService<T> {
 }
 mod child_service_meta {
     use super::*;
-    pub(crate) const __SERVICE_INTERFACE_ID: sails_rs::meta::InterfaceId = {
+    const __SERVICE_INTERFACE_ID: sails_rs::meta::InterfaceId = {
         let mut final_hash = sails_rs::keccak_const::Keccak256::new();
+        final_hash = final_hash.update(&sails_rs::hash_fn!(query Foo() -> u32));
         final_hash = final_hash
-            .update(&super::base_service_meta::__SERVICE_INTERFACE_ID.0);
+            .update(
+                &<super::BaseService<u8> as sails_rs::meta::Identifiable>::INTERFACE_ID.0,
+            );
         let hash = final_hash.finalize();
         sails_rs::meta::InterfaceId::from_bytes_32(hash)
     };
-    pub(crate) const __SERVICE_METHODS: &'static [sails_rs::meta::MethodMetadata] = &[];
-    impl<T: MetadataStorage> sails_rs::meta::Identifiable for super::ChildService<T> {
+    impl<T: SomeBound> sails_rs::meta::Identifiable for super::ChildService<T> {
         const INTERFACE_ID: sails_rs::meta::InterfaceId = __SERVICE_INTERFACE_ID;
     }
-    impl<T: MetadataStorage> sails_rs::meta::ServiceMeta for super::ChildService<T> {
+    impl<T: SomeBound> sails_rs::meta::ServiceMeta for super::ChildService<T> {
         type CommandsMeta = CommandsMeta;
         type QueriesMeta = QueriesMeta;
         type EventsMeta = EventsMeta;
         const BASE_SERVICES: &'static [sails_rs::meta::BaseServiceMeta] = &[
-            sails_rs::meta::BaseServiceMeta::new::<super::BaseService<T>>("BaseService"),
+            sails_rs::meta::BaseServiceMeta::new::<super::BaseService<u8>>("BaseService"),
         ];
-        const METHODS: &'static [sails_rs::meta::MethodMetadata] = __SERVICE_METHODS;
+        const METHODS: &'static [sails_rs::meta::MethodMetadata] = &[
+            sails_rs::meta::MethodMetadata {
+                name: "Foo",
+                entry_id: 0u16,
+                hash: sails_rs::hash_fn!(query Foo() -> u32),
+                is_async: false,
+            },
+        ];
         const ASYNC: bool = <super::BaseService<
-            T,
+            u8,
         > as sails_rs::meta::ServiceMeta>::ASYNC;
     }
-    const _: () = {
-        let base_methods = super::base_service_meta::__SERVICE_METHODS;
-        if let Some(method) = sails_rs::meta::find_method_data(
-            base_methods,
-            "Foo",
-            None,
-        ) {
-            let base_name = method.name;
-            if !sails_rs::meta::bytes32_eq(
-                &method.hash,
-                &sails_rs::hash_fn!("query" base_name, () -> u32),
-            ) {
-                core::panic!(
-                    concat!("Override signature mismatch for method `", "Foo", "`")
-                );
-            }
-        } else {
-            core::panic!(concat!("Method `", "Foo", "` not found in base service"));
-        }
-    };
     sails_rs::invocation_io!(
-        pub struct __FooParams {}, interface_id =
-        super::base_service_meta::__SERVICE_INTERFACE_ID, entry_id = { const ID : u16 =
-        sails_rs::meta::find_id(super::base_service_meta::__SERVICE_METHODS, "Foo",); ID
-        },
+        pub struct __FooParams {}, interface_id = __SERVICE_INTERFACE_ID, entry_id =
+        0u16,
     );
     #[derive(sails_rs::TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum CommandsMeta {}
     #[derive(sails_rs::TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
-    pub enum QueriesMeta {}
+    pub enum QueriesMeta {
+        Foo(__FooParams, u32),
+    }
     #[derive(sails_rs::TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum NoEvents {}

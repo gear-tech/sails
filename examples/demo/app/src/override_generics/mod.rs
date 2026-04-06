@@ -60,7 +60,7 @@ impl<T: MetadataStorage> ChildService<T> {
     }
 }
 
-impl<T> From<ChildService<T>> for BaseService<T> {
+impl<T> From<ChildService<T>> for BaseService<u8> {
     fn from(_: ChildService<T>) -> Self {
         BaseService {
             _marker: PhantomData,
@@ -68,9 +68,9 @@ impl<T> From<ChildService<T>> for BaseService<T> {
     }
 }
 
-#[service(extends = BaseService<T>)]
+#[service(extends = BaseService<u8>)]
 impl<T: MetadataStorage> ChildService<T> {
-    #[export(overrides = BaseService<T>)]
+    #[export(overrides = BaseService<u8>)]
     pub fn foo(&self) -> u32 {
         *generic_data().borrow() * 2
     }

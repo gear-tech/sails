@@ -10,8 +10,6 @@ impl ServiceBuilder<'_> {
         let service_type_path = self.type_path;
         let service_type_constraints = self.type_constraints();
 
-        let has_type_generics = shared::has_type_generics(&self.generics);
-
         // TODO [future]: remove the duplicates check for the Sails binary protocol
         let mut base_names = BTreeSet::new();
         let base_services_meta = self.base_types.iter().map(|base_type| {
@@ -61,23 +59,8 @@ impl ServiceBuilder<'_> {
 
         let override_validations = self.generate_override_validations();
 
-        // For services with type generics, child services can't use `<BaseService<T> as Identifiable>`
-        // in a const context. Export pre-computed consts so they can reference them directly.
-        let (interface_id_vis, methods_const, service_methods_value) = if has_type_generics {
-            let methods_const = quote! {
-                pub(crate) const __SERVICE_METHODS: &'static [#sails_path::meta::MethodMetadata] = &[
-                    #( #methods_meta ),*
-                ];
-            };
-            (quote!(pub(crate)), methods_const, quote!(__SERVICE_METHODS))
-        } else {
-            (quote!(), quote!(), quote!(&[ #( #methods_meta ),* ]))
-        };
-
         quote! {
-            #interface_id_vis const __SERVICE_INTERFACE_ID: #sails_path::meta::InterfaceId = #interface_id_computation;
-
-            #methods_const
+            const __SERVICE_INTERFACE_ID: #sails_path::meta::InterfaceId = #interface_id_computation;
 
             impl #generics #sails_path::meta::Identifiable for super:: #service_type_path #service_type_constraints {
                 const INTERFACE_ID: #sails_path::meta::InterfaceId = __SERVICE_INTERFACE_ID;
@@ -90,7 +73,9 @@ impl ServiceBuilder<'_> {
                 const BASE_SERVICES: &'static [#sails_path::meta::BaseServiceMeta] = &[
                     #( #base_services_meta ),*
                 ];
-                const METHODS: &'static [#sails_path::meta::MethodMetadata] = #service_methods_value;
+                const METHODS: &'static [#sails_path::meta::MethodMetadata] = &[
+                    #( #methods_meta ),*
+                ];
                 const ASYNC: bool = #service_meta_asyncness ;
             }
 
@@ -183,15 +168,7 @@ impl ServiceBuilder<'_> {
         let base_services_hash = if !self.base_types.is_empty() {
             let base_service_ids = self.base_types.iter().map(|base_type| {
                 let path_wo_lifetimes = shared::strip_lifetimes_only(base_type);
-                // For generic bases (e.g. BaseService<T>), reference their pub(crate) const
-                // so this non-generic const context doesn't need T in scope.
-                let id_expr = if shared::has_non_lifetime_path_args(base_type) {
-                    let base_meta = shared::service_meta_module_path(&path_wo_lifetimes);
-                    quote!(super::#base_meta::__SERVICE_INTERFACE_ID.0)
-                } else {
-                    quote!(<super:: #path_wo_lifetimes as #sails_path::meta::Identifiable>::INTERFACE_ID.0)
-                };
-                quote!(final_hash = final_hash.update(&#id_expr);)
+                quote!(final_hash = final_hash.update(&<super:: #path_wo_lifetimes as #sails_path::meta::Identifiable>::INTERFACE_ID.0);)
             });
 
             quote!(#(#base_service_ids)*)
@@ -257,16 +234,9 @@ impl ServiceBuilder<'_> {
                     .with_override_name(quote!(base_name))
                     .build();
 
-                let base_methods_expr = if shared::has_non_lifetime_path_args(base_path) {
-                    let base_meta = shared::service_meta_module_path(&base_path_wo_lifetimes);
-                    quote! { super::#base_meta::__SERVICE_METHODS }
-                } else {
-                    quote! { <super::#base_path_wo_lifetimes as #sails_path::meta::ServiceMeta>::METHODS }
-                };
-
                 quote! {
                     const _: () = {
-                        let base_methods = #base_methods_expr;
+                        let base_methods = <super::#base_path_wo_lifetimes as #sails_path::meta::ServiceMeta>::METHODS;
 
                         if let Some(method) = #sails_path::meta::find_method_data(base_methods, #name, #entry_id_arg) {
                             let base_name = method.name;

@@ -427,21 +427,15 @@ fn works_with_all_override_variants() {
 }
 
 #[test]
-fn works_with_overrides_on_generic_base_service() {
-    let args = quote! {
-        extends = BaseService<T>
-    };
+fn works_with_generic_impl_and_concrete_extends() {
+    let args = quote!(extends = BaseService<u8>);
     let input = quote! {
-        impl<T: MetadataStorage> ChildService<T> {
-            #[export(overrides = BaseService<T>)]
-            pub fn foo(&self) -> u32 {
-                200
-            }
+        impl<T: SomeBound> ChildService<T> {
+            #[export]
+            pub fn foo(&self) -> u32 { 0 }
         }
     };
-
     let result = gservice(args, input).to_string();
     let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
-
     insta::assert_snapshot!(result);
 }

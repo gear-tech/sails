@@ -156,6 +156,30 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         );
     }
 
+    // Validate that extends/overrides paths don't reference outer type/const generics.
+    // Use a concrete type instead, e.g. `extends = BaseService<ConcreteStorage>`.
+    let generics = &service_builder.generics;
+    for base_path in service_builder.base_types {
+        if shared::path_uses_outer_type_or_const_generics(base_path, generics) {
+            abort!(
+                base_path,
+                "generic type parameters are not allowed in `extends` paths; \
+                 use a concrete type instead, e.g. `extends = BaseService<ConcreteStorage>`"
+            );
+        }
+    }
+    for handler in &service_builder.service_handlers {
+        if let Some(override_path) = &handler.overrides
+            && shared::path_uses_outer_type_or_const_generics(override_path, generics)
+        {
+            abort!(
+                override_path,
+                "generic type parameters are not allowed in `overrides` paths; \
+                 use a concrete type instead, e.g. `overrides = BaseService<ConcreteStorage>`"
+            );
+        }
+    }
+
     let meta_module = service_builder.meta_module();
 
     let exposure_struct = service_builder.exposure_struct();
@@ -257,35 +281,23 @@ impl FnBuilder<'_> {
         {
             let base_path_wo_lifetimes = shared::strip_lifetimes_only(base_path);
             let name = &self.route;
-
-            let (interface_id_expr, methods_expr) = if shared::has_non_lifetime_path_args(base_path)
-            {
-                let base_meta = shared::service_meta_module_path(&base_path_wo_lifetimes);
-                (
-                    quote! { super::#base_meta::__SERVICE_INTERFACE_ID },
-                    quote! { super::#base_meta::__SERVICE_METHODS },
-                )
-            } else {
-                (
-                    quote! { <super::#base_path_wo_lifetimes as #sails_path::meta::Identifiable>::INTERFACE_ID },
-                    quote! { <super::#base_path_wo_lifetimes as #sails_path::meta::ServiceMeta>::METHODS },
-                )
-            };
-
             let entry_id_check = if let Some(id) = self.override_entry_id {
                 quote! { #id }
             } else {
                 quote! {
                     {
                         const ID: u16 = #sails_path::meta::find_id(
-                            #methods_expr,
+                            <super::#base_path_wo_lifetimes as #sails_path::meta::ServiceMeta>::METHODS,
                             #name,
                         );
                         ID
                     }
                 }
             };
-            (interface_id_expr, entry_id_check)
+            (
+                quote! { <super::#base_path_wo_lifetimes as #sails_path::meta::Identifiable>::INTERFACE_ID },
+                entry_id_check,
+            )
         } else {
             let entry_id = &self.entry_id;
             (quote! { #own_interface_id }, quote! { #entry_id })
