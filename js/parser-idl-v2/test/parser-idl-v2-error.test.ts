@@ -1,6 +1,7 @@
+import { SailsIdlParser } from '..';
+
 describe('parser-v2 error handling', () => {
   test('throws on invalid pointer from wasm', async () => {
-    const { SailsIdlParser } = await import('../src/parser.js');
     const parser: any = new SailsIdlParser();
 
     parser._memory = new WebAssembly.Memory({ initial: 1 });
@@ -16,7 +17,6 @@ describe('parser-v2 error handling', () => {
   });
 
   test('throws on invalid IDL', async () => {
-    const { SailsIdlParser } = await import('../src/parser.js');
     const parser: any = new SailsIdlParser();
     await parser.init();
 
