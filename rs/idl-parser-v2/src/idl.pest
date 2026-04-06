@@ -9,9 +9,9 @@ StrToEol     = @{ (!NEWLINE ~ ANY)* }
 ServiceIdent = @{ Ident ~ ("@0x" ~ HEX_DIGIT+)? }
 
 // ---------- Docs & Annotations ----------
-GlobalAnn = { WHITESPACE* ~ "!@" ~ AnnKey ~ (":" ~ StrToEol)? }
-LocalAnn  = { WHITESPACE* ~ "@" ~ AnnKey ~ (":" ~ StrToEol)? }
-DocLine   = ${ WHITE_SPACE* ~ "///" ~ StrToEol }
+GlobalAnn = ${ WHITESPACE* ~ "!@" ~ AnnKey ~ (":" ~ StrToEol)? }
+LocalAnn  = ${ "@" ~ AnnKey ~ (":" ~ StrToEol)? }
+DocLine   = ${ "///" ~ StrToEol }
 
 DocsAndAnnotations = _{ WHITESPACE* ~ (DocLine | LocalAnn)+ }
 

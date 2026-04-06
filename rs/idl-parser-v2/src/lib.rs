@@ -576,6 +576,7 @@ fn parse_docs_and_annotations(pairs: &mut Pairs<Rule>) -> Result<(Vec<String>, V
                             d.as_str()
                                 .strip_prefix(' ')
                                 .unwrap_or(d.as_str())
+                                .trim_end()
                                 .to_string(),
                         );
                     }
