@@ -60,10 +60,10 @@ impl ServiceBuilder<'_> {
         let override_validations = self.generate_override_validations();
 
         quote! {
-            const __SERVICE_INTERFACE_ID: #sails_path::meta::InterfaceId = #interface_id_computation;
+            const __INTERFACE_ID: #sails_path::meta::InterfaceId = #interface_id_computation;
 
             impl #generics #sails_path::meta::Identifiable for super:: #service_type_path #service_type_constraints {
-                const INTERFACE_ID: #sails_path::meta::InterfaceId = __SERVICE_INTERFACE_ID;
+                const INTERFACE_ID: #sails_path::meta::InterfaceId = __INTERFACE_ID;
             }
 
             impl #generics #sails_path::meta::ServiceMeta for super:: #service_type_path #service_type_constraints {
@@ -90,7 +90,7 @@ impl ServiceBuilder<'_> {
 
         let no_events_type = Path::from(Ident::new("NoEvents", Span::call_site()));
         let events_type = self.events_type.unwrap_or(&no_events_type);
-        let interface_id_ident = quote!(__SERVICE_INTERFACE_ID);
+        let interface_id_ident = quote!(__INTERFACE_ID);
 
         let invocation_params_structs = self
             .service_handlers
