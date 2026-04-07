@@ -822,3 +822,20 @@ async fn validator_even_works() {
     let res = validator_client.validate_even(7).await.unwrap();
     assert_eq!(res, Err(()));
 }
+
+#[tokio::test]
+async fn override_generics_foo_is_overridden() {
+    use demo_client::base_service::BaseService as _;
+
+    let (env, code_id, _gas_limit) = create_env();
+    let demo_program = env.deploy(code_id, vec![]).default().await.unwrap();
+
+    let client = demo_program.override_generics();
+
+    // Set a value via the base service
+    client.base_service().set_value(10).await.unwrap();
+
+    // ChildService overrides foo() to return value * 2
+    let result = client.base_service().foo().await.unwrap();
+    assert_eq!(result, 20);
+}
