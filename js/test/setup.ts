@@ -2,7 +2,7 @@ import * as fs from 'node:fs';
 import config from '../config.json' with { type: 'json' };
 import { Sails } from '..';
 import { SailsIdlParser } from 'sails-js-parser';
-import { ProjectBuilder } from '../cli/src/generate/index.ts';
+import { ProjectBuilder } from '../cli/src/generate/index.js';
 
 const USE_LOCAL_BUILD = process.env.USE_LOCAL_BUILD === 'true';
 

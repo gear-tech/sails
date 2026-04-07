@@ -68,6 +68,8 @@
     "publish": "pnpm -r publish --access public",
     "lint": "npx eslint -c eslint.config.mjs",
     "lint:fix": "npx eslint --fix",
+    "lint:bun": "bun x eslint -c eslint.config.mjs",
+    "lint:bun:fix": "bun x eslint --fix",
     "format": "prettier --write \"js/**/src/**/*.ts\"",
     "clean": "rm -rf node_modules js/{.,*}/node_modules js/cli/build js/{parser,parser-idl-v2,.,types,util}/lib js/**/*.tgz pnpm-lock.yaml"
   }
