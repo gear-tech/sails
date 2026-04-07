@@ -1,35 +1,9 @@
 import { readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import config from '../config.json' with { type: 'json' };
+import { buildEsmCjs, runTsc } from '../build-utils';
 
-const TSC_BIN = resolve(import.meta.dir, '../../node_modules/typescript/bin/tsc');
 const WASM_BYTES_PATH = resolve(import.meta.dir, 'src/wasm-bytes.ts');
-
-function ensureBuild(result: BuildOutput, label: string) {
-  if (result.success) {
-    return;
-  }
-
-  for (const log of result.logs) {
-    console.error(log);
-  }
-
-  throw new Error(`${label} build failed`);
-}
-
-async function runTsc(args: string[]) {
-  const proc = Bun.spawn([process.execPath, TSC_BIN, ...args], {
-    cwd: import.meta.dir,
-    stdout: 'inherit',
-    stderr: 'inherit',
-  });
-
-  const exitCode = await proc.exited;
-
-  if (exitCode !== 0) {
-    throw new Error(`tsc exited with code ${exitCode}`);
-  }
-}
 
 async function getBase64Parser() {
   const version = config['sails-rs'];
@@ -66,28 +40,7 @@ try {
   // Bun bundles local imports, so wasm-bytes must contain the real payload before bundling.
   writeFileSync(WASM_BYTES_PATH, `export default ${JSON.stringify(await getBase64Parser())};\n`);
 
-  ensureBuild(
-    await Bun.build({
-      entrypoints: ['src/index.ts'],
-      outdir: 'lib',
-      format: 'esm',
-      target: 'node',
-      external: ['sails-js-types'],
-    }),
-    'ESM',
-  );
-
-  ensureBuild(
-    await Bun.build({
-      entrypoints: ['src/index.ts'],
-      outdir: 'lib/cjs',
-      format: 'cjs',
-      target: 'node',
-      naming: '[dir]/[name].cjs',
-      external: ['sails-js-types'],
-    }),
-    'CJS',
-  );
+  await buildEsmCjs(['src/index.ts'], ['sails-js-types']);
 
   await runTsc(['-p', 'tsconfig.build.json', '--emitDeclarationOnly', '--outDir', 'lib']);
 } finally {
