@@ -378,6 +378,12 @@ impl MyServiceC {
 }
 ```
 
+> **NOTE**
+>
+> Generic services must declare a default type parameter, for example `BaseService<T = u8>`. `Sails`
+> uses that default type when calculating the service `INTERFACE_ID`, so a generic service without a default type
+> cannot participate in interface matching.
+
 #### Overriding Methods
 
 When extending services, you can override methods from the base service. Sails supports three ways to match an overriding method with a base method:

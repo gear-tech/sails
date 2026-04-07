@@ -168,6 +168,20 @@ service Chain@0x01fcbe183e2199b0 {
     }
 }
 
+service BaseService@0x26dda2d102628ccb {
+    functions {
+        @query
+        Foo() -> u32;
+        SetValue(value: u32);
+    }
+}
+
+service OverrideGenerics@0xa33febc87c18925b {
+    extends {
+        BaseService@0x26dda2d102628ccb,
+    }
+}
+
 program DemoClient {
     constructors {
         /// Program constructor (called once at the very beginning of the program lifetime)
@@ -186,5 +200,6 @@ program DemoClient {
         Validator@0x4e78bafffdb4fb1c,
         Chaos@0xf0c8c80dfabf72d5,
         Chain@0x01fcbe183e2199b0,
+        OverrideGenerics@0xa33febc87c18925b,
     }
 }
