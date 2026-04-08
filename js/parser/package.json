@@ -35,6 +35,7 @@
   "scripts": {
     "prebuild": "rm -rf lib",
     "build": "rollup --config rollup.config.js",
+    "build:bun": "bun run build.ts",
     "pack-build": "pnpm pack --out ../sails-js-parser.tgz"
   },
   "optionalDependencies": {
