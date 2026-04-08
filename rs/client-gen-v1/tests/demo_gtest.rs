@@ -5,16 +5,58 @@ mod demo_client {
 
 use demo_client::*;
 use sails_rs::{client::*, futures::StreamExt as _, gtest::System, prelude::*};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+    process::Command,
+    sync::OnceLock,
+};
 
 const ACTOR_ID: u64 = 42;
-const DEMO_WASM_BINARY: &[u8] = include_bytes!("fixtures/demo-v0.10.3.wasm");
+const DEMO_WASM_URL: &str =
+    "https://github.com/gear-tech/sails/releases/download/rs%2Fv0.10.3/demo.wasm";
+const DEMO_WASM_FILE: &str = "demo-v0.10.3.wasm";
+
+fn demo_wasm_path() -> &'static Path {
+    static DEMO_WASM_PATH: OnceLock<PathBuf> = OnceLock::new();
+
+    DEMO_WASM_PATH.get_or_init(|| {
+        let dir = std::env::temp_dir().join("sails-client-gen-v1-tests");
+        fs::create_dir_all(&dir).expect("create demo wasm cache dir");
+
+        let path = dir.join(DEMO_WASM_FILE);
+        if !path.exists() {
+            download_demo_wasm(&path);
+        }
+        path
+    })
+}
+
+fn download_demo_wasm(path: &Path) {
+    let curl = ["curl.exe", "curl"]
+        .into_iter()
+        .find(|bin| Command::new(bin).arg("--version").output().is_ok())
+        .expect("curl is required to download the demo wasm fixture");
+
+    let status = Command::new(curl)
+        .args(["-L", "--fail", "--silent", "--show-error", "-o"])
+        .arg(path)
+        .arg(DEMO_WASM_URL)
+        .status()
+        .expect("spawn curl");
+
+    assert!(
+        status.success(),
+        "curl failed to download demo wasm from {DEMO_WASM_URL}"
+    );
+}
 
 fn create_env() -> (GtestEnv, CodeId) {
     let system = System::new();
     system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails_rs=debug");
     system.mint_to(ACTOR_ID, 100_000_000_000_000);
 
-    let code_id = system.submit_code(DEMO_WASM_BINARY);
+    let code_id = system.submit_code_file(demo_wasm_path());
     let env = GtestEnv::new(system, ACTOR_ID.into());
     (env, code_id)
 }
