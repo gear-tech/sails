@@ -275,7 +275,7 @@ impl GearEnv for GtestEnv {
     type MessageState = ReplyReceiver;
 }
 
-impl<T: ServiceCall> PendingCall<T, GtestEnv> {
+impl<T: ServiceCall<R>, R: RouteHeader> PendingCall<T, GtestEnv, R> {
     pub fn send_one_way(&mut self) -> Result<MessageId, GtestError> {
         if self.state.is_some() {
             panic!("{PENDING_CALL_INVALID_STATE}");
@@ -304,7 +304,7 @@ impl<T: ServiceCall> PendingCall<T, GtestEnv> {
                     ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic)
                 ) =>
             {
-                if let Ok(reply) = T::decode_error(self.route_idx, &payload) {
+                if let Ok(reply) = T::decode_error(&self.route, &payload) {
                     return Ok(reply);
                 }
                 return Err(GtestError::ReplyHasError(reason, payload));
@@ -313,12 +313,12 @@ impl<T: ServiceCall> PendingCall<T, GtestEnv> {
         };
 
         // Decode reply
-        T::decode_reply(self.route_idx, reply_bytes)
+        T::decode_reply(&self.route, reply_bytes)
             .map_err(|err| TestError::ScaleCodecError(err).into())
     }
 }
 
-impl<T: ServiceCall> Future for PendingCall<T, GtestEnv> {
+impl<T: ServiceCall<R>, R: RouteHeader> Future for PendingCall<T, GtestEnv, R> {
     type Output = Result<T::Output, <GtestEnv as GearEnv>::Error>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -345,7 +345,7 @@ impl<T: ServiceCall> Future for PendingCall<T, GtestEnv> {
         // Poll reply receiver
         match ready!(reply_receiver.poll(cx)) {
             Ok(res) => match res {
-                Ok(payload) => match T::decode_reply(self.route_idx, payload) {
+                Ok(payload) => match T::decode_reply(&self.route, payload) {
                     Ok(reply) => Poll::Ready(Ok(reply)),
                     Err(err) => Poll::Ready(Err(TestError::ScaleCodecError(err).into())),
                 },
@@ -353,7 +353,7 @@ impl<T: ServiceCall> Future for PendingCall<T, GtestEnv> {
                     if matches!(
                         reason,
                         ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic)
-                    ) && let Ok(reply) = T::decode_error(self.route_idx, &payload)
+                    ) && let Ok(reply) = T::decode_error(&self.route, &payload)
                     {
                         return Poll::Ready(Ok(reply));
                     }
@@ -366,7 +366,7 @@ impl<T: ServiceCall> Future for PendingCall<T, GtestEnv> {
     }
 }
 
-impl<A, T: ServiceCall> PendingCtor<A, T, GtestEnv> {
+impl<A, T: ServiceCall<R>, R: RouteHeader> PendingCtor<A, T, GtestEnv, R> {
     pub fn create_program(mut self) -> Result<Self, GtestError> {
         if self.state.is_some() {
             panic!("{PENDING_CTOR_INVALID_STATE}");
@@ -376,7 +376,7 @@ impl<A, T: ServiceCall> PendingCtor<A, T, GtestEnv> {
             .args
             .take()
             .unwrap_or_else(|| panic!("{PENDING_CTOR_INVALID_STATE}"));
-        let payload = T::encode_call(0, &args);
+        let payload = T::encode_call(&self.route, &args);
         let params = self.params.take().unwrap_or_default();
         let salt = self.salt.take().unwrap_or_default();
         let send_res = self
@@ -397,9 +397,10 @@ impl<A, T: ServiceCall> PendingCtor<A, T, GtestEnv> {
     }
 }
 
-impl<A, T> Future for PendingCtor<A, T, GtestEnv>
+impl<A, T, R> Future for PendingCtor<A, T, GtestEnv, R>
 where
-    T: ServiceCall,
+    T: ServiceCall<R>,
+    R: RouteHeader,
     T::Output: PendingCtorOutput<A, GtestEnv>,
 {
     type Output =
@@ -412,7 +413,7 @@ where
                 .args
                 .take()
                 .unwrap_or_else(|| panic!("{PENDING_CTOR_INVALID_STATE}"));
-            let payload = T::encode_call(0, &args);
+            let payload = T::encode_call(&self.route, &args);
             let params = self.params.take().unwrap_or_default();
             let salt = self.salt.take().unwrap_or_default();
             let send_res = self
@@ -430,6 +431,7 @@ where
                 }
             }
         }
+        let route = self.route.clone();
         let this = self.as_mut().project();
         let reply_receiver = this
             .state
@@ -443,7 +445,7 @@ where
                         .program_id
                         .take()
                         .unwrap_or_else(|| panic!("{PENDING_CTOR_INVALID_STATE}"));
-                    let reply = T::decode_reply(0, payload)
+                    let reply = T::decode_reply(&route, payload)
                         .map_err(|err| GtestError::Env(TestError::ScaleCodecError(err)))?;
                     Poll::Ready(Ok(reply.map_result(this.env.clone(), program_id)))
                 }
@@ -451,7 +453,7 @@ where
                     if matches!(
                         reason,
                         ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic)
-                    ) && let Ok(reply) = T::decode_error(0, &payload)
+                    ) && let Ok(reply) = T::decode_error(&route, &payload)
                     {
                         Poll::Ready(Ok(reply.map_result(this.env.clone(), ActorId::zero())))
                     } else {

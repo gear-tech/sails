@@ -71,19 +71,19 @@ impl<'ast> Visitor<'ast> for CtorGenerator<'_> {
 
         quote_in! { self.trait_ctors_tokens =>
             $['\r']
-            fn $fn_name_snake (self, $params_with_types) -> $(self.sails_path)::client::PendingCtor<$(self.service_name)Program, io::$fn_name, Self::Env>;
+            fn $fn_name_snake (self, $params_with_types) -> $(self.sails_path)::client::PendingCtor<$(self.service_name)Program, io::$fn_name, Self::Env, $(self.sails_path)::client::RouteName>;
         };
 
         quote_in! { self.ctor_tokens =>
             $['\r']
-            fn $fn_name_snake (self, $params_with_types) -> $(self.sails_path)::client::PendingCtor<$(self.service_name)Program, io::$fn_name, Self::Env> {
-                self.pending_ctor($args)
+            fn $fn_name_snake (self, $params_with_types) -> $(self.sails_path)::client::PendingCtor<$(self.service_name)Program, io::$fn_name, Self::Env, $(self.sails_path)::client::RouteName> {
+                self.pending_ctor_v1($args)
             }
         };
 
         let params_with_types_super = &fn_args_with_types_path(func.params(), "super");
         quote_in! { self.io_tokens =>
-            $(self.sails_path)::io_struct_impl!($fn_name ($params_with_types_super) -> ());
+            $(self.sails_path)::io_struct_impl_v1!($fn_name ($params_with_types_super) -> ());
         };
     }
 }

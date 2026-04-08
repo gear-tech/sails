@@ -48,11 +48,20 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator<'_> {
         };
 
         quote_in! { self.tokens =>
-            impl $(self.sails_path)::client::Event for $events_name {
-                const EVENT_NAMES: &'static [Route] = &[$event_names];
+            impl $(self.sails_path)::client::EventNamesV1 for $events_name {
+                const EVENT_NAMES: &'static [$(self.sails_path)::client::Route] = &[$event_names];
             }
 
-            impl $(self.sails_path)::client::ServiceWithEvents for $(self.service_name)Impl {
+            impl $(self.sails_path)::client::Event<$(self.sails_path)::client::RouteName> for $events_name {
+                fn decode_event(
+                    _route: &$(self.sails_path)::client::RouteName,
+                    payload: impl AsRef<[u8]>,
+                ) -> Result<Self, $(self.sails_path)::scale_codec::Error> {
+                    $(self.sails_path)::client::decode_event_v1::<Self>(payload)
+                }
+            }
+
+            impl $(self.sails_path)::client::ServiceWithEvents<$(self.sails_path)::client::RouteName> for $(self.service_name)Impl {
                 type Event = $events_name;
             }
         }

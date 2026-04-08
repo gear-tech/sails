@@ -89,7 +89,7 @@ impl GearEnv for GclientEnv {
     type MessageState = Pin<Box<dyn Future<Output = Result<(ActorId, Vec<u8>), GclientError>>>>;
 }
 
-impl<T: ServiceCall> PendingCall<T, GclientEnv> {
+impl<T: ServiceCall<R>, R: RouteHeader> PendingCall<T, GclientEnv, R> {
     pub async fn send_one_way(&mut self) -> Result<MessageId, GclientError> {
         let (payload, params) = self.take_encoded_args_and_params();
         self.env
@@ -110,7 +110,7 @@ impl<T: ServiceCall> PendingCall<T, GclientEnv> {
 
         // Calculate reply
         match query_calculate_reply(&self.env.api, self.destination, payload, params).await {
-            Ok(reply_bytes) => match T::decode_reply(self.route_idx, reply_bytes) {
+            Ok(reply_bytes) => match T::decode_reply(&self.route, reply_bytes) {
                 Ok(reply) => Ok(reply),
                 Err(err) => Err(gclient::Error::Codec(err).into()),
             },
@@ -118,7 +118,7 @@ impl<T: ServiceCall> PendingCall<T, GclientEnv> {
                 if matches!(
                     reason,
                     ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic)
-                ) && let Ok(reply) = T::decode_error(self.route_idx, &payload)
+                ) && let Ok(reply) = T::decode_error(&self.route, &payload)
                 {
                     Ok(reply)
                 } else {
@@ -130,7 +130,7 @@ impl<T: ServiceCall> PendingCall<T, GclientEnv> {
     }
 }
 
-impl<T: ServiceCall> Future for PendingCall<T, GclientEnv> {
+impl<T: ServiceCall<R>, R: RouteHeader> Future for PendingCall<T, GclientEnv, R> {
     type Output = Result<T::Output, <GclientEnv as GearEnv>::Error>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -149,7 +149,7 @@ impl<T: ServiceCall> Future for PendingCall<T, GclientEnv> {
             .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
         // Poll message future
         match ready!(message_future.poll(cx)) {
-            Ok((_, payload)) => match T::decode_reply(self.route_idx, payload) {
+            Ok((_, payload)) => match T::decode_reply(&self.route, payload) {
                 Ok(decoded) => Poll::Ready(Ok(decoded)),
                 Err(err) => Poll::Ready(Err(gclient::Error::Codec(err).into())),
             },
@@ -157,7 +157,7 @@ impl<T: ServiceCall> Future for PendingCall<T, GclientEnv> {
                 if matches!(
                     reason,
                     ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic)
-                ) && let Ok(reply) = T::decode_error(self.route_idx, &payload)
+                ) && let Ok(reply) = T::decode_error(&self.route, &payload)
                 {
                     Poll::Ready(Ok(reply))
                 } else {
@@ -169,9 +169,10 @@ impl<T: ServiceCall> Future for PendingCall<T, GclientEnv> {
     }
 }
 
-impl<A, T> Future for PendingCtor<A, T, GclientEnv>
+impl<A, T, R> Future for PendingCtor<A, T, GclientEnv, R>
 where
-    T: ServiceCall,
+    T: ServiceCall<R>,
+    R: RouteHeader,
     T::Output: PendingCtorOutput<A, GclientEnv>,
 {
     type Output = Result<
@@ -188,7 +189,7 @@ where
                 .args
                 .take()
                 .unwrap_or_else(|| panic!("{PENDING_CTOR_INVALID_STATE}"));
-            let payload = T::encode_call(0, &args);
+            let payload = T::encode_call(&self.route, &args);
 
             let create_program_future =
                 create_program(self.env.api.clone(), self.code_id, salt, payload, params);
@@ -203,7 +204,7 @@ where
         // Poll message future
         match ready!(message_future.poll(cx)) {
             Ok((program_id, payload)) => {
-                let reply = T::decode_reply(0, payload)
+                let reply = T::decode_reply(&self.route, payload)
                     .map_err(|err| GclientError::Env(gclient::Error::Codec(err)))?;
                 Poll::Ready(Ok(reply.map_result(this.env.clone(), program_id)))
             }
@@ -211,7 +212,7 @@ where
                 if matches!(
                     reason,
                     ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic)
-                ) && let Ok(reply) = T::decode_error(0, &payload)
+                ) && let Ok(reply) = T::decode_error(&self.route, &payload)
                 {
                     Poll::Ready(Ok(reply.map_result(this.env.clone(), ActorId::zero())))
                 } else {

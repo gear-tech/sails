@@ -43,7 +43,7 @@ impl GstdParams {
     }
 }
 
-impl<T: ServiceCall> PendingCall<T, GstdEnv> {
+impl<T: ServiceCall<R>, R: RouteHeader> PendingCall<T, GstdEnv, R> {
     /// Set `redirect_on_exit` flag to `true``
     ///
     /// This flag is used to redirect a message to a new program when the target program exits
@@ -103,7 +103,7 @@ impl GstdEnv {
     }
 }
 
-impl<T: ServiceCall> PendingCall<T, GstdEnv> {
+impl<T: ServiceCall<R>, R: RouteHeader> PendingCall<T, GstdEnv, R> {
     pub fn send_one_way(&mut self) -> Result<MessageId, Error> {
         let (payload, params) = self.take_encoded_args_and_params();
         self.env.send_one_way(self.destination, payload, params)
@@ -181,7 +181,7 @@ const _: () = {
         }
     }
 
-    impl<T: ServiceCall> PendingCall<T, GstdEnv> {
+    impl<T: ServiceCall<R>, R: RouteHeader> PendingCall<T, GstdEnv, R> {
         /// Sends the message and returns the `PendingCall` for subsequent `poll`/`await`.
         pub fn send_for_reply(mut self) -> Result<Self, Error> {
             if self.state.is_some() {
@@ -191,7 +191,7 @@ const _: () = {
                 .args
                 .take()
                 .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
-            let payload = T::encode_call(self.route_idx, &args);
+            let payload = T::encode_call(&self.route, &args);
             let params = self.params.get_or_insert_default();
             let destination = self.destination;
             let future = send_for_reply(destination, payload, params)?;
@@ -200,7 +200,7 @@ const _: () = {
         }
     }
 
-    impl<T: ServiceCall> Future for PendingCall<T, GstdEnv> {
+    impl<T: ServiceCall<R>, R: RouteHeader> Future for PendingCall<T, GstdEnv, R> {
         type Output = Result<T::Output, <GstdEnv as GearEnv>::Error>;
 
         fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -209,7 +209,7 @@ const _: () = {
                     .args
                     .as_ref()
                     .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
-                let payload = T::encode_call(self.route_idx, &args);
+                let payload = T::encode_call(&self.route, &args);
                 let destination = self.destination;
                 let params = self.params.get_or_insert_default();
                 // Send message
@@ -230,14 +230,14 @@ const _: () = {
             match output {
                 // ok reply
                 Ok(payload) => {
-                    let res = T::decode_reply(self.route_idx, payload).map_err(Error::Decode)?;
+                    let res = T::decode_reply(&self.route, payload).map_err(Error::Decode)?;
                     Poll::Ready(Ok(res))
                 }
                 // error reply
                 Err(gstd::errors::Error::ErrorReply(
                     error_payload,
                     ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic),
-                )) => match T::decode_error(self.route_idx, &error_payload.0) {
+                )) => match T::decode_error(&self.route, &error_payload.0) {
                     Ok(reply) => Poll::Ready(Ok(reply)),
                     Err(_) => Poll::Ready(Err(gstd::errors::Error::ErrorReply(
                         error_payload,
@@ -293,9 +293,10 @@ const _: () = {
         }
     }
 
-    impl<A, T> Future for PendingCtor<A, T, GstdEnv>
+    impl<A, T, R> Future for PendingCtor<A, T, GstdEnv, R>
     where
-        T: ServiceCall,
+        T: ServiceCall<R>,
+        R: RouteHeader,
         T::Output: PendingCtorOutput<A, GstdEnv>,
     {
         type Output = Result<
@@ -313,7 +314,7 @@ const _: () = {
                     .args
                     .as_ref()
                     .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
-                let payload = T::encode_call(0, args);
+                let payload = T::encode_call(&self.route, args);
                 // Send message
                 #[cfg(not(feature = "ethexe"))]
                 let future = if let Some(gas_limit) = params.gas_limit {
@@ -354,13 +355,13 @@ const _: () = {
                 // Poll create program future
                 match ready!(future.poll(cx)) {
                     Ok((program_id, payload)) => {
-                        let reply = T::decode_reply(0, payload).map_err(Error::Decode)?;
+                        let reply = T::decode_reply(&self.route, payload).map_err(Error::Decode)?;
                         Poll::Ready(Ok(reply.map_result(this.env.clone(), program_id)))
                     }
                     Err(gstd::errors::Error::ErrorReply(
                         error_payload,
                         ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic),
-                    )) => match T::decode_error(0, &error_payload.0) {
+                    )) => match T::decode_error(&self.route, &error_payload.0) {
                         Ok(reply) => {
                             Poll::Ready(Ok(reply.map_result(this.env.clone(), ActorId::zero())))
                         }
@@ -397,6 +398,7 @@ pin_project_lite::pin_project! {
 
 #[cfg(not(target_arch = "wasm32"))]
 const _: () = {
+    // from_output / from_result only make sense with a concrete RouteIdx (v2)
     impl<T: ServiceCall> PendingCall<T, GstdEnv>
     where
         T::Output: Encode + Decode,
@@ -413,7 +415,7 @@ const _: () = {
             PendingCall {
                 env: GstdEnv,
                 destination: ActorId::zero(),
-                route_idx: 0,
+                route: RouteIdx(0),
                 params: None,
                 args: None,
                 state: Some(future::ready(res.map(|v| v.encode()))),
@@ -455,9 +457,10 @@ const _: () = {
         }
     }
 
-    impl<A, T> Future for PendingCtor<A, T, GstdEnv>
+    impl<A, T, R> Future for PendingCtor<A, T, GstdEnv, R>
     where
-        T: ServiceCall,
+        T: ServiceCall<R>,
+        R: RouteHeader,
         T::Output: PendingCtorOutput<A, GstdEnv>,
     {
         type Output = Result<
@@ -474,7 +477,7 @@ const _: () = {
                         .unwrap_or_else(|| panic!("{PENDING_CTOR_INVALID_STATE}"));
                     let env = self.env.clone();
                     // Decode success reply from empty payload for simple ctors
-                    let reply = T::decode_reply(0, []).map_err(Error::Decode)?;
+                    let reply = T::decode_reply(&self.route, []).map_err(Error::Decode)?;
                     Poll::Ready(Ok(reply.map_result(env, program_id)))
                 }
                 None => panic!("{PENDING_CTOR_INVALID_STATE}"),

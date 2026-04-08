@@ -345,11 +345,18 @@ pub mod canvas {
             }
         }
 
-        impl my_crate::sails::client::Event for CanvasEvents {}
-
         impl my_crate::sails::client::Identifiable for CanvasEvents {
             const INTERFACE_ID: my_crate::sails::InterfaceId =
                 <CanvasImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID;
+        }
+
+        impl my_crate::sails::client::Event for CanvasEvents {
+            fn decode_event(
+                route: &my_crate::sails::client::RouteIdx,
+                payload: impl AsRef<[u8]>,
+            ) -> Result<Self, my_crate::sails::scale_codec::Error> {
+                my_crate::sails::client::decode_event_v2::<Self>(route.0, payload)
+            }
         }
 
         impl my_crate::sails::client::ServiceWithEvents for CanvasImpl {
@@ -460,11 +467,18 @@ pub mod counter {
             }
         }
 
-        impl my_crate::sails::client::Event for CounterEvents {}
-
         impl my_crate::sails::client::Identifiable for CounterEvents {
             const INTERFACE_ID: my_crate::sails::InterfaceId =
                 <CounterImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID;
+        }
+
+        impl my_crate::sails::client::Event for CounterEvents {
+            fn decode_event(
+                route: &my_crate::sails::client::RouteIdx,
+                payload: impl AsRef<[u8]>,
+            ) -> Result<Self, my_crate::sails::scale_codec::Error> {
+                my_crate::sails::client::decode_event_v2::<Self>(route.0, payload)
+            }
         }
 
         impl my_crate::sails::client::ServiceWithEvents for CounterImpl {
@@ -545,11 +559,18 @@ pub mod dog {
             }
         }
 
-        impl my_crate::sails::client::Event for DogEvents {}
-
         impl my_crate::sails::client::Identifiable for DogEvents {
             const INTERFACE_ID: my_crate::sails::InterfaceId =
                 <DogImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID;
+        }
+
+        impl my_crate::sails::client::Event for DogEvents {
+            fn decode_event(
+                route: &my_crate::sails::client::RouteIdx,
+                payload: impl AsRef<[u8]>,
+            ) -> Result<Self, my_crate::sails::scale_codec::Error> {
+                my_crate::sails::client::decode_event_v2::<Self>(route.0, payload)
+            }
         }
 
         impl my_crate::sails::client::ServiceWithEvents for DogImpl {
@@ -808,11 +829,18 @@ pub mod value_fee {
             }
         }
 
-        impl my_crate::sails::client::Event for ValueFeeEvents {}
-
         impl my_crate::sails::client::Identifiable for ValueFeeEvents {
             const INTERFACE_ID: my_crate::sails::InterfaceId =
                 <ValueFeeImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID;
+        }
+
+        impl my_crate::sails::client::Event for ValueFeeEvents {
+            fn decode_event(
+                route: &my_crate::sails::client::RouteIdx,
+                payload: impl AsRef<[u8]>,
+            ) -> Result<Self, my_crate::sails::scale_codec::Error> {
+                my_crate::sails::client::decode_event_v2::<Self>(route.0, payload)
+            }
         }
 
         impl my_crate::sails::client::ServiceWithEvents for ValueFeeImpl {
@@ -883,11 +911,18 @@ pub mod pausable {
             }
         }
 
-        impl my_crate::sails::client::Event for PausableEvents {}
-
         impl my_crate::sails::client::Identifiable for PausableEvents {
             const INTERFACE_ID: my_crate::sails::InterfaceId =
                 <PausableImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID;
+        }
+
+        impl my_crate::sails::client::Event for PausableEvents {
+            fn decode_event(
+                route: &my_crate::sails::client::RouteIdx,
+                payload: impl AsRef<[u8]>,
+            ) -> Result<Self, my_crate::sails::scale_codec::Error> {
+                my_crate::sails::client::decode_event_v2::<Self>(route.0, payload)
+            }
         }
 
         impl my_crate::sails::client::ServiceWithEvents for PausableImpl {
@@ -1077,11 +1112,18 @@ pub mod service_with_events {
             }
         }
 
-        impl my_crate::sails::client::Event for ServiceWithEventsEvents {}
-
         impl my_crate::sails::client::Identifiable for ServiceWithEventsEvents {
             const INTERFACE_ID: my_crate::sails::InterfaceId =
                 <ServiceWithEventsImpl as my_crate::sails::client::Identifiable>::INTERFACE_ID;
+        }
+
+        impl my_crate::sails::client::Event for ServiceWithEventsEvents {
+            fn decode_event(
+                route: &my_crate::sails::client::RouteIdx,
+                payload: impl AsRef<[u8]>,
+            ) -> Result<Self, my_crate::sails::scale_codec::Error> {
+                my_crate::sails::client::decode_event_v2::<Self>(route.0, payload)
+            }
         }
 
         impl my_crate::sails::client::ServiceWithEvents for ServiceWithEventsImpl {

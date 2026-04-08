@@ -119,14 +119,16 @@ impl<'ast> Visitor<'ast> for RootGenerator<'_> {
         } else {
             service.name()
         };
+        // Raw IDL service name used as the v1 SCALE route string (empty for anonymous).
+        let route = service.name();
 
-        let mut ctor_gen = ServiceCtorGenerator::new(service_name, self.sails_path);
+        let mut ctor_gen = ServiceCtorGenerator::new(service_name, route, self.sails_path);
         ctor_gen.visit_service(service);
         let (trait_tokens, impl_tokens) = ctor_gen.finalize();
         self.service_trait_tokens.extend(trait_tokens);
         self.service_impl_tokens.extend(impl_tokens);
 
-        let mut client_gen = ServiceGenerator::new(service_name, self.sails_path);
+        let mut client_gen = ServiceGenerator::new(service_name, route, self.sails_path);
         client_gen.visit_service(service);
         self.tokens.extend(client_gen.finalize());
 

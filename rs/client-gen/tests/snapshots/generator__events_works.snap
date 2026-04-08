@@ -84,11 +84,18 @@ pub mod service_with_events {
             }
         }
 
-        impl sails_rs::client::Event for ServiceWithEventsEvents {}
-
         impl sails_rs::client::Identifiable for ServiceWithEventsEvents {
             const INTERFACE_ID: sails_rs::InterfaceId =
                 <ServiceWithEventsImpl as sails_rs::client::Identifiable>::INTERFACE_ID;
+        }
+
+        impl sails_rs::client::Event for ServiceWithEventsEvents {
+            fn decode_event(
+                route: &sails_rs::client::RouteIdx,
+                payload: impl AsRef<[u8]>,
+            ) -> Result<Self, sails_rs::scale_codec::Error> {
+                sails_rs::client::decode_event_v2::<Self>(route.0, payload)
+            }
         }
 
         impl sails_rs::client::ServiceWithEvents for ServiceWithEventsImpl {
