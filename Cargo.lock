@@ -6374,6 +6374,8 @@ dependencies = [
  "insta",
  "parity-scale-codec",
  "sails-idl-parser",
+ "sails-rs",
+ "tokio",
 ]
 
 [[package]]

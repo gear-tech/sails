@@ -70,14 +70,20 @@ pub trait Program: Sized {
 }
 
 #[derive(Debug, Clone)]
-pub struct Deployment<A, E: GearEnv = GstdEnv> {
+pub struct Deployment<A, E = GstdEnv>
+where
+    E: GearEnv,
+{
     env: E,
     code_id: CodeId,
     salt: Vec<u8>,
     _phantom: PhantomData<A>,
 }
 
-impl<A, E: GearEnv> Deployment<A, E> {
+impl<A, E> Deployment<A, E>
+where
+    E: GearEnv,
+{
     pub fn new(env: E, code_id: CodeId, salt: Vec<u8>) -> Self {
         Deployment {
             env,
@@ -87,7 +93,10 @@ impl<A, E: GearEnv> Deployment<A, E> {
         }
     }
 
-    pub fn with_env<N: GearEnv>(self, env: &N) -> Deployment<A, N> {
+    pub fn with_env<N>(self, env: &N) -> Deployment<A, N>
+    where
+        N: GearEnv,
+    {
         let Self {
             env: _,
             code_id,
@@ -103,27 +112,36 @@ impl<A, E: GearEnv> Deployment<A, E> {
     }
 
     /// v2 (NEW IDL, default) ctor.
-    pub fn pending_ctor<T: ServiceCall>(self, args: T::Params) -> PendingCtor<A, T, E> {
+    pub fn pending_ctor<T>(self, args: T::Params) -> PendingCtor<A, T, E>
+    where
+        T: ServiceCall,
+    {
         PendingCtor::new(self.env, self.code_id, self.salt, RouteIdx(0), args)
     }
 
     /// v1 (OLD IDL) ctor. Ctors have no service prefix — uses `RouteName("")`.
-    pub fn pending_ctor_v1<T: ServiceCall<RouteName>>(
-        self,
-        args: T::Params,
-    ) -> PendingCtor<A, T, E, RouteName> {
+    pub fn pending_ctor_v1<T>(self, args: T::Params) -> PendingCtor<A, T, E, RouteName>
+    where
+        T: ServiceCall<RouteName>,
+    {
         PendingCtor::new(self.env, self.code_id, self.salt, RouteName(""), args)
     }
 }
 
 #[derive(Debug, Clone)]
-pub struct Actor<A, E: GearEnv = GstdEnv> {
+pub struct Actor<A, E = GstdEnv>
+where
+    E: GearEnv,
+{
     env: E,
     id: ActorId,
     _phantom: PhantomData<A>,
 }
 
-impl<A, E: GearEnv> Actor<A, E> {
+impl<A, E> Actor<A, E>
+where
+    E: GearEnv,
+{
     pub fn new(env: E, id: ActorId) -> Self {
         Actor {
             env,
@@ -136,7 +154,10 @@ impl<A, E: GearEnv> Actor<A, E> {
         self.id
     }
 
-    pub fn with_env<N: GearEnv>(self, env: &N) -> Actor<A, N> {
+    pub fn with_env<N>(self, env: &N) -> Actor<A, N>
+    where
+        N: GearEnv,
+    {
         let Self {
             env: _,
             id,
@@ -166,14 +187,22 @@ impl<A, E: GearEnv> Actor<A, E> {
 }
 
 #[derive(Debug, Clone)]
-pub struct Service<S, E: GearEnv = GstdEnv, R: RouteHeader = RouteIdx> {
+pub struct Service<S, E = GstdEnv, R = RouteIdx>
+where
+    E: GearEnv,
+    R: RouteHeader,
+{
     env: E,
     actor_id: ActorId,
     route: R,
     _phantom: PhantomData<S>,
 }
 
-impl<S, E: GearEnv, R: RouteHeader> Service<S, E, R> {
+impl<S, E, R> Service<S, E, R>
+where
+    E: GearEnv,
+    R: RouteHeader,
+{
     pub fn new(env: E, actor_id: ActorId, route: R) -> Self {
         Service {
             env,
@@ -192,7 +221,10 @@ impl<S, E: GearEnv, R: RouteHeader> Service<S, E, R> {
         self
     }
 
-    pub fn pending_call<T: ServiceCall<R>>(&self, args: T::Params) -> PendingCall<T, E, R> {
+    pub fn pending_call<T>(&self, args: T::Params) -> PendingCall<T, E, R>
+    where
+        T: ServiceCall<R>,
+    {
         PendingCall::new(self.env.clone(), self.actor_id, self.route.clone(), args)
     }
 
@@ -201,10 +233,13 @@ impl<S, E: GearEnv, R: RouteHeader> Service<S, E, R> {
     }
 
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn decode_event<Ev: Event<R>>(
+    pub fn decode_event<Ev>(
         &self,
         payload: impl AsRef<[u8]>,
-    ) -> Result<Ev, parity_scale_codec::Error> {
+    ) -> Result<Ev, parity_scale_codec::Error>
+    where
+        Ev: Event<R>,
+    {
         Ev::decode_event(&self.route, payload)
     }
 
@@ -218,7 +253,10 @@ impl<S, E: GearEnv, R: RouteHeader> Service<S, E, R> {
 }
 
 // v2-specific id accessors only on RouteIdx
-impl<S, E: GearEnv> Service<S, E, RouteIdx> {
+impl<S, E> Service<S, E, RouteIdx>
+where
+    E: GearEnv,
+{
     pub fn interface_id(&self) -> InterfaceId
     where
         S: Identifiable,
@@ -232,13 +270,18 @@ impl<S, E: GearEnv> Service<S, E, RouteIdx> {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-pub trait ServiceWithEvents<R: RouteHeader = RouteIdx> {
+pub trait ServiceWithEvents<R = RouteIdx>
+where
+    R: RouteHeader,
+{
     type Event: Event<R>;
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-pub struct ServiceListener<D, E: GearEnv, R: RouteHeader = RouteIdx>
+pub struct ServiceListener<D, E = GstdEnv, R = RouteIdx>
 where
+    E: GearEnv,
+    R: RouteHeader,
     D: Event<R>,
 {
     env: E,
@@ -248,8 +291,10 @@ where
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-impl<D, E: GearEnv, R: RouteHeader> ServiceListener<D, E, R>
+impl<D, E, R> ServiceListener<D, E, R>
 where
+    E: GearEnv,
+    R: RouteHeader,
     D: Event<R>,
 {
     pub fn new(env: E, actor_id: ActorId, route: R) -> Self {
@@ -281,7 +326,12 @@ where
 }
 
 pin_project_lite::pin_project! {
-    pub struct PendingCall<T: ServiceCall<R>, E: GearEnv, R: RouteHeader = RouteIdx> {
+    pub struct PendingCall<T, E = GstdEnv, R = RouteIdx>
+    where
+        T: ServiceCall<R>,
+        E: GearEnv,
+        R: RouteHeader,
+    {
         env: E,
         destination: ActorId,
         route: R,
@@ -292,7 +342,12 @@ pin_project_lite::pin_project! {
     }
 }
 
-impl<T: ServiceCall<R>, E: GearEnv, R: RouteHeader> PendingCall<T, E, R> {
+impl<T, E, R> PendingCall<T, E, R>
+where
+    T: ServiceCall<R>,
+    E: GearEnv,
+    R: RouteHeader,
+{
     pub fn new(env: E, destination: ActorId, route: R, args: T::Params) -> Self {
         PendingCall {
             env,
@@ -331,7 +386,10 @@ impl<T: ServiceCall<R>, E: GearEnv, R: RouteHeader> PendingCall<T, E, R> {
     }
 }
 
-pub trait PendingCtorOutput<A, E: GearEnv> {
+pub trait PendingCtorOutput<A, E>
+where
+    E: GearEnv,
+{
     type Output;
 
     fn map_result(self, env: E, id: ActorId) -> Self::Output;
@@ -339,7 +397,10 @@ pub trait PendingCtorOutput<A, E: GearEnv> {
     fn actor(output: Self::Output) -> Actor<A, E>;
 }
 
-impl<A, E: GearEnv> PendingCtorOutput<A, E> for () {
+impl<A, E> PendingCtorOutput<A, E> for ()
+where
+    E: GearEnv,
+{
     type Output = Actor<A, E>;
 
     fn map_result(self, env: E, id: ActorId) -> Self::Output {
@@ -351,7 +412,11 @@ impl<A, E: GearEnv> PendingCtorOutput<A, E> for () {
     }
 }
 
-impl<A, E: GearEnv, Err: core::fmt::Debug> PendingCtorOutput<A, E> for Result<(), Err> {
+impl<A, E, Err> PendingCtorOutput<A, E> for Result<(), Err>
+where
+    E: GearEnv,
+    Err: core::fmt::Debug,
+{
     type Output = Result<Actor<A, E>, Err>;
 
     fn map_result(self, env: E, id: ActorId) -> Self::Output {
@@ -364,7 +429,12 @@ impl<A, E: GearEnv, Err: core::fmt::Debug> PendingCtorOutput<A, E> for Result<()
 }
 
 pin_project_lite::pin_project! {
-    pub struct PendingCtor<A, T: ServiceCall<R>, E: GearEnv, R: RouteHeader = RouteIdx> {
+    pub struct PendingCtor<A, T, E = GstdEnv, R = RouteIdx>
+    where
+        T: ServiceCall<R>,
+        E: GearEnv,
+        R: RouteHeader,
+    {
         env: E,
         code_id: CodeId,
         route: R,
@@ -378,7 +448,12 @@ pin_project_lite::pin_project! {
     }
 }
 
-impl<A, T: ServiceCall<R>, E: GearEnv, R: RouteHeader> PendingCtor<A, T, E, R> {
+impl<A, T, E, R> PendingCtor<A, T, E, R>
+where
+    T: ServiceCall<R>,
+    E: GearEnv,
+    R: RouteHeader,
+{
     pub fn new(env: E, code_id: CodeId, salt: Vec<u8>, route: R, args: T::Params) -> Self {
         PendingCtor {
             env,
@@ -404,7 +479,10 @@ impl<A, T: ServiceCall<R>, E: GearEnv, R: RouteHeader> PendingCtor<A, T, E, R> {
 /// `R = RouteIdx` (default) → v2 binary SailsHeader encoding.
 /// `R = RouteName` → v1 SCALE-string encoding; the route string is read from
 /// the `RouteName(route)` instance passed at call time.
-pub trait ServiceCall<R: RouteHeader = RouteIdx> {
+pub trait ServiceCall<R = RouteIdx>
+where
+    R: RouteHeader,
+{
     type Params;
     type Reply;
     /// Application-level error type (IDL `throws`). Always `()` for v1.
@@ -428,10 +506,14 @@ pub trait ServiceCall<R: RouteHeader = RouteIdx> {
 
 /// v2-specific: decode a reply payload that has a SailsMessageHeader prefix.
 /// Used internally by `io_struct_impl!`.
-pub fn decode_with_header<T: Decode + 'static, M: MethodMeta + Identifiable>(
+pub fn decode_with_header<T, M>(
     route_idx: u8,
     payload: impl AsRef<[u8]>,
-) -> Result<T, parity_scale_codec::Error> {
+) -> Result<T, parity_scale_codec::Error>
+where
+    T: Decode + 'static,
+    M: MethodMeta + Identifiable,
+{
     let mut value = payload.as_ref();
     if is_empty_tuple::<T>() {
         return Decode::decode(&mut value);
@@ -450,7 +532,10 @@ pub fn decode_with_header<T: Decode + 'static, M: MethodMeta + Identifiable>(
 }
 
 /// Returns true if `T` is the unit type `()`.
-pub fn is_empty_tuple<T: 'static>() -> bool {
+pub fn is_empty_tuple<T>() -> bool
+where
+    T: 'static,
+{
     TypeId::of::<T>() == TypeId::of::<()>()
 }
 
@@ -725,7 +810,7 @@ macro_rules! io_struct_impl_v1 {
 
             pub fn decode_reply(route: $crate::client::Route, payload: impl AsRef<[u8]>) -> Result<$reply, $crate::scale_codec::Error> {
                 <$name as $crate::client::ServiceCall<$crate::client::RouteName>>::decode_reply(
-                    $crate::client::RouteName(stringify!($name)),
+                    &$crate::client::RouteName(route),
                     payload,
                 )
             }
@@ -812,10 +897,12 @@ macro_rules! str_scale_encode {
 pub trait Listener {
     type Error: Error;
 
-    async fn listen<E, F: FnMut((ActorId, Vec<u8>)) -> Option<(ActorId, E)>>(
+    async fn listen<E, F>(
         &self,
         f: F,
-    ) -> Result<impl Stream<Item = (ActorId, E)> + Unpin, Self::Error>;
+    ) -> Result<impl Stream<Item = (ActorId, E)> + Unpin, Self::Error>
+    where
+        F: FnMut((ActorId, Vec<u8>)) -> Option<(ActorId, E)>;
 }
 
 struct EventInput<'a> {
@@ -873,14 +960,17 @@ pub trait EventNames {
 /// v2-specific: decode an event payload using SailsMessageHeader.
 /// Used by v2-generated `impl Event<RouteIdx>` blocks.
 #[cfg(not(target_arch = "wasm32"))]
-pub fn decode_event_v2<Ev: Decode + Identifiable>(
+pub fn decode_event_v2<E>(
     route_idx: u8,
     payload: impl AsRef<[u8]>,
-) -> Result<Ev, parity_scale_codec::Error> {
+) -> Result<E, parity_scale_codec::Error>
+where
+    E: Decode + Identifiable,
+{
     let mut payload = payload.as_ref();
 
     let header = SailsMessageHeader::decode(&mut payload)?;
-    if header.interface_id() != Ev::INTERFACE_ID {
+    if header.interface_id() != E::INTERFACE_ID {
         return Err("Invalid event interface_id".into());
     }
     if header.route_id() != route_idx {
@@ -932,7 +1022,10 @@ where
 /// `R = RouteIdx` → v2 SailsHeader-based decoding.
 /// `R = RouteName` → v1 SCALE-string variant-name decoding.
 #[cfg(not(target_arch = "wasm32"))]
-pub trait Event<R: RouteHeader = RouteIdx>: Sized {
+pub trait Event<R = RouteIdx>: Sized
+where
+    R: RouteHeader,
+{
     fn decode_event(
         route: &R,
         payload: impl AsRef<[u8]>,
@@ -1051,9 +1144,7 @@ mod tests {
         assert_eq!(encoded, expected);
 
         // Decoding
-        let decoded =
-            <DoThis as ServiceCall<RouteName>>::decode_reply(&RouteName("MyService"), &encoded)
-                .unwrap();
+        let decoded = DoThis::decode_reply("MyService", &encoded).unwrap();
         assert_eq!(decoded, 42u32);
     }
 }

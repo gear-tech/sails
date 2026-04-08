@@ -18,3 +18,5 @@ sails-idl-parser.workspace = true
 
 [dev-dependencies]
 insta.workspace = true
+sails-rs = { workspace = true, features = ["gtest"] }
+tokio = { workspace = true, features = ["macros", "rt"] }
