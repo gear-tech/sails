@@ -722,6 +722,13 @@ macro_rules! io_struct_impl_v1 {
                     &$crate::client::RouteName(route), &( $( $param, )* )
                 )
             }
+
+            pub fn decode_reply(route: $crate::client::Route, payload: impl AsRef<[u8]>) -> Result<$reply, $crate::scale_codec::Error> {
+                <$name as $crate::client::ServiceCall<$crate::client::RouteName>>::decode_reply(
+                    $crate::client::RouteName(stringify!($name)),
+                    payload,
+                )
+            }
         }
 
         impl $crate::client::ServiceCall<$crate::client::RouteName> for $name {
@@ -896,14 +903,22 @@ pub fn decode_event_v2<Ev: Decode + Identifiable>(
 
 /// v1-specific: decode an event payload encoded as `SCALE(variant_name) + SCALE(data)`.
 #[cfg(not(target_arch = "wasm32"))]
-pub fn decode_event_v1<Ev: Decode + EventNames>(
+pub fn decode_event_v1<E>(
+    route: Route,
     payload: impl AsRef<[u8]>,
-) -> Result<Ev, parity_scale_codec::Error> {
+) -> Result<E, parity_scale_codec::Error>
+where
+    E: Decode + EventNames,
+{
     let mut payload = payload.as_ref();
+    let payload_route = String::decode(&mut payload)?;
+    if payload_route != route {
+        return Err("Invalid v1 event route".into());
+    }
     let name = String::decode(&mut payload)?;
-    let idx = <Ev as EventNames>::EVENT_NAMES
+    let idx = <E as EventNames>::EVENT_NAMES
         .iter()
-        .position(|n| *n == name)
+        .position(|candidate| *candidate == name)
         .ok_or("Unknown v1 event name")? as u8;
     let mut input = EventInput {
         idx,
@@ -917,7 +932,7 @@ pub fn decode_event_v1<Ev: Decode + EventNames>(
 /// `R = RouteIdx` → v2 SailsHeader-based decoding.
 /// `R = RouteName` → v1 SCALE-string variant-name decoding.
 #[cfg(not(target_arch = "wasm32"))]
-pub trait Event<R: RouteHeader = RouteIdx>: Decode + Sized {
+pub trait Event<R: RouteHeader = RouteIdx>: Sized {
     fn decode_event(
         route: &R,
         payload: impl AsRef<[u8]>,

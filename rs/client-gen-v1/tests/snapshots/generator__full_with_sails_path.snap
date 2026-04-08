@@ -311,10 +311,10 @@ pub mod counter {
 
         impl my_crate::sails::client::Event<my_crate::sails::client::RouteName> for CounterEvents {
             fn decode_event(
-                _route: &my_crate::sails::client::RouteName,
+                route: &my_crate::sails::client::RouteName,
                 payload: impl AsRef<[u8]>,
             ) -> Result<Self, my_crate::sails::scale_codec::Error> {
-                my_crate::sails::client::decode_event_v1::<Self>(payload)
+                my_crate::sails::client::decode_event_v1::<Self>(route.0, payload)
             }
         }
 

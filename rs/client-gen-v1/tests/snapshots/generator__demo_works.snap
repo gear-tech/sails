@@ -232,10 +232,10 @@ pub mod counter {
 
         impl sails_rs::client::Event<sails_rs::client::RouteName> for CounterEvents {
             fn decode_event(
-                _route: &sails_rs::client::RouteName,
+                route: &sails_rs::client::RouteName,
                 payload: impl AsRef<[u8]>,
             ) -> Result<Self, sails_rs::scale_codec::Error> {
-                sails_rs::client::decode_event_v1::<Self>(payload)
+                sails_rs::client::decode_event_v1::<Self>(route.0, payload)
             }
         }
 
@@ -323,10 +323,10 @@ pub mod dog {
 
         impl sails_rs::client::Event<sails_rs::client::RouteName> for DogEvents {
             fn decode_event(
-                _route: &sails_rs::client::RouteName,
+                route: &sails_rs::client::RouteName,
                 payload: impl AsRef<[u8]>,
             ) -> Result<Self, sails_rs::scale_codec::Error> {
-                sails_rs::client::decode_event_v1::<Self>(payload)
+                sails_rs::client::decode_event_v1::<Self>(route.0, payload)
             }
         }
 
@@ -576,10 +576,10 @@ pub mod value_fee {
 
         impl sails_rs::client::Event<sails_rs::client::RouteName> for ValueFeeEvents {
             fn decode_event(
-                _route: &sails_rs::client::RouteName,
+                route: &sails_rs::client::RouteName,
                 payload: impl AsRef<[u8]>,
             ) -> Result<Self, sails_rs::scale_codec::Error> {
-                sails_rs::client::decode_event_v1::<Self>(payload)
+                sails_rs::client::decode_event_v1::<Self>(route.0, payload)
             }
         }
 

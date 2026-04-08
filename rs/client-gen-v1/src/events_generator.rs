@@ -54,10 +54,10 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator<'_> {
 
             impl $(self.sails_path)::client::Event<$(self.sails_path)::client::RouteName> for $events_name {
                 fn decode_event(
-                    _route: &$(self.sails_path)::client::RouteName,
+                    route: &$(self.sails_path)::client::RouteName,
                     payload: impl AsRef<[u8]>,
                 ) -> Result<Self, $(self.sails_path)::scale_codec::Error> {
-                    $(self.sails_path)::client::decode_event_v1::<Self>(payload)
+                    $(self.sails_path)::client::decode_event_v1::<Self>(route.0, payload)
                 }
             }
 
