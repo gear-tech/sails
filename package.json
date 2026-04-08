@@ -14,10 +14,11 @@
     "js",
     "js/cli",
     "js/parser",
-    "js/parser-idl-v2",
     "js/types",
     "js/util",
-    "js/example"
+    "js/example",
+    "js/parser-idl-v2",
+    "js/mcp-server"
   ],
   "devDependencies": {
     "@eslint/js": "^9.39.1",

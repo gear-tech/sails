@@ -6,6 +6,7 @@ packages:
   - js/util
   - js/example
   - js/parser-idl-v2
+  - js/mcp-server
 
 ignoredBuiltDependencies:
   - unrs-resolver
