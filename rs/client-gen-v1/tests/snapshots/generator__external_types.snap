@@ -33,7 +33,7 @@ impl<E: my_crate::sails::client::GearEnv> Service
         Self::Env,
         my_crate::sails::client::RouteName,
     > {
-        self.service_v1("")
+        self.service_v1(stringify!(Service))
     }
 }
 

@@ -21,7 +21,7 @@ impl<E: sails_rs::client::GearEnv> Basic for sails_rs::client::Actor<BasicProgra
     fn basic(
         &self,
     ) -> sails_rs::client::Service<basic::BasicImpl, Self::Env, sails_rs::client::RouteName> {
-        self.service_v1("")
+        self.service_v1(stringify!(Basic))
     }
 }
 

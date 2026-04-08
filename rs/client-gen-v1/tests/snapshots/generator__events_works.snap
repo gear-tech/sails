@@ -31,7 +31,7 @@ impl<E: sails_rs::client::GearEnv> ServiceWithEvents
         Self::Env,
         sails_rs::client::RouteName,
     > {
-        self.service_v1("")
+        self.service_v1(stringify!(ServiceWithEvents))
     }
 }
 
@@ -79,7 +79,7 @@ pub mod service_with_events {
             Three(MyParam),
             Reset,
         }
-        impl sails_rs::client::EventNamesV1 for ServiceWithEventsEvents {
+        impl sails_rs::client::EventNames for ServiceWithEventsEvents {
             const EVENT_NAMES: &'static [sails_rs::client::Route] =
                 &["One", "Two", "Three", "Reset"];
         }

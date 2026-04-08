@@ -25,12 +25,12 @@ impl<E: sails_rs::client::GearEnv> Multiple for sails_rs::client::Actor<Multiple
         &self,
     ) -> sails_rs::client::Service<multiple::MultipleImpl, Self::Env, sails_rs::client::RouteName>
     {
-        self.service_v1("")
+        self.service_v1(stringify!(Multiple))
     }
     fn named(
         &self,
     ) -> sails_rs::client::Service<named::NamedImpl, Self::Env, sails_rs::client::RouteName> {
-        self.service_v1("Named")
+        self.service_v1(stringify!(Named))
     }
 }
 

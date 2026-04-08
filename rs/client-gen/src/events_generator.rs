@@ -54,10 +54,6 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator<'ast> {
                 }
             }
 
-            impl $(self.sails_path)::client::Identifiable for $events_name {
-                const INTERFACE_ID: $(self.sails_path)::InterfaceId = <$(self.service_name)Impl as $(self.sails_path)::client::Identifiable>::INTERFACE_ID;
-            }
-
             impl $(self.sails_path)::client::Event for $events_name {
                 fn decode_event(
                     route: &$(self.sails_path)::client::RouteIdx,
@@ -65,6 +61,10 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator<'ast> {
                 ) -> Result<Self, $(self.sails_path)::scale_codec::Error> {
                     $(self.sails_path)::client::decode_event_v2::<Self>(route.0, payload)
                 }
+            }
+
+            impl $(self.sails_path)::client::Identifiable for $events_name {
+                const INTERFACE_ID: $(self.sails_path)::InterfaceId = <$(self.service_name)Impl as $(self.sails_path)::client::Identifiable>::INTERFACE_ID;
             }
 
             impl $(self.sails_path)::client::ServiceWithEvents for $(self.service_name)Impl {

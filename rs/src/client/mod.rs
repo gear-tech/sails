@@ -274,9 +274,7 @@ where
                 if actor_id != self_id {
                     return None;
                 }
-                D::decode_event(&route, payload)
-                    .ok()
-                    .map(|e| (actor_id, e))
+                D::decode_event(&route, payload).ok().map(|e| (actor_id, e))
             })
             .await
     }
@@ -407,11 +405,11 @@ impl<A, T: ServiceCall<R>, E: GearEnv, R: RouteHeader> PendingCtor<A, T, E, R> {
 /// `R = RouteName` → v1 SCALE-string encoding; the route string is read from
 /// the `RouteName(route)` instance passed at call time.
 pub trait ServiceCall<R: RouteHeader = RouteIdx> {
-    type Params: Encode;
-    type Reply: Decode + 'static;
+    type Params;
+    type Reply;
     /// Application-level error type (IDL `throws`). Always `()` for v1.
-    type Throws: Decode + 'static;
-    type Output: Decode + 'static;
+    type Throws;
+    type Output;
 
     fn encode_call(route: &R, value: &Self::Params) -> Vec<u8>;
 
@@ -458,21 +456,29 @@ pub fn is_empty_tuple<T: 'static>() -> bool {
 
 /// v2-specific: encode a call using a stack buffer (zero-copy, requires `gcore`).
 /// Used in wasm32 on-chain dispatch code via the `io_struct_impl!` inherent methods.
-pub fn encode_call_optimized<T: ServiceCall + MethodMeta + Identifiable, Ret>(
+pub fn encode_call_optimized<T, R>(
     route_idx: u8,
     value: &T::Params,
-    f: impl FnOnce(&[u8]) -> Ret,
-) -> Ret {
-    encode_call_optimized_with_id::<T, Ret>(T::INTERFACE_ID, T::ENTRY_ID, route_idx, value, f)
+    f: impl FnOnce(&[u8]) -> R,
+) -> R
+where
+    T: ServiceCall<RouteIdx> + MethodMeta + Identifiable,
+    T::Params: Encode,
+{
+    encode_call_optimized_with_id::<T, R>(T::INTERFACE_ID, T::ENTRY_ID, route_idx, value, f)
 }
 
-pub fn encode_call_optimized_with_id<T: ServiceCall, Ret>(
+pub fn encode_call_optimized_with_id<T, R>(
     interface_id: InterfaceId,
     entry_id: u16,
     route_idx: u8,
     value: &T::Params,
-    f: impl FnOnce(&[u8]) -> Ret,
-) -> Ret {
+    f: impl FnOnce(&[u8]) -> R,
+) -> R
+where
+    T: ServiceCall<RouteIdx>,
+    T::Params: Encode,
+{
     let header = SailsMessageHeader::new(
         crate::meta::Version::v1(),
         crate::meta::HeaderLength::new(crate::meta::MINIMAL_HLEN).unwrap(),
@@ -853,7 +859,7 @@ impl<'a> parity_scale_codec::Input for EventInput<'a> {
 /// v1 (OLD IDL): compile-time list of event variant names.
 /// Implemented by `client-gen-v1`-generated event enums.
 #[cfg(not(target_arch = "wasm32"))]
-pub trait EventNamesV1 {
+pub trait EventNames {
     const EVENT_NAMES: &'static [Route];
 }
 
@@ -890,12 +896,12 @@ pub fn decode_event_v2<Ev: Decode + Identifiable>(
 
 /// v1-specific: decode an event payload encoded as `SCALE(variant_name) + SCALE(data)`.
 #[cfg(not(target_arch = "wasm32"))]
-pub fn decode_event_v1<Ev: Decode + EventNamesV1>(
+pub fn decode_event_v1<Ev: Decode + EventNames>(
     payload: impl AsRef<[u8]>,
 ) -> Result<Ev, parity_scale_codec::Error> {
     let mut payload = payload.as_ref();
     let name = String::decode(&mut payload)?;
-    let idx = <Ev as EventNamesV1>::EVENT_NAMES
+    let idx = <Ev as EventNames>::EVENT_NAMES
         .iter()
         .position(|n| *n == name)
         .ok_or("Unknown v1 event name")? as u8;

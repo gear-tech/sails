@@ -223,7 +223,14 @@ pub mod counter {
             }
         }
 
-        impl sails_rs::client::Event for CounterEvents {}
+        impl sails_rs::client::Event for CounterEvents {
+            fn decode_event(
+                route: &sails_rs::client::RouteIdx,
+                payload: impl AsRef<[u8]>,
+            ) -> Result<Self, sails_rs::scale_codec::Error> {
+                sails_rs::client::decode_event_v2::<Self>(route.0, payload)
+            }
+        }
 
         impl sails_rs::client::Identifiable for CounterEvents {
             const INTERFACE_ID: sails_rs::InterfaceId =
@@ -358,7 +365,14 @@ pub mod walker_service {
             }
         }
 
-        impl sails_rs::client::Event for WalkerServiceEvents {}
+        impl sails_rs::client::Event for WalkerServiceEvents {
+            fn decode_event(
+                route: &sails_rs::client::RouteIdx,
+                payload: impl AsRef<[u8]>,
+            ) -> Result<Self, sails_rs::scale_codec::Error> {
+                sails_rs::client::decode_event_v2::<Self>(route.0, payload)
+            }
+        }
 
         impl sails_rs::client::Identifiable for WalkerServiceEvents {
             const INTERFACE_ID: sails_rs::InterfaceId =
@@ -452,7 +466,14 @@ pub mod dog {
             }
         }
 
-        impl sails_rs::client::Event for DogEvents {}
+        impl sails_rs::client::Event for DogEvents {
+            fn decode_event(
+                route: &sails_rs::client::RouteIdx,
+                payload: impl AsRef<[u8]>,
+            ) -> Result<Self, sails_rs::scale_codec::Error> {
+                sails_rs::client::decode_event_v2::<Self>(route.0, payload)
+            }
+        }
 
         impl sails_rs::client::Identifiable for DogEvents {
             const INTERFACE_ID: sails_rs::InterfaceId =
@@ -748,7 +769,14 @@ pub mod value_fee {
             }
         }
 
-        impl sails_rs::client::Event for ValueFeeEvents {}
+        impl sails_rs::client::Event for ValueFeeEvents {
+            fn decode_event(
+                route: &sails_rs::client::RouteIdx,
+                payload: impl AsRef<[u8]>,
+            ) -> Result<Self, sails_rs::scale_codec::Error> {
+                sails_rs::client::decode_event_v2::<Self>(route.0, payload)
+            }
+        }
 
         impl sails_rs::client::Identifiable for ValueFeeEvents {
             const INTERFACE_ID: sails_rs::InterfaceId =

@@ -196,6 +196,7 @@ where
             self.state = Some(Box::pin(create_program_future));
         }
 
+        let route = &self.route.clone();
         let this = self.as_mut().project();
         let message_future = this
             .state
@@ -204,7 +205,7 @@ where
         // Poll message future
         match ready!(message_future.poll(cx)) {
             Ok((program_id, payload)) => {
-                let reply = T::decode_reply(&self.route, payload)
+                let reply = T::decode_reply(route, payload)
                     .map_err(|err| GclientError::Env(gclient::Error::Codec(err)))?;
                 Poll::Ready(Ok(reply.map_result(this.env.clone(), program_id)))
             }
@@ -212,7 +213,7 @@ where
                 if matches!(
                     reason,
                     ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic)
-                ) && let Ok(reply) = T::decode_error(&self.route, &payload)
+                ) && let Ok(reply) = T::decode_error(route, &payload)
                 {
                     Poll::Ready(Ok(reply.map_result(this.env.clone(), ActorId::zero())))
                 } else {

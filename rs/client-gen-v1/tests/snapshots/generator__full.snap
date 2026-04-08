@@ -22,7 +22,7 @@ impl<E: sails_rs::client::GearEnv> Service for sails_rs::client::Actor<ServicePr
         &self,
     ) -> sails_rs::client::Service<service::ServiceImpl, Self::Env, sails_rs::client::RouteName>
     {
-        self.service_v1("")
+        self.service_v1(stringify!(Service))
     }
 }
 
@@ -158,7 +158,7 @@ pub mod service {
                 p1: String,
             },
         }
-        impl sails_rs::client::EventNamesV1 for ServiceEvents {
+        impl sails_rs::client::EventNames for ServiceEvents {
             const EVENT_NAMES: &'static [sails_rs::client::Route] = &["ThisDone", "ThatDone"];
         }
 

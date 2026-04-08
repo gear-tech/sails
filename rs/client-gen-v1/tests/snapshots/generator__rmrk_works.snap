@@ -29,7 +29,7 @@ impl<E: sails_rs::client::GearEnv> RmrkCatalog for sails_rs::client::Actor<RmrkC
         Self::Env,
         sails_rs::client::RouteName,
     > {
-        self.service_v1("RmrkCatalog")
+        self.service_v1(stringify!(RmrkCatalog))
     }
 }
 

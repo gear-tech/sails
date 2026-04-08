@@ -124,7 +124,6 @@ fn test_demo_works() {
     insta::assert_snapshot!(gen_client(idl, "Demo"));
 }
 
-
 #[test]
 fn test_nonzero_works() {
     let idl = r"

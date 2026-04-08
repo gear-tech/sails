@@ -100,7 +100,14 @@ pub mod partial_idl_service {
             }
         }
 
-        impl sails_rs::client::Event for PartialIdlServiceEvents {}
+        impl sails_rs::client::Event for PartialIdlServiceEvents {
+            fn decode_event(
+                route: &sails_rs::client::RouteIdx,
+                payload: impl AsRef<[u8]>,
+            ) -> Result<Self, sails_rs::scale_codec::Error> {
+                sails_rs::client::decode_event_v2::<Self>(route.0, payload)
+            }
+        }
 
         impl sails_rs::client::Identifiable for PartialIdlServiceEvents {
             const INTERFACE_ID: sails_rs::InterfaceId =

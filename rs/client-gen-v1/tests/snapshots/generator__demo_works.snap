@@ -40,41 +40,41 @@ impl<E: sails_rs::client::GearEnv> Demo for sails_rs::client::Actor<DemoProgram,
         &self,
     ) -> sails_rs::client::Service<ping_pong::PingPongImpl, Self::Env, sails_rs::client::RouteName>
     {
-        self.service_v1("PingPong")
+        self.service_v1(stringify!(PingPong))
     }
     fn counter(
         &self,
     ) -> sails_rs::client::Service<counter::CounterImpl, Self::Env, sails_rs::client::RouteName>
     {
-        self.service_v1("Counter")
+        self.service_v1(stringify!(Counter))
     }
     fn dog(
         &self,
     ) -> sails_rs::client::Service<dog::DogImpl, Self::Env, sails_rs::client::RouteName> {
-        self.service_v1("Dog")
+        self.service_v1(stringify!(Dog))
     }
     fn references(
         &self,
     ) -> sails_rs::client::Service<references::ReferencesImpl, Self::Env, sails_rs::client::RouteName>
     {
-        self.service_v1("References")
+        self.service_v1(stringify!(References))
     }
     fn this_that(
         &self,
     ) -> sails_rs::client::Service<this_that::ThisThatImpl, Self::Env, sails_rs::client::RouteName>
     {
-        self.service_v1("ThisThat")
+        self.service_v1(stringify!(ThisThat))
     }
     fn value_fee(
         &self,
     ) -> sails_rs::client::Service<value_fee::ValueFeeImpl, Self::Env, sails_rs::client::RouteName>
     {
-        self.service_v1("ValueFee")
+        self.service_v1(stringify!(ValueFee))
     }
     fn chaos(
         &self,
     ) -> sails_rs::client::Service<chaos::ChaosImpl, Self::Env, sails_rs::client::RouteName> {
-        self.service_v1("Chaos")
+        self.service_v1(stringify!(Chaos))
     }
 }
 
@@ -226,7 +226,7 @@ pub mod counter {
             /// Emitted when a value is subtracted from the counter
             Subtracted(u32),
         }
-        impl sails_rs::client::EventNamesV1 for CounterEvents {
+        impl sails_rs::client::EventNames for CounterEvents {
             const EVENT_NAMES: &'static [sails_rs::client::Route] = &["Added", "Subtracted"];
         }
 
@@ -317,7 +317,7 @@ pub mod dog {
             Barked,
             Walked { from: (i32, i32), to: (i32, i32) },
         }
-        impl sails_rs::client::EventNamesV1 for DogEvents {
+        impl sails_rs::client::EventNames for DogEvents {
             const EVENT_NAMES: &'static [sails_rs::client::Route] = &["Barked", "Walked"];
         }
 
@@ -570,7 +570,7 @@ pub mod value_fee {
         pub enum ValueFeeEvents {
             Withheld(u128),
         }
-        impl sails_rs::client::EventNamesV1 for ValueFeeEvents {
+        impl sails_rs::client::EventNames for ValueFeeEvents {
             const EVENT_NAMES: &'static [sails_rs::client::Route] = &["Withheld"];
         }
 

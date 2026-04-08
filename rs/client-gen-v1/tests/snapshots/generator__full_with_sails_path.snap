@@ -38,7 +38,7 @@ impl<E: my_crate::sails::client::GearEnv> Service
         Self::Env,
         my_crate::sails::client::RouteName,
     > {
-        self.service_v1("")
+        self.service_v1(stringify!(Service))
     }
     fn counter(
         &self,
@@ -47,7 +47,7 @@ impl<E: my_crate::sails::client::GearEnv> Service
         Self::Env,
         my_crate::sails::client::RouteName,
     > {
-        self.service_v1("Counter")
+        self.service_v1(stringify!(Counter))
     }
 }
 
@@ -305,7 +305,7 @@ pub mod counter {
             /// Emitted when a value is subtracted from the counter
             Subtracted(u32),
         }
-        impl my_crate::sails::client::EventNamesV1 for CounterEvents {
+        impl my_crate::sails::client::EventNames for CounterEvents {
             const EVENT_NAMES: &'static [my_crate::sails::client::Route] = &["Added", "Subtracted"];
         }
 

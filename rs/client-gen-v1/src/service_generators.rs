@@ -10,18 +10,15 @@ use crate::type_generators::generate_type_decl_with_path;
 /// Generates a trait with service methods (top-level program trait).
 pub(crate) struct ServiceCtorGenerator<'a> {
     service_name: &'a str,
-    /// Raw IDL service name passed to `service_v1(name)` (empty for anonymous).
-    route: &'a str,
     sails_path: &'a str,
     trait_tokens: Tokens,
     impl_tokens: Tokens,
 }
 
 impl<'a> ServiceCtorGenerator<'a> {
-    pub(crate) fn new(service_name: &'a str, route: &'a str, sails_path: &'a str) -> Self {
+    pub(crate) fn new(service_name: &'a str, sails_path: &'a str) -> Self {
         Self {
             service_name,
-            route,
             sails_path,
             trait_tokens: Tokens::new(),
             impl_tokens: Tokens::new(),
@@ -36,13 +33,12 @@ impl<'a> ServiceCtorGenerator<'a> {
 impl<'ast> Visitor<'ast> for ServiceCtorGenerator<'_> {
     fn visit_service(&mut self, _service: &'ast Service) {
         let service_name_snake = &self.service_name.to_case(Case::Snake);
-        let route = self.route;
         quote_in!(self.trait_tokens =>
             fn $service_name_snake(&self) -> $(self.sails_path)::client::Service<$service_name_snake::$(self.service_name)Impl, Self::Env, $(self.sails_path)::client::RouteName>;
         );
         quote_in!(self.impl_tokens =>
             fn $service_name_snake(&self) -> $(self.sails_path)::client::Service<$service_name_snake::$(self.service_name)Impl, Self::Env, $(self.sails_path)::client::RouteName> {
-                self.service_v1($(quoted(route)))
+                self.service_v1(stringify!($(self.service_name)))
             }
         );
     }
@@ -51,8 +47,6 @@ impl<'ast> Visitor<'ast> for ServiceCtorGenerator<'_> {
 /// Generates a service module with trait and struct implementation.
 pub(crate) struct ServiceGenerator<'a> {
     service_name: &'a str,
-    /// Raw IDL service name used as the v1 SCALE route string (empty = anonymous).
-    route: &'a str,
     sails_path: &'a str,
     trait_tokens: Tokens,
     impl_tokens: Tokens,
@@ -61,10 +55,9 @@ pub(crate) struct ServiceGenerator<'a> {
 }
 
 impl<'a> ServiceGenerator<'a> {
-    pub(crate) fn new(service_name: &'a str, route: &'a str, sails_path: &'a str) -> Self {
+    pub(crate) fn new(service_name: &'a str, sails_path: &'a str) -> Self {
         Self {
             service_name,
-            route,
             sails_path,
             trait_tokens: Tokens::new(),
             impl_tokens: Tokens::new(),

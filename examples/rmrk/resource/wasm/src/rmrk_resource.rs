@@ -194,7 +194,14 @@ pub mod rmrk_resource {
             }
         }
 
-        impl sails_rs::client::Event for RmrkResourceEvents {}
+        impl sails_rs::client::Event for RmrkResourceEvents {
+            fn decode_event(
+                route: &sails_rs::client::RouteIdx,
+                payload: impl AsRef<[u8]>,
+            ) -> Result<Self, sails_rs::scale_codec::Error> {
+                sails_rs::client::decode_event_v2::<Self>(route.0, payload)
+            }
+        }
 
         impl sails_rs::client::Identifiable for RmrkResourceEvents {
             const INTERFACE_ID: sails_rs::InterfaceId =

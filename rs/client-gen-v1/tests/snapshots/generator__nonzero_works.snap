@@ -31,7 +31,7 @@ impl<E: sails_rs::client::GearEnv> NonZeroParams
         Self::Env,
         sails_rs::client::RouteName,
     > {
-        self.service_v1("")
+        self.service_v1(stringify!(NonZeroParams))
     }
 }
 
