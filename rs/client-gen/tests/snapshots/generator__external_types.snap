@@ -46,19 +46,11 @@ pub mod service {
             &mut self,
             p1: u32,
             p2: MyParam,
-        ) -> my_crate::sails::client::PendingCall<
-            io::DoThis,
-            Self::Env,
-            my_crate::sails::client::RouteName,
-        >;
+        ) -> my_crate::sails::client::PendingCall<io::DoThis, Self::Env>;
         fn do_that(
             &mut self,
             p1: (u8, u32),
-        ) -> my_crate::sails::client::PendingCall<
-            io::DoThat,
-            Self::Env,
-            my_crate::sails::client::RouteName,
-        >;
+        ) -> my_crate::sails::client::PendingCall<io::DoThat, Self::Env>;
     }
 
     pub struct ServiceImpl;
@@ -71,21 +63,13 @@ pub mod service {
             &mut self,
             p1: u32,
             p2: MyParam,
-        ) -> my_crate::sails::client::PendingCall<
-            io::DoThis,
-            Self::Env,
-            my_crate::sails::client::RouteName,
-        > {
+        ) -> my_crate::sails::client::PendingCall<io::DoThis, Self::Env> {
             self.pending_call((p1, p2))
         }
         fn do_that(
             &mut self,
             p1: (u8, u32),
-        ) -> my_crate::sails::client::PendingCall<
-            io::DoThat,
-            Self::Env,
-            my_crate::sails::client::RouteName,
-        > {
+        ) -> my_crate::sails::client::PendingCall<io::DoThat, Self::Env> {
             self.pending_call((p1,))
         }
     }

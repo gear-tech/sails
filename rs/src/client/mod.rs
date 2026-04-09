@@ -37,13 +37,13 @@ pub type Route = &'static str;
 pub trait RouteHeader: Clone + core::fmt::Debug {}
 
 /// v2 (NEW IDL) binary-header route: numeric route index (default).
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct RouteIdx(pub u8);
 impl RouteHeader for RouteIdx {}
 
 /// v1 (OLD IDL) SCALE-string route: carries the service route string at runtime.
 /// Ctor services use `RouteName("")` (no service prefix).
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct RouteName(pub Route);
 impl RouteHeader for RouteName {}
 
@@ -114,15 +114,15 @@ where
     /// v2 (NEW IDL, default) ctor.
     pub fn pending_ctor<T>(self, args: T::Params) -> PendingCtor<A, T, E>
     where
-        T: ServiceCall,
+        T: ServiceCall<Route = RouteIdx>,
     {
         PendingCtor::new(self.env, self.code_id, self.salt, RouteIdx(0), args)
     }
 
     /// v1 (OLD IDL) ctor. Ctors have no service prefix — uses `RouteName("")`.
-    pub fn pending_ctor_v1<T>(self, args: T::Params) -> PendingCtor<A, T, E, RouteName>
+    pub fn pending_ctor_v1<T>(self, args: T::Params) -> PendingCtor<A, T, E>
     where
-        T: ServiceCall<RouteName>,
+        T: ServiceCall<Route = RouteName>,
     {
         PendingCtor::new(self.env, self.code_id, self.salt, RouteName(""), args)
     }
@@ -221,9 +221,9 @@ where
         self
     }
 
-    pub fn pending_call<T>(&self, args: T::Params) -> PendingCall<T, E, R>
+    pub fn pending_call<T>(&self, args: T::Params) -> PendingCall<T, E>
     where
-        T: ServiceCall<R>,
+        T: ServiceCall<Route = R>,
     {
         PendingCall::new(self.env.clone(), self.actor_id, self.route.clone(), args)
     }
@@ -326,15 +326,14 @@ where
 }
 
 pin_project_lite::pin_project! {
-    pub struct PendingCall<T, E = GstdEnv, R = RouteIdx>
+    pub struct PendingCall<T, E = GstdEnv>
     where
-        T: ServiceCall<R>,
+        T: ServiceCall,
         E: GearEnv,
-        R: RouteHeader,
     {
         env: E,
         destination: ActorId,
-        route: R,
+        route: T::Route,
         params: Option<E::Params>,
         args: Option<T::Params>,
         #[pin]
@@ -342,13 +341,12 @@ pin_project_lite::pin_project! {
     }
 }
 
-impl<T, E, R> PendingCall<T, E, R>
+impl<T, E> PendingCall<T, E>
 where
-    T: ServiceCall<R>,
+    T: ServiceCall,
     E: GearEnv,
-    R: RouteHeader,
 {
-    pub fn new(env: E, destination: ActorId, route: R, args: T::Params) -> Self {
+    pub fn new(env: E, destination: ActorId, route: T::Route, args: T::Params) -> Self {
         PendingCall {
             env,
             destination,
@@ -429,15 +427,14 @@ where
 }
 
 pin_project_lite::pin_project! {
-    pub struct PendingCtor<A, T, E = GstdEnv, R = RouteIdx>
+    pub struct PendingCtor<A, T, E = GstdEnv>
     where
-        T: ServiceCall<R>,
+        T: ServiceCall,
         E: GearEnv,
-        R: RouteHeader,
     {
         env: E,
         code_id: CodeId,
-        route: R,
+        route: T::Route,
         params: Option<E::Params>,
         salt: Option<Vec<u8>>,
         args: Option<T::Params>,
@@ -448,13 +445,12 @@ pin_project_lite::pin_project! {
     }
 }
 
-impl<A, T, E, R> PendingCtor<A, T, E, R>
+impl<A, T, E> PendingCtor<A, T, E>
 where
-    T: ServiceCall<R>,
+    T: ServiceCall,
     E: GearEnv,
-    R: RouteHeader,
 {
-    pub fn new(env: E, code_id: CodeId, salt: Vec<u8>, route: R, args: T::Params) -> Self {
+    pub fn new(env: E, code_id: CodeId, salt: Vec<u8>, route: T::Route, args: T::Params) -> Self {
         PendingCtor {
             env,
             code_id,
@@ -476,28 +472,23 @@ where
 
 /// Unified service-call codec parameterized by route header.
 ///
-/// `R = RouteIdx` (default) → v2 binary SailsHeader encoding.
-/// `R = RouteName` → v1 SCALE-string encoding; the route string is read from
-/// the `RouteName(route)` instance passed at call time.
-pub trait ServiceCall<R = RouteIdx>
-where
-    R: RouteHeader,
-{
+pub trait ServiceCall {
+    type Route: RouteHeader;
     type Params;
     type Reply;
     /// Application-level error type (IDL `throws`). Always `()` for v1.
     type Throws;
     type Output;
 
-    fn encode_call(route: &R, value: &Self::Params) -> Vec<u8>;
+    fn encode_call(route: &Self::Route, value: &Self::Params) -> Vec<u8>;
 
     fn decode_reply(
-        route: &R,
+        route: &Self::Route,
         payload: impl AsRef<[u8]>,
     ) -> Result<Self::Output, parity_scale_codec::Error>;
 
     fn decode_error(
-        route: &R,
+        route: &Self::Route,
         payload: impl AsRef<[u8]>,
     ) -> Result<Self::Output, parity_scale_codec::Error>;
 }
@@ -547,7 +538,7 @@ pub fn encode_call_optimized<T, R>(
     f: impl FnOnce(&[u8]) -> R,
 ) -> R
 where
-    T: ServiceCall<RouteIdx> + MethodMeta + Identifiable,
+    T: ServiceCall<Route = RouteIdx> + MethodMeta + Identifiable,
     T::Params: Encode,
 {
     encode_call_optimized_with_id::<T, R>(T::INTERFACE_ID, T::ENTRY_ID, route_idx, value, f)
@@ -561,7 +552,7 @@ pub fn encode_call_optimized_with_id<T, R>(
     f: impl FnOnce(&[u8]) -> R,
 ) -> R
 where
-    T: ServiceCall<RouteIdx>,
+    T: ServiceCall<Route = RouteIdx>,
     T::Params: Encode,
 {
     let header = SailsMessageHeader::new(
@@ -605,7 +596,7 @@ macro_rules! params_struct_impl {
             )*
         }
 
-        impl<A, T: $crate::client::ServiceCall<R>, R: $crate::client::RouteHeader> $crate::client::PendingCtor<A, T, $env, R> {
+        impl<A, T: $crate::client::ServiceCall> $crate::client::PendingCtor<A, T, $env> {
             $(
                 paste::paste! {
                     $(#[$attr])*
@@ -616,7 +607,7 @@ macro_rules! params_struct_impl {
             )*
         }
 
-        impl<T: $crate::client::ServiceCall<R>, R: $crate::client::RouteHeader> $crate::client::PendingCall<T, $env, R> {
+        impl<T: $crate::client::ServiceCall> $crate::client::PendingCall<T, $env> {
             $(
                 paste::paste! {
                     $(#[$attr])*
@@ -647,7 +638,7 @@ macro_rules! params_for_pending_impl {
             )*
         }
 
-        impl<A, T: $crate::client::ServiceCall<R>, R: $crate::client::RouteHeader> $crate::client::PendingCtor<A, T, $env, R> {
+        impl<A, T: $crate::client::ServiceCall> $crate::client::PendingCtor<A, T, $env> {
             $(
                 paste::paste! {
                     $(#[$attr])*
@@ -658,7 +649,7 @@ macro_rules! params_for_pending_impl {
             )*
         }
 
-        impl<T: $crate::client::ServiceCall<R>, R: $crate::client::RouteHeader> $crate::client::PendingCall<T, $env, R> {
+        impl<T: $crate::client::ServiceCall> $crate::client::PendingCall<T, $env> {
             $(
                 paste::paste! {
                     $(#[$attr])*
@@ -679,7 +670,8 @@ macro_rules! io_struct_impl {
     ) => {
         $crate::io_struct_impl!(@impl_base $name ( $( $param : $ty ),* ) -> $reply, $entry_id, $interface_id);
 
-        impl $crate::client::ServiceCall<$crate::client::RouteIdx> for $name {
+        impl $crate::client::ServiceCall for $name {
+            type Route = $crate::client::RouteIdx;
             type Params = ( $( $ty, )* );
             type Reply = $reply;
             type Throws = ();
@@ -719,7 +711,8 @@ macro_rules! io_struct_impl {
     ) => {
         $crate::io_struct_impl!(@impl_base $name ( $( $param : $ty ),* ) -> $reply, $entry_id, $interface_id);
 
-        impl $crate::client::ServiceCall<$crate::client::RouteIdx> for $name {
+        impl $crate::client::ServiceCall for $name {
+            type Route = $crate::client::RouteIdx;
             type Params = ( $( $ty, )* );
             type Reply = $reply;
             type Throws = $throws;
@@ -767,7 +760,7 @@ macro_rules! io_struct_impl {
         impl $name {
             /// Encodes the full call with the correct Sails header.
             pub fn encode_call(route_idx: u8, $( $param: $ty, )* ) -> Vec<u8> {
-                <$name as $crate::client::ServiceCall<$crate::client::RouteIdx>>::encode_call(
+                <$name as $crate::client::ServiceCall>::encode_call(
                     &$crate::client::RouteIdx(route_idx), &( $( $param, )* )
                 )
             }
@@ -803,20 +796,21 @@ macro_rules! io_struct_impl_v1 {
 
         impl $name {
             pub fn encode_call(route: $crate::client::Route, $( $param: $ty, )* ) -> Vec<u8> {
-                <$name as $crate::client::ServiceCall<$crate::client::RouteName>>::encode_call(
+                <$name as $crate::client::ServiceCall>::encode_call(
                     &$crate::client::RouteName(route), &( $( $param, )* )
                 )
             }
 
             pub fn decode_reply(route: $crate::client::Route, payload: impl AsRef<[u8]>) -> Result<$reply, $crate::scale_codec::Error> {
-                <$name as $crate::client::ServiceCall<$crate::client::RouteName>>::decode_reply(
+                <$name as $crate::client::ServiceCall>::decode_reply(
                     &$crate::client::RouteName(route),
                     payload,
                 )
             }
         }
 
-        impl $crate::client::ServiceCall<$crate::client::RouteName> for $name {
+        impl $crate::client::ServiceCall for $name {
+            type Route = $crate::client::RouteName;
             type Params = ( $( $ty, )* );
             type Reply = $reply;
             // v1 has no `throws` concept — always unit, Output == Reply.
@@ -1116,8 +1110,7 @@ mod tests {
         success_reply.extend_from_slice(&expected_sub_payload);
 
         let decoded_success =
-            <Sub as ServiceCall<RouteIdx>>::decode_reply(&RouteIdx(route_idx), &success_reply)
-                .unwrap();
+            <Sub as ServiceCall>::decode_reply(&RouteIdx(route_idx), &success_reply).unwrap();
         assert_eq!(decoded_success, Ok(42));
         assert_eq!(Sub::decode_reply(route_idx, &success_reply).unwrap(), 42);
 
@@ -1126,8 +1119,7 @@ mod tests {
         error_reply.extend_from_slice(&error_message.encode());
 
         let decoded_error =
-            <Sub as ServiceCall<RouteIdx>>::decode_error(&RouteIdx(route_idx), &error_reply)
-                .unwrap();
+            <Sub as ServiceCall>::decode_error(&RouteIdx(route_idx), &error_reply).unwrap();
         assert_eq!(decoded_error, Err(error_message));
     }
 
@@ -1144,7 +1136,8 @@ mod tests {
         assert_eq!(encoded, expected);
 
         // Decoding
-        let decoded = DoThis::decode_reply("MyService", &encoded).unwrap();
+        let decoded =
+            <DoThis as ServiceCall>::decode_reply(&RouteName("MyService"), &encoded).unwrap();
         assert_eq!(decoded, 42u32);
     }
 }

@@ -43,7 +43,7 @@ impl GstdParams {
     }
 }
 
-impl<T: ServiceCall<R>, R: RouteHeader> PendingCall<T, GstdEnv, R> {
+impl<T: ServiceCall> PendingCall<T, GstdEnv> {
     /// Set `redirect_on_exit` flag to `true``
     ///
     /// This flag is used to redirect a message to a new program when the target program exits
@@ -103,7 +103,7 @@ impl GstdEnv {
     }
 }
 
-impl<T: ServiceCall<R>, R: RouteHeader> PendingCall<T, GstdEnv, R> {
+impl<T: ServiceCall> PendingCall<T, GstdEnv> {
     pub fn send_one_way(&mut self) -> Result<MessageId, Error> {
         let (payload, params) = self.take_encoded_args_and_params();
         self.env.send_one_way(self.destination, payload, params)
@@ -181,7 +181,7 @@ const _: () = {
         }
     }
 
-    impl<T: ServiceCall<R>, R: RouteHeader> PendingCall<T, GstdEnv, R> {
+    impl<T: ServiceCall> PendingCall<T, GstdEnv> {
         /// Sends the message and returns the `PendingCall` for subsequent `poll`/`await`.
         pub fn send_for_reply(mut self) -> Result<Self, Error> {
             if self.state.is_some() {
@@ -200,7 +200,7 @@ const _: () = {
         }
     }
 
-    impl<T: ServiceCall<R>, R: RouteHeader> Future for PendingCall<T, GstdEnv, R> {
+    impl<T: ServiceCall> Future for PendingCall<T, GstdEnv> {
         type Output = Result<T::Output, <GstdEnv as GearEnv>::Error>;
 
         fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -294,10 +294,9 @@ const _: () = {
         }
     }
 
-    impl<A, T, R> Future for PendingCtor<A, T, GstdEnv, R>
+    impl<A, T> Future for PendingCtor<A, T, GstdEnv>
     where
-        T: ServiceCall<R>,
-        R: RouteHeader,
+        T: ServiceCall,
         T::Output: PendingCtorOutput<A, GstdEnv>,
     {
         type Output = Result<
@@ -400,10 +399,10 @@ pin_project_lite::pin_project! {
 
 #[cfg(not(target_arch = "wasm32"))]
 const _: () = {
-    // from_output / from_result only make sense with a concrete RouteIdx (v2)
     impl<T: ServiceCall> PendingCall<T, GstdEnv>
     where
         T::Output: Encode + Decode,
+        T::Route: Default,
     {
         pub fn from_output(output: T::Output) -> Self {
             Self::from_result(Ok(output))
@@ -417,7 +416,7 @@ const _: () = {
             PendingCall {
                 env: GstdEnv,
                 destination: ActorId::zero(),
-                route: RouteIdx(0),
+                route: T::Route::default(),
                 params: None,
                 args: None,
                 state: Some(future::ready(res.map(|v| v.encode()))),
@@ -434,6 +433,7 @@ const _: () = {
     impl<T: ServiceCall<Output = O>, O> From<O> for PendingCall<T, GstdEnv>
     where
         O: Encode + Decode,
+        T::Route: Default,
     {
         fn from(value: O) -> Self {
             PendingCall::from_output(value)
@@ -458,10 +458,9 @@ const _: () = {
         }
     }
 
-    impl<A, T, R> Future for PendingCtor<A, T, GstdEnv, R>
+    impl<A, T> Future for PendingCtor<A, T, GstdEnv>
     where
-        T: ServiceCall<R>,
-        R: RouteHeader,
+        T: ServiceCall,
         T::Output: PendingCtorOutput<A, GstdEnv>,
     {
         type Output = Result<

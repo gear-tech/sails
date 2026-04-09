@@ -89,7 +89,7 @@ impl GearEnv for GclientEnv {
     type MessageState = Pin<Box<dyn Future<Output = Result<(ActorId, Vec<u8>), GclientError>>>>;
 }
 
-impl<T: ServiceCall<R>, R: RouteHeader> PendingCall<T, GclientEnv, R> {
+impl<T: ServiceCall> PendingCall<T, GclientEnv> {
     pub async fn send_one_way(&mut self) -> Result<MessageId, GclientError> {
         let (payload, params) = self.take_encoded_args_and_params();
         self.env
@@ -130,7 +130,7 @@ impl<T: ServiceCall<R>, R: RouteHeader> PendingCall<T, GclientEnv, R> {
     }
 }
 
-impl<T: ServiceCall<R>, R: RouteHeader> Future for PendingCall<T, GclientEnv, R> {
+impl<T: ServiceCall> Future for PendingCall<T, GclientEnv> {
     type Output = Result<T::Output, <GclientEnv as GearEnv>::Error>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -169,10 +169,9 @@ impl<T: ServiceCall<R>, R: RouteHeader> Future for PendingCall<T, GclientEnv, R>
     }
 }
 
-impl<A, T, R> Future for PendingCtor<A, T, GclientEnv, R>
+impl<A, T> Future for PendingCtor<A, T, GclientEnv>
 where
-    T: ServiceCall<R>,
-    R: RouteHeader,
+    T: ServiceCall,
     T::Output: PendingCtorOutput<A, GclientEnv>,
 {
     type Output = Result<

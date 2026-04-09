@@ -44,7 +44,7 @@ pub mod service_with_events {
             &mut self,
             p1: NonZeroU256,
             p2: MyParam,
-        ) -> sails_rs::client::PendingCall<io::DoThis, Self::Env, sails_rs::client::RouteName>;
+        ) -> sails_rs::client::PendingCall<io::DoThis, Self::Env>;
     }
 
     pub struct ServiceWithEventsImpl;
@@ -57,8 +57,7 @@ pub mod service_with_events {
             &mut self,
             p1: NonZeroU256,
             p2: MyParam,
-        ) -> sails_rs::client::PendingCall<io::DoThis, Self::Env, sails_rs::client::RouteName>
-        {
+        ) -> sails_rs::client::PendingCall<io::DoThis, Self::Env> {
             self.pending_call((p1, p2))
         }
     }
@@ -123,7 +122,7 @@ pub mod mockall {
         #[allow(clippy::type_complexity)]
         impl service_with_events::ServiceWithEvents for ServiceWithEvents {
             type Env = sails_rs::client::GstdEnv;
-            fn do_this (&mut self, p1: NonZeroU256, p2: MyParam) -> sails_rs::client::PendingCall<service_with_events::io::DoThis, sails_rs::client::GstdEnv, sails_rs::client::RouteName>;
+            fn do_this (&mut self, p1: NonZeroU256, p2: MyParam) -> sails_rs::client::PendingCall<service_with_events::io::DoThis, sails_rs::client::GstdEnv>;
         }
     }
 }

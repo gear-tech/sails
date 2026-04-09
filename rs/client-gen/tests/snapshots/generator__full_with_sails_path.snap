@@ -59,24 +59,14 @@ pub trait ServiceCtors {
     fn new(
         self,
         a: u32,
-    ) -> my_crate::sails::client::PendingCtor<
-        ServiceProgram,
-        io::New,
-        Self::Env,
-        my_crate::sails::client::RouteName,
-    >;
+    ) -> my_crate::sails::client::PendingCtor<ServiceProgram, io::New, Self::Env>;
     /// CreateWithData constructor
     fn create_with_data(
         self,
         a: u32,
         b: String,
         c: ThisThatSvcAppManyVariants,
-    ) -> my_crate::sails::client::PendingCtor<
-        ServiceProgram,
-        io::CreateWithData,
-        Self::Env,
-        my_crate::sails::client::RouteName,
-    >;
+    ) -> my_crate::sails::client::PendingCtor<ServiceProgram, io::CreateWithData, Self::Env>;
 }
 
 impl<E: my_crate::sails::client::GearEnv> ServiceCtors
@@ -86,12 +76,7 @@ impl<E: my_crate::sails::client::GearEnv> ServiceCtors
     fn new(
         self,
         a: u32,
-    ) -> my_crate::sails::client::PendingCtor<
-        ServiceProgram,
-        io::New,
-        Self::Env,
-        my_crate::sails::client::RouteName,
-    > {
+    ) -> my_crate::sails::client::PendingCtor<ServiceProgram, io::New, Self::Env> {
         self.pending_ctor_v1((a,))
     }
     fn create_with_data(
@@ -99,12 +84,7 @@ impl<E: my_crate::sails::client::GearEnv> ServiceCtors
         a: u32,
         b: String,
         c: ThisThatSvcAppManyVariants,
-    ) -> my_crate::sails::client::PendingCtor<
-        ServiceProgram,
-        io::CreateWithData,
-        Self::Env,
-        my_crate::sails::client::RouteName,
-    > {
+    ) -> my_crate::sails::client::PendingCtor<ServiceProgram, io::CreateWithData, Self::Env> {
         self.pending_ctor_v1((a, b, c))
     }
 }
@@ -126,35 +106,13 @@ pub mod service {
             p2: String,
             p3: (Option<String>, u8),
             p4: ThisThatSvcAppTupleStruct,
-        ) -> my_crate::sails::client::PendingCall<
-            io::DoThis,
-            Self::Env,
-            my_crate::sails::client::RouteName,
-        >;
+        ) -> my_crate::sails::client::PendingCall<io::DoThis, Self::Env>;
         fn do_that(
             &mut self,
             param: ThisThatSvcAppDoThatParam,
-        ) -> my_crate::sails::client::PendingCall<
-            io::DoThat,
-            Self::Env,
-            my_crate::sails::client::RouteName,
-        >;
-        fn this(
-            &self,
-            v1: Vec<u16>,
-        ) -> my_crate::sails::client::PendingCall<
-            io::This,
-            Self::Env,
-            my_crate::sails::client::RouteName,
-        >;
-        fn that(
-            &self,
-            v1: (),
-        ) -> my_crate::sails::client::PendingCall<
-            io::That,
-            Self::Env,
-            my_crate::sails::client::RouteName,
-        >;
+        ) -> my_crate::sails::client::PendingCall<io::DoThat, Self::Env>;
+        fn this(&self, v1: Vec<u16>) -> my_crate::sails::client::PendingCall<io::This, Self::Env>;
+        fn that(&self, v1: ()) -> my_crate::sails::client::PendingCall<io::That, Self::Env>;
     }
 
     pub struct ServiceImpl;
@@ -169,41 +127,19 @@ pub mod service {
             p2: String,
             p3: (Option<String>, u8),
             p4: ThisThatSvcAppTupleStruct,
-        ) -> my_crate::sails::client::PendingCall<
-            io::DoThis,
-            Self::Env,
-            my_crate::sails::client::RouteName,
-        > {
+        ) -> my_crate::sails::client::PendingCall<io::DoThis, Self::Env> {
             self.pending_call((p1, p2, p3, p4))
         }
         fn do_that(
             &mut self,
             param: ThisThatSvcAppDoThatParam,
-        ) -> my_crate::sails::client::PendingCall<
-            io::DoThat,
-            Self::Env,
-            my_crate::sails::client::RouteName,
-        > {
+        ) -> my_crate::sails::client::PendingCall<io::DoThat, Self::Env> {
             self.pending_call((param,))
         }
-        fn this(
-            &self,
-            v1: Vec<u16>,
-        ) -> my_crate::sails::client::PendingCall<
-            io::This,
-            Self::Env,
-            my_crate::sails::client::RouteName,
-        > {
+        fn this(&self, v1: Vec<u16>) -> my_crate::sails::client::PendingCall<io::This, Self::Env> {
             self.pending_call((v1,))
         }
-        fn that(
-            &self,
-            v1: (),
-        ) -> my_crate::sails::client::PendingCall<
-            io::That,
-            Self::Env,
-            my_crate::sails::client::RouteName,
-        > {
+        fn that(&self, v1: ()) -> my_crate::sails::client::PendingCall<io::That, Self::Env> {
             self.pending_call((v1,))
         }
     }
@@ -223,31 +159,11 @@ pub mod counter {
     pub trait Counter {
         type Env: my_crate::sails::client::GearEnv;
         /// Add a value to the counter
-        fn add(
-            &mut self,
-            value: u32,
-        ) -> my_crate::sails::client::PendingCall<
-            io::Add,
-            Self::Env,
-            my_crate::sails::client::RouteName,
-        >;
+        fn add(&mut self, value: u32) -> my_crate::sails::client::PendingCall<io::Add, Self::Env>;
         /// Substract a value from the counter
-        fn sub(
-            &mut self,
-            value: u32,
-        ) -> my_crate::sails::client::PendingCall<
-            io::Sub,
-            Self::Env,
-            my_crate::sails::client::RouteName,
-        >;
+        fn sub(&mut self, value: u32) -> my_crate::sails::client::PendingCall<io::Sub, Self::Env>;
         /// Get the current value
-        fn value(
-            &self,
-        ) -> my_crate::sails::client::PendingCall<
-            io::Value,
-            Self::Env,
-            my_crate::sails::client::RouteName,
-        >;
+        fn value(&self) -> my_crate::sails::client::PendingCall<io::Value, Self::Env>;
     }
 
     pub struct CounterImpl;
@@ -256,33 +172,13 @@ pub mod counter {
         for my_crate::sails::client::Service<CounterImpl, E, my_crate::sails::client::RouteName>
     {
         type Env = E;
-        fn add(
-            &mut self,
-            value: u32,
-        ) -> my_crate::sails::client::PendingCall<
-            io::Add,
-            Self::Env,
-            my_crate::sails::client::RouteName,
-        > {
+        fn add(&mut self, value: u32) -> my_crate::sails::client::PendingCall<io::Add, Self::Env> {
             self.pending_call((value,))
         }
-        fn sub(
-            &mut self,
-            value: u32,
-        ) -> my_crate::sails::client::PendingCall<
-            io::Sub,
-            Self::Env,
-            my_crate::sails::client::RouteName,
-        > {
+        fn sub(&mut self, value: u32) -> my_crate::sails::client::PendingCall<io::Sub, Self::Env> {
             self.pending_call((value,))
         }
-        fn value(
-            &self,
-        ) -> my_crate::sails::client::PendingCall<
-            io::Value,
-            Self::Env,
-            my_crate::sails::client::RouteName,
-        > {
+        fn value(&self) -> my_crate::sails::client::PendingCall<io::Value, Self::Env> {
             self.pending_call(())
         }
     }

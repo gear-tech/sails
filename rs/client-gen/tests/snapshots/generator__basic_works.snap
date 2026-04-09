@@ -34,11 +34,11 @@ pub mod basic {
             &mut self,
             p1: u32,
             p2: MyParam,
-        ) -> sails_rs::client::PendingCall<io::DoThis, Self::Env, sails_rs::client::RouteName>;
+        ) -> sails_rs::client::PendingCall<io::DoThis, Self::Env>;
         fn do_that(
             &mut self,
             p1: (u8, u32),
-        ) -> sails_rs::client::PendingCall<io::DoThat, Self::Env, sails_rs::client::RouteName>;
+        ) -> sails_rs::client::PendingCall<io::DoThat, Self::Env>;
     }
 
     pub struct BasicImpl;
@@ -51,15 +51,13 @@ pub mod basic {
             &mut self,
             p1: u32,
             p2: MyParam,
-        ) -> sails_rs::client::PendingCall<io::DoThis, Self::Env, sails_rs::client::RouteName>
-        {
+        ) -> sails_rs::client::PendingCall<io::DoThis, Self::Env> {
             self.pending_call((p1, p2))
         }
         fn do_that(
             &mut self,
             p1: (u8, u32),
-        ) -> sails_rs::client::PendingCall<io::DoThat, Self::Env, sails_rs::client::RouteName>
-        {
+        ) -> sails_rs::client::PendingCall<io::DoThat, Self::Env> {
             self.pending_call((p1,))
         }
     }
@@ -105,7 +103,7 @@ pub mod mockall {
         #[allow(clippy::type_complexity)]
         impl basic::Basic for Basic {
             type Env = sails_rs::client::GstdEnv;
-            fn do_this (&mut self, p1: u32, p2: MyParam) -> sails_rs::client::PendingCall<basic::io::DoThis, sails_rs::client::GstdEnv, sails_rs::client::RouteName>;fn do_that (&mut self, p1: (u8,u32,)) -> sails_rs::client::PendingCall<basic::io::DoThat, sails_rs::client::GstdEnv, sails_rs::client::RouteName>;
+            fn do_this (&mut self, p1: u32, p2: MyParam) -> sails_rs::client::PendingCall<basic::io::DoThis, sails_rs::client::GstdEnv>;fn do_that (&mut self, p1: (u8,u32,)) -> sails_rs::client::PendingCall<basic::io::DoThat, sails_rs::client::GstdEnv>;
         }
     }
 }

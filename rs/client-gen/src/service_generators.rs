@@ -123,12 +123,12 @@ impl<'ast> Visitor<'ast> for ServiceGenerator<'_> {
         }
         quote_in! { self.trait_tokens =>
             $['\r'] fn $fn_name_snake (&$mutability self, $params_with_types)
-                -> $(self.sails_path)::client::PendingCall<io::$fn_name, Self::Env, $(self.sails_path)::client::RouteName>;
+                -> $(self.sails_path)::client::PendingCall<io::$fn_name, Self::Env>;
         };
 
         quote_in! { self.impl_tokens =>
             $['\r'] fn $fn_name_snake (&$mutability self, $params_with_types)
-                -> $(self.sails_path)::client::PendingCall<io::$fn_name, Self::Env, $(self.sails_path)::client::RouteName> {
+                -> $(self.sails_path)::client::PendingCall<io::$fn_name, Self::Env> {
                 self.pending_call($args)
             }
         };

@@ -275,7 +275,7 @@ impl GearEnv for GtestEnv {
     type MessageState = ReplyReceiver;
 }
 
-impl<T: ServiceCall<R>, R: RouteHeader> PendingCall<T, GtestEnv, R> {
+impl<T: ServiceCall> PendingCall<T, GtestEnv> {
     pub fn send_one_way(&mut self) -> Result<MessageId, GtestError> {
         if self.state.is_some() {
             panic!("{PENDING_CALL_INVALID_STATE}");
@@ -318,7 +318,7 @@ impl<T: ServiceCall<R>, R: RouteHeader> PendingCall<T, GtestEnv, R> {
     }
 }
 
-impl<T: ServiceCall<R>, R: RouteHeader> Future for PendingCall<T, GtestEnv, R> {
+impl<T: ServiceCall> Future for PendingCall<T, GtestEnv> {
     type Output = Result<T::Output, <GtestEnv as GearEnv>::Error>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -366,7 +366,7 @@ impl<T: ServiceCall<R>, R: RouteHeader> Future for PendingCall<T, GtestEnv, R> {
     }
 }
 
-impl<A, T: ServiceCall<R>, R: RouteHeader> PendingCtor<A, T, GtestEnv, R> {
+impl<A, T: ServiceCall> PendingCtor<A, T, GtestEnv> {
     pub fn create_program(mut self) -> Result<Self, GtestError> {
         if self.state.is_some() {
             panic!("{PENDING_CTOR_INVALID_STATE}");
@@ -397,10 +397,9 @@ impl<A, T: ServiceCall<R>, R: RouteHeader> PendingCtor<A, T, GtestEnv, R> {
     }
 }
 
-impl<A, T, R> Future for PendingCtor<A, T, GtestEnv, R>
+impl<A, T> Future for PendingCtor<A, T, GtestEnv>
 where
-    T: ServiceCall<R>,
-    R: RouteHeader,
+    T: ServiceCall,
     T::Output: PendingCtorOutput<A, GtestEnv>,
 {
     type Output =

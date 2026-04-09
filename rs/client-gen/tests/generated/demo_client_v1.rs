@@ -77,14 +77,7 @@ impl<E: sails_rs::client::GearEnv> Demo for sails_rs::client::Actor<DemoProgram,
 pub trait DemoCtors {
     type Env: sails_rs::client::GearEnv;
     /// Program constructor (called once at the very beginning of the program lifetime)
-    fn default(
-        self,
-    ) -> sails_rs::client::PendingCtor<
-        DemoProgram,
-        io::Default,
-        Self::Env,
-        sails_rs::client::RouteName,
-    >;
+    fn default(self) -> sails_rs::client::PendingCtor<DemoProgram, io::Default, Self::Env>;
     /// Another program constructor (called once at the very beginning of the program lifetime)
     #[allow(clippy::new_ret_no_self)]
     #[allow(clippy::wrong_self_convention)]
@@ -92,27 +85,19 @@ pub trait DemoCtors {
         self,
         counter: Option<u32>,
         dog_position: Option<(i32, i32)>,
-    ) -> sails_rs::client::PendingCtor<DemoProgram, io::New, Self::Env, sails_rs::client::RouteName>;
+    ) -> sails_rs::client::PendingCtor<DemoProgram, io::New, Self::Env>;
 }
 
 impl<E: sails_rs::client::GearEnv> DemoCtors for sails_rs::client::Deployment<DemoProgram, E> {
     type Env = E;
-    fn default(
-        self,
-    ) -> sails_rs::client::PendingCtor<
-        DemoProgram,
-        io::Default,
-        Self::Env,
-        sails_rs::client::RouteName,
-    > {
+    fn default(self) -> sails_rs::client::PendingCtor<DemoProgram, io::Default, Self::Env> {
         self.pending_ctor_v1(())
     }
     fn new(
         self,
         counter: Option<u32>,
         dog_position: Option<(i32, i32)>,
-    ) -> sails_rs::client::PendingCtor<DemoProgram, io::New, Self::Env, sails_rs::client::RouteName>
-    {
+    ) -> sails_rs::client::PendingCtor<DemoProgram, io::New, Self::Env> {
         self.pending_ctor_v1((counter, dog_position))
     }
 }
@@ -128,10 +113,7 @@ pub mod ping_pong {
 
     pub trait PingPong {
         type Env: sails_rs::client::GearEnv;
-        fn ping(
-            &mut self,
-            input: String,
-        ) -> sails_rs::client::PendingCall<io::Ping, Self::Env, sails_rs::client::RouteName>;
+        fn ping(&mut self, input: String) -> sails_rs::client::PendingCall<io::Ping, Self::Env>;
     }
 
     pub struct PingPongImpl;
@@ -140,11 +122,7 @@ pub mod ping_pong {
         for sails_rs::client::Service<PingPongImpl, E, sails_rs::client::RouteName>
     {
         type Env = E;
-        fn ping(
-            &mut self,
-            input: String,
-        ) -> sails_rs::client::PendingCall<io::Ping, Self::Env, sails_rs::client::RouteName>
-        {
+        fn ping(&mut self, input: String) -> sails_rs::client::PendingCall<io::Ping, Self::Env> {
             self.pending_call((input,))
         }
     }
@@ -161,19 +139,11 @@ pub mod counter {
     pub trait Counter {
         type Env: sails_rs::client::GearEnv;
         /// Add a value to the counter
-        fn add(
-            &mut self,
-            value: u32,
-        ) -> sails_rs::client::PendingCall<io::Add, Self::Env, sails_rs::client::RouteName>;
+        fn add(&mut self, value: u32) -> sails_rs::client::PendingCall<io::Add, Self::Env>;
         /// Substract a value from the counter
-        fn sub(
-            &mut self,
-            value: u32,
-        ) -> sails_rs::client::PendingCall<io::Sub, Self::Env, sails_rs::client::RouteName>;
+        fn sub(&mut self, value: u32) -> sails_rs::client::PendingCall<io::Sub, Self::Env>;
         /// Get the current value
-        fn value(
-            &self,
-        ) -> sails_rs::client::PendingCall<io::Value, Self::Env, sails_rs::client::RouteName>;
+        fn value(&self) -> sails_rs::client::PendingCall<io::Value, Self::Env>;
     }
 
     pub struct CounterImpl;
@@ -182,24 +152,13 @@ pub mod counter {
         for sails_rs::client::Service<CounterImpl, E, sails_rs::client::RouteName>
     {
         type Env = E;
-        fn add(
-            &mut self,
-            value: u32,
-        ) -> sails_rs::client::PendingCall<io::Add, Self::Env, sails_rs::client::RouteName>
-        {
+        fn add(&mut self, value: u32) -> sails_rs::client::PendingCall<io::Add, Self::Env> {
             self.pending_call((value,))
         }
-        fn sub(
-            &mut self,
-            value: u32,
-        ) -> sails_rs::client::PendingCall<io::Sub, Self::Env, sails_rs::client::RouteName>
-        {
+        fn sub(&mut self, value: u32) -> sails_rs::client::PendingCall<io::Sub, Self::Env> {
             self.pending_call((value,))
         }
-        fn value(
-            &self,
-        ) -> sails_rs::client::PendingCall<io::Value, Self::Env, sails_rs::client::RouteName>
-        {
+        fn value(&self) -> sails_rs::client::PendingCall<io::Value, Self::Env> {
             self.pending_call(())
         }
     }
@@ -246,20 +205,10 @@ pub mod dog {
 
     pub trait Dog {
         type Env: sails_rs::client::GearEnv;
-        fn make_sound(
-            &mut self,
-        ) -> sails_rs::client::PendingCall<io::MakeSound, Self::Env, sails_rs::client::RouteName>;
-        fn walk(
-            &mut self,
-            dx: i32,
-            dy: i32,
-        ) -> sails_rs::client::PendingCall<io::Walk, Self::Env, sails_rs::client::RouteName>;
-        fn avg_weight(
-            &self,
-        ) -> sails_rs::client::PendingCall<io::AvgWeight, Self::Env, sails_rs::client::RouteName>;
-        fn position(
-            &self,
-        ) -> sails_rs::client::PendingCall<io::Position, Self::Env, sails_rs::client::RouteName>;
+        fn make_sound(&mut self) -> sails_rs::client::PendingCall<io::MakeSound, Self::Env>;
+        fn walk(&mut self, dx: i32, dy: i32) -> sails_rs::client::PendingCall<io::Walk, Self::Env>;
+        fn avg_weight(&self) -> sails_rs::client::PendingCall<io::AvgWeight, Self::Env>;
+        fn position(&self) -> sails_rs::client::PendingCall<io::Position, Self::Env>;
     }
 
     pub struct DogImpl;
@@ -268,30 +217,16 @@ pub mod dog {
         for sails_rs::client::Service<DogImpl, E, sails_rs::client::RouteName>
     {
         type Env = E;
-        fn make_sound(
-            &mut self,
-        ) -> sails_rs::client::PendingCall<io::MakeSound, Self::Env, sails_rs::client::RouteName>
-        {
+        fn make_sound(&mut self) -> sails_rs::client::PendingCall<io::MakeSound, Self::Env> {
             self.pending_call(())
         }
-        fn walk(
-            &mut self,
-            dx: i32,
-            dy: i32,
-        ) -> sails_rs::client::PendingCall<io::Walk, Self::Env, sails_rs::client::RouteName>
-        {
+        fn walk(&mut self, dx: i32, dy: i32) -> sails_rs::client::PendingCall<io::Walk, Self::Env> {
             self.pending_call((dx, dy))
         }
-        fn avg_weight(
-            &self,
-        ) -> sails_rs::client::PendingCall<io::AvgWeight, Self::Env, sails_rs::client::RouteName>
-        {
+        fn avg_weight(&self) -> sails_rs::client::PendingCall<io::AvgWeight, Self::Env> {
             self.pending_call(())
         }
-        fn position(
-            &self,
-        ) -> sails_rs::client::PendingCall<io::Position, Self::Env, sails_rs::client::RouteName>
-        {
+        fn position(&self) -> sails_rs::client::PendingCall<io::Position, Self::Env> {
             self.pending_call(())
         }
     }
@@ -337,34 +272,17 @@ pub mod references {
 
     pub trait References {
         type Env: sails_rs::client::GearEnv;
-        fn add(
-            &mut self,
-            v: u32,
-        ) -> sails_rs::client::PendingCall<io::Add, Self::Env, sails_rs::client::RouteName>;
-        fn add_byte(
-            &mut self,
-            byte: u8,
-        ) -> sails_rs::client::PendingCall<io::AddByte, Self::Env, sails_rs::client::RouteName>;
+        fn add(&mut self, v: u32) -> sails_rs::client::PendingCall<io::Add, Self::Env>;
+        fn add_byte(&mut self, byte: u8) -> sails_rs::client::PendingCall<io::AddByte, Self::Env>;
         fn guess_num(
             &mut self,
             number: u8,
-        ) -> sails_rs::client::PendingCall<io::GuessNum, Self::Env, sails_rs::client::RouteName>;
-        fn incr(
-            &mut self,
-        ) -> sails_rs::client::PendingCall<io::Incr, Self::Env, sails_rs::client::RouteName>;
-        fn set_num(
-            &mut self,
-            number: u8,
-        ) -> sails_rs::client::PendingCall<io::SetNum, Self::Env, sails_rs::client::RouteName>;
-        fn baked(
-            &self,
-        ) -> sails_rs::client::PendingCall<io::Baked, Self::Env, sails_rs::client::RouteName>;
-        fn last_byte(
-            &self,
-        ) -> sails_rs::client::PendingCall<io::LastByte, Self::Env, sails_rs::client::RouteName>;
-        fn message(
-            &self,
-        ) -> sails_rs::client::PendingCall<io::Message, Self::Env, sails_rs::client::RouteName>;
+        ) -> sails_rs::client::PendingCall<io::GuessNum, Self::Env>;
+        fn incr(&mut self) -> sails_rs::client::PendingCall<io::Incr, Self::Env>;
+        fn set_num(&mut self, number: u8) -> sails_rs::client::PendingCall<io::SetNum, Self::Env>;
+        fn baked(&self) -> sails_rs::client::PendingCall<io::Baked, Self::Env>;
+        fn last_byte(&self) -> sails_rs::client::PendingCall<io::LastByte, Self::Env>;
+        fn message(&self) -> sails_rs::client::PendingCall<io::Message, Self::Env>;
     }
 
     pub struct ReferencesImpl;
@@ -373,56 +291,31 @@ pub mod references {
         for sails_rs::client::Service<ReferencesImpl, E, sails_rs::client::RouteName>
     {
         type Env = E;
-        fn add(
-            &mut self,
-            v: u32,
-        ) -> sails_rs::client::PendingCall<io::Add, Self::Env, sails_rs::client::RouteName>
-        {
+        fn add(&mut self, v: u32) -> sails_rs::client::PendingCall<io::Add, Self::Env> {
             self.pending_call((v,))
         }
-        fn add_byte(
-            &mut self,
-            byte: u8,
-        ) -> sails_rs::client::PendingCall<io::AddByte, Self::Env, sails_rs::client::RouteName>
-        {
+        fn add_byte(&mut self, byte: u8) -> sails_rs::client::PendingCall<io::AddByte, Self::Env> {
             self.pending_call((byte,))
         }
         fn guess_num(
             &mut self,
             number: u8,
-        ) -> sails_rs::client::PendingCall<io::GuessNum, Self::Env, sails_rs::client::RouteName>
-        {
+        ) -> sails_rs::client::PendingCall<io::GuessNum, Self::Env> {
             self.pending_call((number,))
         }
-        fn incr(
-            &mut self,
-        ) -> sails_rs::client::PendingCall<io::Incr, Self::Env, sails_rs::client::RouteName>
-        {
+        fn incr(&mut self) -> sails_rs::client::PendingCall<io::Incr, Self::Env> {
             self.pending_call(())
         }
-        fn set_num(
-            &mut self,
-            number: u8,
-        ) -> sails_rs::client::PendingCall<io::SetNum, Self::Env, sails_rs::client::RouteName>
-        {
+        fn set_num(&mut self, number: u8) -> sails_rs::client::PendingCall<io::SetNum, Self::Env> {
             self.pending_call((number,))
         }
-        fn baked(
-            &self,
-        ) -> sails_rs::client::PendingCall<io::Baked, Self::Env, sails_rs::client::RouteName>
-        {
+        fn baked(&self) -> sails_rs::client::PendingCall<io::Baked, Self::Env> {
             self.pending_call(())
         }
-        fn last_byte(
-            &self,
-        ) -> sails_rs::client::PendingCall<io::LastByte, Self::Env, sails_rs::client::RouteName>
-        {
+        fn last_byte(&self) -> sails_rs::client::PendingCall<io::LastByte, Self::Env> {
             self.pending_call(())
         }
-        fn message(
-            &self,
-        ) -> sails_rs::client::PendingCall<io::Message, Self::Env, sails_rs::client::RouteName>
-        {
+        fn message(&self) -> sails_rs::client::PendingCall<io::Message, Self::Env> {
             self.pending_call(())
         }
     }
@@ -448,23 +341,17 @@ pub mod this_that {
         fn do_that(
             &mut self,
             param: DoThatParam,
-        ) -> sails_rs::client::PendingCall<io::DoThat, Self::Env, sails_rs::client::RouteName>;
+        ) -> sails_rs::client::PendingCall<io::DoThat, Self::Env>;
         fn do_this(
             &mut self,
             p1: u32,
             p2: String,
             p3: (Option<H160>, NonZeroU8),
             p4: TupleStruct,
-        ) -> sails_rs::client::PendingCall<io::DoThis, Self::Env, sails_rs::client::RouteName>;
-        fn noop(
-            &mut self,
-        ) -> sails_rs::client::PendingCall<io::Noop, Self::Env, sails_rs::client::RouteName>;
-        fn that(
-            &self,
-        ) -> sails_rs::client::PendingCall<io::That, Self::Env, sails_rs::client::RouteName>;
-        fn this(
-            &self,
-        ) -> sails_rs::client::PendingCall<io::This, Self::Env, sails_rs::client::RouteName>;
+        ) -> sails_rs::client::PendingCall<io::DoThis, Self::Env>;
+        fn noop(&mut self) -> sails_rs::client::PendingCall<io::Noop, Self::Env>;
+        fn that(&self) -> sails_rs::client::PendingCall<io::That, Self::Env>;
+        fn this(&self) -> sails_rs::client::PendingCall<io::This, Self::Env>;
     }
 
     pub struct ThisThatImpl;
@@ -476,8 +363,7 @@ pub mod this_that {
         fn do_that(
             &mut self,
             param: DoThatParam,
-        ) -> sails_rs::client::PendingCall<io::DoThat, Self::Env, sails_rs::client::RouteName>
-        {
+        ) -> sails_rs::client::PendingCall<io::DoThat, Self::Env> {
             self.pending_call((param,))
         }
         fn do_this(
@@ -486,26 +372,16 @@ pub mod this_that {
             p2: String,
             p3: (Option<H160>, NonZeroU8),
             p4: TupleStruct,
-        ) -> sails_rs::client::PendingCall<io::DoThis, Self::Env, sails_rs::client::RouteName>
-        {
+        ) -> sails_rs::client::PendingCall<io::DoThis, Self::Env> {
             self.pending_call((p1, p2, p3, p4))
         }
-        fn noop(
-            &mut self,
-        ) -> sails_rs::client::PendingCall<io::Noop, Self::Env, sails_rs::client::RouteName>
-        {
+        fn noop(&mut self) -> sails_rs::client::PendingCall<io::Noop, Self::Env> {
             self.pending_call(())
         }
-        fn that(
-            &self,
-        ) -> sails_rs::client::PendingCall<io::That, Self::Env, sails_rs::client::RouteName>
-        {
+        fn that(&self) -> sails_rs::client::PendingCall<io::That, Self::Env> {
             self.pending_call(())
         }
-        fn this(
-            &self,
-        ) -> sails_rs::client::PendingCall<io::This, Self::Env, sails_rs::client::RouteName>
-        {
+        fn this(&self) -> sails_rs::client::PendingCall<io::This, Self::Env> {
             self.pending_call(())
         }
     }
@@ -529,11 +405,7 @@ pub mod value_fee {
         /// using special type `CommandReply<T>`
         fn do_something_and_take_fee(
             &mut self,
-        ) -> sails_rs::client::PendingCall<
-            io::DoSomethingAndTakeFee,
-            Self::Env,
-            sails_rs::client::RouteName,
-        >;
+        ) -> sails_rs::client::PendingCall<io::DoSomethingAndTakeFee, Self::Env>;
     }
 
     pub struct ValueFeeImpl;
@@ -544,11 +416,7 @@ pub mod value_fee {
         type Env = E;
         fn do_something_and_take_fee(
             &mut self,
-        ) -> sails_rs::client::PendingCall<
-            io::DoSomethingAndTakeFee,
-            Self::Env,
-            sails_rs::client::RouteName,
-        > {
+        ) -> sails_rs::client::PendingCall<io::DoSomethingAndTakeFee, Self::Env> {
             self.pending_call(())
         }
     }
@@ -590,19 +458,11 @@ pub mod chaos {
 
     pub trait Chaos {
         type Env: sails_rs::client::GearEnv;
-        fn panic_after_wait(
-            &self,
-        ) -> sails_rs::client::PendingCall<io::PanicAfterWait, Self::Env, sails_rs::client::RouteName>;
+        fn panic_after_wait(&self) -> sails_rs::client::PendingCall<io::PanicAfterWait, Self::Env>;
         fn reply_hook_counter(
             &self,
-        ) -> sails_rs::client::PendingCall<
-            io::ReplyHookCounter,
-            Self::Env,
-            sails_rs::client::RouteName,
-        >;
-        fn timeout_wait(
-            &self,
-        ) -> sails_rs::client::PendingCall<io::TimeoutWait, Self::Env, sails_rs::client::RouteName>;
+        ) -> sails_rs::client::PendingCall<io::ReplyHookCounter, Self::Env>;
+        fn timeout_wait(&self) -> sails_rs::client::PendingCall<io::TimeoutWait, Self::Env>;
     }
 
     pub struct ChaosImpl;
@@ -611,25 +471,15 @@ pub mod chaos {
         for sails_rs::client::Service<ChaosImpl, E, sails_rs::client::RouteName>
     {
         type Env = E;
-        fn panic_after_wait(
-            &self,
-        ) -> sails_rs::client::PendingCall<io::PanicAfterWait, Self::Env, sails_rs::client::RouteName>
-        {
+        fn panic_after_wait(&self) -> sails_rs::client::PendingCall<io::PanicAfterWait, Self::Env> {
             self.pending_call(())
         }
         fn reply_hook_counter(
             &self,
-        ) -> sails_rs::client::PendingCall<
-            io::ReplyHookCounter,
-            Self::Env,
-            sails_rs::client::RouteName,
-        > {
+        ) -> sails_rs::client::PendingCall<io::ReplyHookCounter, Self::Env> {
             self.pending_call(())
         }
-        fn timeout_wait(
-            &self,
-        ) -> sails_rs::client::PendingCall<io::TimeoutWait, Self::Env, sails_rs::client::RouteName>
-        {
+        fn timeout_wait(&self) -> sails_rs::client::PendingCall<io::TimeoutWait, Self::Env> {
             self.pending_call(())
         }
     }
@@ -679,84 +529,3 @@ pub enum ManyVariantsReply {
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
 pub struct TupleStruct(pub bool);
-
-#[cfg(feature = "with_mocks")]
-#[cfg(not(target_arch = "wasm32"))]
-extern crate std;
-
-#[cfg(feature = "with_mocks")]
-#[cfg(not(target_arch = "wasm32"))]
-pub mod mockall {
-    use super::*;
-    use sails_rs::mockall::*;
-    mock! {
-        pub PingPong {}
-
-        #[allow(refining_impl_trait)]
-        #[allow(clippy::type_complexity)]
-        impl ping_pong::PingPong for PingPong {
-            type Env = sails_rs::client::GstdEnv;
-            fn ping (&mut self, input: String) -> sails_rs::client::PendingCall<ping_pong::io::Ping, sails_rs::client::GstdEnv, sails_rs::client::RouteName>;
-        }
-    }
-    mock! {
-        pub Counter {}
-
-        #[allow(refining_impl_trait)]
-        #[allow(clippy::type_complexity)]
-        impl counter::Counter for Counter {
-            type Env = sails_rs::client::GstdEnv;
-            fn add (&mut self, value: u32) -> sails_rs::client::PendingCall<counter::io::Add, sails_rs::client::GstdEnv, sails_rs::client::RouteName>;fn sub (&mut self, value: u32) -> sails_rs::client::PendingCall<counter::io::Sub, sails_rs::client::GstdEnv, sails_rs::client::RouteName>;fn value (& self, ) -> sails_rs::client::PendingCall<counter::io::Value, sails_rs::client::GstdEnv, sails_rs::client::RouteName>;
-        }
-    }
-    mock! {
-        pub Dog {}
-
-        #[allow(refining_impl_trait)]
-        #[allow(clippy::type_complexity)]
-        impl dog::Dog for Dog {
-            type Env = sails_rs::client::GstdEnv;
-            fn make_sound (&mut self, ) -> sails_rs::client::PendingCall<dog::io::MakeSound, sails_rs::client::GstdEnv, sails_rs::client::RouteName>;fn walk (&mut self, dx: i32, dy: i32) -> sails_rs::client::PendingCall<dog::io::Walk, sails_rs::client::GstdEnv, sails_rs::client::RouteName>;fn avg_weight (& self, ) -> sails_rs::client::PendingCall<dog::io::AvgWeight, sails_rs::client::GstdEnv, sails_rs::client::RouteName>;fn position (& self, ) -> sails_rs::client::PendingCall<dog::io::Position, sails_rs::client::GstdEnv, sails_rs::client::RouteName>;
-        }
-    }
-    mock! {
-        pub References {}
-
-        #[allow(refining_impl_trait)]
-        #[allow(clippy::type_complexity)]
-        impl references::References for References {
-            type Env = sails_rs::client::GstdEnv;
-            fn add (&mut self, v: u32) -> sails_rs::client::PendingCall<references::io::Add, sails_rs::client::GstdEnv, sails_rs::client::RouteName>;fn add_byte (&mut self, byte: u8) -> sails_rs::client::PendingCall<references::io::AddByte, sails_rs::client::GstdEnv, sails_rs::client::RouteName>;fn guess_num (&mut self, number: u8) -> sails_rs::client::PendingCall<references::io::GuessNum, sails_rs::client::GstdEnv, sails_rs::client::RouteName>;fn incr (&mut self, ) -> sails_rs::client::PendingCall<references::io::Incr, sails_rs::client::GstdEnv, sails_rs::client::RouteName>;fn set_num (&mut self, number: u8) -> sails_rs::client::PendingCall<references::io::SetNum, sails_rs::client::GstdEnv, sails_rs::client::RouteName>;fn baked (& self, ) -> sails_rs::client::PendingCall<references::io::Baked, sails_rs::client::GstdEnv, sails_rs::client::RouteName>;fn last_byte (& self, ) -> sails_rs::client::PendingCall<references::io::LastByte, sails_rs::client::GstdEnv, sails_rs::client::RouteName>;fn message (& self, ) -> sails_rs::client::PendingCall<references::io::Message, sails_rs::client::GstdEnv, sails_rs::client::RouteName>;
-        }
-    }
-    mock! {
-        pub ThisThat {}
-
-        #[allow(refining_impl_trait)]
-        #[allow(clippy::type_complexity)]
-        impl this_that::ThisThat for ThisThat {
-            type Env = sails_rs::client::GstdEnv;
-            fn do_that (&mut self, param: DoThatParam) -> sails_rs::client::PendingCall<this_that::io::DoThat, sails_rs::client::GstdEnv, sails_rs::client::RouteName>;fn do_this (&mut self, p1: u32, p2: String, p3: (Option<H160>,NonZeroU8,), p4: TupleStruct) -> sails_rs::client::PendingCall<this_that::io::DoThis, sails_rs::client::GstdEnv, sails_rs::client::RouteName>;fn noop (&mut self, ) -> sails_rs::client::PendingCall<this_that::io::Noop, sails_rs::client::GstdEnv, sails_rs::client::RouteName>;fn that (& self, ) -> sails_rs::client::PendingCall<this_that::io::That, sails_rs::client::GstdEnv, sails_rs::client::RouteName>;fn this (& self, ) -> sails_rs::client::PendingCall<this_that::io::This, sails_rs::client::GstdEnv, sails_rs::client::RouteName>;
-        }
-    }
-    mock! {
-        pub ValueFee {}
-
-        #[allow(refining_impl_trait)]
-        #[allow(clippy::type_complexity)]
-        impl value_fee::ValueFee for ValueFee {
-            type Env = sails_rs::client::GstdEnv;
-            fn do_something_and_take_fee (&mut self, ) -> sails_rs::client::PendingCall<value_fee::io::DoSomethingAndTakeFee, sails_rs::client::GstdEnv, sails_rs::client::RouteName>;
-        }
-    }
-    mock! {
-        pub Chaos {}
-
-        #[allow(refining_impl_trait)]
-        #[allow(clippy::type_complexity)]
-        impl chaos::Chaos for Chaos {
-            type Env = sails_rs::client::GstdEnv;
-            fn panic_after_wait (& self, ) -> sails_rs::client::PendingCall<chaos::io::PanicAfterWait, sails_rs::client::GstdEnv, sails_rs::client::RouteName>;fn reply_hook_counter (& self, ) -> sails_rs::client::PendingCall<chaos::io::ReplyHookCounter, sails_rs::client::GstdEnv, sails_rs::client::RouteName>;fn timeout_wait (& self, ) -> sails_rs::client::PendingCall<chaos::io::TimeoutWait, sails_rs::client::GstdEnv, sails_rs::client::RouteName>;
-        }
-    }
-}

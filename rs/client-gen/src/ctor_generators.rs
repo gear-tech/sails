@@ -71,12 +71,12 @@ impl<'ast> Visitor<'ast> for CtorGenerator<'_> {
 
         quote_in! { self.trait_ctors_tokens =>
             $['\r']
-            fn $fn_name_snake (self, $params_with_types) -> $(self.sails_path)::client::PendingCtor<$(self.service_name)Program, io::$fn_name, Self::Env, $(self.sails_path)::client::RouteName>;
+            fn $fn_name_snake (self, $params_with_types) -> $(self.sails_path)::client::PendingCtor<$(self.service_name)Program, io::$fn_name, Self::Env>;
         };
 
         quote_in! { self.ctor_tokens =>
             $['\r']
-            fn $fn_name_snake (self, $params_with_types) -> $(self.sails_path)::client::PendingCtor<$(self.service_name)Program, io::$fn_name, Self::Env, $(self.sails_path)::client::RouteName> {
+            fn $fn_name_snake (self, $params_with_types) -> $(self.sails_path)::client::PendingCtor<$(self.service_name)Program, io::$fn_name, Self::Env> {
                 self.pending_ctor_v1($args)
             }
         };
