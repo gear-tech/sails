@@ -14,8 +14,9 @@ anyhow.workspace = true
 convert_case.workspace = true
 genco.workspace = true
 parity-scale-codec.workspace = true
-sails-idl-meta = { workspace = true, features = ["ast"] }
-sails-idl-parser-v2 = { workspace = true, features = ["std"] }
+sails-idl-parser.workspace = true
 
 [dev-dependencies]
 insta.workspace = true
+sails-rs = { workspace = true, features = ["gtest"] }
+tokio = { workspace = true, features = ["macros", "rt"] }

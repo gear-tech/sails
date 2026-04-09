@@ -21,7 +21,7 @@ fn demo_wasm_path() -> &'static Path {
     static DEMO_WASM_PATH: OnceLock<PathBuf> = OnceLock::new();
 
     DEMO_WASM_PATH.get_or_init(|| {
-        let dir = std::env::temp_dir().join("sails-client-gen-v1-tests");
+        let dir = std::env::temp_dir().join("sails-client-gen-tests");
         fs::create_dir_all(&dir).expect("create demo wasm cache dir");
 
         let path = dir.join(DEMO_WASM_FILE);

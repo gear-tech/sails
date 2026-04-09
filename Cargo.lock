@@ -736,7 +736,7 @@ dependencies = [
  "redirect-client",
  "redirect-proxy",
  "redirect-proxy-client",
- "sails-client-gen",
+ "sails-client-gen-v2",
  "sails-rs",
  "serde",
  "serde_json",
@@ -5378,7 +5378,7 @@ name = "ping-pong-bench-client"
 version = "1.0.0-beta.2"
 dependencies = [
  "ping-pong-bench-app",
- "sails-client-gen",
+ "sails-client-gen-v2",
  "sails-idl-gen",
 ]
 
@@ -6333,7 +6333,9 @@ dependencies = [
  "rustdoc-types",
  "sails-client-gen",
  "sails-client-gen-js",
+ "sails-client-gen-v2",
  "sails-idl-embed",
+ "sails-idl-parser-v2",
  "sails-sol-gen",
  "serde_json",
  "toml_edit 0.25.4+spec-1.1.0",
@@ -6348,8 +6350,9 @@ dependencies = [
  "genco",
  "insta",
  "parity-scale-codec",
- "sails-idl-meta",
- "sails-idl-parser-v2",
+ "sails-idl-parser",
+ "sails-rs",
+ "tokio",
 ]
 
 [[package]]
@@ -6365,7 +6368,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "sails-client-gen-v1"
+name = "sails-client-gen-v2"
 version = "1.0.0-beta.2"
 dependencies = [
  "anyhow",
@@ -6373,9 +6376,8 @@ dependencies = [
  "genco",
  "insta",
  "parity-scale-codec",
- "sails-idl-parser",
- "sails-rs",
- "tokio",
+ "sails-idl-meta",
+ "sails-idl-parser-v2",
 ]
 
 [[package]]
@@ -6522,7 +6524,7 @@ dependencies = [
  "parity-scale-codec",
  "paste",
  "pin-project-lite",
- "sails-client-gen",
+ "sails-client-gen-v2",
  "sails-idl-embed",
  "sails-idl-gen",
  "sails-idl-meta",

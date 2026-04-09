@@ -24,8 +24,10 @@ path = "src/main.rs"
 [dependencies]
 # sails
 sails-client-gen.workspace = true
+sails-client-gen-v2.workspace = true
 sails-client-gen-js.workspace = true
 sails-idl-embed.workspace = true
+sails-idl-parser-v2.workspace = true
 sails-sol-gen.workspace = true
 
 # other

@@ -35,9 +35,9 @@ members = [
     "examples/inspector/client",
     "rs",
     "rs/cli",
-    "rs/client-gen",
+    "rs/client-gen-v2",
     "rs/client-gen-js",
-    "rs/client-gen-v1",
+    "rs/client-gen",
     "rs/idl-embed",
     "rs/idl-gen",
     "rs/idl-meta",
@@ -64,8 +64,8 @@ sails-idl-parser-v2 = { path = "rs/idl-parser-v2", default-features = false }
 sails-idl-embed = { path = "rs/idl-embed" }
 sails-idl-gen = { path = "rs/idl-gen" }
 sails-client-gen = { path = "rs/client-gen" }
+sails-client-gen-v2 = { path = "rs/client-gen-v2" }
 sails-client-gen-js = { path = "rs/client-gen-js" }
-sails-client-gen-v1 = { path = "rs/client-gen-v1" }
 sails-macros-core = { path = "rs/macros/core" }
 sails-macros = { path = "rs/macros" }
 sails-reflect-hash-derive = { path = "rs/reflect-hash/derive" }

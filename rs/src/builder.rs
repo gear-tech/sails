@@ -1,6 +1,6 @@
 use convert_case::{Case, Casing};
 use core::marker::PhantomData;
-pub use sails_client_gen::{ClientGenerator, IdlPath};
+pub use sails_client_gen_v2::{ClientGenerator, IdlPath};
 use sails_idl_meta::ProgramMeta;
 use std::{
     env,
@@ -44,7 +44,7 @@ pub fn build_client_as_lib<P: ProgramMeta>() -> (Option<PathBuf>, Option<PathBuf
 /// Program IDL and client builder.
 ///
 /// This struct uses `sails-idl-gen` package to generate IDL,
-/// and `sails-client-gen` package to generate Rust client code.
+/// and `sails-client-gen-v2` package to generate Rust client code.
 #[derive(Debug, Clone)]
 pub struct ClientBuilder<P> {
     idl_path: Option<PathBuf>,
