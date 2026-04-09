@@ -43,6 +43,12 @@ pub struct IdlParser;
 
 // ----------------------------- Public API ------------------------------------
 
+/// Parses the IDL source to tokens.
+pub fn parse_tokens(src: &str) -> Result<Pairs<'_, Rule>> {
+    let pairs = IdlParser::parse(Rule::Top, src)?;
+    Ok(pairs)
+}
+
 /// Parses the IDL source.
 pub fn parse_idl(src: &str) -> Result<IdlDoc> {
     let mut pairs = IdlParser::parse(Rule::Top, src)?;
