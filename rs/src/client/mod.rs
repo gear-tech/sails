@@ -965,8 +965,8 @@ mod tests {
     #[test]
     fn test_io_struct_impl() {
         // Add is a "Service" method, encode takes RouteIdx
-        let route_idx = 5u8;
-        let add_specific = Add::encode_call(route_idx, 42);
+        let route_idx = RouteIdx(5u8);
+        let add_specific = Add::encode_call(route_idx.0, 42);
 
         let expected_header_add = [
             0x47, 0x4D, // magic ("GM")
@@ -990,7 +990,7 @@ mod tests {
         reply_with_header.truncate(16);
         reply_with_header.extend_from_slice(&reply_payload);
 
-        let decoded = Add::decode_reply(route_idx, &reply_with_header).unwrap();
+        let decoded = Add::decode_reply(route_idx.0, &reply_with_header).unwrap();
         assert_eq!(decoded, 42);
 
         // Value is "Ctor" mode, it uses InterfaceId::zero()
@@ -1012,8 +1012,8 @@ mod tests {
 
     #[test]
     fn test_io_struct_impl_throws() {
-        let route_idx = 5u8;
-        let sub_specific = Sub::encode_call(route_idx, 42);
+        let route_idx = RouteIdx(5u8);
+        let sub_specific = Sub::encode_call(route_idx.0, 42);
 
         let expected_header_sub = [
             0x47, 0x4D, // magic ("GM")
@@ -1036,16 +1036,15 @@ mod tests {
         success_reply.extend_from_slice(&expected_sub_payload);
 
         let decoded_success =
-            <Sub as ServiceCall>::decode_reply(&RouteIdx(route_idx), &success_reply).unwrap();
+            <Sub as ServiceCall>::decode_reply(&route_idx, &success_reply).unwrap();
         assert_eq!(decoded_success, Ok(42));
-        assert_eq!(Sub::decode_reply(route_idx, &success_reply).unwrap(), 42);
+        assert_eq!(Sub::decode_reply(route_idx.0, &success_reply).unwrap(), 42);
 
         let error_message = String::from("boom");
         let mut error_reply = expected_header_sub.to_vec();
         error_reply.extend_from_slice(&error_message.encode());
 
-        let decoded_error =
-            <Sub as ServiceCall>::decode_error(&RouteIdx(route_idx), &error_reply).unwrap();
+        let decoded_error = <Sub as ServiceCall>::decode_error(&route_idx, &error_reply).unwrap();
         assert_eq!(decoded_error, Err(error_message));
     }
 
