@@ -70,20 +70,14 @@ pub trait Program: Sized {
 }
 
 #[derive(Debug, Clone)]
-pub struct Deployment<A, E = GstdEnv>
-where
-    E: GearEnv,
-{
+pub struct Deployment<A, E: GearEnv = GstdEnv> {
     env: E,
     code_id: CodeId,
     salt: Vec<u8>,
     _phantom: PhantomData<A>,
 }
 
-impl<A, E> Deployment<A, E>
-where
-    E: GearEnv,
-{
+impl<A, E: GearEnv> Deployment<A, E> {
     pub fn new(env: E, code_id: CodeId, salt: Vec<u8>) -> Self {
         Deployment {
             env,
@@ -93,10 +87,7 @@ where
         }
     }
 
-    pub fn with_env<N>(self, env: &N) -> Deployment<A, N>
-    where
-        N: GearEnv,
-    {
+    pub fn with_env<N: GearEnv>(self, env: &N) -> Deployment<A, N> {
         let Self {
             env: _,
             code_id,
@@ -129,19 +120,13 @@ where
 }
 
 #[derive(Debug, Clone)]
-pub struct Actor<A, E = GstdEnv>
-where
-    E: GearEnv,
-{
+pub struct Actor<A, E: GearEnv = GstdEnv> {
     env: E,
     id: ActorId,
     _phantom: PhantomData<A>,
 }
 
-impl<A, E> Actor<A, E>
-where
-    E: GearEnv,
-{
+impl<A, E: GearEnv> Actor<A, E> {
     pub fn new(env: E, id: ActorId) -> Self {
         Actor {
             env,
@@ -154,10 +139,7 @@ where
         self.id
     }
 
-    pub fn with_env<N>(self, env: &N) -> Actor<A, N>
-    where
-        N: GearEnv,
-    {
+    pub fn with_env<N: GearEnv>(self, env: &N) -> Actor<A, N> {
         let Self {
             env: _,
             id,
@@ -187,22 +169,14 @@ where
 }
 
 #[derive(Debug, Clone)]
-pub struct Service<S, E = GstdEnv, R = RouteIdx>
-where
-    E: GearEnv,
-    R: RouteHeader,
-{
+pub struct Service<S, E: GearEnv = GstdEnv, R: RouteHeader = RouteIdx> {
     env: E,
     actor_id: ActorId,
     route: R,
     _phantom: PhantomData<S>,
 }
 
-impl<S, E, R> Service<S, E, R>
-where
-    E: GearEnv,
-    R: RouteHeader,
-{
+impl<S, E: GearEnv, R: RouteHeader> Service<S, E, R> {
     pub fn new(env: E, actor_id: ActorId, route: R) -> Self {
         Service {
             env,
@@ -221,10 +195,7 @@ where
         self
     }
 
-    pub fn pending_call<T>(&self, args: T::Params) -> PendingCall<T, E>
-    where
-        T: ServiceCall<Route = R>,
-    {
+    pub fn pending_call<T: ServiceCall<Route = R>>(&self, args: T::Params) -> PendingCall<T, E> {
         PendingCall::new(self.env.clone(), self.actor_id, self.route.clone(), args)
     }
 
@@ -233,13 +204,10 @@ where
     }
 
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn decode_event<Ev>(
+    pub fn decode_event<Ev: Event<R>>(
         &self,
         payload: impl AsRef<[u8]>,
-    ) -> Result<Ev, parity_scale_codec::Error>
-    where
-        Ev: Event<R>,
-    {
+    ) -> Result<Ev, parity_scale_codec::Error> {
         Ev::decode_event(&self.route, payload)
     }
 
@@ -253,10 +221,7 @@ where
 }
 
 // v2-specific id accessors only on RouteIdx
-impl<S, E> Service<S, E, RouteIdx>
-where
-    E: GearEnv,
-{
+impl<S, E: GearEnv> Service<S, E, RouteIdx> {
     pub fn interface_id(&self) -> InterfaceId
     where
         S: Identifiable,
@@ -270,20 +235,12 @@ where
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-pub trait ServiceWithEvents<R = RouteIdx>
-where
-    R: RouteHeader,
-{
+pub trait ServiceWithEvents<R: RouteHeader = RouteIdx> {
     type Event: Event<R>;
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-pub struct ServiceListener<D, E = GstdEnv, R = RouteIdx>
-where
-    E: GearEnv,
-    R: RouteHeader,
-    D: Event<R>,
-{
+pub struct ServiceListener<D: Event<R>, E: GearEnv = GstdEnv, R: RouteHeader = RouteIdx> {
     env: E,
     actor_id: ActorId,
     route: R,
@@ -291,12 +248,7 @@ where
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-impl<D, E, R> ServiceListener<D, E, R>
-where
-    E: GearEnv,
-    R: RouteHeader,
-    D: Event<R>,
-{
+impl<D: Event<R>, E: GearEnv, R: RouteHeader> ServiceListener<D, E, R> {
     pub fn new(env: E, actor_id: ActorId, route: R) -> Self {
         ServiceListener {
             env,
@@ -326,11 +278,7 @@ where
 }
 
 pin_project_lite::pin_project! {
-    pub struct PendingCall<T, E = GstdEnv>
-    where
-        T: ServiceCall,
-        E: GearEnv,
-    {
+    pub struct PendingCall<T: ServiceCall, E: GearEnv = GstdEnv> {
         env: E,
         destination: ActorId,
         route: T::Route,
@@ -341,11 +289,7 @@ pin_project_lite::pin_project! {
     }
 }
 
-impl<T, E> PendingCall<T, E>
-where
-    T: ServiceCall,
-    E: GearEnv,
-{
+impl<T: ServiceCall, E: GearEnv> PendingCall<T, E> {
     pub fn new(env: E, destination: ActorId, route: T::Route, args: T::Params) -> Self {
         PendingCall {
             env,
@@ -384,10 +328,7 @@ where
     }
 }
 
-pub trait PendingCtorOutput<A, E>
-where
-    E: GearEnv,
-{
+pub trait PendingCtorOutput<A, E: GearEnv> {
     type Output;
 
     fn map_result(self, env: E, id: ActorId) -> Self::Output;
@@ -395,10 +336,7 @@ where
     fn actor(output: Self::Output) -> Actor<A, E>;
 }
 
-impl<A, E> PendingCtorOutput<A, E> for ()
-where
-    E: GearEnv,
-{
+impl<A, E: GearEnv> PendingCtorOutput<A, E> for () {
     type Output = Actor<A, E>;
 
     fn map_result(self, env: E, id: ActorId) -> Self::Output {
@@ -410,11 +348,7 @@ where
     }
 }
 
-impl<A, E, Err> PendingCtorOutput<A, E> for Result<(), Err>
-where
-    E: GearEnv,
-    Err: core::fmt::Debug,
-{
+impl<A, E: GearEnv, Err: core::fmt::Debug> PendingCtorOutput<A, E> for Result<(), Err> {
     type Output = Result<Actor<A, E>, Err>;
 
     fn map_result(self, env: E, id: ActorId) -> Self::Output {
@@ -427,11 +361,7 @@ where
 }
 
 pin_project_lite::pin_project! {
-    pub struct PendingCtor<A, T, E = GstdEnv>
-    where
-        T: ServiceCall,
-        E: GearEnv,
-    {
+    pub struct PendingCtor<A, T: ServiceCall, E: GearEnv = GstdEnv> {
         env: E,
         code_id: CodeId,
         route: T::Route,
@@ -445,11 +375,7 @@ pin_project_lite::pin_project! {
     }
 }
 
-impl<A, T, E> PendingCtor<A, T, E>
-where
-    T: ServiceCall,
-    E: GearEnv,
-{
+impl<A, T: ServiceCall, E: GearEnv> PendingCtor<A, T, E> {
     pub fn new(env: E, code_id: CodeId, salt: Vec<u8>, route: T::Route, args: T::Params) -> Self {
         PendingCtor {
             env,
@@ -1136,8 +1062,7 @@ mod tests {
         assert_eq!(encoded, expected);
 
         // Decoding
-        let decoded =
-            <DoThis as ServiceCall>::decode_reply(&RouteName("MyService"), &encoded).unwrap();
+        let decoded = DoThis::decode_reply("MyService", &encoded).unwrap();
         assert_eq!(decoded, 42u32);
     }
 }
