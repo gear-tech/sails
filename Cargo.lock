@@ -6541,7 +6541,6 @@ version = "1.0.0-beta.2"
 dependencies = [
  "gprimitives",
  "insta",
- "sails-type-registry",
  "sails-type-registry-derive",
  "trybuild",
 ]

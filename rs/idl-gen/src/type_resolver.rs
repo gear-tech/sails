@@ -102,9 +102,8 @@ impl<'a> TypeResolver<'a> {
             if exclude.contains(&id) {
                 continue;
             }
-            if let Ok(type_decl) = self.resolve_by_id(id) {
-                self.map.insert(id, type_decl);
-            }
+            let type_decl = self.resolve_by_id(id)?;
+            self.map.insert(id, type_decl);
         }
         Ok(())
     }
@@ -523,9 +522,7 @@ mod tests {
         let h256_id = registry.register_type::<gprimitives::H256>();
         let h256_as_generic_param_id = registry.register_type::<GenericStruct<gprimitives::H256>>();
 
-        let portable_registry = &registry;
-
-        let resolver = TypeResolver::from_registry(portable_registry);
+        let resolver = TypeResolver::from_registry(&registry);
 
         let h256_decl = resolver.get(h256_id).unwrap();
         assert_eq!(*h256_decl, TypeDecl::Primitive(PrimitiveType::H256));
@@ -546,8 +543,7 @@ mod tests {
         let mut registry = Registry::new();
         let u32_struct_id = registry.register_type::<GenericStruct<u32>>();
         let string_struct_id = registry.register_type::<GenericStruct<String>>();
-        let portable_registry = &registry;
-        let resolver = TypeResolver::from_registry(portable_registry);
+        let resolver = TypeResolver::from_registry(&registry);
 
         let u32_struct = resolver.get(u32_struct_id).unwrap();
         assert_eq!(u32_struct.to_string(), "GenericStruct<u32>");
@@ -561,8 +557,7 @@ mod tests {
         let mut registry = Registry::new();
         let u32_string_enum_id = registry.register_type::<GenericEnum<u32, String>>();
         let bool_u32_enum_id = registry.register_type::<GenericEnum<bool, u32>>();
-        let portable_registry = &registry;
-        let resolver = TypeResolver::from_registry(portable_registry);
+        let resolver = TypeResolver::from_registry(&registry);
 
         let u32_string_enum = resolver.get(u32_string_enum_id).unwrap();
         assert_eq!(u32_string_enum.to_string(), "GenericEnum<u32, String>");
@@ -576,8 +571,7 @@ mod tests {
         let mut registry = Registry::new();
         let u32_array_id = registry.register_type::<[u32; 10]>();
         let as_generic_param_id = registry.register_type::<GenericStruct<[u32; 10]>>();
-        let portable_registry = &registry;
-        let resolver = TypeResolver::from_registry(portable_registry);
+        let resolver = TypeResolver::from_registry(&registry);
 
         let u32_array = resolver.get(u32_array_id).unwrap();
         assert_eq!(u32_array.to_string(), "[u32; 10]");
@@ -590,8 +584,7 @@ mod tests {
         let mut registry = Registry::new();
         let u32_vector_id = registry.register_type::<Vec<u32>>();
         let as_generic_param_id = registry.register_type::<GenericStruct<Vec<u32>>>();
-        let portable_registry = &registry;
-        let resolver = TypeResolver::from_registry(portable_registry);
+        let resolver = TypeResolver::from_registry(&registry);
 
         let u32_vector = resolver.get(u32_vector_id).unwrap();
         assert_eq!(u32_vector.to_string(), "[u32]");
@@ -604,8 +597,7 @@ mod tests {
         let mut registry = Registry::new();
         let u32_result_id = registry.register_type::<Result<u32, String>>();
         let as_generic_param_id = registry.register_type::<GenericStruct<Result<u32, String>>>();
-        let portable_registry = &registry;
-        let resolver = TypeResolver::from_registry(portable_registry);
+        let resolver = TypeResolver::from_registry(&registry);
 
         let u32_result = resolver.get(u32_result_id).unwrap();
         assert_eq!(u32_result.to_string(), "Result<u32, String>");
@@ -621,8 +613,7 @@ mod tests {
         let mut registry = Registry::new();
         let u32_option_id = registry.register_type::<Option<u32>>();
         let as_generic_param_id = registry.register_type::<GenericStruct<Option<u32>>>();
-        let portable_registry = &registry;
-        let resolver = TypeResolver::from_registry(portable_registry);
+        let resolver = TypeResolver::from_registry(&registry);
 
         let u32_option = resolver.get(u32_option_id).unwrap();
         assert_eq!(u32_option.to_string(), "Option<u32>");
@@ -635,8 +626,7 @@ mod tests {
         let mut registry = Registry::new();
         let u32_str_tuple_id = registry.register_type::<(u32, String)>();
         let as_generic_param_id = registry.register_type::<GenericStruct<(u32, String)>>();
-        let portable_registry = &registry;
-        let resolver = TypeResolver::from_registry(portable_registry);
+        let resolver = TypeResolver::from_registry(&registry);
 
         let u32_str_tuple = resolver.get(u32_str_tuple_id).unwrap();
         assert_eq!(u32_str_tuple.to_string(), "(u32, String)");
@@ -649,8 +639,7 @@ mod tests {
         let mut registry = Registry::new();
         let btree_map_id = registry.register_type::<BTreeMap<u32, String>>();
         let as_generic_param_id = registry.register_type::<GenericStruct<BTreeMap<u32, String>>>();
-        let portable_registry = &registry;
-        let resolver = TypeResolver::from_registry(portable_registry);
+        let resolver = TypeResolver::from_registry(&registry);
 
         let btree_map = resolver.get(btree_map_id).unwrap();
         assert_eq!(btree_map.to_string(), "[(u32, String)]");
@@ -666,8 +655,7 @@ mod tests {
         let mut registry = Registry::new();
         let id = registry.register_type::<ManyVariants>();
         let generic_id = registry.register_type::<GenericStruct<ManyVariants>>();
-        let portable_registry = &registry;
-        let resolver = TypeResolver::from_registry(portable_registry);
+        let resolver = TypeResolver::from_registry(&registry);
 
         let ty = resolver.get(id).unwrap();
         assert_eq!(ty.to_string(), "ManyVariants");
@@ -688,8 +676,7 @@ mod tests {
         let mut registry = Registry::new();
         let id = registry.register_type::<Test>();
         let generic_id = registry.register_type::<GenericStruct<Test>>();
-        let portable_registry = &registry;
-        let resolver = TypeResolver::from_registry(portable_registry);
+        let resolver = TypeResolver::from_registry(&registry);
 
         let ty = resolver.get(id).unwrap();
         assert_eq!(
@@ -709,8 +696,7 @@ mod tests {
             let mut registry = Registry::new();
             let id = registry.register_type::<$primitive>();
             let generic_id = registry.register_type::<GenericStruct<$primitive>>();
-            let portable_registry = &registry;
-            let resolver = TypeResolver::from_registry(portable_registry);
+            let resolver = TypeResolver::from_registry(&registry);
 
             let ty = resolver.get(id).unwrap();
             assert_eq!(ty.to_string(), stringify!($primitive));
@@ -764,8 +750,7 @@ mod tests {
         let mut registry = Registry::new();
         let t1_id = registry.register_type::<mod_1::T1>();
         let t2_id = registry.register_type::<mod_2::T1>();
-        let portable_registry = &registry;
-        let resolver = TypeResolver::from_registry(portable_registry);
+        let resolver = TypeResolver::from_registry(&registry);
 
         let t1_name = resolver.get(t1_id).unwrap().to_string();
         assert_eq!(t1_name, "T1");
@@ -779,8 +764,7 @@ mod tests {
         let mut registry = Registry::new();
         let t1_id = registry.register_type::<mod_1::mod_2::T2>();
         let t2_id = registry.register_type::<mod_2::T2>();
-        let portable_registry = &registry;
-        let resolver = TypeResolver::from_registry(portable_registry);
+        let resolver = TypeResolver::from_registry(&registry);
 
         let t1_name = resolver.get(t1_id).unwrap().to_string();
         assert_eq!(t1_name, "T2");
@@ -797,8 +781,7 @@ mod tests {
         let n32_id = registry.register_type::<GenericConstStruct<32, 8, u8>>();
         let n256_id = registry.register_type::<GenericConstStruct<256, 832, u8>>();
         let n32u256_id = registry.register_type::<GenericConstStruct<32, 8, gprimitives::U256>>();
-        let portable_registry = &registry;
-        let resolver = TypeResolver::from_registry(portable_registry);
+        let resolver = TypeResolver::from_registry(&registry);
 
         let n8_name = resolver.get(n8_id).unwrap().to_string();
         let n8_name_2 = resolver.get(n8_id_2).unwrap().to_string();
@@ -933,8 +916,7 @@ mod tests {
         let genericless_variantless_enum_id =
             registry.register_type::<GenericlessVariantlessEnum>();
 
-        let portable_registry = &registry;
-        let resolver = TypeResolver::from_registry(portable_registry);
+        let resolver = TypeResolver::from_registry(&registry);
 
         // Check main types
         assert_eq!(
@@ -1040,7 +1022,7 @@ mod tests {
 
         // Also verify concrete_names for some representative fields to keep parity with original test spirit
         // Retrieve struct type to check underlying field concrete ids
-        let struct_type = portable_registry
+        let struct_type = registry
             .types()
             .find(|(id, _)| *id == struct_id)
             .map(|(_, ty)| ty)
@@ -1243,8 +1225,7 @@ mod tests {
         let struct_id = registry.register_type::<ComplexOneGenericStruct<bool>>();
         let enum_id = registry.register_type::<ComplexOneGenericEnum<bool>>();
 
-        let portable_registry = &registry;
-        let resolver = TypeResolver::from_registry(portable_registry);
+        let resolver = TypeResolver::from_registry(&registry);
 
         // Check top level resolved names
         let struct_complex = resolver.get(struct_id).unwrap();
@@ -1415,8 +1396,7 @@ mod tests {
         let mut registry = Registry::new();
         let struct_id = registry.register_type::<MultiGenStruct<u32, String, H256>>();
         let enum_id = registry.register_type::<MultiGenEnum<u32, String, H256>>();
-        let portable_registry = &registry;
-        let resolver = TypeResolver::from_registry(portable_registry);
+        let resolver = TypeResolver::from_registry(&registry);
 
         assert_eq!(
             resolver.get(struct_id).unwrap().to_string(),
@@ -1515,7 +1495,7 @@ mod tests {
             );
         }
 
-        let struct_type = portable_registry
+        let struct_type = registry
             .types()
             .find(|(id, _)| *id == struct_id)
             .map(|(_, ty)| ty)
@@ -1540,7 +1520,7 @@ mod tests {
             panic!("Expected composite type");
         }
 
-        let enum_type = portable_registry
+        let enum_type = registry
             .types()
             .find(|(id, _)| *id == enum_id)
             .map(|(_, ty)| ty)
@@ -1620,8 +1600,7 @@ mod tests {
         // Register ConstGenericEnum
         let enum_n8_bool_id = registry.register_type::<ConstGenericEnum<8, bool>>();
 
-        let portable_registry = &registry;
-        let resolver = TypeResolver::from_registry(portable_registry);
+        let resolver = TypeResolver::from_registry(&registry);
 
         // Check ConstGenericStruct with N=8, T=u32
         let struct_n8_u32_decl = resolver.get(struct_n8_u32_id).unwrap().to_string();
@@ -1718,8 +1697,7 @@ mod tests {
         let mut registry = Registry::new();
         let recursive_id = registry.register_type::<Recursive<u32>>();
 
-        let portable_registry = &registry;
-        let resolver = TypeResolver::from_registry(portable_registry);
+        let resolver = TypeResolver::from_registry(&registry);
 
         let TypeDecl::Named { name, .. } = resolver.get(recursive_id).unwrap() else {
             panic!("Expected named type")
@@ -1755,8 +1733,7 @@ mod tests {
         let mut registry = Registry::new();
         let holder_id = registry.register_type::<Holder<u32, 16>>();
 
-        let portable_registry = &registry;
-        let resolver = TypeResolver::from_registry(portable_registry);
+        let resolver = TypeResolver::from_registry(&registry);
 
         let TypeDecl::Named { name, .. } = resolver.get(holder_id).unwrap() else {
             panic!("Expected named type")
@@ -1837,8 +1814,7 @@ mod tests {
         let mut registry = Registry::new();
         let struct_id = registry.register_type::<TestStruct<u32, bool>>();
 
-        let portable_registry = &registry;
-        let resolver = TypeResolver::from_registry(portable_registry);
+        let resolver = TypeResolver::from_registry(&registry);
 
         // Check main type
         assert_eq!(
@@ -1990,8 +1966,7 @@ mod tests {
         let struct_id = registry.register_type::<ReuseTestStruct<u64, H256>>();
         let enum_id = registry.register_type::<ReuseTestEnum<u64, H256>>();
 
-        let portable_registry = &registry;
-        let resolver = TypeResolver::from_registry(portable_registry);
+        let resolver = TypeResolver::from_registry(&registry);
 
         assert_eq!(
             resolver.get(struct_id).unwrap().to_string(),
