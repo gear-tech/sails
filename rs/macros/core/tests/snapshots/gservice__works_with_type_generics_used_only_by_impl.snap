@@ -218,17 +218,17 @@ mod vft_metadata_meta {
         pub struct __SymbolParams {}, interface_id = __INTERFACE_ID, entry_id = 2u16,
     );
     #[derive(sails_rs::TypeInfo)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[type_info(crate = sails_rs::type_info)]
     pub enum CommandsMeta {}
     #[derive(sails_rs::TypeInfo)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[type_info(crate = sails_rs::type_info)]
     pub enum QueriesMeta {
         Decimals(__DecimalsParams, u8),
         Name(__NameParams, String),
         Symbol(__SymbolParams, String),
     }
     #[derive(sails_rs::TypeInfo)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[type_info(crate = sails_rs::type_info)]
     pub enum NoEvents {}
     pub type EventsMeta = NoEvents;
 }

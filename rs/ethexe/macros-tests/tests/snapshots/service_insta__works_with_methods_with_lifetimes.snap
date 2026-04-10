@@ -459,20 +459,20 @@ mod reference_service_meta {
         pub struct __LastByteParams {}, interface_id = __INTERFACE_ID, entry_id = 4u16,
     );
     #[derive(sails_rs::TypeInfo)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[type_info(crate = sails_rs::type_info)]
     pub enum CommandsMeta {
         AddByte(__AddByteParams, &'static [u8]),
         Incr(__IncrParams, &'static ReferenceCount),
     }
     #[derive(sails_rs::TypeInfo)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[type_info(crate = sails_rs::type_info)]
     pub enum QueriesMeta {
         Baked(__BakedParams, &'static str),
         FirstByte(__FirstByteParams, Option<&'static u8>),
         LastByte(__LastByteParams, Option<&'static u8>),
     }
     #[derive(sails_rs::TypeInfo)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[type_info(crate = sails_rs::type_info)]
     pub enum NoEvents {}
     pub type EventsMeta = NoEvents;
 }

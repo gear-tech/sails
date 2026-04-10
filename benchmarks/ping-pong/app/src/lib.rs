@@ -9,7 +9,6 @@ use sails_rs::{client::*, prelude::*};
 
 #[derive(Debug, Clone, Copy, Decode, Encode, TypeInfo, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
 #[reflect_hash(crate = sails_rs)]
 pub enum PingPongPayload {
     Start(ActorId),

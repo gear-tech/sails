@@ -4,7 +4,6 @@ use sails_rs::prelude::*;
 #[derive(Clone, Encode, Decode, TypeInfo, ReflectHash, PartialEq, Debug)]
 #[reflect_hash(crate = sails_rs::sails_reflect_hash)]
 #[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
 pub enum OpStatus {
     Started,
     Step1,

@@ -14,7 +14,7 @@ impl MyProgram {
 }
 impl sails_rs::meta::ProgramMeta for MyProgram {
     type ConstructorsMeta = meta_in_program::ConstructorsMeta;
-    const SERVICES: &'static [(&'static str, sails_rs::meta::AnyServiceMetaFn)] = &[];
+    const SERVICES: &'static [(&'static str, sails_rs::meta::AnyServiceMeta)] = &[];
     const ASYNC: bool = true;
 }
 mod meta_in_program {
@@ -28,7 +28,7 @@ mod meta_in_program {
         entry_id = 1u16,
     );
     #[derive(sails_rs::TypeInfo)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[type_info(crate = sails_rs::type_info)]
     pub enum ConstructorsMeta {
         New(__NewParams, String),
         New2(__New2Params, String),
