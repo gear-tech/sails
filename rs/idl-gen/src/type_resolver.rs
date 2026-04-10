@@ -3,6 +3,7 @@ use alloc::boxed::Box;
 use convert_case::{Case, Casing};
 use sails_type_registry::{
     Registry, TypeRef,
+    trait_impls::StructuralEq,
     ty::{Field, GenericArg, Primitive, Type, TypeDef},
 };
 
@@ -24,10 +25,8 @@ impl UserDefinedEntry {
         self.ty.module_path == type_info.module_path && self.ty.name == type_info.name
     }
 
-    fn is_fields_equal(&self, type_info: &Type) -> bool {
-        let fs1 = Self::field_types(&self.ty);
-        let fs2 = Self::field_types(type_info);
-        fs1 == fs2
+    fn is_fields_equal(&self, type_info: &Type, registry: &Registry) -> bool {
+        Self::field_types(&self.ty).structurally_eq(&Self::field_types(type_info), registry)
     }
 
     fn field_types(type_info: &Type) -> Vec<TypeRef> {
@@ -356,7 +355,7 @@ impl<'a> TypeResolver<'a> {
             let name_with_consts = format!("{}{}", base_name, const_suffix);
 
             if let Some(exists) = self.user_defined.get(&name_with_consts) {
-                if exists.is_path_equals(ty) && exists.is_fields_equal(ty) {
+                if exists.is_path_equals(ty) && exists.is_fields_equal(ty, self.registry) {
                     return Err(name_with_consts);
                 } else {
                     continue;
@@ -563,7 +562,7 @@ mod tests {
         assert_eq!(u32_string_enum.to_string(), "GenericEnum<u32, String>");
 
         let bool_u32_enum = resolver.get(bool_u32_enum_id).unwrap();
-        assert_eq!(bool_u32_enum.to_string(), "TestsGenericEnum<bool, u32>");
+        assert_eq!(bool_u32_enum.to_string(), "GenericEnum<bool, u32>");
     }
 
     #[test]
@@ -960,7 +959,7 @@ mod tests {
             "Result<Option<T>, String>",
             "[(Option<T>, GenericStruct<T>)]",
             "GenericStruct<Option<T>>",
-            "TestsSimpleOneGenericEnum<Result<T, String>>",
+            "SimpleOneGenericEnum<Result<T, String>>",
             "Option<Option<Option<T>>>",
             "Result<Option<Result<T, String>>, String>",
             "[(Option<GenericStruct<T>>, Result<T, String>)]",

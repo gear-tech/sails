@@ -17,8 +17,8 @@ use core::{
     time::Duration,
 };
 
-use crate::registry::{Registry, TypeInfo};
-use crate::ty::{Primitive, Type};
+use crate::registry::{Registry, TypeInfo, TypeRef};
+use crate::ty::{Composite, Field, Primitive, Type, TypeDef, Variant, VariantDef};
 
 macro_rules! impl_type_info_primitive {
     ($($t:ty => $p:ident),* $(,)?) => {
@@ -289,5 +289,130 @@ impl<T: TypeInfo + Clone + 'static> TypeInfo for Cow<'static, T> {
     type Identity = T::Identity;
     fn type_info(registry: &mut Registry) -> Type {
         T::type_info(registry)
+    }
+}
+
+/// Trait for comparing type metadata by structural shape in the context of a registry.
+pub trait StructuralEq {
+    /// Returns `true` if `self` and `other` have the same structural shape.
+    fn structurally_eq(&self, other: &Self, registry: &Registry) -> bool;
+}
+
+impl StructuralEq for TypeRef {
+    fn structurally_eq(&self, other: &Self, registry: &Registry) -> bool {
+        registry.types_structurally_eq(*self, *other)
+    }
+}
+
+impl<T: StructuralEq + ?Sized> StructuralEq for Box<T> {
+    fn structurally_eq(&self, other: &Self, registry: &Registry) -> bool {
+        self.as_ref().structurally_eq(other.as_ref(), registry)
+    }
+}
+
+impl<T: StructuralEq> StructuralEq for Option<T> {
+    fn structurally_eq(&self, other: &Self, registry: &Registry) -> bool {
+        match (self, other) {
+            (Some(a), Some(b)) => a.structurally_eq(b, registry),
+            (None, None) => true,
+            _ => false,
+        }
+    }
+}
+
+impl<T: StructuralEq> StructuralEq for [T] {
+    fn structurally_eq(&self, other: &Self, registry: &Registry) -> bool {
+        self.len() == other.len()
+            && self
+                .iter()
+                .zip(other)
+                .all(|(a, b)| a.structurally_eq(b, registry))
+    }
+}
+
+impl<T: StructuralEq> StructuralEq for Vec<T> {
+    fn structurally_eq(&self, other: &Self, registry: &Registry) -> bool {
+        self[..].structurally_eq(&other[..], registry)
+    }
+}
+
+impl StructuralEq for String {
+    fn structurally_eq(&self, other: &Self, _: &Registry) -> bool {
+        self == other
+    }
+}
+
+impl StructuralEq for Type {
+    fn structurally_eq(&self, other: &Self, registry: &Registry) -> bool {
+        self.name == other.name
+            && self.module_path == other.module_path
+            && self.def.structurally_eq(&other.def, registry)
+    }
+}
+
+impl StructuralEq for TypeDef {
+    fn structurally_eq(&self, other: &Self, registry: &Registry) -> bool {
+        match (self, other) {
+            (Self::Primitive(a), Self::Primitive(b)) => a == b,
+            #[cfg(feature = "gprimitives")]
+            (Self::GPrimitive(a), Self::GPrimitive(b)) => a == b,
+            (Self::Composite(a), Self::Composite(b)) => a.structurally_eq(b, registry),
+            (Self::Variant(a), Self::Variant(b)) => a.structurally_eq(b, registry),
+            (Self::Sequence(a), Self::Sequence(b)) | (Self::Option(a), Self::Option(b)) => {
+                a.structurally_eq(b, registry)
+            }
+            (
+                Self::Array {
+                    len: la,
+                    type_param: ta,
+                },
+                Self::Array {
+                    len: lb,
+                    type_param: tb,
+                },
+            ) => la == lb && ta.structurally_eq(tb, registry),
+            (Self::Tuple(a), Self::Tuple(b)) => a.structurally_eq(b, registry),
+            (Self::Map { key: ka, value: va }, Self::Map { key: kb, value: vb }) => {
+                ka.structurally_eq(kb, registry) && va.structurally_eq(vb, registry)
+            }
+            (Self::Result { ok: oa, err: ea }, Self::Result { ok: ob, err: eb }) => {
+                oa.structurally_eq(ob, registry) && ea.structurally_eq(eb, registry)
+            }
+            (Self::Parameter(a), Self::Parameter(b)) => a == b,
+            (Self::Applied { base: ba, args: aa }, Self::Applied { base: bb, args: ab }) => {
+                let (Some(ta), Some(tb)) = (registry.get_type(*ba), registry.get_type(*bb)) else {
+                    return false;
+                };
+                ta.name == tb.name
+                    && ta.module_path == tb.module_path
+                    && aa.structurally_eq(ab, registry)
+            }
+            _ => false,
+        }
+    }
+}
+
+impl StructuralEq for Composite {
+    fn structurally_eq(&self, other: &Self, registry: &Registry) -> bool {
+        self.fields.structurally_eq(&other.fields, registry)
+    }
+}
+
+impl StructuralEq for VariantDef {
+    fn structurally_eq(&self, other: &Self, registry: &Registry) -> bool {
+        self.variants.structurally_eq(&other.variants, registry)
+    }
+}
+
+impl StructuralEq for Variant {
+    fn structurally_eq(&self, other: &Self, registry: &Registry) -> bool {
+        self.name == other.name && self.fields.structurally_eq(&other.fields, registry)
+    }
+}
+
+impl StructuralEq for Field {
+    fn structurally_eq(&self, other: &Self, registry: &Registry) -> bool {
+        self.name.structurally_eq(&other.name, registry)
+            && self.ty.structurally_eq(&other.ty, registry)
     }
 }

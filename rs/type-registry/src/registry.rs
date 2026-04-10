@@ -3,6 +3,7 @@ use core::{any::TypeId, fmt, num::NonZeroU32};
 
 use crate::{
     MetaType,
+    trait_impls::StructuralEq,
     ty::{GenericArg, Type, TypeDef},
 };
 
@@ -179,6 +180,18 @@ impl Registry {
             registry: self,
             type_ref,
         }
+    }
+
+    /// Recursively compares types by structural shape, matching generics by
+    /// base type path and wrapper types element-wise.
+    pub fn types_structurally_eq(&self, a: TypeRef, b: TypeRef) -> bool {
+        if a == b {
+            return true;
+        }
+        let (Some(ty_a), Some(ty_b)) = (self.get_type(a), self.get_type(b)) else {
+            return false;
+        };
+        ty_a.structurally_eq(ty_b, self)
     }
 }
 
