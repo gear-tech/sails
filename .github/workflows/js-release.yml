@@ -313,8 +313,8 @@ jobs:
       - name: Create Draft Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: "js/dev-${{ github.sha }}"
-          name: "Sails-JS dev build (${{ github.sha }})"
+          tag_name: "js/dev"
+          name: "Sails-JS dev build"
           draft: true
           body: |
             Development build from commit ${{ github.sha }}.
