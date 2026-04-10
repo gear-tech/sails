@@ -163,7 +163,7 @@ pub mod rmrk_catalog {
 }
 #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
 #[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
+#[type_info(crate = sails_rs::type_info)]
 pub enum Error {
     PartIdCantBeZero,
     BadConfig,
@@ -175,14 +175,14 @@ pub enum Error {
 }
 #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
 #[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
+#[type_info(crate = sails_rs::type_info)]
 pub enum Part {
     Fixed(FixedPart),
     Slot(SlotPart),
 }
 #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
 #[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
+#[type_info(crate = sails_rs::type_info)]
 pub struct FixedPart {
     /// An optional zIndex of base part layer.
     /// specifies the stack order of an element.
@@ -193,7 +193,7 @@ pub struct FixedPart {
 }
 #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
 #[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
+#[type_info(crate = sails_rs::type_info)]
 pub struct SlotPart {
     /// Array of whitelisted collections that can be equipped in the given slot. Used with slot parts only.
     pub equippable: Vec<ActorId>,

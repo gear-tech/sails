@@ -60,8 +60,10 @@ impl ServiceBuilder<'_> {
         let override_validations = self.generate_override_validations();
 
         quote! {
+            const __INTERFACE_ID: #sails_path::meta::InterfaceId = #interface_id_computation;
+
             impl #generics #sails_path::meta::Identifiable for super:: #service_type_path #service_type_constraints {
-                const INTERFACE_ID: #sails_path::meta::InterfaceId = #interface_id_computation;
+                const INTERFACE_ID: #sails_path::meta::InterfaceId = __INTERFACE_ID;
             }
 
             impl #generics #sails_path::meta::ServiceMeta for super:: #service_type_path #service_type_constraints {
@@ -83,16 +85,17 @@ impl ServiceBuilder<'_> {
 
     pub(super) fn meta_module(&self) -> TokenStream {
         let sails_path = self.sails_path;
-        let scale_info_path = &sails_paths::scale_info_path(sails_path);
+        let type_info_path = &sails_paths::type_info_path(sails_path);
         let meta_module_ident = &self.meta_module_ident;
 
         let no_events_type = Path::from(Ident::new("NoEvents", Span::call_site()));
         let events_type = self.events_type.unwrap_or(&no_events_type);
+        let interface_id_ident = quote!(__INTERFACE_ID);
 
         let invocation_params_structs = self
             .service_handlers
             .iter()
-            .map(|fn_builder| fn_builder.params_struct(self.type_path));
+            .map(|fn_builder| fn_builder.params_struct(&interface_id_ident));
         let commands_meta_variants = self
             .service_handlers
             .iter()
@@ -119,19 +122,19 @@ impl ServiceBuilder<'_> {
                 #( #invocation_params_structs )*
 
                 #[derive(#sails_path::TypeInfo)]
-                #[scale_info(crate = #scale_info_path)]
+                #[type_info(crate = #type_info_path)]
                 pub enum CommandsMeta {
                     #(#commands_meta_variants),*
                 }
 
                 #[derive(#sails_path::TypeInfo)]
-                #[scale_info(crate = #scale_info_path)]
+                #[type_info(crate = #type_info_path)]
                 pub enum QueriesMeta {
                     #(#queries_meta_variants),*
                 }
 
                 #[derive(#sails_path::TypeInfo)]
-                #[scale_info(crate = #scale_info_path )]
+                #[type_info(crate = #type_info_path )]
                 pub enum #no_events_type {}
 
                 pub type EventsMeta = #events_type;

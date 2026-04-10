@@ -26,7 +26,7 @@ use proc_macro_error::proc_macro_error;
 ///     use sails_rs::{export, service, prelude::*};
 ///
 ///     #[event]
-///     #[derive(parity_scale_codec::Encode, scale_info::TypeInfo, ReflectHash)]
+///     #[derive(parity_scale_codec::Encode, type_info::TypeInfo, ReflectHash)]
 ///     #[reflect_hash(crate = sails_rs)]
 ///     pub enum MyServiceEvents {
 ///         SomethingDone,
@@ -167,7 +167,7 @@ pub fn export(args: TokenStream, impl_item_fn_tokens: TokenStream) -> TokenStrea
 /// #[sails_rs::event]
 /// #[derive(sails_rs::Encode, sails_rs::TypeInfo)]
 /// #[codec(crate = sails_rs::scale_codec)]
-/// #[scale_info(crate = sails_rs::scale_info)]
+/// #[type_info(crate = sails_rs::type_info)]
 /// pub enum Events {
 ///     MyEvent {
 ///         #[indexed]

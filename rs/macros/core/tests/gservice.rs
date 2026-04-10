@@ -48,6 +48,33 @@ fn works_with_lifetimes_and_generics() {
 }
 
 #[test]
+fn works_with_type_generics_used_only_by_impl() {
+    let input = quote! {
+        impl<M: InfallibleStorage<Item = Metadata>> VftMetadata<M> {
+            #[export]
+            pub fn name(&self) -> String {
+                String::new()
+            }
+
+            #[export]
+            pub fn symbol(&self) -> String {
+                String::new()
+            }
+
+            #[export]
+            pub fn decimals(&self) -> u8 {
+                18
+            }
+        }
+    };
+
+    let result = gservice(TokenStream::new(), input).to_string();
+    let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
+
+    insta::assert_snapshot!(result);
+}
+
+#[test]
 fn works_with_extends() {
     let args = quote! {
         extends = [ExtendedService1, ExtendedService2],

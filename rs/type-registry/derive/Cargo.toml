@@ -1,0 +1,22 @@
+[package]
+name = "sails-type-registry-derive"
+description = "Derive macros for sails-type-registry"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[lib]
+proc-macro = true
+
+[dependencies]
+proc-macro2.workspace = true
+quote.workspace = true
+syn.workspace = true
+proc-macro-crate.workspace = true
+
+[dev-dependencies]
+insta.workspace = true
+prettyplease.workspace = true

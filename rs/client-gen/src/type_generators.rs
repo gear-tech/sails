@@ -96,7 +96,7 @@ impl<'a> StructDefGenerator<'a> {
             $['\r']
             #[derive($(self.derive_traits))]
             #[codec(crate = $(self.sails_path)::scale_codec)]
-            #[scale_info(crate = $(self.sails_path)::scale_info)]
+            #[type_info(crate = $(self.sails_path)::type_info)]
             pub struct $(self.type_name) $prefix $(self.tokens) $postfix
         }
     }
@@ -157,7 +157,7 @@ impl<'a> EnumDefGenerator<'a> {
             $['\r']
             #[derive($(self.derive_traits))]
             #[codec(crate = $(self.sails_path)::scale_codec)]
-            #[scale_info(crate = $(self.sails_path)::scale_info)]
+            #[type_info(crate = $(self.sails_path)::type_info)]
             pub enum $(self.type_name) { $(self.tokens) }
         )
     }

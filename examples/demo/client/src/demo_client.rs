@@ -20,6 +20,7 @@ impl DemoClientProgram {
     pub const ROUTE_ID_VALIDATOR: u8 = 7;
     pub const ROUTE_ID_CHAOS: u8 = 8;
     pub const ROUTE_ID_CHAIN: u8 = 9;
+    pub const ROUTE_ID_OVERRIDE_GENERICS: u8 = 10;
 }
 
 impl sails_rs::client::Program for DemoClientProgram {}
@@ -35,6 +36,9 @@ pub trait DemoClient {
     fn validator(&self) -> sails_rs::client::Service<validator::ValidatorImpl, Self::Env>;
     fn chaos(&self) -> sails_rs::client::Service<chaos::ChaosImpl, Self::Env>;
     fn chain(&self) -> sails_rs::client::Service<chain::ChainImpl, Self::Env>;
+    fn override_generics(
+        &self,
+    ) -> sails_rs::client::Service<override_generics::OverrideGenericsImpl, Self::Env>;
 }
 
 impl<E: sails_rs::client::GearEnv> DemoClient for sails_rs::client::Actor<DemoClientProgram, E> {
@@ -65,6 +69,11 @@ impl<E: sails_rs::client::GearEnv> DemoClient for sails_rs::client::Actor<DemoCl
     }
     fn chain(&self) -> sails_rs::client::Service<chain::ChainImpl, Self::Env> {
         self.service(DemoClientProgram::ROUTE_ID_CHAIN)
+    }
+    fn override_generics(
+        &self,
+    ) -> sails_rs::client::Service<override_generics::OverrideGenericsImpl, Self::Env> {
+        self.service(DemoClientProgram::ROUTE_ID_OVERRIDE_GENERICS)
     }
 }
 pub trait DemoClientCtors {
@@ -508,7 +517,7 @@ pub mod references {
 
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = sails_rs::scale_codec)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[type_info(crate = sails_rs::type_info)]
     #[reflect_hash(crate = sails_rs)]
     pub struct ReferenceCount(pub u32);
 
@@ -600,7 +609,7 @@ pub mod this_that {
 
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = sails_rs::scale_codec)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[type_info(crate = sails_rs::type_info)]
     #[reflect_hash(crate = sails_rs)]
     pub struct DoThatParam {
         pub p1: NonZeroU32,
@@ -609,7 +618,7 @@ pub mod this_that {
     }
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = sails_rs::scale_codec)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[type_info(crate = sails_rs::type_info)]
     #[reflect_hash(crate = sails_rs)]
     pub enum ManyVariants {
         One,
@@ -621,7 +630,7 @@ pub mod this_that {
     }
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = sails_rs::scale_codec)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[type_info(crate = sails_rs::type_info)]
     #[reflect_hash(crate = sails_rs)]
     pub enum ManyVariantsReply {
         One,
@@ -633,7 +642,7 @@ pub mod this_that {
     }
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = sails_rs::scale_codec)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[type_info(crate = sails_rs::type_info)]
     #[reflect_hash(crate = sails_rs)]
     pub struct TupleStruct(pub bool);
 
@@ -811,7 +820,7 @@ pub mod validator {
 
     #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = sails_rs::scale_codec)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[type_info(crate = sails_rs::type_info)]
     #[reflect_hash(crate = sails_rs)]
     pub enum ValidationError {
         TooSmall,
@@ -1000,6 +1009,109 @@ pub mod chain {
             impl chain::Chain for Chain {
                 type Env = sails_rs::client::GstdEnv;
                 fn make_sound (&mut self, ) -> sails_rs::client::PendingCall<chain::io::MakeSound, sails_rs::client::GstdEnv>;fn dog (&self, ) -> sails_rs::client::Service<super::dog::DogImpl, sails_rs::client::GstdEnv>;
+            }
+        }
+    }
+}
+
+pub mod base_service {
+    use super::*;
+
+    pub trait BaseService {
+        type Env: sails_rs::client::GearEnv;
+        fn foo(&self) -> sails_rs::client::PendingCall<io::Foo, Self::Env>;
+        fn set_value(
+            &mut self,
+            value: u32,
+        ) -> sails_rs::client::PendingCall<io::SetValue, Self::Env>;
+    }
+
+    pub struct BaseServiceImpl;
+
+    impl sails_rs::client::Identifiable for BaseServiceImpl {
+        const INTERFACE_ID: sails_rs::InterfaceId =
+            sails_rs::InterfaceId::from_bytes_8([38, 221, 162, 209, 2, 98, 140, 203]);
+    }
+
+    impl<E: sails_rs::client::GearEnv> BaseService for sails_rs::client::Service<BaseServiceImpl, E> {
+        type Env = E;
+        fn foo(&self) -> sails_rs::client::PendingCall<io::Foo, Self::Env> {
+            self.pending_call(())
+        }
+        fn set_value(
+            &mut self,
+            value: u32,
+        ) -> sails_rs::client::PendingCall<io::SetValue, Self::Env> {
+            self.pending_call((value,))
+        }
+    }
+
+    pub mod io {
+        use super::*;
+        sails_rs::io_struct_impl!(Foo () -> u32, 0, <super::BaseServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(SetValue (value: u32) -> (), 1, <super::BaseServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+    }
+
+    #[cfg(feature = "with_mocks")]
+    #[cfg(not(target_arch = "wasm32"))]
+    pub mod mockall {
+        use super::*;
+        use sails_rs::mockall::*;
+        mock! {
+            pub BaseService {}
+
+            #[allow(refining_impl_trait)]
+            #[allow(clippy::type_complexity)]
+            impl base_service::BaseService for BaseService {
+                type Env = sails_rs::client::GstdEnv;
+                fn foo (&self, ) -> sails_rs::client::PendingCall<base_service::io::Foo, sails_rs::client::GstdEnv>;fn set_value (&mut self, value: u32) -> sails_rs::client::PendingCall<base_service::io::SetValue, sails_rs::client::GstdEnv>;
+            }
+        }
+    }
+}
+
+#[allow(unused_imports)]
+pub mod override_generics {
+    use super::*;
+
+    pub trait OverrideGenerics {
+        type Env: sails_rs::client::GearEnv;
+        fn base_service(
+            &self,
+        ) -> sails_rs::client::Service<super::base_service::BaseServiceImpl, Self::Env>;
+    }
+
+    pub struct OverrideGenericsImpl;
+
+    impl sails_rs::client::Identifiable for OverrideGenericsImpl {
+        const INTERFACE_ID: sails_rs::InterfaceId =
+            sails_rs::InterfaceId::from_bytes_8([163, 63, 235, 200, 124, 24, 146, 91]);
+    }
+
+    impl<E: sails_rs::client::GearEnv> OverrideGenerics
+        for sails_rs::client::Service<OverrideGenericsImpl, E>
+    {
+        type Env = E;
+        fn base_service(
+            &self,
+        ) -> sails_rs::client::Service<super::base_service::BaseServiceImpl, Self::Env> {
+            self.base_service()
+        }
+    }
+
+    #[cfg(feature = "with_mocks")]
+    #[cfg(not(target_arch = "wasm32"))]
+    pub mod mockall {
+        use super::*;
+        use sails_rs::mockall::*;
+        mock! {
+            pub OverrideGenerics {}
+
+            #[allow(refining_impl_trait)]
+            #[allow(clippy::type_complexity)]
+            impl override_generics::OverrideGenerics for OverrideGenerics {
+                type Env = sails_rs::client::GstdEnv;
+                fn base_service (&self, ) -> sails_rs::client::Service<super::base_service::BaseServiceImpl, sails_rs::client::GstdEnv>;
             }
         }
     }

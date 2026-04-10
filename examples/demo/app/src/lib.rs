@@ -8,6 +8,7 @@ mod counter;
 mod dog;
 mod inheritance;
 mod mammal;
+mod override_generics;
 mod ping;
 mod references;
 mod this_that;
@@ -47,6 +48,7 @@ impl DemoProgram {
                 Default::default(),
             )));
         }
+        override_generics::init_generic_data(Default::default());
         Self {
             counter_data: RefCell::new(counter::CounterData::new(Default::default())),
             validator_data: RefCell::new(validator::ValidatorData::new()),
@@ -64,6 +66,7 @@ impl DemoProgram {
                 dog_position.1,
             )));
         }
+        override_generics::init_generic_data(Default::default());
         Ok(Self {
             counter_data: RefCell::new(counter::CounterData::new(counter.unwrap_or_default())),
             validator_data: RefCell::new(validator::ValidatorData::new()),
@@ -78,6 +81,7 @@ impl DemoProgram {
         unsafe {
             DOG_DATA = Some(RefCell::new(walker::WalkerData::new(0, 0)));
         }
+        override_generics::init_generic_data(Default::default());
         Ok(Self {
             counter_data: RefCell::new(counter::CounterData::new(value)),
             validator_data: RefCell::new(validator::ValidatorData::new()),
@@ -123,6 +127,10 @@ impl DemoProgram {
 
     pub fn chain(&self) -> inheritance::ChainService {
         inheritance::ChainService::new(dog::DogService::new(walker::WalkerService::new(dog_data())))
+    }
+
+    pub fn override_generics(&self) -> override_generics::ChildService<u8> {
+        override_generics::ChildService::new()
     }
 }
 

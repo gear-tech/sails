@@ -147,7 +147,7 @@ pub mod service {
 /// ThisThatSvcAppTupleStruct docs
 #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
 #[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
+#[type_info(crate = sails_rs::type_info)]
 pub struct ThisThatSvcAppTupleStruct(
     /// field `bool`
     pub bool,
@@ -155,7 +155,7 @@ pub struct ThisThatSvcAppTupleStruct(
 /// ThisThatSvcAppDoThatParam docs
 #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
 #[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
+#[type_info(crate = sails_rs::type_info)]
 pub struct ThisThatSvcAppDoThatParam {
     /// field `query`
     pub query: u32,
@@ -167,7 +167,7 @@ pub struct ThisThatSvcAppDoThatParam {
 /// ThisThatSvcAppManyVariants docs
 #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
 #[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
+#[type_info(crate = sails_rs::type_info)]
 pub enum ThisThatSvcAppManyVariants {
     /// variant `One`
     One,
@@ -183,7 +183,7 @@ pub enum ThisThatSvcAppManyVariants {
 }
 #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
 #[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
+#[type_info(crate = sails_rs::type_info)]
 pub enum T {
     One,
 }

@@ -99,7 +99,7 @@ pub mod service_with_events {
 }
 #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
 #[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
+#[type_info(crate = sails_rs::type_info)]
 pub struct MyParam {
     pub f1: NonZeroU256,
     pub f2: Vec<NonZeroU8>,

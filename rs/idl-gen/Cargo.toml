@@ -14,7 +14,7 @@ askama = { workspace = true, features = ["alloc", "derive"] }
 convert_case.workspace = true
 gprimitives.workspace = true
 sails-idl-meta = { workspace = true, features = ["ast", "templates"] }
-scale-info = { workspace = true, features = ["derive", "docs", "serde"] }
+sails-type-registry = { workspace = true, features = ["derive", "gprimitives"] }
 thiserror.workspace = true
 syn = { workspace = true, features = ["parsing", "full", "fold"] }
 quote.workspace = true

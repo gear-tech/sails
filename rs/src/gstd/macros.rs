@@ -105,7 +105,7 @@ macro_rules! program_ctor {
 /// [`crate::gstd::InvocationIo`] implementation.
 ///
 /// The generated struct always derives [`crate::Decode`] and
-/// [`crate::TypeInfo`], using `$crate::scale_codec` and `$crate::scale_info`
+/// [`crate::TypeInfo`], using `$crate::scale_codec` and `$crate::type_info`
 /// as the derive crate paths.
 ///
 /// # Examples
@@ -145,7 +145,7 @@ macro_rules! invocation_io {
     ) => {
         #[derive($crate::Decode, $crate::TypeInfo)]
         #[codec(crate = $crate::scale_codec)]
-        #[scale_info(crate = $crate::scale_info)]
+        #[type_info(crate = $crate::type_info)]
         $struct_vis struct $params_struct {
             $( $field_vis $field: $ty, )*
         }

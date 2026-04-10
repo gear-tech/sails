@@ -13,7 +13,7 @@ pub mod service {
 
     #[derive(Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = my_crate::sails::scale_codec)]
-    #[scale_info(crate = my_crate::sails::scale_info)]
+    #[type_info(crate = my_crate::sails::type_info)]
     #[reflect_hash(crate = my_crate::sails)]
     pub enum MyParam2 {
         Variant1,
