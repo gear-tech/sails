@@ -132,16 +132,16 @@ impl sails_rs::gstd::services::Service for SomeService {
 }
 mod some_service_meta {
     use super::*;
+    const __INTERFACE_ID: sails_rs::meta::InterfaceId = {
+        let mut final_hash = sails_rs::keccak_const::Keccak256::new();
+        final_hash = final_hash
+            .update(&sails_rs::hash_fn!(command DoThis(u32, String) -> String));
+        final_hash = final_hash.update(&sails_rs::hash_fn!(query This(bool) -> bool));
+        let hash = final_hash.finalize();
+        sails_rs::meta::InterfaceId::from_bytes_32(hash)
+    };
     impl sails_rs::meta::Identifiable for super::SomeService {
-        const INTERFACE_ID: sails_rs::meta::InterfaceId = {
-            let mut final_hash = sails_rs::keccak_const::Keccak256::new();
-            final_hash = final_hash
-                .update(&sails_rs::hash_fn!(command DoThis(u32, String) -> String));
-            final_hash = final_hash
-                .update(&sails_rs::hash_fn!(query This(bool) -> bool));
-            let hash = final_hash.finalize();
-            sails_rs::meta::InterfaceId::from_bytes_32(hash)
-        };
+        const INTERFACE_ID: sails_rs::meta::InterfaceId = __INTERFACE_ID;
     }
     impl sails_rs::meta::ServiceMeta for super::SomeService {
         type CommandsMeta = CommandsMeta;
@@ -166,13 +166,11 @@ mod some_service_meta {
     }
     sails_rs::invocation_io!(
         pub struct __DoThisParams { pub (super) p1 : u32, pub (super) p2 : String, },
-        interface_id = < super::SomeService as sails_rs::meta::Identifiable >
-        ::INTERFACE_ID, entry_id = 0u16,
+        interface_id = __INTERFACE_ID, entry_id = 0u16,
     );
     sails_rs::invocation_io!(
-        pub struct __ThisParams { pub (super) p1 : bool, }, interface_id = <
-        super::SomeService as sails_rs::meta::Identifiable > ::INTERFACE_ID, entry_id =
-        1u16,
+        pub struct __ThisParams { pub (super) p1 : bool, }, interface_id =
+        __INTERFACE_ID, entry_id = 1u16,
     );
     #[derive(sails_rs::TypeInfo)]
     #[type_info(crate = sails_rs::type_info)]

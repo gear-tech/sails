@@ -37,6 +37,7 @@ export interface ICtorFunc extends IDocAnnotated {
   name: string;
   params?: IFuncParam[];
   entry_id?: number;
+  throws?: TypeDecl;
 }
 
 export interface IServiceUnit extends IServiceIdent, IDocAnnotated {

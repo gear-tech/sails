@@ -103,7 +103,7 @@ git-download = "0.1"
 handlebars = "=6.4" # PIN version
 hashbrown = "0.16"
 hex = { version = "0.4", default-features = false }
-insta = "1.46"
+insta = "1.47"
 itertools = "0.14"
 keccak-const = "0.2"
 lalrpop = { version = "=0.20", default-features = false } # PIN version
@@ -129,7 +129,7 @@ syn = "2.0"
 thiserror = { version = "2.0", default-features = false }
 toml_edit = "0.25"
 tempfile = "3.27"
-tokio = "1.50"
+tokio = "1.51"
 tokio-stream = "0.1"
 trybuild = "1"
 

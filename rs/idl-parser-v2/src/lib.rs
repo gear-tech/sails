@@ -572,7 +572,13 @@ fn parse_docs_and_annotations(pairs: &mut Pairs<Rule>) -> Result<(Vec<String>, V
                 let _ = pairs.next();
                 for d in p.into_inner() {
                     if d.as_rule() == Rule::StrToEol {
-                        docs.push(d.as_str().trim().to_string())
+                        docs.push(
+                            d.as_str()
+                                .strip_prefix(' ')
+                                .unwrap_or(d.as_str())
+                                .trim_end()
+                                .to_string(),
+                        );
                     }
                 }
             }
@@ -642,6 +648,30 @@ mod tests {
             ],
         );
         assert_eq!(anns, vec![("indexed".to_string(), None)])
+    }
+
+    #[test]
+    fn parse_docs_with_blank_doc_separator() {
+        const SRC: &str = r#"
+            /// Returns the number of roles assigned to the specified member.
+            ///
+            /// # Arguments
+            /// * `member_id` - The account identifier.
+            "#;
+
+        let mut pairs = IdlParser::parse(Rule::DocsAndAnnotations, SRC).expect("parse idl");
+        let (docs, anns) = parse_docs_and_annotations(&mut pairs).expect("parse annotations");
+
+        assert_eq!(
+            docs,
+            vec![
+                "Returns the number of roles assigned to the specified member.",
+                "",
+                "# Arguments",
+                "* `member_id` - The account identifier.",
+            ],
+        );
+        assert!(anns.is_empty());
     }
 
     #[test]

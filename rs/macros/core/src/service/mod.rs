@@ -247,7 +247,7 @@ impl FnBuilder<'_> {
         }
     }
 
-    fn params_struct(&self, service_path: &TypePath) -> TokenStream {
+    fn params_struct(&self, own_interface_id: &TokenStream) -> TokenStream {
         let sails_path = self.sails_path;
         let params_struct_ident = &self.params_struct_ident;
         let params_struct_members = self.params().map(|(ident, ty)| quote!(#ident: #ty));
@@ -276,11 +276,7 @@ impl FnBuilder<'_> {
             )
         } else {
             let entry_id = &self.entry_id;
-            let path_wo_lifetimes = shared::remove_lifetimes(&service_path.path);
-            (
-                quote! { <super:: #path_wo_lifetimes as #sails_path::meta::Identifiable>::INTERFACE_ID },
-                quote! { #entry_id },
-            )
+            (quote! { #own_interface_id }, quote! { #entry_id })
         };
 
         quote!(

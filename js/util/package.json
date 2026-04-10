@@ -17,6 +17,7 @@
   },
   "scripts": {
     "prebuild": "rm -rf lib",
-    "build": "npx rollup --config rollup.config.js"
+    "build": "npx rollup --config rollup.config.js",
+    "build:bun": "bun run build.ts"
   }
 }
