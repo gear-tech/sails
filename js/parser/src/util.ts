@@ -41,8 +41,6 @@ export const getDocs = (
 ): [docs: string | undefined, offset: 8] => {
   const [ptr, len] = getStrPtrAndLen(docsPtr, offset, memory);
 
-  offset += 8;
-
   if (ptr === 0) {
     return [undefined, 8];
   }
