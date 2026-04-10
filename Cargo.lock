@@ -7044,6 +7044,7 @@ dependencies = [
  "convert_case",
  "rustdoc-types",
  "sails-client-gen",
+ "sails-idl-embed",
  "sails-sol-gen",
  "serde_json",
  "toml_edit 0.22.24",
@@ -7059,6 +7060,17 @@ dependencies = [
  "insta",
  "parity-scale-codec",
  "sails-idl-parser",
+]
+
+[[package]]
+name = "sails-idl-embed"
+version = "0.10.3"
+dependencies = [
+ "flate2",
+ "tempfile",
+ "thiserror 2.0.12",
+ "wasm-encoder",
+ "wasmparser 0.230.0",
 ]
 
 [[package]]
@@ -9838,7 +9850,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "808198a69b5a0535583370a51d459baa14261dfab04800c4864ee9e1a14346ed"
 dependencies = [
  "bitflags 2.10.0",
+ "hashbrown 0.15.4",
  "indexmap 2.7.1",
+ "semver",
+ "serde",
 ]
 
 [[package]]
