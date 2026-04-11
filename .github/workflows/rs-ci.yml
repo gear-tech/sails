@@ -47,10 +47,6 @@ jobs:
       - name: Install wasm-opt
         uses: ./.github/actions/install-wasm-utils
 
-      - name: Git config init.defaultBranch
-        run: |
-          git config --global init.defaultBranch "main"
-
       - name: Check Code Formatting
         run: cargo fmt --all --check
 
