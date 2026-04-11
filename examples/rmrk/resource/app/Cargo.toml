@@ -8,7 +8,6 @@ mockall = { workspace = true, optional = true }
 sails-rs.workspace = true
 
 [build-dependencies]
-git-download.workspace = true
 sails-client-gen.workspace = true
 
 [dev-dependencies]
