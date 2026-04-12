@@ -101,7 +101,7 @@ futures = { version = "0.3", default-features = false }
 genco = "0.19"
 git-download = "0.1"
 handlebars = "=6.4" # PIN version
-hashbrown = "0.16"
+hashbrown = "0.17"
 hex = { version = "0.4", default-features = false }
 insta = "1.47"
 itertools = "0.14"
