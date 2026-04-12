@@ -219,7 +219,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Create Draft Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: ${{ env.R_NAME }}
           tag_name: ${{ needs.prepare.outputs.r_tag }}
