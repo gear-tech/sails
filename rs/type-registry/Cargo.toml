@@ -10,7 +10,7 @@ rust-version.workspace = true
 
 [dependencies]
 gprimitives = { workspace = true, optional = true }
-sails-type-registry-derive = { path = "derive", optional = true }
+sails-type-registry-derive = { workspace = true, optional = true }
 
 [dev-dependencies]
 insta.workspace = true
