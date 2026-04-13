@@ -87,7 +87,7 @@ jobs:
       # Comment the comparison table on the PR
       - name: Comment PR with Benchmark Comparison
         if: github.event_name == 'pull_request'
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
