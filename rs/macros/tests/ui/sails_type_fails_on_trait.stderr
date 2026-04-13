@@ -1,0 +1,5 @@
+error: `sails_type` can only be applied to structs or enums
+ --> tests/ui/sails_type_fails_on_trait.rs:4:1
+  |
+4 | pub trait MyTrait {}
+  | ^^^^^^^^^^^^^^^^^^^^

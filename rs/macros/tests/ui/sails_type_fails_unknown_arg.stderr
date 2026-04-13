@@ -1,0 +1,5 @@
+error: invalid `sails_type` arguments: unknown `sails_type` argument `bogus` (expected `crate = <path>` or `no_reflect_hash`)
+ --> tests/ui/sails_type_fails_unknown_arg.rs:3:14
+  |
+3 | #[sails_type(bogus)]
+  |              ^^^^^

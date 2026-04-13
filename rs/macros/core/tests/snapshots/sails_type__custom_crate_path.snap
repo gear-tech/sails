@@ -1,0 +1,16 @@
+---
+source: rs/macros/core/tests/sails_type.rs
+expression: result
+---
+#[derive(
+    sails_rename::scale_codec::Encode,
+    sails_rename::scale_codec::Decode,
+    sails_rename::type_info::TypeInfo,
+    sails_rename::ReflectHash
+)]
+#[codec(crate = sails_rename::scale_codec)]
+#[type_info(crate = sails_rename::type_info)]
+#[reflect_hash(crate = sails_rename)]
+pub struct MyType {
+    pub a: u32,
+}
