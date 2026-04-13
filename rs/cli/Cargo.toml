@@ -13,6 +13,11 @@ name = "cargo-sails"
 path = "src/main.rs"
 
 [dependencies]
+# Sails
+sails-client-gen.workspace = true
+sails-idl-embed.workspace = true
+sails-sol-gen.workspace = true
+# Other
 anyhow.workspace = true
 askama.workspace = true
 cargo-generate.workspace = true
@@ -20,7 +25,5 @@ cargo_metadata.workspace = true
 clap = { workspace = true, features = ["derive"] }
 convert_case.workspace = true
 rustdoc-types.workspace = true
-sails-client-gen.workspace = true
 serde-json.workspace = true
 toml_edit.workspace = true
-sails-sol-gen.workspace = true

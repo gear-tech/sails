@@ -1,0 +1,17 @@
+[package]
+name = "sails-idl-embed"
+description = "Embed and extract Sails IDL from WASM custom sections"
+documentation = "https://docs.rs/sails-idl-embed"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+flate2 = "1"
+tempfile.workspace = true
+thiserror.workspace = true
+wasm-encoder.workspace = true
+wasmparser.workspace = true
