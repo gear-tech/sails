@@ -22,9 +22,7 @@ struct ResourceStorageData {
 
 // Service event type definition
 #[event]
-#[derive(TypeInfo, Encode, ReflectHash)]
-#[codec(crate = sails_rs::scale_codec)]
-#[reflect_hash(crate = sails_rs)]
+#[sails_type]
 pub enum ResourceStorageEvent {
     ResourceAdded {
         resource_id: ResourceId,

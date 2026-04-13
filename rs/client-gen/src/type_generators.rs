@@ -20,17 +20,13 @@ pub(crate) fn generate_type_decl_with_path(type_decl: &TypeDecl, path: String) -
 pub(crate) struct TopLevelTypeGenerator<'a> {
     type_name: &'a str,
     sails_path: &'a str,
-    derive_traits: &'a str,
+    derive_traits: Option<&'a str>,
     tokens: Tokens,
 }
 
 impl<'a> TopLevelTypeGenerator<'a> {
     pub(crate) fn new(type_name: &'a str, sails_path: &'a str, no_derive_traits: bool) -> Self {
-        let derive_traits = if no_derive_traits {
-            "Encode, Decode, TypeInfo"
-        } else {
-            "PartialEq, Clone, Debug, Encode, Decode, TypeInfo"
-        };
+        let derive_traits = (!no_derive_traits).then_some("PartialEq, Clone, Debug");
         Self {
             type_name,
             sails_path,
@@ -73,13 +69,13 @@ impl<'ast> Visitor<'ast> for TopLevelTypeGenerator<'_> {
 struct StructDefGenerator<'a> {
     type_name: &'a str,
     sails_path: &'a str,
-    derive_traits: &'a str,
+    derive_traits: Option<&'a str>,
     is_tuple_struct: bool,
     tokens: Tokens,
 }
 
 impl<'a> StructDefGenerator<'a> {
-    fn new(type_name: &'a str, sails_path: &'a str, derive_traits: &'a str) -> Self {
+    fn new(type_name: &'a str, sails_path: &'a str, derive_traits: Option<&'a str>) -> Self {
         Self {
             type_name,
             sails_path,
@@ -94,9 +90,10 @@ impl<'a> StructDefGenerator<'a> {
         let postfix = if self.is_tuple_struct { ");" } else { "}" };
         quote! {
             $['\r']
-            #[derive($(self.derive_traits))]
-            #[codec(crate = $(self.sails_path)::scale_codec)]
-            #[type_info(crate = $(self.sails_path)::type_info)]
+            #[$(self.sails_path)::sails_type(crate = $(self.sails_path), no_reflect_hash)]
+            $(if let Some(traits) = self.derive_traits {
+                #[derive($traits)]
+            })
             pub struct $(self.type_name) $prefix $(self.tokens) $postfix
         }
     }
@@ -138,12 +135,16 @@ impl<'ast> Visitor<'ast> for StructDefGenerator<'ast> {
 struct EnumDefGenerator<'a> {
     type_name: &'a str,
     sails_path: &'a str,
-    derive_traits: &'a str,
+    derive_traits: Option<&'a str>,
     tokens: Tokens,
 }
 
 impl<'a> EnumDefGenerator<'a> {
-    pub(crate) fn new(type_name: &'a str, sails_path: &'a str, derive_traits: &'a str) -> Self {
+    pub(crate) fn new(
+        type_name: &'a str,
+        sails_path: &'a str,
+        derive_traits: Option<&'a str>,
+    ) -> Self {
         Self {
             type_name,
             sails_path,
@@ -155,9 +156,10 @@ impl<'a> EnumDefGenerator<'a> {
     pub(crate) fn finalize(self) -> Tokens {
         quote!(
             $['\r']
-            #[derive($(self.derive_traits))]
-            #[codec(crate = $(self.sails_path)::scale_codec)]
-            #[type_info(crate = $(self.sails_path)::type_info)]
+            #[$(self.sails_path)::sails_type(crate = $(self.sails_path), no_reflect_hash)]
+            $(if let Some(traits) = self.derive_traits {
+                #[derive($traits)]
+            })
             pub enum $(self.type_name) { $(self.tokens) }
         )
     }

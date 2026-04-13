@@ -1,16 +1,15 @@
 use crate::sails_paths::sails_path_or_default;
 use args::SailsTypeArgs;
-use proc_macro2::TokenStream;
 use proc_macro_error::abort;
+use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{Item, Path};
 
 mod args;
 
 pub fn sails_type(attrs: TokenStream, item: TokenStream) -> TokenStream {
-    let args: SailsTypeArgs = syn::parse2(attrs).unwrap_or_else(|err| {
-        abort!(err.span(), "invalid `sails_type` arguments: {}", err)
-    });
+    let args: SailsTypeArgs = syn::parse2(attrs)
+        .unwrap_or_else(|err| abort!(err.span(), "invalid `sails_type` arguments: {}", err));
 
     let parsed: Item = syn::parse2(item).unwrap_or_else(|err| {
         abort!(
@@ -22,7 +21,10 @@ pub fn sails_type(attrs: TokenStream, item: TokenStream) -> TokenStream {
 
     match &parsed {
         Item::Struct(_) | Item::Enum(_) => {}
-        other => abort!(other, "`sails_type` can only be applied to structs or enums"),
+        other => abort!(
+            other,
+            "`sails_type` can only be applied to structs or enums"
+        ),
     }
 
     let sails_path: Path = sails_path_or_default(args.path);

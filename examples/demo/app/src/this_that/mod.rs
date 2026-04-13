@@ -58,23 +58,20 @@ impl MyService {
 }
 
 #[allow(dead_code)]
-#[derive(Debug, Decode, TypeInfo, ReflectHash)]
-#[codec(crate = sails_rs::scale_codec)]
-#[reflect_hash(crate = sails_rs::sails_reflect_hash)]
+#[sails_type]
+#[derive(Debug)]
 pub struct TupleStruct(bool);
 
-#[derive(Debug, Decode, TypeInfo, ReflectHash)]
-#[codec(crate = sails_rs::scale_codec)]
-#[reflect_hash(crate = sails_rs::sails_reflect_hash)]
+#[sails_type]
+#[derive(Debug)]
 pub struct DoThatParam {
     pub p1: NonZeroU32,
     pub p2: ActorId,
     pub p3: ManyVariants,
 }
 
-#[derive(Debug, Decode, TypeInfo, ReflectHash)]
-#[codec(crate = sails_rs::scale_codec)]
-#[reflect_hash(crate = sails_rs::sails_reflect_hash)]
+#[sails_type]
+#[derive(Debug)]
 pub enum ManyVariants {
     One,
     Two(u32),
@@ -84,9 +81,8 @@ pub enum ManyVariants {
     Six((u32,)),
 }
 
-#[derive(Debug, Encode, TypeInfo, ReflectHash)]
-#[codec(crate = sails_rs::scale_codec)]
-#[reflect_hash(crate = sails_rs::sails_reflect_hash)]
+#[sails_type]
+#[derive(Debug)]
 pub enum ManyVariantsReply {
     One,
     Two,

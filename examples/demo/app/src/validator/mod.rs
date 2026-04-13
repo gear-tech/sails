@@ -21,9 +21,8 @@ impl<'a> Validator<'a> {
     }
 }
 
-#[derive(Debug, Encode, Decode, TypeInfo, ReflectHash)]
-#[codec(crate = sails_rs::scale_codec)]
-#[reflect_hash(crate = sails_rs::sails_reflect_hash)]
+#[sails_type]
+#[derive(Debug)]
 pub enum ValidationError {
     TooSmall,
     TooBig,

@@ -52,10 +52,8 @@ pub mod io {
 pub mod aggregator {
     use super::*;
 
-    #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
-    #[codec(crate = sails_rs::scale_codec)]
-    #[type_info(crate = sails_rs::type_info)]
-    #[reflect_hash(crate = sails_rs)]
+    #[sails_rs::sails_type(crate = sails_rs)]
+    #[derive(PartialEq, Clone, Debug)]
     pub enum OpStatus {
         Started,
         Step1,

@@ -7,18 +7,14 @@ use crate::helpers::generate_doc_comments;
 pub(crate) struct TopLevelTypeGenerator<'ast> {
     type_name: &'ast str,
     sails_path: &'ast str,
-    derive_traits: &'ast str,
+    derive_traits: Option<&'ast str>,
     type_params_tokens: Tokens,
     tokens: Tokens,
 }
 
 impl<'ast> TopLevelTypeGenerator<'ast> {
     pub(crate) fn new(type_name: &'ast str, sails_path: &'ast str, no_derive_traits: bool) -> Self {
-        let derive_traits = if no_derive_traits {
-            "Encode, Decode, TypeInfo, ReflectHash"
-        } else {
-            "PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash"
-        };
+        let derive_traits = (!no_derive_traits).then_some("PartialEq, Clone, Debug");
         Self {
             type_name,
             sails_path,
@@ -88,7 +84,7 @@ impl<'ast> Visitor<'ast> for TopLevelTypeGenerator<'ast> {
 struct StructDefGenerator<'a> {
     type_name: &'a str,
     sails_path: &'a str,
-    derive_traits: &'a str,
+    derive_traits: Option<&'a str>,
     type_params_tokens: Tokens,
     is_tuple_struct: bool,
     tokens: Tokens,
@@ -98,7 +94,7 @@ impl<'a> StructDefGenerator<'a> {
     fn new(
         type_name: &'a str,
         sails_path: &'a str,
-        derive_traits: &'a str,
+        derive_traits: Option<&'a str>,
         type_params_tokens: Tokens,
     ) -> Self {
         Self {
@@ -116,10 +112,10 @@ impl<'a> StructDefGenerator<'a> {
         let postfix = if self.is_tuple_struct { ");" } else { "}" };
         quote! {
             $['\r']
-            #[derive($(self.derive_traits))]
-            #[codec(crate = $(self.sails_path)::scale_codec)]
-            #[type_info(crate = $(self.sails_path)::type_info)]
-            #[reflect_hash(crate = $(self.sails_path))]
+            #[$(self.sails_path)::sails_type(crate = $(self.sails_path))]
+            $(if let Some(traits) = self.derive_traits {
+                #[derive($traits)]
+            })
             pub struct $(self.type_name) $(self.type_params_tokens) $prefix $(self.tokens) $postfix
         }
     }
@@ -152,7 +148,7 @@ impl<'ast> Visitor<'ast> for StructDefGenerator<'ast> {
 struct EnumDefGenerator<'a> {
     type_name: &'a str,
     sails_path: &'a str,
-    derive_traits: &'a str,
+    derive_traits: Option<&'a str>,
     type_params_tokens: Tokens,
     tokens: Tokens,
 }
@@ -161,7 +157,7 @@ impl<'a> EnumDefGenerator<'a> {
     pub(crate) fn new(
         type_name: &'a str,
         sails_path: &'a str,
-        derive_traits: &'a str,
+        derive_traits: Option<&'a str>,
         type_params_tokens: Tokens,
     ) -> Self {
         Self {
@@ -176,10 +172,10 @@ impl<'a> EnumDefGenerator<'a> {
     pub(crate) fn finalize(self) -> Tokens {
         quote!(
             $['\r']
-            #[derive($(self.derive_traits))]
-            #[codec(crate = $(self.sails_path)::scale_codec)]
-            #[type_info(crate = $(self.sails_path)::type_info)]
-            #[reflect_hash(crate = $(self.sails_path))]
+            #[$(self.sails_path)::sails_type(crate = $(self.sails_path))]
+            $(if let Some(traits) = self.derive_traits {
+                #[derive($traits)]
+            })
             pub enum $(self.type_name) $(self.type_params_tokens) { $(self.tokens) }
         )
     }

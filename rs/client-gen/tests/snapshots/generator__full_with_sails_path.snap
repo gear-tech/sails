@@ -193,8 +193,8 @@ pub mod counter {
     #[cfg(not(target_arch = "wasm32"))]
     pub mod events {
         use super::*;
-        #[derive(PartialEq, Debug, Encode, Decode)]
-        #[codec(crate = my_crate::sails::scale_codec)]
+        #[my_crate::sails::sails_type(crate = my_crate::sails, no_reflect_hash)]
+        #[derive(PartialEq, Debug)]
         pub enum CounterEvents {
             /// Emitted when a new value is added to the counter
             Added(u32),
@@ -221,21 +221,18 @@ pub mod counter {
         }
     }
 }
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
-#[codec(crate = my_crate::sails::scale_codec)]
-#[type_info(crate = my_crate::sails::type_info)]
+#[my_crate::sails::sails_type(crate = my_crate::sails, no_reflect_hash)]
+#[derive(PartialEq, Clone, Debug)]
 pub struct ThisThatSvcAppTupleStruct(pub bool);
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
-#[codec(crate = my_crate::sails::scale_codec)]
-#[type_info(crate = my_crate::sails::type_info)]
+#[my_crate::sails::sails_type(crate = my_crate::sails, no_reflect_hash)]
+#[derive(PartialEq, Clone, Debug)]
 pub struct ThisThatSvcAppDoThatParam {
     pub p1: u32,
     pub p2: String,
     pub p3: ThisThatSvcAppManyVariants,
 }
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
-#[codec(crate = my_crate::sails::scale_codec)]
-#[type_info(crate = my_crate::sails::type_info)]
+#[my_crate::sails::sails_type(crate = my_crate::sails, no_reflect_hash)]
+#[derive(PartialEq, Clone, Debug)]
 pub enum ThisThatSvcAppManyVariants {
     One,
     Two(u32),
@@ -244,9 +241,8 @@ pub enum ThisThatSvcAppManyVariants {
     Five((String, u32)),
     Six((u32,)),
 }
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
-#[codec(crate = my_crate::sails::scale_codec)]
-#[type_info(crate = my_crate::sails::type_info)]
+#[my_crate::sails::sails_type(crate = my_crate::sails, no_reflect_hash)]
+#[derive(PartialEq, Clone, Debug)]
 pub enum T {
     One,
 }

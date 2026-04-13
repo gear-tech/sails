@@ -5,9 +5,8 @@ use sails_rs::prelude::*;
 
 /// Service Events
 #[sails_rs::event]
-#[derive(Clone, Debug, PartialEq, Encode, TypeInfo, ReflectHash)]
-#[codec(crate = sails_rs::scale_codec)]
-#[reflect_hash(crate = sails_rs)]
+#[sails_type]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Events {
     DoThisEvent {
         /// Some u32 value

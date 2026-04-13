@@ -1,8 +1,6 @@
-use sails_rs::{Encode, ReflectHash, TypeInfo};
+use sails_rs::prelude::*;
 
-#[derive(Encode, TypeInfo, ReflectHash)]
-#[codec(crate = sails_rs::scale_codec)]
-#[reflect_hash(crate = sails_rs)]
+#[sails_type]
 pub enum Error {
     PartIdCantBeZero,
     BadConfig,

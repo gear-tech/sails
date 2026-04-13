@@ -115,8 +115,8 @@ pub mod service {
     #[cfg(not(target_arch = "wasm32"))]
     pub mod events {
         use super::*;
-        #[derive(PartialEq, Debug, Encode, Decode)]
-        #[codec(crate = sails_rs::scale_codec)]
+        #[sails_rs::sails_type(crate = sails_rs, no_reflect_hash)]
+        #[derive(PartialEq, Debug)]
         pub enum ServiceEvents {
             /// `This` Done
             ThisDone(u32),
@@ -145,17 +145,15 @@ pub mod service {
     }
 }
 /// ThisThatSvcAppTupleStruct docs
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
-#[codec(crate = sails_rs::scale_codec)]
-#[type_info(crate = sails_rs::type_info)]
+#[sails_rs::sails_type(crate = sails_rs, no_reflect_hash)]
+#[derive(PartialEq, Clone, Debug)]
 pub struct ThisThatSvcAppTupleStruct(
     /// field `bool`
     pub bool,
 );
 /// ThisThatSvcAppDoThatParam docs
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
-#[codec(crate = sails_rs::scale_codec)]
-#[type_info(crate = sails_rs::type_info)]
+#[sails_rs::sails_type(crate = sails_rs, no_reflect_hash)]
+#[derive(PartialEq, Clone, Debug)]
 pub struct ThisThatSvcAppDoThatParam {
     /// field `query`
     pub query: u32,
@@ -165,9 +163,8 @@ pub struct ThisThatSvcAppDoThatParam {
     pub p3: ThisThatSvcAppManyVariants,
 }
 /// ThisThatSvcAppManyVariants docs
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
-#[codec(crate = sails_rs::scale_codec)]
-#[type_info(crate = sails_rs::type_info)]
+#[sails_rs::sails_type(crate = sails_rs, no_reflect_hash)]
+#[derive(PartialEq, Clone, Debug)]
 pub enum ThisThatSvcAppManyVariants {
     /// variant `One`
     One,
@@ -181,9 +178,8 @@ pub enum ThisThatSvcAppManyVariants {
     Five((String, u32)),
     Six((u32,)),
 }
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
-#[codec(crate = sails_rs::scale_codec)]
-#[type_info(crate = sails_rs::type_info)]
+#[sails_rs::sails_type(crate = sails_rs, no_reflect_hash)]
+#[derive(PartialEq, Clone, Debug)]
 pub enum T {
     One,
 }

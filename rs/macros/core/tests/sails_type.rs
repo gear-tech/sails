@@ -65,4 +65,3 @@ fn custom_crate_path_and_no_reflect_hash() {
     let result = format(sails_type(attrs, input));
     insta::assert_snapshot!(result);
 }
-

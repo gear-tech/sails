@@ -15,9 +15,7 @@ impl WalkerData {
 }
 
 #[event]
-#[derive(TypeInfo, Encode, ReflectHash)]
-#[codec(crate = sails_rs::scale_codec)]
-#[reflect_hash(crate = sails_rs)]
+#[sails_type]
 pub enum WalkerEvents {
     Walked { from: (i32, i32), to: (i32, i32) },
 }

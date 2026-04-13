@@ -7,9 +7,8 @@ pub mod client {
 use client::{PingPong as _, ping_pong_service::PingPongService as _};
 use sails_rs::{client::*, prelude::*};
 
-#[derive(Debug, Clone, Copy, Decode, Encode, TypeInfo, ReflectHash)]
-#[codec(crate = sails_rs::scale_codec)]
-#[reflect_hash(crate = sails_rs)]
+#[sails_type]
+#[derive(Debug, Clone, Copy)]
 pub enum PingPongPayload {
     Start(ActorId),
     Ping,
