@@ -1,5 +1,5 @@
 use convert_case::{Case, Casing};
-use sails_client_gen::ClientGenerator;
+use sails_client_gen_v2::ClientGenerator;
 use std::{env, path::PathBuf};
 
 fn generate_client(

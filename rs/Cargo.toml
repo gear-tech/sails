@@ -28,7 +28,7 @@ mockall = { workspace = true, optional = true }
 parity-scale-codec = { workspace = true, features = ["derive"] }
 paste.workspace = true
 pin-project-lite.workspace = true
-sails-client-gen = { workspace = true, optional = true }
+sails-client-gen-v2 = { workspace = true, optional = true }
 sails-idl-embed = { workspace = true, optional = true }
 sails-idl-gen = { workspace = true, optional = true }
 sails-idl-meta.workspace = true
@@ -66,7 +66,7 @@ gclient = ["dep:gclient", "dep:tokio-stream"]
 gstd = ["dep:gstd", "dep:gear-core", "dep:sails-macros"]
 gtest = ["std", "dep:gtest", "dep:log", "dep:tokio-stream"]
 idl-gen = ["dep:sails-idl-gen"]
-client-builder = ["std", "idl-gen", "idl-embed", "dep:sails-client-gen", "dep:convert_case"]
+client-builder = ["std", "idl-gen", "idl-embed", "dep:sails-client-gen-v2", "dep:convert_case"]
 idl-embed = ["dep:sails-idl-embed"]
 mockall = ["std", "dep:mockall"]
 std = ["futures/std", "sails-idl-gen?/std", "gear-core?/std"]

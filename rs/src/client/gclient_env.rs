@@ -110,7 +110,7 @@ impl<T: ServiceCall> PendingCall<T, GclientEnv> {
 
         // Calculate reply
         match query_calculate_reply(&self.env.api, self.destination, payload, params).await {
-            Ok(reply_bytes) => match T::decode_reply(self.route_idx, reply_bytes) {
+            Ok(reply_bytes) => match T::decode_reply(&self.route, reply_bytes) {
                 Ok(reply) => Ok(reply),
                 Err(err) => Err(gclient::Error::Codec(err).into()),
             },
@@ -118,7 +118,7 @@ impl<T: ServiceCall> PendingCall<T, GclientEnv> {
                 if matches!(
                     reason,
                     ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic)
-                ) && let Ok(reply) = T::decode_error(self.route_idx, &payload)
+                ) && let Ok(reply) = T::decode_error(&self.route, &payload)
                 {
                     Ok(reply)
                 } else {
@@ -149,7 +149,7 @@ impl<T: ServiceCall> Future for PendingCall<T, GclientEnv> {
             .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
         // Poll message future
         match ready!(message_future.poll(cx)) {
-            Ok((_, payload)) => match T::decode_reply(self.route_idx, payload) {
+            Ok((_, payload)) => match T::decode_reply(&self.route, payload) {
                 Ok(decoded) => Poll::Ready(Ok(decoded)),
                 Err(err) => Poll::Ready(Err(gclient::Error::Codec(err).into())),
             },
@@ -157,7 +157,7 @@ impl<T: ServiceCall> Future for PendingCall<T, GclientEnv> {
                 if matches!(
                     reason,
                     ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic)
-                ) && let Ok(reply) = T::decode_error(self.route_idx, &payload)
+                ) && let Ok(reply) = T::decode_error(&self.route, &payload)
                 {
                     Poll::Ready(Ok(reply))
                 } else {
@@ -188,13 +188,14 @@ where
                 .args
                 .take()
                 .unwrap_or_else(|| panic!("{PENDING_CTOR_INVALID_STATE}"));
-            let payload = T::encode_call(0, &args);
+            let payload = T::encode_call(&self.route, &args);
 
             let create_program_future =
                 create_program(self.env.api.clone(), self.code_id, salt, payload, params);
             self.state = Some(Box::pin(create_program_future));
         }
 
+        let route = &self.route.clone();
         let this = self.as_mut().project();
         let message_future = this
             .state
@@ -203,7 +204,7 @@ where
         // Poll message future
         match ready!(message_future.poll(cx)) {
             Ok((program_id, payload)) => {
-                let reply = T::decode_reply(0, payload)
+                let reply = T::decode_reply(route, payload)
                     .map_err(|err| GclientError::Env(gclient::Error::Codec(err)))?;
                 Poll::Ready(Ok(reply.map_result(this.env.clone(), program_id)))
             }
@@ -211,7 +212,7 @@ where
                 if matches!(
                     reason,
                     ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic)
-                ) && let Ok(reply) = T::decode_error(0, &payload)
+                ) && let Ok(reply) = T::decode_error(route, &payload)
                 {
                     Poll::Ready(Ok(reply.map_result(this.env.clone(), ActorId::zero())))
                 } else {

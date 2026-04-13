@@ -32,6 +32,7 @@ env:
     sails-idl-gen
     sails-sol-gen
     sails-client-gen
+    sails-client-gen-v2
     sails-client-gen-js
     sails-macros-core
     sails-macros

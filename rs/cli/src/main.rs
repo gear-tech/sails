@@ -1,11 +1,17 @@
 use clap::{Parser, Subcommand};
 use convert_case::{Case, Casing};
 use sails_cli::{idlgen::CrateIdlGenerator, program_new, solgen::SolidityGenerator};
-use sails_client_gen::ClientGenerator;
+use sails_client_gen::ClientGenerator as ClientGeneratorV1;
 use sails_client_gen_js::JsClientGenerator;
-use std::{error::Error, path::PathBuf};
+use sails_client_gen_v2::ClientGenerator as ClientGeneratorV2;
+use sails_idl_parser_v2::parse_tokens;
+use std::{
+    error::Error,
+    path::{Path, PathBuf},
+};
 
 const SAILBOAT: &str = "\u{26F5}";
+const ICON_CONFIG: &str = "📋";
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[derive(Parser)]
@@ -64,6 +70,9 @@ enum SailsCommands {
         /// Derive only necessary [`parity_scale_codec::Encode`], [`parity_scale_codec::Decode`] and [`type_info::TypeInfo`] traits for the generated types
         #[arg(long)]
         no_derive_traits: bool,
+        /// Generate client from IDL v1
+        #[arg(long)]
+        v1: bool,
     },
 
     /// Generate JS client code from IDL
@@ -149,6 +158,37 @@ fn should_print_banner(command: &SailsCommands) -> bool {
     !matches!(command, SailsCommands::IdlExtract { output: None, .. })
 }
 
+fn format_client_rs_config(
+    idl_path: &Path,
+    out_path: &Path,
+    is_v1: bool,
+    sails_crate: Option<&str>,
+    external_types: &[(String, String)],
+) -> String {
+    let version = if is_v1 { "v1" } else { "v2" };
+    let sails_crate = sails_crate.unwrap_or("-");
+    let external_types = if external_types.is_empty() {
+        "-".to_string()
+    } else {
+        external_types
+            .iter()
+            .map(|(name, path)| format!("{name}={path}"))
+            .collect::<Vec<_>>()
+            .join(", ")
+    };
+
+    format!(
+        "{ICON_CONFIG} Rust client:\n   {source:<10} {}\n   {output:<10} {}\n   {version_label:<10} {version}\n   {sails_label:<10} {sails_crate}\n   {ext_label:<10} {external_types}\n",
+        idl_path.display(),
+        out_path.display(),
+        source = "source:",
+        output = "output:",
+        version_label = "version:",
+        sails_label = "sails-rs:",
+        ext_label = "ext types:",
+    )
+}
+
 fn main() -> Result<(), i32> {
     let CliCommand::Sails(command) = CliCommand::parse();
     if should_print_banner(&command) {
@@ -175,22 +215,58 @@ fn main() -> Result<(), i32> {
             sails_crate,
             external_types,
             no_derive_traits,
+            v1,
         } => {
-            let mut client_gen = ClientGenerator::from_idl_path(idl_path.as_ref());
-            if let Some(mocks) = mocks.as_ref() {
-                client_gen = client_gen.with_mocks(mocks);
-            }
-            if let Some(sails_crate) = sails_crate.as_ref() {
-                client_gen = client_gen.with_sails_crate(sails_crate);
-            }
-            for (name, path) in external_types.iter() {
-                client_gen = client_gen.with_external_type(name, path);
-            }
-            if no_derive_traits {
-                client_gen = client_gen.with_no_derive_traits();
-            }
             let out_path = out_path.unwrap_or_else(|| idl_path.with_extension("rs"));
-            client_gen.generate_to(out_path)
+
+            let Ok(idl) = std::fs::read_to_string(&idl_path) else {
+                eprintln!("Error: failed to read {:?}", idl_path);
+                return Err(-1);
+            };
+            // Detect IDL version: try v2 parse (without include resolution) first.
+            let is_v1 = v1 || parse_tokens(&idl).is_err();
+            print!(
+                "{}",
+                format_client_rs_config(
+                    &idl_path,
+                    &out_path,
+                    is_v1,
+                    sails_crate.as_deref(),
+                    &external_types,
+                )
+            );
+
+            if is_v1 {
+                let mut client_gen = ClientGeneratorV1::from_idl_path(idl_path.as_ref());
+                if let Some(mocks) = mocks.as_ref() {
+                    client_gen = client_gen.with_mocks(mocks);
+                }
+                if let Some(sails_crate) = sails_crate.as_ref() {
+                    client_gen = client_gen.with_sails_crate(sails_crate);
+                }
+                for (name, path) in external_types.iter() {
+                    client_gen = client_gen.with_external_type(name, path);
+                }
+                if no_derive_traits {
+                    client_gen = client_gen.with_no_derive_traits();
+                }
+                client_gen.generate_to(out_path)
+            } else {
+                let mut client_gen = ClientGeneratorV2::from_idl_path(idl_path.as_ref());
+                if let Some(mocks) = mocks.as_ref() {
+                    client_gen = client_gen.with_mocks(mocks);
+                }
+                if let Some(sails_crate) = sails_crate.as_ref() {
+                    client_gen = client_gen.with_sails_crate(sails_crate);
+                }
+                for (name, path) in external_types.iter() {
+                    client_gen = client_gen.with_external_type(name, path);
+                }
+                if no_derive_traits {
+                    client_gen = client_gen.with_no_derive_traits();
+                }
+                client_gen.generate_to(out_path)
+            }
         }
         SailsCommands::ClientJs { idl_path, out_path } => {
             let client_gen = JsClientGenerator::from_idl_path(idl_path.as_ref());

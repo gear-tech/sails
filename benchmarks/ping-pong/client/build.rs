@@ -8,7 +8,7 @@ fn main() {
     sails_idl_gen::generate_idl_to_file::<PingPongProgram>(Some("PingPong"), &idl_file_path)
         .unwrap();
     // Generate client code from IDL file
-    sails_client_gen::ClientGenerator::from_idl_path(&idl_file_path)
+    sails_client_gen_v2::ClientGenerator::from_idl_path(&idl_file_path)
         .generate_to(
             std::path::PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap())
                 .join("../app/src/ping_pong_client.rs"),
