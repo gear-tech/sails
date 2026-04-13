@@ -18,5 +18,6 @@ sails-idl-parser.workspace = true
 
 [dev-dependencies]
 insta.workspace = true
-sails-rs = { workspace = true, features = ["gtest"] }
+# use relative path for the publish workflow
+sails-rs = { path = "..", features = ["gtest"] }
 tokio = { workspace = true, features = ["macros", "rt"] }
