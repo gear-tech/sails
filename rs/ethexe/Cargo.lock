@@ -1640,7 +1640,7 @@ checksum = "1b241177c7107d9829286c2ffdc5eee98d992d6356f3515e7f412f988b1a72fd"
 
 [[package]]
 name = "ethapp"
-version = "1.0.0-beta.2"
+version = "1.0.0-beta.3"
 dependencies = [
  "sails-rs",
  "tokio",
@@ -1648,7 +1648,7 @@ dependencies = [
 
 [[package]]
 name = "ethapp-with-events"
-version = "1.0.0-beta.2"
+version = "1.0.0-beta.3"
 dependencies = [
  "insta",
  "sails-rs",
@@ -3379,7 +3379,7 @@ dependencies = [
 
 [[package]]
 name = "macros-tests"
-version = "1.0.0-beta.2"
+version = "1.0.0-beta.3"
 dependencies = [
  "insta",
  "prettyplease",
@@ -4574,7 +4574,7 @@ dependencies = [
 
 [[package]]
 name = "sails-idl-gen"
-version = "1.0.0-beta.2"
+version = "1.0.0-beta.3"
 dependencies = [
  "askama",
  "convert_case 0.11.0",
@@ -4588,7 +4588,7 @@ dependencies = [
 
 [[package]]
 name = "sails-idl-meta"
-version = "1.0.0-beta.2"
+version = "1.0.0-beta.3"
 dependencies = [
  "askama",
  "keccak-const",
@@ -4598,7 +4598,7 @@ dependencies = [
 
 [[package]]
 name = "sails-macros"
-version = "1.0.0-beta.2"
+version = "1.0.0-beta.3"
 dependencies = [
  "proc-macro-error",
  "sails-macros-core",
@@ -4606,7 +4606,7 @@ dependencies = [
 
 [[package]]
 name = "sails-macros-core"
-version = "1.0.0-beta.2"
+version = "1.0.0-beta.3"
 dependencies = [
  "convert_case 0.11.0",
  "parity-scale-codec",
@@ -4618,7 +4618,7 @@ dependencies = [
 
 [[package]]
 name = "sails-reflect-hash"
-version = "1.0.0-beta.2"
+version = "1.0.0-beta.3"
 dependencies = [
  "gprimitives",
  "keccak-const",
@@ -4627,7 +4627,7 @@ dependencies = [
 
 [[package]]
 name = "sails-reflect-hash-derive"
-version = "1.0.0-beta.2"
+version = "1.0.0-beta.3"
 dependencies = [
  "proc-macro-crate 3.5.0",
  "proc-macro2",
@@ -4637,7 +4637,7 @@ dependencies = [
 
 [[package]]
 name = "sails-rs"
-version = "1.0.0-beta.2"
+version = "1.0.0-beta.3"
 dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
@@ -4669,7 +4669,7 @@ dependencies = [
 
 [[package]]
 name = "sails-type-registry"
-version = "1.0.0-beta.2"
+version = "1.0.0-beta.3"
 dependencies = [
  "gprimitives",
  "sails-type-registry-derive",
@@ -4677,7 +4677,7 @@ dependencies = [
 
 [[package]]
 name = "sails-type-registry-derive"
-version = "1.0.0-beta.2"
+version = "1.0.0-beta.3"
 dependencies = [
  "proc-macro-crate 3.5.0",
  "proc-macro2",
