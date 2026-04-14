@@ -152,3 +152,11 @@ Set `__GEAR_WASM_BUILDER_NO_FEATURES_TRACKING=1` to disable WASM builder feature
 - WASM targets: `wasm32-unknown-unknown`, `wasm32v1-none`
 - Dependencies on Gear crates are pinned to exact versions (`=1.10.0`)
 - Several other deps are also pinned (parity-scale-codec, lalrpop, handlebars)
+
+## Specs & References
+
+- [docs/idl-v2-spec.md](docs/idl-v2-spec.md) — IDL v2 grammar, annotations, and semantics.
+- [docs/sails-header-v1-spec.md](docs/sails-header-v1-spec.md) — Sails message header layout and wire format.
+- [docs/interface-id-spec.md](docs/interface-id-spec.md) — how service interface IDs are computed at compile time.
+- [docs/reflect-hash-spec.md](docs/reflect-hash-spec.md) — `ReflectHash` trait for structural type hashing.
+- [docs/syscall-mapping-spec.md](docs/syscall-mapping-spec.md) — runtime mapping of Sails `Syscall`s onto Gear syscalls.
