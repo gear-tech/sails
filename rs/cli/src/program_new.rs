@@ -21,6 +21,7 @@ const ICON_BUILD: &str = "🔨";
 const ICON_TESTS: &str = "🔬";
 const ICON_FORMAT: &str = "✨";
 const ICON_DONE: &str = "✅";
+const CRATES_IO: &str = "crates-io";
 
 trait ExitStatusExt: Sized {
     fn exit_result(self) -> io::Result<()>;
@@ -371,6 +372,16 @@ impl ProgramGenerator {
 
         // add sails-rs refs
         self.cargo_add_sails_rs(manifest_path, Normal, self.ethereum.then_some("ethexe"))?;
+
+        // update `sails-rs` if not path ref and not offline
+        if self.sails_path.is_none() && !self.offline {
+            // fix `error: failed to select a version for the requirement``
+            cargo_info("sails-idl-embed")?;
+            cargo_info("sails-idl-gen")?;
+            cargo_info("sails-client-gen-v2")?;
+            cargo_info("sails-idl-parser-v2")?;
+        }
+
         self.cargo_add_sails_rs(
             manifest_path,
             Build,
@@ -380,11 +391,6 @@ impl ProgramGenerator {
                 "build"
             }),
         )?;
-
-        // update `sails-rs` if not path ref and not offline
-        if self.sails_path.is_none() && !self.offline {
-            cargo_update(manifest_path, Some("sails-rs"))?;
-        }
 
         Ok(())
     }
@@ -680,6 +686,7 @@ where
     Ok(())
 }
 
+#[allow(unused)]
 fn cargo_update<P: AsRef<Path>>(manifest_path: P, package: Option<&str>) -> anyhow::Result<()> {
     let cargo_command = cargo_command();
     if let Some(package) = package {
@@ -707,6 +714,28 @@ fn cargo_update<P: AsRef<Path>>(manifest_path: P, package: Option<&str>) -> anyh
         .context("failed to execute `cargo update` command")?
         .exit_result()
         .context("failed to run `cargo update` command")?;
+
+    Ok(())
+}
+
+fn cargo_info(package: &str) -> anyhow::Result<()> {
+    let cargo_command = cargo_command();
+    let package_version = &format!("{package}@{SAILS_VERSION}");
+    println!("   cargo info: {package_version}");
+
+    let mut cmd = Command::new(cargo_command);
+
+    cmd.stdout(Stdio::null())
+        .arg("info")
+        .arg(package_version)
+        .arg("--registry")
+        .arg(CRATES_IO)
+        .arg("--quiet");
+
+    cmd.status()
+        .context("failed to execute `cargo info` command")?
+        .exit_result()
+        .context("failed to run `cargo info` command")?;
 
     Ok(())
 }
