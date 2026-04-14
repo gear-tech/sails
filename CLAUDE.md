@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What is Sails
 
-Sails is a framework for building applications on [Gear Protocol](https://gear-tech.io/) / [Vara Network](https://vara.network/). It provides procedural macros (`#[program]`, `#[service]`, `#[export]`), IDL generation, and multi-language client generation (Rust, TypeScript, Solidity). The main crate is published as `sails-rs` on crates.io.
+Sails is a framework for building applications on [Gear Protocol](https://gear-tech.io/) / [Vara Network](https://vara.network/). It provides procedural macros (`#[program]`, `#[service]`, `#[export]`, `#[event]`, `#[sails_type]`), IDL generation, and multi-language client generation (Rust, TypeScript, Solidity). The main crate is published as `sails-rs` on crates.io.
 
 ## Repository Layout
 
@@ -59,6 +59,7 @@ cargo test --workspace --all-targets --locked --no-fail-fast --manifest-path ./r
 
 # Build WASM IDL parser (needed for JS tests)
 cargo build -p sails-idl-parser-wasm --target wasm32-unknown-unknown --release
+wasm-opt -O4 -o ./target/wasm32-unknown-unknown/release/sails_idl_v2_parser.wasm ./target/wasm32-unknown-unknown/release/sails_idl_parser_wasm.wasm
 ```
 
 ### JavaScript/TypeScript
@@ -75,21 +76,40 @@ pnpm format           # Prettier
 ## Key Architecture Concepts
 
 ### Dual Workspace Structure
-The root `Cargo.toml` workspace contains most crates. The `rs/ethexe/` directory is a **separate Cargo workspace** with its own `Cargo.toml` and different `rust-version` (1.88 vs 1.91). CI checks both independently.
+
+The root `Cargo.toml` workspace contains most crates. The `rs/ethexe/` directory is a **separate Cargo workspace** with its own `Cargo.toml`. CI checks both independently.
 
 ### Macro Expansion Pipeline
+
 `#[service]` and `#[program]` macros (in `rs/macros/core/`) generate:
 1. An `Exposure` struct that wraps the service, implementing `Deref`/`DerefMut` to the underlying type
-2. Request decoding/dispatch logic based on method names
+2. Request decoding/dispatch logic based on [Sails header](#sails-header)
 3. Response encoding
 4. Event emission methods (when `events = SomeEnum` is specified)
 
 Macro tests use `insta` for snapshot testing (in `rs/macros/core/`) and `trybuild` for compile-fail tests.
 
-### IDL System
-Two IDL versions coexist: v1 (`rs/idl-parser/`, uses LALRPOP) and v2 (`rs/idl-parser-v2/`, uses Logos+Pest). The v2 parser compiles to WASM (`rs/idl-parser-wasm/`) for use by JS packages.
+### IDL v1
 
-### Sails Header v1
+Maintained for compatibility with deployed programs and their client generation.
+- Parser `rs/idl-parser/`.
+- Grammar: **LALRPOP** (`grammar.lalrpop`) with a hand-written lexer.
+- Produces its own AST (`rs/idl-parser/src/ast/`), decoupled from `sails-idl-meta`.
+- Used by the original `rs/client-gen/` and the JS toolchain.
+
+### IDL v2
+
+Current version.
+- Parser `rs/idl-parser-v2/`.
+- Grammar: **Pest** (`idl.pest`) — declarative PEG.
+- AST is re-exported from `sails-idl-meta` (`pub use sails_idl_meta as ast;`), so the parser and the rest of the toolchain share one canonical type model.
+- **`no_std` + `alloc`** core with an opt-in `std` feature — the same crate runs in WASM and on host.
+- **Preprocessor with `!@include` directives** (`rs/idl-parser-v2/src/preprocess/`): an `IdlLoader` trait with built-in `FsLoader` and `GitLoader` implementations, enabling multi-file IDLs assembled from local paths or `git://` URLs, with per-source deduplication.
+- Consumed by `rs/client-gen-v2/`, `rs/sol-gen/`, and the JS toolchain.
+- WASM bridge (`rs/idl-parser-wasm/`): C ABI (`parse_idl_to_json`) over `parse_idl`, compiled to `wasm32-unknown-unknown` and loaded by `js/parser/` so JS reuses the Rust grammar.
+
+### Sails Header
+
 Messages use a 16-byte binary header (magic "GM", version, interface ID, entry ID, route index) prepended to SCALE-encoded payloads. Interface and entry IDs are deterministic hashes derived from canonical IDL definitions.
 
 ### Async Architecture (gstd)
@@ -114,6 +134,7 @@ All three share the same generated client code; only the environment differs.
 **Reply/signal handling** — `handle_reply` delegates to `gstd::handle_reply_with_hook()` when the program has async methods (`ASYNC = true`). `handle_signal` similarly delegates to `gstd::handle_signal()`. These enable the runtime to wake pending futures when replies arrive or signals fire.
 
 ### Feature Flags on `sails-rs`
+
 - `gstd` (default) — On-chain Gear standard library
 - `gtest` — Test environment with `GtestEnv`
 - `gclient` — Off-chain client via `gclient`
@@ -122,10 +143,12 @@ All three share the same generated client code; only the environment differs.
 - `mockall` — Mock generation for testing
 
 ### Environment Variable
+
 Set `__GEAR_WASM_BUILDER_NO_FEATURES_TRACKING=1` to disable WASM builder feature tracking (CI always sets this).
 
 ## Rust Edition & Toolchain
-- Edition 2024, stable toolchain
+
+- Edition 2024, MSRV `1.91`
 - WASM targets: `wasm32-unknown-unknown`, `wasm32v1-none`
 - Dependencies on Gear crates are pinned to exact versions (`=1.10.0`)
 - Several other deps are also pinned (parity-scale-codec, lalrpop, handlebars)
