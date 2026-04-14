@@ -94,12 +94,18 @@ impl<P: ProgramMeta> ClientBuilder<P> {
             .file_name()
             .expect("Invalid path to wasm")
             .to_string_lossy()
+            .split('.')
+            .next()
+            .unwrap_or("")
             .to_string();
 
         Self {
-            idl_path: Some(path.with_extension("idl")),
-            client_path: Some(path.with_extension("rs")),
-            wasm_path: Some(path.with_extension("opt.wasm")),
+            idl_path: Some(path.with_file_name(&program_name).with_extension("idl")),
+            client_path: Some(path.with_file_name(&program_name).with_extension("rs")),
+            wasm_path: Some(
+                path.with_file_name(&program_name)
+                    .with_extension("opt.wasm"),
+            ),
             program_name,
             no_std: false,
             _marker: Default::default(),
