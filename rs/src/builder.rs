@@ -96,7 +96,7 @@ impl<P: ProgramMeta> ClientBuilder<P> {
             .to_string_lossy()
             .split('.')
             .next()
-            .unwrap_or("")
+            .expect("path file_name must have at least one segment before a dot")
             .to_string();
 
         Self {
@@ -274,8 +274,6 @@ impl<P: ProgramMeta> ClientBuilder<P> {
 
 #[cfg(test)]
 mod tests {
-    use gstd::TypeInfo;
-
     use super::*;
 
     struct P;
@@ -304,5 +302,18 @@ mod tests {
         assert!(idl_path.is_some());
         assert!(client_path.unwrap().ends_with("src/sails_rs.rs"));
         assert!(idl_path.unwrap().ends_with("sails_rs.idl"));
+    }
+
+    #[test]
+    fn from_wasm_path_strips_extensions() {
+        let path = "target/release/foo.opt.wasm";
+        let builder = ClientBuilder::<P>::from_wasm_path(path);
+
+        // Program name must be clean - no .wasm / .opt suffixes
+        assert_eq!("foo", builder.program_name);
+
+        assert!(builder.idl_path.unwrap().ends_with("foo.idl"));
+        assert!(builder.client_path.unwrap().ends_with("foo.rs"));
+        assert!(builder.wasm_path.unwrap().ends_with("foo.opt.wasm"));
     }
 }
