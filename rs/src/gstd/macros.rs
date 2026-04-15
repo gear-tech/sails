@@ -112,12 +112,22 @@ macro_rules! program_ctor {
 /// # Examples
 ///
 /// ```rust,ignore
+/// // Default: derives Decode + TypeInfo
 /// sails_rs::invocation_io!(
 ///     pub struct __FooParams {
 ///         pub(super) a: u32,
 ///         pub(super) b: String,
-///     }
+///     },
 ///     entry_id = 0,
+/// );
+///
+/// // ABI-only: derives TypeInfo only (no Decode)
+/// sails_rs::invocation_io!(
+///     pub struct __BarParams {
+///         pub(super) addr: Address,
+///     },
+///     entry_id = 1,
+///     decode = false,
 /// );
 /// ```
 #[macro_export]

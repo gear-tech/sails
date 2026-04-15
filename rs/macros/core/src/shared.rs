@@ -320,10 +320,8 @@ pub(crate) struct FnBuilder<'a> {
     pub result_type: Type,
     pub error_type: Option<Type>,
     pub sails_path: &'a Path,
-    #[allow(dead_code)]
     pub scale: bool,
     #[cfg(feature = "ethexe")]
-    #[allow(dead_code)]
     pub ethabi: bool,
 }
 
@@ -392,13 +390,11 @@ impl<'a> FnBuilder<'a> {
             .is_none_or(|r| r.mutability.is_none())
     }
 
-    #[allow(dead_code)]
     pub(crate) fn has_scale_transport(&self) -> bool {
         self.scale
     }
 
     #[cfg(feature = "ethexe")]
-    #[allow(dead_code)]
     pub(crate) fn has_ethabi_transport(&self) -> bool {
         self.ethabi
     }
