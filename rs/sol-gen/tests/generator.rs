@@ -76,10 +76,10 @@ program TestProgram {
 service Svc {
     events {
         MixedEvent {
-            /// #[indexed]
+            @indexed
             f1: u32,
             f2: String,
-            /// #[indexed]
+            @indexed
             f3: u128,
             f4: u128
         }
@@ -102,7 +102,7 @@ fn test_generate_contract_w_mixed_indexed_events() {
 const PAYABLE_IDL: &str = r#"
 program TestProgram {
     constructors {
-        /// #[payable]
+        @payable
         Create();
     }
     services {
@@ -112,14 +112,14 @@ program TestProgram {
 
 service MyService {
     functions {
-        /// #[payable]
+        @payable
         Deposit() -> ();
 
-        /// #[returns_value]
+        @returns_value
         Withdraw() -> u128;
 
-        /// #[payable]
-        /// #[returns_value]
+        @payable
+        @returns_value
         SwapAndRefund() -> u128;
 
         @query

@@ -192,13 +192,13 @@ pub(super) fn process_indexed(input: &mut ItemEnum) {
             // For named fields, use the field identifiers directly.
             Fields::Named(named) => {
                 for field in named.named.iter_mut().filter(|f| is_indexed(f)) {
-                    remove_indexed_and_add_comment(field);
+                    replace_indexed_with_type_info(field);
                 }
             }
             // For unnamed (tuple) fields, create synthetic identifiers.
             Fields::Unnamed(unnamed) => {
                 for field in unnamed.unnamed.iter_mut().filter(|f| is_indexed(f)) {
-                    remove_indexed_and_add_comment(field);
+                    replace_indexed_with_type_info(field);
                 }
             }
             // For unit variants, no fields exist.
@@ -207,11 +207,11 @@ pub(super) fn process_indexed(input: &mut ItemEnum) {
     }
 }
 
-/// remove indexed attribute from field and add comment
-fn remove_indexed_and_add_comment(field: &mut syn::Field) {
+/// remove indexed attribute from field and add type_info attribute
+fn replace_indexed_with_type_info(field: &mut syn::Field) {
     field.attrs.retain(|attr| !attr.path().is_ident("indexed"));
     field.attrs.push(syn::parse_quote! {
-        #[doc = r" #[indexed]"]
+        #[annotate(indexed)]
     });
 }
 
@@ -239,7 +239,7 @@ mod tests {
                 SomeEvent
                 {
                     /// Some comment
-                    /// #[indexed]
+                    #[annotate(indexed)]
                     sender: u128
                 },
             }

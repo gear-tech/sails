@@ -217,14 +217,14 @@ impl FnBuilder<'_> {
         let result_type = self.result_type_with_static_lifetime();
 
         #[cfg(feature = "ethexe")]
-        let payable_doc = self.payable.then(|| quote!(#[doc = " #[payable]"]));
+        let payable_ann = self.payable.then(|| quote!(#[annotate(payable)]));
         #[cfg(not(feature = "ethexe"))]
-        let payable_doc: Option<TokenStream> = None;
+        let payable_ann: Option<TokenStream> = None;
 
-        let returns_value_doc = if cfg!(feature = "ethexe") {
+        let returns_value_ann = if cfg!(feature = "ethexe") {
             self.result_type_with_value()
                 .1
-                .then(|| quote!(#[doc = " #[returns_value]"]))
+                .then(|| quote!(#[annotate(returns_value)]))
         } else {
             None
         };
@@ -233,15 +233,15 @@ impl FnBuilder<'_> {
             let err_ty = shared::replace_any_lifetime_with_static(err_ty.clone());
             quote!(
                 #( #handler_docs_attrs )*
-                #payable_doc
-                #returns_value_doc
+                #payable_ann
+                #returns_value_ann
                 #handler_route_ident(#params_struct_ident, #result_type, #err_ty)
             )
         } else {
             quote!(
                 #( #handler_docs_attrs )*
-                #payable_doc
-                #returns_value_doc
+                #payable_ann
+                #returns_value_ann
                 #handler_route_ident(#params_struct_ident, #result_type)
             )
         }

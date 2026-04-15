@@ -629,7 +629,7 @@ When this feature is active:
 >
 > The accepted value (tokens) depends on whether the `ethexe` feature is enabled. Without the feature, these are native VARA tokens; with the feature, these are ETH.
 
-- The generated IDL is enhanced with additional documentation to signify payable methods and methods that return value. Specifically, methods marked with `#[export(payable)]` will have a `/// #[payable]` doc comment, and methods returning `CommandReply<T>` will have a `/// #[returns_value]` doc comment. This metadata is necessary for the correct generation of Solidity interfaces via the `sails-sol-gen` crate.
+- The generated IDL is enhanced with structured annotations to signify payable methods, methods that return value, and indexed event fields. Specifically, methods marked with `#[export(payable)]` will have an `@payable` annotation, and methods returning `CommandReply<T>` will have a `@returns_value` annotation. Additionally, event fields marked with `#[indexed]` will have an `@indexed` annotation. This metadata is necessary for the correct generation of Solidity interfaces via the `sails-sol-gen` crate.
 
 Here is an example demonstrating these features:
 
@@ -656,9 +656,22 @@ impl MyProgram {
     }
 }
 
+#[event]
+#[derive(Clone, Debug, PartialEq, Encode, TypeInfo, ReflectHash)]
+#[reflect_hash(crate = sails_rs)]
+pub enum MyEvent {
+    Transfer {
+        #[indexed]
+        from: ActorId,
+        #[indexed]
+        to: ActorId,
+        amount: u128,
+    },
+}
+
 pub struct SomeService;
 
-#[service]
+#[service(events = MyEvent)]
 impl SomeService {
     #[export]
     pub async fn do_this(&mut self, p1: u32, _p2: String) -> u32 {
@@ -679,7 +692,7 @@ impl SomeService {
 ```
 
 In the example above, `create_payable` is a payable constructor, and `do_this_payable` is a payable service method.
-The `withdraw` method will have the `/// #[returns_value]` doc comment in the IDL.
+The `withdraw` method will have the `@returns_value` annotation in the IDL, and `from` and `to` fields in `MyEvent` will have `@indexed` annotations.
 For more details, you can refer to the full example at [`rs/ethexe/ethapp/src/lib.rs`](rs/ethexe/ethapp/src/lib.rs).
 
 ## Examples
