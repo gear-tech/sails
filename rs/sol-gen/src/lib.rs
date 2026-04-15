@@ -97,7 +97,7 @@ fn functions_from_idl(doc: &IdlDoc) -> Result<Vec<FunctionData>> {
                 name: func.name.to_case(Case::Camel),
                 reply_type: None, // Constructors don't have replies in this sense
                 reply_mem_location: None,
-                payable: has_tag(&func.docs, "#[payable]"),
+                payable: func.annotations.iter().any(|(k, _)| k == "payable"),
                 returns_value: false, // Constructors don't return CommandReply values
                 args,
             });
@@ -126,8 +126,8 @@ fn functions_from_idl(doc: &IdlDoc) -> Result<Vec<FunctionData>> {
                     .to_case(Case::Camel),
                 reply_type,
                 reply_mem_location: f.output.get_mem_location(),
-                payable: has_tag(&f.docs, "#[payable]"),
-                returns_value: has_tag(&f.docs, "#[returns_value]"),
+                payable: f.annotations.iter().any(|(k, _)| k == "payable"),
+                returns_value: f.annotations.iter().any(|(k, _)| k == "returns_value"),
                 args,
             });
         }
@@ -158,8 +158,4 @@ fn events_from_idl(doc: &IdlDoc) -> Result<Vec<EventData>> {
     }
 
     Ok(events)
-}
-
-fn has_tag(docs: &[String], tag: &str) -> bool {
-    docs.iter().any(|doc| doc.contains(tag))
 }

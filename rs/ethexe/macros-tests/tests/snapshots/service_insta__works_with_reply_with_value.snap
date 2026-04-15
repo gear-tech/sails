@@ -265,7 +265,7 @@ mod some_service_meta {
     #[derive(sails_rs::TypeInfo)]
     #[type_info(crate = sails_rs::type_info)]
     pub enum CommandsMeta {
-        /// #[returns_value]
+        #[type_info(returns_value)]
         DoThis(__DoThisParams, u32),
     }
     #[derive(sails_rs::TypeInfo)]

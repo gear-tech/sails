@@ -761,15 +761,22 @@ impl FnBuilder<'_> {
             .filter(|attr| attr.path().is_ident("doc"));
         let params_struct_ident = &self.params_struct_ident;
 
+        #[cfg(feature = "ethexe")]
+        let payable_ann = self.payable.then(|| quote!(#[type_info(payable)]));
+        #[cfg(not(feature = "ethexe"))]
+        let payable_ann: Option<TokenStream2> = None;
+
         if let Some(err_ty) = &self.error_type {
             let err_ty = shared::replace_any_lifetime_with_static(err_ty.clone());
             quote! {
                 #( #ctor_docs_attrs )*
+                #payable_ann
                 #ctor_route(#params_struct_ident, #err_ty)
             }
         } else {
             quote! {
                 #( #ctor_docs_attrs )*
+                #payable_ann
                 #ctor_route(#params_struct_ident)
             }
         }
