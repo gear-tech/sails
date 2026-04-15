@@ -1,0 +1,5 @@
+error: `export` attribute cannot be parsed: duplicate `ethabi` flag in `#[export]`
+ --> tests/ui/validation_gservice_fails_export_duplicate_ethabi.rs:7:7
+  |
+7 |     #[export(ethabi, ethabi)]
+  |       ^^^^^^
