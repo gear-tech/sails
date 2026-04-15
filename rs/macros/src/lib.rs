@@ -203,3 +203,41 @@ pub fn export(args: TokenStream, impl_item_fn_tokens: TokenStream) -> TokenStrea
 pub fn event(args: TokenStream, input: TokenStream) -> TokenStream {
     sails_macros_core::event(args.into(), input.into()).into()
 }
+
+/// Derives the canonical Sails type bundle: `Encode`, `Decode`, `TypeInfo`,
+/// and `ReflectHash`, together with their `crate =` helper attributes routed
+/// to the `sails_rs` re-exports.
+///
+/// # Arguments
+///
+/// - `crate = <path>` — override the path to the `sails-rs` crate (defaults to
+///   `sails_rs`). Useful when `sails-rs` is re-exported from a parent crate.
+/// - `no_reflect_hash` — omit `ReflectHash` from the derive list and drop the
+///   `reflect_hash` helper attribute. Exists specifically for the IDL v1
+///   client generator, which predates `ReflectHash`.
+///
+/// # Examples
+///
+/// ```rust,ignore
+/// use sails_rs::sails_type;
+///
+/// #[sails_type]
+/// #[derive(PartialEq, Clone, Debug)]
+/// pub struct MyType {
+///     pub a: u32,
+///     pub b: String,
+/// }
+///
+/// #[sails_type(crate = my_alias)]
+/// pub enum MyEnum { A, B }
+///
+/// #[sails_type(no_reflect_hash)]
+/// pub struct LegacyType { pub a: u32 }
+/// ```
+///
+/// Composes with `#[event]` in any order — the two macros are orthogonal.
+#[proc_macro_error]
+#[proc_macro_attribute]
+pub fn sails_type(args: TokenStream, item: TokenStream) -> TokenStream {
+    sails_macros_core::sails_type(args.into(), item.into()).into()
+}

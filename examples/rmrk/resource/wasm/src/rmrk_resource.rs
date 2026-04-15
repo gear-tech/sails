@@ -50,10 +50,8 @@ pub mod io {
 pub mod rmrk_resource {
     use super::*;
 
-    #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
-    #[codec(crate = sails_rs::scale_codec)]
-    #[type_info(crate = sails_rs::type_info)]
-    #[reflect_hash(crate = sails_rs)]
+    #[sails_rs::sails_type(crate = sails_rs)]
+    #[derive(PartialEq, Clone, Debug)]
     pub enum Error {
         NotAuthorized,
         ZeroResourceId,
@@ -62,19 +60,15 @@ pub mod rmrk_resource {
         WrongResourceType,
         PartNotFound,
     }
-    #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
-    #[codec(crate = sails_rs::scale_codec)]
-    #[type_info(crate = sails_rs::type_info)]
-    #[reflect_hash(crate = sails_rs)]
+    #[sails_rs::sails_type(crate = sails_rs)]
+    #[derive(PartialEq, Clone, Debug)]
     pub enum Resource {
         Basic(BasicResource),
         Slot(SlotResource),
         Composed(ComposedResource),
     }
-    #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
-    #[codec(crate = sails_rs::scale_codec)]
-    #[type_info(crate = sails_rs::type_info)]
-    #[reflect_hash(crate = sails_rs)]
+    #[sails_rs::sails_type(crate = sails_rs)]
+    #[derive(PartialEq, Clone, Debug)]
     pub struct BasicResource {
         /// URI like IPFS hash
         pub src: String,
@@ -84,10 +78,8 @@ pub mod rmrk_resource {
         /// Reference to IPFS location of metadata
         pub metadata_uri: String,
     }
-    #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
-    #[codec(crate = sails_rs::scale_codec)]
-    #[type_info(crate = sails_rs::type_info)]
-    #[reflect_hash(crate = sails_rs)]
+    #[sails_rs::sails_type(crate = sails_rs)]
+    #[derive(PartialEq, Clone, Debug)]
     pub struct SlotResource {
         /// URI like ipfs hash
         pub src: String,
@@ -100,10 +92,8 @@ pub mod rmrk_resource {
         /// If the resource has the slot property, it was designed to fit into a specific Base's slot.
         pub slot: u32,
     }
-    #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
-    #[codec(crate = sails_rs::scale_codec)]
-    #[type_info(crate = sails_rs::type_info)]
-    #[reflect_hash(crate = sails_rs)]
+    #[sails_rs::sails_type(crate = sails_rs)]
+    #[derive(PartialEq, Clone, Debug)]
     pub struct ComposedResource {
         /// URI like ipfs hash
         pub src: String,
@@ -175,9 +165,8 @@ pub mod rmrk_resource {
     #[cfg(not(target_arch = "wasm32"))]
     pub mod events {
         use super::*;
-        #[derive(PartialEq, Debug, Encode, Decode, ReflectHash)]
-        #[codec(crate = sails_rs::scale_codec)]
-        #[reflect_hash(crate = sails_rs)]
+        #[sails_rs::sails_type(crate = sails_rs)]
+        #[derive(PartialEq, Debug)]
         pub enum RmrkResourceEvents {
             #[codec(index = 0)]
             PartAdded { resource_id: u8, part_id: u32 },

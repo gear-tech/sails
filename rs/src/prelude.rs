@@ -51,6 +51,7 @@ pub use gear_core_errors::{
     self as gear_core_errors, ErrorReplyReason, ReplyCode, SignalCode, SimpleExecutionError,
     SimpleUnavailableActorError, SuccessReplyReason,
 };
+pub use sails_macros::sails_type;
 
 pub use parity_scale_codec::{self as scale_codec, Decode, Encode, EncodeLike, Output};
 pub use sails_idl_meta::{Identifiable, InterfaceId, MethodMeta};

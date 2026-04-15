@@ -211,9 +211,8 @@ pub mod counter {
     #[cfg(not(target_arch = "wasm32"))]
     pub mod events {
         use super::*;
-        #[derive(PartialEq, Debug, Encode, Decode, ReflectHash)]
-        #[codec(crate = sails_rs::scale_codec)]
-        #[reflect_hash(crate = sails_rs)]
+        #[sails_rs::sails_type(crate = sails_rs)]
+        #[derive(PartialEq, Debug)]
         pub enum CounterEvents {
             /// Emitted when a new value is added to the counter
             #[codec(index = 0)]
@@ -358,9 +357,8 @@ pub mod walker_service {
     #[cfg(not(target_arch = "wasm32"))]
     pub mod events {
         use super::*;
-        #[derive(PartialEq, Debug, Encode, Decode, ReflectHash)]
-        #[codec(crate = sails_rs::scale_codec)]
-        #[reflect_hash(crate = sails_rs)]
+        #[sails_rs::sails_type(crate = sails_rs)]
+        #[derive(PartialEq, Debug)]
         pub enum WalkerServiceEvents {
             #[codec(index = 0)]
             Walked { from: (i32, i32), to: (i32, i32) },
@@ -459,9 +457,8 @@ pub mod dog {
     #[cfg(not(target_arch = "wasm32"))]
     pub mod events {
         use super::*;
-        #[derive(PartialEq, Debug, Encode, Decode, ReflectHash)]
-        #[codec(crate = sails_rs::scale_codec)]
-        #[reflect_hash(crate = sails_rs)]
+        #[sails_rs::sails_type(crate = sails_rs)]
+        #[derive(PartialEq, Debug)]
         pub enum DogEvents {
             #[codec(index = 0)]
             Barked,
@@ -515,10 +512,8 @@ pub mod dog {
 pub mod references {
     use super::*;
 
-    #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
-    #[codec(crate = sails_rs::scale_codec)]
-    #[type_info(crate = sails_rs::type_info)]
-    #[reflect_hash(crate = sails_rs)]
+    #[sails_rs::sails_type(crate = sails_rs)]
+    #[derive(PartialEq, Clone, Debug)]
     pub struct ReferenceCount(pub u32);
 
     pub trait References {
@@ -607,19 +602,15 @@ pub mod references {
 pub mod this_that {
     use super::*;
 
-    #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
-    #[codec(crate = sails_rs::scale_codec)]
-    #[type_info(crate = sails_rs::type_info)]
-    #[reflect_hash(crate = sails_rs)]
+    #[sails_rs::sails_type(crate = sails_rs)]
+    #[derive(PartialEq, Clone, Debug)]
     pub struct DoThatParam {
         pub p1: NonZeroU32,
         pub p2: ActorId,
         pub p3: ManyVariants,
     }
-    #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
-    #[codec(crate = sails_rs::scale_codec)]
-    #[type_info(crate = sails_rs::type_info)]
-    #[reflect_hash(crate = sails_rs)]
+    #[sails_rs::sails_type(crate = sails_rs)]
+    #[derive(PartialEq, Clone, Debug)]
     pub enum ManyVariants {
         One,
         Two(u32),
@@ -628,10 +619,8 @@ pub mod this_that {
         Five(String, H256),
         Six((u32,)),
     }
-    #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
-    #[codec(crate = sails_rs::scale_codec)]
-    #[type_info(crate = sails_rs::type_info)]
-    #[reflect_hash(crate = sails_rs)]
+    #[sails_rs::sails_type(crate = sails_rs)]
+    #[derive(PartialEq, Clone, Debug)]
     pub enum ManyVariantsReply {
         One,
         Two,
@@ -640,10 +629,8 @@ pub mod this_that {
         Five,
         Six,
     }
-    #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
-    #[codec(crate = sails_rs::scale_codec)]
-    #[type_info(crate = sails_rs::type_info)]
-    #[reflect_hash(crate = sails_rs)]
+    #[sails_rs::sails_type(crate = sails_rs)]
+    #[derive(PartialEq, Clone, Debug)]
     pub struct TupleStruct(pub bool);
 
     pub trait ThisThat {
@@ -762,9 +749,8 @@ pub mod value_fee {
     #[cfg(not(target_arch = "wasm32"))]
     pub mod events {
         use super::*;
-        #[derive(PartialEq, Debug, Encode, Decode, ReflectHash)]
-        #[codec(crate = sails_rs::scale_codec)]
-        #[reflect_hash(crate = sails_rs)]
+        #[sails_rs::sails_type(crate = sails_rs)]
+        #[derive(PartialEq, Debug)]
         pub enum ValueFeeEvents {
             #[codec(index = 0)]
             Withheld(u128),
@@ -818,10 +804,8 @@ pub mod value_fee {
 pub mod validator {
     use super::*;
 
-    #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
-    #[codec(crate = sails_rs::scale_codec)]
-    #[type_info(crate = sails_rs::type_info)]
-    #[reflect_hash(crate = sails_rs)]
+    #[sails_rs::sails_type(crate = sails_rs)]
+    #[derive(PartialEq, Clone, Debug)]
     pub enum ValidationError {
         TooSmall,
         TooBig,

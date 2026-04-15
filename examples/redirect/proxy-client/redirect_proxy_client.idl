@@ -1,5 +1,5 @@
 
-!@sails: 1.0.0-beta.2
+!@sails: 1.0.0-beta.3
 
 service Proxy@0x73843476ff137c7e {
     functions {

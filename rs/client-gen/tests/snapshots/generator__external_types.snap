@@ -80,9 +80,7 @@ pub mod service {
         my_crate::sails::io_struct_impl_v1!(DoThat (p1: (u8,u32,)) -> u8);
     }
 }
-#[derive(Encode, Decode, TypeInfo)]
-#[codec(crate = my_crate::sails::scale_codec)]
-#[type_info(crate = my_crate::sails::type_info)]
+#[my_crate::sails::sails_type(crate = my_crate::sails, no_reflect_hash)]
 pub enum MyParam2 {
     Variant1,
     Variant2(u32),

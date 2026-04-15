@@ -12,9 +12,7 @@ impl AllocStressService {
     }
 }
 
-#[derive(TypeInfo, Encode, ReflectHash)]
-#[codec(crate = sails_rs::scale_codec)]
-#[reflect_hash(crate = sails_rs)]
+#[sails_type]
 pub struct AllocStressResult {
     pub inner: Vec<u8>,
 }

@@ -12,10 +12,8 @@ use sails_rs::{client::*, collections::*, prelude::*};
 pub mod service_with_events {
     use super::*;
 
-    #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
-    #[codec(crate = sails_rs::scale_codec)]
-    #[type_info(crate = sails_rs::type_info)]
-    #[reflect_hash(crate = sails_rs)]
+    #[sails_rs::sails_type(crate = sails_rs)]
+    #[derive(PartialEq, Clone, Debug)]
     pub struct MyParam {
         pub f1: U256,
         pub f2: Vec<u8>,
@@ -59,9 +57,8 @@ pub mod service_with_events {
     #[cfg(not(target_arch = "wasm32"))]
     pub mod events {
         use super::*;
-        #[derive(PartialEq, Debug, Encode, Decode, ReflectHash)]
-        #[codec(crate = sails_rs::scale_codec)]
-        #[reflect_hash(crate = sails_rs)]
+        #[sails_rs::sails_type(crate = sails_rs)]
+        #[derive(PartialEq, Debug)]
         pub enum ServiceWithEventsEvents {
             #[codec(index = 0)]
             One(u64),

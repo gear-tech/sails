@@ -30,9 +30,7 @@ fn fibonacci(n: u32) -> u32 {
     }
 }
 
-#[derive(TypeInfo, Encode, ReflectHash)]
-#[codec(crate = sails_rs::scale_codec)]
-#[reflect_hash(crate = sails_rs)]
+#[sails_type]
 pub struct ComputeStressResult {
     pub res: u32,
 }

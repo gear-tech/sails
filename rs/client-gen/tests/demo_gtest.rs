@@ -1,5 +1,6 @@
 #[allow(dead_code, unexpected_cfgs)]
 mod demo_client {
+    // cargo run -p sails-cli -- sails client-rs --v1 rs\client-gen\tests\idls\demo.idl rs\client-gen\tests\generated\demo_client_v1.rs
     include!("generated/demo_client_v1.rs");
 }
 

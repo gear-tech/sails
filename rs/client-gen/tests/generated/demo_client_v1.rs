@@ -173,8 +173,8 @@ pub mod counter {
     #[cfg(not(target_arch = "wasm32"))]
     pub mod events {
         use super::*;
-        #[derive(PartialEq, Debug, Encode, Decode)]
-        #[codec(crate = sails_rs::scale_codec)]
+        #[sails_rs::sails_type(crate = sails_rs, no_reflect_hash)]
+        #[derive(PartialEq, Debug)]
         pub enum CounterEvents {
             /// Emitted when a new value is added to the counter
             Added(u32),
@@ -242,8 +242,8 @@ pub mod dog {
     #[cfg(not(target_arch = "wasm32"))]
     pub mod events {
         use super::*;
-        #[derive(PartialEq, Debug, Encode, Decode)]
-        #[codec(crate = sails_rs::scale_codec)]
+        #[sails_rs::sails_type(crate = sails_rs, no_reflect_hash)]
+        #[derive(PartialEq, Debug)]
         pub enum DogEvents {
             Barked,
             Walked { from: (i32, i32), to: (i32, i32) },
@@ -429,8 +429,8 @@ pub mod value_fee {
     #[cfg(not(target_arch = "wasm32"))]
     pub mod events {
         use super::*;
-        #[derive(PartialEq, Debug, Encode, Decode)]
-        #[codec(crate = sails_rs::scale_codec)]
+        #[sails_rs::sails_type(crate = sails_rs, no_reflect_hash)]
+        #[derive(PartialEq, Debug)]
         pub enum ValueFeeEvents {
             Withheld(u128),
         }
@@ -491,21 +491,18 @@ pub mod chaos {
         sails_rs::io_struct_impl_v1!(TimeoutWait () -> ());
     }
 }
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
-#[codec(crate = sails_rs::scale_codec)]
-#[type_info(crate = sails_rs::type_info)]
+#[sails_rs::sails_type(crate = sails_rs, no_reflect_hash)]
+#[derive(PartialEq, Clone, Debug)]
 pub struct ReferenceCount(pub u32);
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
-#[codec(crate = sails_rs::scale_codec)]
-#[type_info(crate = sails_rs::type_info)]
+#[sails_rs::sails_type(crate = sails_rs, no_reflect_hash)]
+#[derive(PartialEq, Clone, Debug)]
 pub struct DoThatParam {
     pub p1: NonZeroU32,
     pub p2: ActorId,
     pub p3: ManyVariants,
 }
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
-#[codec(crate = sails_rs::scale_codec)]
-#[type_info(crate = sails_rs::type_info)]
+#[sails_rs::sails_type(crate = sails_rs, no_reflect_hash)]
+#[derive(PartialEq, Clone, Debug)]
 pub enum ManyVariants {
     One,
     Two(u32),
@@ -514,9 +511,8 @@ pub enum ManyVariants {
     Five((String, H256)),
     Six((u32,)),
 }
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
-#[codec(crate = sails_rs::scale_codec)]
-#[type_info(crate = sails_rs::type_info)]
+#[sails_rs::sails_type(crate = sails_rs, no_reflect_hash)]
+#[derive(PartialEq, Clone, Debug)]
 pub enum ManyVariantsReply {
     One,
     Two,
@@ -525,7 +521,6 @@ pub enum ManyVariantsReply {
     Five,
     Six,
 }
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
-#[codec(crate = sails_rs::scale_codec)]
-#[type_info(crate = sails_rs::type_info)]
+#[sails_rs::sails_type(crate = sails_rs, no_reflect_hash)]
+#[derive(PartialEq, Clone, Debug)]
 pub struct TupleStruct(pub bool);

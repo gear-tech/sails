@@ -11,10 +11,7 @@ use my_crate::sails::{client::*, collections::*, prelude::*};
 pub mod service {
     use super::*;
 
-    #[derive(Encode, Decode, TypeInfo, ReflectHash)]
-    #[codec(crate = my_crate::sails::scale_codec)]
-    #[type_info(crate = my_crate::sails::type_info)]
-    #[reflect_hash(crate = my_crate::sails)]
+    #[my_crate::sails::sails_type(crate = my_crate::sails)]
     pub enum MyParam2 {
         Variant1,
         Variant2(u32),

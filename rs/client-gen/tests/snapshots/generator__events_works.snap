@@ -70,8 +70,8 @@ pub mod service_with_events {
     #[cfg(not(target_arch = "wasm32"))]
     pub mod events {
         use super::*;
-        #[derive(PartialEq, Debug, Encode, Decode)]
-        #[codec(crate = sails_rs::scale_codec)]
+        #[sails_rs::sails_type(crate = sails_rs, no_reflect_hash)]
+        #[derive(PartialEq, Debug)]
         pub enum ServiceWithEventsEvents {
             One(u64),
             Two { id: u8, reference: u64 },
@@ -97,9 +97,8 @@ pub mod service_with_events {
         }
     }
 }
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
-#[codec(crate = sails_rs::scale_codec)]
-#[type_info(crate = sails_rs::type_info)]
+#[sails_rs::sails_type(crate = sails_rs, no_reflect_hash)]
+#[derive(PartialEq, Clone, Debug)]
 pub struct MyParam {
     pub f1: NonZeroU256,
     pub f2: Vec<NonZeroU8>,

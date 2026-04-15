@@ -1,9 +1,8 @@
 use sails_rs::collections::BTreeMap;
 use sails_rs::prelude::*;
 
-#[derive(Clone, Encode, Decode, TypeInfo, ReflectHash, PartialEq, Debug)]
-#[reflect_hash(crate = sails_rs::sails_reflect_hash)]
-#[codec(crate = sails_rs::scale_codec)]
+#[sails_type]
+#[derive(Clone, PartialEq, Debug)]
 pub enum OpStatus {
     Started,
     Step1,
