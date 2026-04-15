@@ -3,7 +3,7 @@ use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::quote;
 use syn::{Data, DeriveInput, Fields, GenericParam, Ident, Type, parse_macro_input};
 
-#[proc_macro_derive(TypeInfo, attributes(type_info))]
+#[proc_macro_derive(TypeInfo, attributes(type_info, annotate))]
 pub fn type_info_derive(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     match process_derive(input) {
@@ -108,8 +108,6 @@ fn resolve_registry_path(input: &DeriveInput) -> syn::Result<TokenStream2> {
             attr.parse_nested_meta(|meta| {
                 if meta.path.is_ident("crate") {
                     path = Some(meta.value()?.parse::<syn::Path>()?);
-                } else if meta.input.peek(syn::Token![=]) {
-                    let _: syn::Expr = meta.value()?.parse()?;
                 }
                 Ok(())
             })?;
@@ -159,17 +157,13 @@ fn extract_docs(attrs: &[syn::Attribute]) -> Vec<TokenStream2> {
 
 fn extract_annotations(attrs: &[syn::Attribute]) -> syn::Result<Vec<TokenStream2>> {
     let mut anns = Vec::new();
-    for attr in attrs.iter().filter(|a| a.path().is_ident("type_info")) {
+    for attr in attrs.iter().filter(|a| a.path().is_ident("annotate")) {
         attr.parse_nested_meta(|meta| {
             let ident = meta
                 .path
                 .get_ident()
                 .ok_or_else(|| meta.error("expected identifier"))?;
             let ident_str = ident.to_string();
-            if ident_str == "crate" {
-                let _: syn::Path = meta.value()?.parse()?;
-                return Ok(());
-            }
 
             if meta.input.peek(syn::Token![=]) {
                 let value: syn::Expr = meta.value()?.parse()?;
@@ -457,7 +451,7 @@ mod tests {
                 /// Second line of documentation
                 struct Basic<T> {
                     /// Simple field
-                    #[type_info(name = "custom")]
+                    #[annotate(name = "custom")]
                     a: u32,
                     /// Direct parameter
                     b: T,
@@ -488,12 +482,12 @@ mod tests {
     fn complex_enum() {
         assert_expansion(
             parse_quote! {
-                #[type_info(top = "val")]
+                #[annotate(top = "val")]
                 enum Complex {
                     /// Variant with named fields and annotations
-                    #[type_info(v1)]
+                    #[annotate(v1)]
                     V1 {
-                        #[type_info(f1 = "v")]
+                        #[annotate(f1 = "v")]
                         f: u32
                     },
                     /// Variant with unnamed fields
@@ -534,14 +528,14 @@ mod tests {
             parse_quote! {
                 /// The Container Type
                 #[type_info(crate = sails_rs::type_info)]
-                #[type_info(attr1 = "val1", attr2)]
+                #[annotate(attr1 = "val1", attr2)]
                 pub struct Container<T, U, const SIZE: usize>
                 where T: Clone
                 {
                     /// Recursive field
                     pub next: Option<Box<Container<T, U, SIZE>>>,
                     /// Field with many annotations
-                    #[type_info(indexed, secret = "true", range = "0..100")]
+                    #[annotate(indexed, secret = "true", range = "0..100")]
                     pub data: [T; SIZE],
                     pub mapped: BTreeMap<String, U>,
                     /// Tuple field

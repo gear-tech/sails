@@ -4,9 +4,9 @@ expression: result
 ---
 pub enum Events {
     MyEvent1 {
-        #[type_info(indexed)]
+        #[annotate(indexed)]
         sender: u128,
-        #[type_info(indexed)]
+        #[annotate(indexed)]
         amount: u128,
         note: String,
     },

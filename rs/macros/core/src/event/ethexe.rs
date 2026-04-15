@@ -211,7 +211,7 @@ pub(super) fn process_indexed(input: &mut ItemEnum) {
 fn replace_indexed_with_type_info(field: &mut syn::Field) {
     field.attrs.retain(|attr| !attr.path().is_ident("indexed"));
     field.attrs.push(syn::parse_quote! {
-        #[type_info(indexed)]
+        #[annotate(indexed)]
     });
 }
 
@@ -239,7 +239,7 @@ mod tests {
                 SomeEvent
                 {
                     /// Some comment
-                    #[type_info(indexed)]
+                    #[annotate(indexed)]
                     sender: u128
                 },
             }

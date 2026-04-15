@@ -762,7 +762,7 @@ impl FnBuilder<'_> {
         let params_struct_ident = &self.params_struct_ident;
 
         #[cfg(feature = "ethexe")]
-        let payable_ann = self.payable.then(|| quote!(#[type_info(payable)]));
+        let payable_ann = self.payable.then(|| quote!(#[annotate(payable)]));
         #[cfg(not(feature = "ethexe"))]
         let payable_ann: Option<TokenStream2> = None;
 

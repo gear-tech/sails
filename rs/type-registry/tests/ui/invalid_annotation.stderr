@@ -1,5 +1,5 @@
 error: expected string literal
- --> tests/ui/invalid_annotation.rs:4:13
+ --> tests/ui/invalid_annotation.rs:4:12
   |
-4 | #[type_info(id = 42)] // Integer values are not supported
-  |             ^^^^^^^
+4 | #[annotate(id = 42)] // Integer values are not supported
+  |            ^^^^^^^

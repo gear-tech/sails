@@ -4,7 +4,7 @@ use sails_type_registry::{Registry, TypeInfo};
 #[test]
 fn test_struct_annotation() {
     #[derive(TypeInfo)]
-    #[type_info(indexed)]
+    #[annotate(indexed)]
     struct Indexed {
         _x: u32,
     }
@@ -19,8 +19,8 @@ fn test_struct_annotation() {
 #[test]
 fn test_multiple_annotations_on_struct() {
     #[derive(TypeInfo)]
-    #[type_info(compressed)]
-    #[type_info(versioned)]
+    #[annotate(compressed)]
+    #[annotate(versioned)]
     struct MultiAnnotated {
         _data: u32,
     }
@@ -38,7 +38,7 @@ fn test_multiple_annotations_on_struct() {
 #[test]
 fn test_enum_annotation() {
     #[derive(TypeInfo)]
-    #[type_info(sealed)]
+    #[annotate(sealed)]
     enum Sealed {
         _A,
         _B,
@@ -55,7 +55,7 @@ fn test_enum_annotation() {
 fn test_variant_annotation() {
     #[derive(TypeInfo)]
     enum Tagged {
-        #[type_info(deprecated)]
+        #[annotate(deprecated)]
         _Old,
         _New,
     }
@@ -76,7 +76,7 @@ fn test_variant_annotation() {
 fn test_field_annotation() {
     #[derive(TypeInfo)]
     struct WithFieldAnnotation {
-        #[type_info(sensitive)]
+        #[annotate(sensitive)]
         _secret: u64,
         _public: u32,
     }
@@ -110,7 +110,7 @@ fn test_no_annotations_by_default() {
 #[test]
 fn test_annotation_with_value() {
     #[derive(TypeInfo)]
-    #[type_info(version = "2")]
+    #[annotate(version = "2")]
     struct Versioned {
         _x: u32,
     }

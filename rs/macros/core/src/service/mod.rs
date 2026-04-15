@@ -217,14 +217,14 @@ impl FnBuilder<'_> {
         let result_type = self.result_type_with_static_lifetime();
 
         #[cfg(feature = "ethexe")]
-        let payable_ann = self.payable.then(|| quote!(#[type_info(payable)]));
+        let payable_ann = self.payable.then(|| quote!(#[annotate(payable)]));
         #[cfg(not(feature = "ethexe"))]
         let payable_ann: Option<TokenStream> = None;
 
         let returns_value_ann = if cfg!(feature = "ethexe") {
             self.result_type_with_value()
                 .1
-                .then(|| quote!(#[type_info(returns_value)]))
+                .then(|| quote!(#[annotate(returns_value)]))
         } else {
             None
         };
