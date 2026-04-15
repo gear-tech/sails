@@ -11,6 +11,7 @@ impl ServiceBuilder<'_> {
         let service_method_expo = self
             .service_handlers
             .iter()
+            .filter(|fn_builder| fn_builder.has_ethabi_transport())
             .map(|fn_builder| fn_builder.sol_handler_signature(Some(service_type_path)));
 
         let combined_methods = if self.base_types.is_empty() {
@@ -75,6 +76,7 @@ impl ServiceBuilder<'_> {
                 method_sig: &method_sig,
                 extra_imports: &extra_imports,
                 metadata_type: &metadata_type,
+                transport: Transport::Ethabi,
             };
 
             self.generate_dispatch_impl(

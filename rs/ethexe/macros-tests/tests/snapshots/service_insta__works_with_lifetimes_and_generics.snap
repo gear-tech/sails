@@ -56,7 +56,7 @@ where
         mut input: &[u8],
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
-        use sails_rs::gstd::{InvocationIo, CommandReply};
+        use sails_rs::gstd::CommandReply;
         match (interface_id, entry_id) {
             (
                 id,
@@ -75,7 +75,11 @@ where
                 let result = self.do_this();
                 let value = 0u128;
                 if !sails_rs::gstd::is_empty_tuple::<u32>() {
-                    <some_service_meta::__DoThisParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                    sails_rs::gstd::encode_invocation_payload::<
+                        some_service_meta::__DoThisParams,
+                        _,
+                        _,
+                    >(
                         &result,
                         self.route_idx,
                         |encoded_result| result_handler(encoded_result, value),
@@ -95,7 +99,7 @@ where
         mut input: &[u8],
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
-        use sails_rs::gstd::{InvocationIo, CommandReply};
+        use sails_rs::gstd::CommandReply;
         match (interface_id, entry_id) {
             _ => None,
         }
