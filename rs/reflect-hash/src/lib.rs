@@ -286,6 +286,16 @@ impl ReflectHash for H160 {
     const HASH: [u8; 32] = Keccak256::new().update(b"H160").finalize();
 }
 
+#[cfg(feature = "alloy-primitives")]
+impl ReflectHash for alloy_primitives::Address {
+    const HASH: [u8; 32] = H160::HASH;
+}
+
+#[cfg(feature = "alloy-primitives")]
+impl ReflectHash for alloy_primitives::B256 {
+    const HASH: [u8; 32] = H256::HASH;
+}
+
 impl ReflectHash for U256 {
     const HASH: [u8; 32] = Keccak256::new().update(b"U256").finalize();
 }
@@ -339,5 +349,18 @@ mod tests {
         #[reflect_hash(crate = reflect_hash_crate)]
         #[allow(dead_code)]
         struct TestStruct(String);
+    }
+
+    #[cfg(feature = "alloy-primitives")]
+    #[test]
+    fn alloy_primitives_reuse_h160_h256_hashes() {
+        assert_eq!(
+            <alloy_primitives::Address as ReflectHash>::HASH,
+            <H160 as ReflectHash>::HASH,
+        );
+        assert_eq!(
+            <alloy_primitives::B256 as ReflectHash>::HASH,
+            <H256 as ReflectHash>::HASH,
+        );
     }
 }

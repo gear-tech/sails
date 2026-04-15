@@ -61,6 +61,8 @@ ethexe = [
     "dep:alloy-primitives",
     "dep:alloy-sol-types",
     "sails-macros/ethexe",
+    "sails-reflect-hash/alloy-primitives",
+    "sails-type-registry/alloy-primitives",
 ]
 gclient = ["dep:gclient", "dep:tokio-stream"]
 gstd = ["dep:gstd", "dep:gear-core"]

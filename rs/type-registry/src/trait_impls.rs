@@ -152,6 +152,27 @@ mod g_impls {
     }
 }
 
+#[cfg(feature = "alloy-primitives")]
+mod alloy_impls {
+    use super::*;
+
+    impl TypeInfo for alloy_primitives::Address {
+        type Identity = Self;
+
+        fn type_info(_registry: &mut Registry) -> Type {
+            Type::builder().gprimitive(crate::ty::GPrimitive::H160)
+        }
+    }
+
+    impl TypeInfo for alloy_primitives::B256 {
+        type Identity = Self;
+
+        fn type_info(_registry: &mut Registry) -> Type {
+            Type::builder().gprimitive(crate::ty::GPrimitive::H256)
+        }
+    }
+}
+
 impl TypeInfo for () {
     type Identity = Self;
     fn type_info(_registry: &mut Registry) -> Type {

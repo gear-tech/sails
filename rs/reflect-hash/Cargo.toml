@@ -10,6 +10,10 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+alloy-primitives = { workspace = true, optional = true }
 gprimitives = { workspace = true, default-features = false, features = ["codec"] }
 keccak-const.workspace = true
 sails-reflect-hash-derive.workspace = true
+
+[features]
+alloy-primitives = ["dep:alloy-primitives"]
