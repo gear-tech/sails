@@ -299,6 +299,8 @@ impl FnBuilder<'_> {
             (quote! { #own_interface_id }, quote! { #entry_id })
         };
 
+        let decode_disabled = (!self.has_scale_transport()).then(|| quote!(decode = false,));
+
         quote!(
             #sails_path::invocation_io!(
                 pub struct #params_struct_ident {
@@ -306,6 +308,7 @@ impl FnBuilder<'_> {
                 },
                 interface_id = #interface_id_computation,
                 entry_id = #entry_id_computation,
+                #decode_disabled
             );
         )
     }
