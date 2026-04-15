@@ -156,10 +156,7 @@ impl<'a> GasTrace<'a> {
             if entry.destination() == ActorId::zero() {
                 events.push(*entry);
             } else if let Some(parent_id) = entry.reply_to() {
-                replies_by_parent
-                    .entry(parent_id)
-                    .or_default()
-                    .push(entry);
+                replies_by_parent.entry(parent_id).or_default().push(entry);
             } else {
                 roots.push(*entry);
             }
@@ -172,11 +169,12 @@ impl<'a> GasTrace<'a> {
             .collect();
 
         // 4. Collect orphaned replies (reply_to target not in any block)
-        let root_ids: std::collections::HashSet<MessageId> =
-            roots.iter().map(|e| e.id()).collect();
+        let root_ids: std::collections::HashSet<MessageId> = roots.iter().map(|e| e.id()).collect();
         for (parent_id, replies) in &replies_by_parent {
             if !root_ids.contains(parent_id)
-                && !replies_by_parent.values().any(|v| v.iter().any(|r| r.id() == *parent_id))
+                && !replies_by_parent
+                    .values()
+                    .any(|v| v.iter().any(|r| r.id() == *parent_id))
             {
                 // This parent was never seen as a root or as another reply's child
                 for reply in replies {
@@ -213,7 +211,11 @@ impl<'a> GasTrace<'a> {
         // 6. Compute totals from tree nodes, not raw maps
         let total_gas = self.sum_gas(&root_nodes);
         let total_messages = all_logs.len();
-        let max_depth = root_nodes.iter().map(|n| self.tree_depth(n)).max().unwrap_or(0);
+        let max_depth = root_nodes
+            .iter()
+            .map(|n| self.tree_depth(n))
+            .max()
+            .unwrap_or(0);
 
         GasTraceTree {
             roots: root_nodes,
@@ -350,9 +352,7 @@ fn format_node(
                 // Use a static string for common cases
                 match reason {
                     gear_core_errors::ErrorReplyReason::Execution(e) => match e {
-                        gear_core_errors::SimpleExecutionError::RanOutOfGas => {
-                            "Err(RanOutOfGas)"
-                        }
+                        gear_core_errors::SimpleExecutionError::RanOutOfGas => "Err(RanOutOfGas)",
                         _ => "Err(Execution)",
                     },
                     _ => "Err",
@@ -362,7 +362,10 @@ fn format_node(
             None => "?",
         };
         let gas_str = format_gas_opt(node.gas);
-        writeln!(f, "{prefix}{connector}[{msg_id_hex}] [reply] {code_str}  {gas_str}")?;
+        writeln!(
+            f,
+            "{prefix}{connector}[{msg_id_hex}] [reply] {code_str}  {gas_str}"
+        )?;
     } else {
         let source_name = format_actor(node.source, actor_names);
         let dest_name = format_actor(node.destination, actor_names);
@@ -864,19 +867,13 @@ mod tests {
 
         let block = make_block(
             vec![log1, log2, log_reply2, log_reply1, log_event],
-            vec![
-                (msg1, 12_400),
-                (msg2, 8_200),
-                (reply2, 200),
-                (reply1, 150),
-            ],
+            vec![(msg1, 12_400), (msg2, 8_200), (reply2, 200), (reply1, 150)],
         );
 
         let mut registry = MethodRegistry::new();
-        registry.methods.insert(
-            (iid_counter.as_u64(), 0),
-            "Counter::increment".to_string(),
-        );
+        registry
+            .methods
+            .insert((iid_counter.as_u64(), 0), "Counter::increment".to_string());
         registry
             .services
             .insert(iid_counter.as_u64(), "Counter".to_string());
