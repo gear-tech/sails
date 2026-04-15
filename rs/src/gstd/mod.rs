@@ -102,46 +102,64 @@ impl<T: AsRef<[u8]>> core::fmt::Debug for HexSlice<T> {
     }
 }
 
+/// Invocation parameter metadata for a generated service method.
+///
+/// This trait intentionally does not require `Params: Decode`. SCALE dispatch
+/// adds that bound at the call site through [`decode_invocation_params`], while
+/// ABI-only methods can still use the same metadata type without requiring
+/// SCALE codec support for their parameters.
 pub trait InvocationIo: MethodMeta {
-    type Params: Decode;
+    type Params;
+}
 
-    fn decode_params(payload: impl AsRef<[u8]>) -> Result<Self::Params> {
-        let mut value = payload.as_ref();
-        let header: SailsMessageHeader = Decode::decode(&mut value).map_err(Error::Codec)?;
-        if header.interface_id() != Self::INTERFACE_ID {
-            return Err(Error::Rtl(RtlError::InvocationPrefixMismatches));
-        }
-        if header.entry_id() != Self::ENTRY_ID {
-            return Err(Error::Rtl(RtlError::InvocationPrefixMismatches));
-        }
-        let value: Self::Params = Decode::decode(&mut value).map_err(Error::Codec)?;
-        Ok(value)
+/// Decode the SCALE-encoded `Params` of an invocation, validating that the
+/// Sails message header's interface id and entry id match the target `I`.
+pub fn decode_invocation_params<I>(payload: impl AsRef<[u8]>) -> Result<I::Params>
+where
+    I: InvocationIo,
+    I::Params: Decode,
+{
+    let mut value = payload.as_ref();
+    let header: SailsMessageHeader = Decode::decode(&mut value).map_err(Error::Codec)?;
+    if header.interface_id() != I::INTERFACE_ID {
+        return Err(Error::Rtl(RtlError::InvocationPrefixMismatches));
     }
+    if header.entry_id() != I::ENTRY_ID {
+        return Err(Error::Rtl(RtlError::InvocationPrefixMismatches));
+    }
+    let value: I::Params = Decode::decode(&mut value).map_err(Error::Codec)?;
+    Ok(value)
+}
 
-    fn with_optimized_encode<T: Encode, R>(
-        value: &T,
-        route_idx: u8,
-        f: impl FnOnce(&[u8]) -> R,
-    ) -> R {
-        Self::with_optimized_encode_with_id(Self::INTERFACE_ID, Self::ENTRY_ID, value, route_idx, f)
-    }
+/// SCALE-encode a reply payload prefixed with the Sails header derived from `I`,
+/// passing the encoded bytes to the caller's closure.
+pub fn encode_invocation_payload<I, T, R>(value: &T, route_idx: u8, f: impl FnOnce(&[u8]) -> R) -> R
+where
+    I: InvocationIo,
+    T: Encode,
+{
+    encode_invocation_payload_with_id::<T, R>(I::INTERFACE_ID, I::ENTRY_ID, value, route_idx, f)
+}
 
-    fn with_optimized_encode_with_id<T: Encode, R>(
-        interface_id: InterfaceId,
-        entry_id: u16,
-        value: &T,
-        route_idx: u8,
-        f: impl FnOnce(&[u8]) -> R,
-    ) -> R {
-        let header = SailsMessageHeader::v1(interface_id, entry_id, route_idx);
-        let size = 16 + Encode::encoded_size(value);
-        stack_buffer::with_byte_buffer(size, |buffer| {
-            let mut buffer_writer = MaybeUninitBufferWriter::new(buffer);
-            Encode::encode_to(&header, &mut buffer_writer);
-            Encode::encode_to(value, &mut buffer_writer);
-            buffer_writer.with_buffer(f)
-        })
-    }
+/// SCALE-encode a reply payload with explicit interface and entry ids.
+pub fn encode_invocation_payload_with_id<T, R>(
+    interface_id: InterfaceId,
+    entry_id: u16,
+    value: &T,
+    route_idx: u8,
+    f: impl FnOnce(&[u8]) -> R,
+) -> R
+where
+    T: Encode,
+{
+    let header = SailsMessageHeader::v1(interface_id, entry_id, route_idx);
+    let size = 16 + Encode::encoded_size(value);
+    stack_buffer::with_byte_buffer(size, |buffer| {
+        let mut buffer_writer = MaybeUninitBufferWriter::new(buffer);
+        Encode::encode_to(&header, &mut buffer_writer);
+        Encode::encode_to(value, &mut buffer_writer);
+        buffer_writer.with_buffer(f)
+    })
 }
 
 pub fn with_optimized_encode<T: Encode, R>(

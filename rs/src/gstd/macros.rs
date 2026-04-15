@@ -104,9 +104,10 @@ macro_rules! program_ctor {
 /// Declares an invocation params struct together with its metadata and
 /// [`crate::gstd::InvocationIo`] implementation.
 ///
-/// The generated struct always derives [`crate::Decode`] and
+/// By default the generated struct derives [`crate::Decode`] and
 /// [`crate::TypeInfo`], using `$crate::scale_codec` and `$crate::type_info`
-/// as the derive crate paths.
+/// as the derive crate paths. Pass `decode = false` for ABI-only metadata
+/// structs that should not derive [`crate::Decode`].
 ///
 /// # Examples
 ///
@@ -143,6 +144,58 @@ macro_rules! invocation_io {
         interface_id = $interface_id:expr,
         entry_id = $entry_id:expr $(,)?
     ) => {
+        $crate::invocation_io! {
+            @with_decode
+            $struct_vis struct $params_struct {
+                $( $field_vis $field : $ty, )*
+            },
+            interface_id = $interface_id,
+            entry_id = $entry_id,
+        }
+    };
+
+    (
+        $struct_vis:vis struct $params_struct:ident {
+            $( $field_vis:vis $field:ident : $ty:ty ),* $(,)?
+        },
+        entry_id = $entry_id:expr,
+        decode = false $(,)?
+    ) => {
+        $crate::invocation_io!(
+            $struct_vis struct $params_struct {
+                $( $field_vis $field : $ty, )*
+            },
+            interface_id = $crate::meta::InterfaceId::zero(),
+            entry_id = $entry_id,
+            decode = false,
+        );
+    };
+
+    (
+        $struct_vis:vis struct $params_struct:ident {
+            $( $field_vis:vis $field:ident : $ty:ty ),* $(,)?
+        },
+        interface_id = $interface_id:expr,
+        entry_id = $entry_id:expr,
+        decode = false $(,)?
+    ) => {
+        $crate::invocation_io! {
+            @without_decode
+            $struct_vis struct $params_struct {
+                $( $field_vis $field : $ty, )*
+            },
+            interface_id = $interface_id,
+            entry_id = $entry_id,
+        }
+    };
+
+    (@with_decode
+        $struct_vis:vis struct $params_struct:ident {
+            $( $field_vis:vis $field:ident : $ty:ty, )*
+        },
+        interface_id = $interface_id:expr,
+        entry_id = $entry_id:expr $(,)?
+    ) => {
         #[derive($crate::Decode, $crate::TypeInfo)]
         #[codec(crate = $crate::scale_codec)]
         #[type_info(crate = $crate::type_info)]
@@ -150,6 +203,40 @@ macro_rules! invocation_io {
             $( $field_vis $field: $ty, )*
         }
 
+        $crate::invocation_io! {
+            @impl_common
+            $params_struct,
+            interface_id = $interface_id,
+            entry_id = $entry_id,
+        }
+    };
+
+    (@without_decode
+        $struct_vis:vis struct $params_struct:ident {
+            $( $field_vis:vis $field:ident : $ty:ty, )*
+        },
+        interface_id = $interface_id:expr,
+        entry_id = $entry_id:expr $(,)?
+    ) => {
+        #[derive($crate::TypeInfo)]
+        #[type_info(crate = $crate::type_info)]
+        $struct_vis struct $params_struct {
+            $( $field_vis $field: $ty, )*
+        }
+
+        $crate::invocation_io! {
+            @impl_common
+            $params_struct,
+            interface_id = $interface_id,
+            entry_id = $entry_id,
+        }
+    };
+
+    (@impl_common
+        $params_struct:ident,
+        interface_id = $interface_id:expr,
+        entry_id = $entry_id:expr $(,)?
+    ) => {
         impl $crate::meta::Identifiable for $params_struct {
             const INTERFACE_ID: $crate::meta::InterfaceId = $interface_id;
         }
@@ -212,7 +299,7 @@ macro_rules! ok_or_throws {
         match $res {
             Ok(r) => r,
             Err(e) => {
-                let encoded = <$param as $crate::gstd::InvocationIo>::with_optimized_encode(
+                let encoded = $crate::gstd::encode_invocation_payload::<$param, _, _>(
                     &e,
                     $route_idx,
                     |encoded| encoded.to_vec(),
