@@ -71,12 +71,20 @@ struct ServiceBuilder<'a> {
     meta_module_ident: Ident,
 }
 
+#[derive(Clone, Copy)]
+pub(crate) enum Transport {
+    Scale,
+    #[cfg(feature = "ethexe")]
+    Ethabi,
+}
+
 struct DispatchParams<'a> {
     is_async: bool,
     method_name_ident: &'a Ident,
     method_sig: &'a TokenStream,
     extra_imports: &'a TokenStream,
     metadata_type: &'a TokenStream,
+    transport: Transport,
 }
 
 impl<'a> ServiceBuilder<'a> {

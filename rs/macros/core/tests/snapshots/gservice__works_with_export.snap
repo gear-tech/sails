@@ -63,7 +63,7 @@ impl SomeServiceExposure<SomeService> {
         mut input: &[u8],
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
-        use sails_rs::gstd::{InvocationIo, CommandReply};
+        use sails_rs::gstd::CommandReply;
         match (interface_id, entry_id) {
             (
                 id,
@@ -77,7 +77,11 @@ impl SomeServiceExposure<SomeService> {
                 let result = self.this(request.p1);
                 let value = 0u128;
                 if !sails_rs::gstd::is_empty_tuple::<bool>() {
-                    <some_service_meta::__ThisParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                    sails_rs::gstd::encode_invocation_payload::<
+                        some_service_meta::__ThisParams,
+                        _,
+                        _,
+                    >(
                         &result,
                         self.route_idx,
                         |encoded_result| result_handler(encoded_result, value),
@@ -97,7 +101,7 @@ impl SomeServiceExposure<SomeService> {
         mut input: &[u8],
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
-        use sails_rs::gstd::{InvocationIo, CommandReply};
+        use sails_rs::gstd::CommandReply;
         match (interface_id, entry_id) {
             (
                 id,
@@ -114,7 +118,11 @@ impl SomeServiceExposure<SomeService> {
                 );
                 let value = 0u128;
                 if !sails_rs::gstd::is_empty_tuple::<(u32, String)>() {
-                    <some_service_meta::__DoSomethingParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                    sails_rs::gstd::encode_invocation_payload::<
+                        some_service_meta::__DoSomethingParams,
+                        _,
+                        _,
+                    >(
                         &result,
                         self.route_idx,
                         |encoded_result| result_handler(encoded_result, value),

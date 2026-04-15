@@ -122,7 +122,7 @@ impl ServiceBuilder<'_> {
                 .expect("Failed to decode params");
             #handle_token
             if ! #sails_path::gstd::is_empty_tuple::<#result_type_static>() {
-                <#meta_module_ident::#params_struct_ident as #sails_path::gstd::InvocationIo>::with_optimized_encode(
+                #sails_path::gstd::encode_invocation_payload::<#meta_module_ident::#params_struct_ident, _, _>(
                     &result,
                     self.route_idx,
                     |encoded_result| result_handler(encoded_result, value),
@@ -148,6 +148,7 @@ impl ServiceBuilder<'_> {
             method_sig,
             extra_imports,
             metadata_type,
+            transport,
         } = params;
 
         let (async_kw, await_token) = if is_async {
@@ -160,6 +161,15 @@ impl ServiceBuilder<'_> {
 
         for fn_builder in &self.service_handlers {
             if is_async != fn_builder.is_async() {
+                continue;
+            }
+
+            let transport_ok = match transport {
+                Transport::Scale => fn_builder.has_scale_transport(),
+                #[cfg(feature = "ethexe")]
+                Transport::Ethabi => fn_builder.has_ethabi_transport(),
+            };
+            if !transport_ok {
                 continue;
             }
 
@@ -247,7 +257,7 @@ impl ServiceBuilder<'_> {
         };
 
         let extra_imports = quote! {
-            use #sails_path::gstd::{InvocationIo, CommandReply};
+            use #sails_path::gstd::CommandReply;
         };
 
         let metadata_type = quote!(self::#service_type_path);
@@ -258,6 +268,7 @@ impl ServiceBuilder<'_> {
             method_sig: &method_sig,
             extra_imports: &extra_imports,
             metadata_type: &metadata_type,
+            transport: Transport::Scale,
         };
 
         self.generate_dispatch_impl(

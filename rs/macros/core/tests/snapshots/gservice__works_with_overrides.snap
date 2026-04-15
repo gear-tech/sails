@@ -89,7 +89,7 @@ impl InheritedServiceExposure<InheritedService> {
         mut input: &[u8],
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
-        use sails_rs::gstd::{InvocationIo, CommandReply};
+        use sails_rs::gstd::CommandReply;
         match (interface_id, entry_id) {
             (
                 id,
@@ -102,7 +102,11 @@ impl InheritedServiceExposure<InheritedService> {
                 let result = self.bar();
                 let value = 0u128;
                 if !sails_rs::gstd::is_empty_tuple::<u32>() {
-                    <inherited_service_meta::__BarParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                    sails_rs::gstd::encode_invocation_payload::<
+                        inherited_service_meta::__BarParams,
+                        _,
+                        _,
+                    >(
                         &result,
                         self.route_idx,
                         |encoded_result| result_handler(encoded_result, value),
@@ -131,7 +135,11 @@ impl InheritedServiceExposure<InheritedService> {
                 let result = self.foo();
                 let value = 0u128;
                 if !sails_rs::gstd::is_empty_tuple::<u32>() {
-                    <inherited_service_meta::__FooParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                    sails_rs::gstd::encode_invocation_payload::<
+                        inherited_service_meta::__FooParams,
+                        _,
+                        _,
+                    >(
                         &result,
                         self.route_idx,
                         |encoded_result| result_handler(encoded_result, value),
@@ -165,7 +173,7 @@ impl InheritedServiceExposure<InheritedService> {
         mut input: &[u8],
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
-        use sails_rs::gstd::{InvocationIo, CommandReply};
+        use sails_rs::gstd::CommandReply;
         match (interface_id, entry_id) {
             (
                 id,

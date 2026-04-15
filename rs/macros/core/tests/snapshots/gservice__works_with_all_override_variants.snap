@@ -87,7 +87,7 @@ impl InheritedServiceExposure<InheritedService> {
         mut input: &[u8],
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
-        use sails_rs::gstd::{InvocationIo, CommandReply};
+        use sails_rs::gstd::CommandReply;
         match (interface_id, entry_id) {
             (
                 id,
@@ -108,7 +108,11 @@ impl InheritedServiceExposure<InheritedService> {
                 let result = self.method_three();
                 let value = 0u128;
                 if !sails_rs::gstd::is_empty_tuple::<u32>() {
-                    <inherited_service_meta::__MethodThreeParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                    sails_rs::gstd::encode_invocation_payload::<
+                        inherited_service_meta::__MethodThreeParams,
+                        _,
+                        _,
+                    >(
                         &result,
                         self.route_idx,
                         |encoded_result| result_handler(encoded_result, value),
@@ -137,7 +141,11 @@ impl InheritedServiceExposure<InheritedService> {
                 let result = self.renamed_by_route();
                 let value = 0u128;
                 if !sails_rs::gstd::is_empty_tuple::<u32>() {
-                    <inherited_service_meta::__RenamedByRouteParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                    sails_rs::gstd::encode_invocation_payload::<
+                        inherited_service_meta::__RenamedByRouteParams,
+                        _,
+                        _,
+                    >(
                         &result,
                         self.route_idx,
                         |encoded_result| result_handler(encoded_result, value),
@@ -158,7 +166,11 @@ impl InheritedServiceExposure<InheritedService> {
                 let result = self.renamed_by_id();
                 let value = 0u128;
                 if !sails_rs::gstd::is_empty_tuple::<u32>() {
-                    <inherited_service_meta::__RenamedByIdParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                    sails_rs::gstd::encode_invocation_payload::<
+                        inherited_service_meta::__RenamedByIdParams,
+                        _,
+                        _,
+                    >(
                         &result,
                         self.route_idx,
                         |encoded_result| result_handler(encoded_result, value),
@@ -178,7 +190,7 @@ impl InheritedServiceExposure<InheritedService> {
         mut input: &[u8],
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
-        use sails_rs::gstd::{InvocationIo, CommandReply};
+        use sails_rs::gstd::CommandReply;
         match (interface_id, entry_id) {
             _ => None,
         }
