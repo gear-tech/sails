@@ -237,12 +237,23 @@ impl FnBuilder<'_> {
             None
         };
 
+        #[cfg(feature = "ethexe")]
+        let transport_ann: Option<TokenStream> =
+            match (self.has_scale_transport(), self.has_ethabi_transport()) {
+                (true, false) => Some(quote!(#[annotate(scale)])),
+                (false, true) => Some(quote!(#[annotate(ethabi)])),
+                _ => None,
+            };
+        #[cfg(not(feature = "ethexe"))]
+        let transport_ann: Option<TokenStream> = None;
+
         if let Some(err_ty) = &self.error_type {
             let err_ty = shared::replace_any_lifetime_with_static(err_ty.clone());
             quote!(
                 #( #handler_docs_attrs )*
                 #payable_ann
                 #returns_value_ann
+                #transport_ann
                 #handler_route_ident(#params_struct_ident, #result_type, #err_ty)
             )
         } else {
@@ -250,6 +261,7 @@ impl FnBuilder<'_> {
                 #( #handler_docs_attrs )*
                 #payable_ann
                 #returns_value_ann
+                #transport_ann
                 #handler_route_ident(#params_struct_ident, #result_type)
             )
         }
