@@ -11,6 +11,11 @@ use futures::Stream;
 pub use sails_idl_meta::{Identifiable, InterfaceId, MethodMeta};
 
 #[cfg(all(feature = "gtest", not(target_arch = "wasm32")))]
+mod gas_trace;
+#[cfg(all(feature = "gtest", not(target_arch = "wasm32")))]
+pub use gas_trace::{GasTrace, GasTraceNode, GasTraceTree, MethodRegistry};
+
+#[cfg(all(feature = "gtest", not(target_arch = "wasm32")))]
 mod gtest_env;
 #[cfg(all(feature = "gtest", not(target_arch = "wasm32")))]
 pub use gtest_env::{BlockRunMode, GtestEnv, GtestError, GtestParams};
