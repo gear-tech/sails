@@ -207,11 +207,11 @@ pub(super) fn process_indexed(input: &mut ItemEnum) {
     }
 }
 
-/// remove indexed attribute from field and add comment
+/// remove indexed attribute from field and add type_info annotation
 fn remove_indexed_and_add_comment(field: &mut syn::Field) {
     field.attrs.retain(|attr| !attr.path().is_ident("indexed"));
     field.attrs.push(syn::parse_quote! {
-        #[doc = r" #[indexed]"]
+        #[type_info(indexed)]
     });
 }
 

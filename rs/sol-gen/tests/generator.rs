@@ -76,10 +76,10 @@ program TestProgram {
 service Svc {
     events {
         MixedEvent {
-            /// #[indexed]
+            @indexed
             f1: u32,
             f2: String,
-            /// #[indexed]
+            @indexed
             f3: u128,
             f4: u128
         }

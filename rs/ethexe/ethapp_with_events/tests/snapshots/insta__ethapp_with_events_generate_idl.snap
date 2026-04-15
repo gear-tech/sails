@@ -9,7 +9,7 @@ service Svc1@0x349b842b767fb2ab {
     events {
         DoThisEvent {
             /// Some u32 value
-            /// #[indexed]
+            @indexed
             p1: u32,
             p2: String,
         },
