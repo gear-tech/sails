@@ -623,13 +623,23 @@ The `ethexe` cargo feature enables several features:
 When this feature is active:
 
 - Identifiers for **program constructors** and **exposed service constructors** (methods within a `#[program]` block that return a service) are validated against Solidity reserved keywords. Using a reserved name for these (e.g., `new` for a program constructor, or `function` for an exposed service constructor) will result in a compilation error, preventing naming conflicts in the generated Solidity interface. The comprehensive list of these reserved keywords can be found in the [source code](rs/macros/core/src/shared.rs) (see the `SOL_KEYWORDS` constant).
-- The `#[export]` macro accepts a `payable` argument (`#[export(payable)]`). This allows service methods and program constructors to accept value with a message. If a non-payable method or constructor receives value, the execution will panic.
+- The `#[export]` macro supports **transport selection** and `payable` methods via its arguments:
+  - `#[export(scale)]` — expose the method only through the Gear/SCALE dispatch path.
+  - `#[export(ethabi)]` — expose the method only through the Solidity ABI dispatch path.
+  - `#[export(scale, ethabi)]` — expose through both paths (same as bare `#[export]`).
+  - `#[export(payable)]` or `#[export(ethabi, payable)]` — mark the method as payable. `payable` requires `ethabi` transport; writing `#[export(scale, payable)]` is a compile error.
+
+  Transport flags control **runtime dispatch visibility only**. All exported methods remain in the service's IDL metadata, interface hash, and method metadata regardless of their transport selection. Single-transport methods receive an `@scale` or `@ethabi` annotation in the generated IDL.
+
+  Without the `ethexe` feature, only `#[export]` and `#[export(scale)]` are accepted; the `ethabi` and `payable` flags are unavailable.
+
+  Ethabi-only methods (`#[export(ethabi)]`) do not require their parameter and return types to implement SCALE `Encode`/`Decode`, allowing the use of ABI-native types such as `alloy_primitives::Address` and `alloy_primitives::B256`.
 
 > **NOTE**
 >
 > The accepted value (tokens) depends on whether the `ethexe` feature is enabled. Without the feature, these are native VARA tokens; with the feature, these are ETH.
 
-- The generated IDL is enhanced with structured annotations to signify payable methods, methods that return value, and indexed event fields. Specifically, methods marked with `#[export(payable)]` will have an `@payable` annotation, and methods returning `CommandReply<T>` will have a `@returns_value` annotation. Additionally, event fields marked with `#[indexed]` will have an `@indexed` annotation. This metadata is necessary for the correct generation of Solidity interfaces via the `sails-sol-gen` crate.
+- The generated IDL is enhanced with structured annotations to signify payable methods, methods that return value, transport-restricted methods, and indexed event fields. Specifically, methods marked with `#[export(payable)]` will have an `@payable` annotation, methods returning `CommandReply<T>` will have a `@returns_value` annotation, and single-transport methods will have an `@scale` or `@ethabi` annotation. Additionally, event fields marked with `#[indexed]` will have an `@indexed` annotation. This metadata is necessary for the correct generation of Solidity interfaces via the `sails-sol-gen` crate.
 
 Here is an example demonstrating these features:
 
@@ -673,14 +683,28 @@ pub struct SomeService;
 
 #[service(events = MyEvent)]
 impl SomeService {
+    // Available through both SCALE and Solidity ABI dispatch (default)
     #[export]
     pub async fn do_this(&mut self, p1: u32, _p2: String) -> u32 {
         p1
     }
 
+    // Payable method, available through both dispatch paths
     #[export(payable)]
     pub fn do_this_payable(&mut self, p1: u32) -> u32 {
         p1
+    }
+
+    // SCALE dispatch only — not exposed to Solidity callers
+    #[export(scale)]
+    pub fn gear_only(&self) -> u32 {
+        42
+    }
+
+    // Solidity ABI dispatch only — not exposed to Gear/SCALE callers
+    #[export(ethabi)]
+    pub fn eth_only(&self) -> u32 {
+        42
     }
 
     // This method implicitly `returns_value` because of its return type
@@ -692,6 +716,7 @@ impl SomeService {
 ```
 
 In the example above, `create_payable` is a payable constructor, and `do_this_payable` is a payable service method.
+The `gear_only` method is only reachable via Gear/SCALE messages, while `eth_only` is only reachable via Solidity ABI calls. Both still appear in the service's IDL and contribute to its interface hash.
 The `withdraw` method will have the `@returns_value` annotation in the IDL, and `from` and `to` fields in `MyEvent` will have `@indexed` annotations.
 For more details, you can refer to the full example at [`rs/ethexe/ethapp/src/lib.rs`](rs/ethexe/ethapp/src/lib.rs).
 
