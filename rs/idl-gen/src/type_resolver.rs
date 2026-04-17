@@ -16,7 +16,7 @@ pub struct TypeResolver<'a> {
 
 #[derive(Debug, Clone)]
 pub struct UserDefinedEntry {
-    pub meta_type: sails_idl_meta::Type,
+    pub meta_type: sails_idl_ast::Type,
     pub ty: Type,
 }
 
@@ -46,15 +46,15 @@ impl UserDefinedEntry {
     #[cfg(test)]
     fn meta_fields(&self) -> Vec<StructField> {
         match &self.meta_type.def {
-            sails_idl_meta::TypeDef::Struct(StructDef { fields }) => fields.clone(),
-            sails_idl_meta::TypeDef::Enum(EnumDef { variants }) => {
+            sails_idl_ast::TypeDef::Struct(StructDef { fields }) => fields.clone(),
+            sails_idl_ast::TypeDef::Enum(EnumDef { variants }) => {
                 let mut fields = Vec::new();
                 variants.iter().for_each(|v| {
                     fields.extend(v.def.fields.iter().cloned());
                 });
                 fields
             }
-            sails_idl_meta::TypeDef::Alias(_) => Vec::new(),
+            sails_idl_ast::TypeDef::Alias(_) => Vec::new(),
         }
     }
 }
@@ -75,7 +75,7 @@ impl<'a> TypeResolver<'a> {
         Ok(resolver)
     }
 
-    pub fn into_types(self) -> Vec<sails_idl_meta::Type> {
+    pub fn into_types(self) -> Vec<sails_idl_ast::Type> {
         let mut vec: Vec<_> = self
             .user_defined
             .into_values()
@@ -229,10 +229,10 @@ impl<'a> TypeResolver<'a> {
         self.user_defined.insert(
             name.clone(),
             UserDefinedEntry {
-                meta_type: sails_idl_meta::Type {
+                meta_type: sails_idl_ast::Type {
                     name: name.clone(),
                     type_params: vec![],
-                    def: sails_idl_meta::TypeDef::Struct(StructDef { fields: vec![] }),
+                    def: sails_idl_ast::TypeDef::Struct(StructDef { fields: vec![] }),
                     docs: vec![],
                     annotations: vec![],
                 },
@@ -249,7 +249,7 @@ impl<'a> TypeResolver<'a> {
                     .iter()
                     .map(|f| self.resolve_field_inner(f, &empty_args))
                     .collect::<Result<Vec<_>>>()?;
-                sails_idl_meta::TypeDef::Struct(StructDef { fields })
+                sails_idl_ast::TypeDef::Struct(StructDef { fields })
             }
             TypeDef::Variant(var) => {
                 let variants = var
@@ -274,18 +274,18 @@ impl<'a> TypeResolver<'a> {
                         })
                     })
                     .collect::<Result<Vec<_>>>()?;
-                sails_idl_meta::TypeDef::Enum(EnumDef { variants })
+                sails_idl_ast::TypeDef::Enum(EnumDef { variants })
             }
             _ => unreachable!(),
         };
 
-        let meta_type = sails_idl_meta::Type {
+        let meta_type = sails_idl_ast::Type {
             name: name.clone(),
             type_params: ty
                 .type_params
                 .iter()
                 .filter(|p| matches!(p.arg, GenericArg::Type(_)))
-                .map(|p| sails_idl_meta::TypeParameter {
+                .map(|p| sails_idl_ast::TypeParameter {
                     name: p.name.clone(),
                     ty: None,
                 })
@@ -419,7 +419,7 @@ mod tests {
     use super::*;
     use core::num::{NonZeroU8, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU128};
     use gprimitives::NonZeroU256;
-    use sails_idl_meta::TypeDef;
+    use sails_idl_ast::TypeDef;
     use sails_type_registry::{Registry, TypeInfo};
 
     #[allow(dead_code)]
@@ -1528,7 +1528,7 @@ mod tests {
 
         if let sails_type_registry::ty::TypeDef::Variant(_variant) = enum_def {
             let enum_variants = match &enum_generic.meta_type.def {
-                sails_idl_meta::TypeDef::Enum(e) => &e.variants,
+                sails_idl_ast::TypeDef::Enum(e) => &e.variants,
                 _ => panic!("Expected enum definition"),
             };
             let find_variant_field = |v_name: &str, f_idx: usize| {

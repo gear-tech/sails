@@ -1,7 +1,7 @@
 [package]
 name = "sails-idl-parser-wasm"
 description = "WASM IDL v2 parser for the Sails framework"
-documentation = "https://docs.rs/sails-idl-parser"
+documentation = "https://docs.rs/sails-idl-parser-wasm"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
@@ -13,5 +13,5 @@ rust-version.workspace = true
 crate-type = ["cdylib"]
 
 [dependencies]
-sails-idl-meta = { workspace = true, features = ["serde"] }
+sails-idl-ast = { workspace = true, features = ["serde"] }
 sails-idl-parser-v2.workspace = true

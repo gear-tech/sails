@@ -25,6 +25,7 @@ env:
     sails-reflect-hash
     sails-type-registry-derive
     sails-type-registry
+    sails-idl-ast
     sails-idl-meta
     sails-idl-parser
     sails-idl-parser-v2

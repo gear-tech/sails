@@ -10,7 +10,7 @@ Sails is a framework for building applications on [Gear Protocol](https://gear-t
 
 - **`rs/`** — Core Rust crates (the `sails-rs` crate lives at `rs/` itself):
   - `rs/macros/`, `rs/macros/core/` — Procedural macros (`#[service]`, `#[program]`, `#[export]`)
-  - `rs/idl-gen/`, `rs/idl-meta/`, `rs/idl-parser/`, `rs/idl-parser-v2/` — IDL generation and parsing
+  - `rs/idl-ast/`, `rs/idl-gen/`, `rs/idl-meta/`, `rs/idl-parser/`, `rs/idl-parser-v2/` — IDL generation and parsing
   - `rs/client-gen/`, `rs/client-gen-v2/`, `rs/client-gen-js/` — Client code generation (Rust, JS)
   - `rs/sol-gen/` — Solidity interface generation
   - `rs/type-registry/`, `rs/reflect-hash/` — Type registry and interface hashing
@@ -94,7 +94,7 @@ Macro tests use `insta` for snapshot testing (in `rs/macros/core/`) and `trybuil
 Maintained for compatibility with deployed programs and their client generation.
 - Parser `rs/idl-parser/`.
 - Grammar: **LALRPOP** (`grammar.lalrpop`) with a hand-written lexer.
-- Produces its own AST (`rs/idl-parser/src/ast/`), decoupled from `sails-idl-meta`.
+- Produces its own AST (`rs/idl-parser/src/ast/`), independent from the shared `sails-idl-meta` / `sails-idl-ast` model used by the v2 toolchain.
 - Used by the original `rs/client-gen/` and the JS toolchain.
 
 ### IDL v2
@@ -102,7 +102,7 @@ Maintained for compatibility with deployed programs and their client generation.
 Current version.
 - Parser `rs/idl-parser-v2/`.
 - Grammar: **Pest** (`idl.pest`) — declarative PEG.
-- AST is re-exported from `sails-idl-meta` (`pub use sails_idl_meta as ast;`), so the parser and the rest of the toolchain share one canonical type model.
+- `rs/idl-parser-v2` exposes the shared AST as `ast` via `pub use sails_idl_meta as ast;`, while `sails-idl-meta` re-exports the underlying types from `sails-idl-ast` with `pub use sails_idl_ast::*;`. This keeps one canonical type model across the v2 parser and the rest of the toolchain.
 - **`no_std` + `alloc`** core with an opt-in `std` feature — the same crate runs in WASM and on host.
 - **Preprocessor with `!@include` directives** (`rs/idl-parser-v2/src/preprocess/`): an `IdlLoader` trait with built-in `FsLoader` and `GitLoader` implementations, enabling multi-file IDLs assembled from local paths or `git://` URLs, with per-source deduplication.
 - Consumed by `rs/client-gen-v2/`, `rs/sol-gen/`, and the JS toolchain.

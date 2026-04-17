@@ -4573,6 +4573,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "sails-idl-ast"
+version = "1.0.0-beta.3"
+dependencies = [
+ "askama",
+ "keccak-const",
+ "parity-scale-codec",
+]
+
+[[package]]
 name = "sails-idl-gen"
 version = "1.0.0-beta.3"
 dependencies = [
@@ -4580,6 +4589,7 @@ dependencies = [
  "convert_case 0.11.0",
  "gprimitives",
  "quote",
+ "sails-idl-ast",
  "sails-idl-meta",
  "sails-type-registry",
  "syn 2.0.117",
@@ -4590,9 +4600,8 @@ dependencies = [
 name = "sails-idl-meta"
 version = "1.0.0-beta.3"
 dependencies = [
- "askama",
- "keccak-const",
  "parity-scale-codec",
+ "sails-idl-ast",
  "sails-type-registry",
 ]
 

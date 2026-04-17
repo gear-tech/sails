@@ -13,7 +13,8 @@ rust-version.workspace = true
 askama = { workspace = true, features = ["alloc", "derive"] }
 convert_case.workspace = true
 gprimitives.workspace = true
-sails-idl-meta = { workspace = true, features = ["ast", "templates"] }
+sails-idl-ast = { workspace = true, features = ["templates"] }
+sails-idl-meta.workspace = true
 sails-type-registry = { workspace = true, features = ["derive", "gprimitives"] }
 thiserror.workspace = true
 syn = { workspace = true, features = ["parsing", "full", "fold"] }

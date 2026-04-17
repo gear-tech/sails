@@ -14,7 +14,6 @@ sails-idl-parser-v2 = { workspace = true, features = ["std"] }
 handlebars.workspace = true
 anyhow.workspace = true
 serde = { workspace = true, features = ["derive"] }
-sails-idl-meta.workspace = true
 convert_case.workspace = true
 
 [dev-dependencies]
