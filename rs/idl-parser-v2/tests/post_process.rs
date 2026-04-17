@@ -153,3 +153,25 @@ fn parse_doc_annotation_works() {
         ]
     );
 }
+
+#[test]
+fn codec_annotation_is_preserved_in_service_func() {
+    let src = r#"
+        service CodecAnn {
+            functions {
+                @entry-id: 0
+                @codec: scale,ethabi
+                Foo() -> bool;
+            }
+        }
+    "#;
+    let doc = parse_idl(src).expect("parse idl");
+    let func = &doc.services[0].funcs[0];
+    assert!(
+        func.annotations
+            .iter()
+            .any(|(k, v)| k == "codec" && v.as_deref() == Some("scale,ethabi")),
+        "expected @codec annotation to be preserved, got: {:?}",
+        func.annotations
+    );
+}

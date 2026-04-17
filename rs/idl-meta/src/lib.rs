@@ -4,6 +4,7 @@ extern crate alloc;
 
 #[cfg(feature = "ast")]
 mod ast;
+pub mod codec;
 #[cfg(feature = "ast")]
 mod hash;
 

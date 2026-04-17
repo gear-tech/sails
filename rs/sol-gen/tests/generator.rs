@@ -140,3 +140,58 @@ fn test_generate_payable_contract() {
     );
     assert_snapshot!(String::from_utf8(contract.unwrap().data).unwrap());
 }
+
+#[test]
+fn codec_selection() {
+    let idl = r#"
+program CodecProgram {
+    services {
+        CodecTest
+    }
+}
+
+service CodecTest {
+    functions {
+        /// Both codecs
+        @entry-id: 0
+        BothMethod(p1: u32) -> string;
+        /// SCALE only - should be excluded from Solidity
+        @entry-id: 1
+        @codec: scale
+        ScaleOnly(p1: u32) -> u32;
+        /// Ethabi only
+        @entry-id: 2
+        @codec: ethabi
+        EthabiOnly(p1: u32) -> u32;
+        /// Payable ethabi
+        @entry-id: 3
+        @codec: ethabi
+        @payable
+        PayableEthabi(p1: u32) -> u32;
+    }
+}
+"#;
+
+    let contract =
+        generate_solidity_contract(idl, "CodecTest").expect("generate solidity contract");
+    let generated = String::from_utf8(contract.data).expect("utf8 contract");
+
+    assert!(
+        generated.contains("function codecTestBothMethod"),
+        "expected codecTestBothMethod to be present"
+    );
+    assert!(
+        generated.contains("function codecTestEthabiOnly"),
+        "expected codecTestEthabiOnly to be present"
+    );
+    assert!(
+        generated.contains("function codecTestPayableEthabi"),
+        "expected codecTestPayableEthabi to be present"
+    );
+    assert!(
+        !generated.contains("function codecTestScaleOnly"),
+        "expected codecTestScaleOnly to be filtered out, got:\n{generated}"
+    );
+
+    assert_snapshot!(generated);
+}

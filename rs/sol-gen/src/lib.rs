@@ -1,6 +1,7 @@
 use anyhow::Result;
 use convert_case::{Case, Casing};
 use handlebars::Handlebars;
+use sails_idl_meta::codec::has_ethabi_codec;
 use sails_idl_parser_v2::{
     ast::{IdlDoc, PrimitiveType, TypeDecl},
     parse_idl,
@@ -106,6 +107,9 @@ fn functions_from_idl(doc: &IdlDoc) -> Result<Vec<FunctionData>> {
 
     for svc in &doc.services {
         for f in &svc.funcs {
+            if !has_ethabi_codec(&f.annotations) {
+                continue;
+            }
             let mut args = Vec::new();
             for p in &f.params {
                 let arg = ArgData {

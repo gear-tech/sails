@@ -5,6 +5,7 @@ use crate::type_generators::{TopLevelTypeGenerator, generate_type_decl_with_path
 use convert_case::{Case, Casing};
 use genco::prelude::*;
 use rust::Tokens;
+use sails_idl_meta::codec::has_scale_codec;
 use sails_idl_parser_v2::{ast, visitor, visitor::Visitor};
 use std::collections::HashMap;
 
@@ -172,6 +173,9 @@ impl<'ast> Visitor<'ast> for ServiceGenerator<'ast> {
     }
 
     fn visit_service_func(&mut self, func: &'ast ast::ServiceFunc) {
+        if !has_scale_codec(&func.annotations) {
+            return;
+        }
         let self_ref = if func.kind == ast::FunctionKind::Query {
             "&self"
         } else {

@@ -40,3 +40,37 @@ fn test_aliases_generation() {
 
     assert_snapshot!("aliases_generation", generated);
 }
+
+#[test]
+fn codec_selection() {
+    let idl = include_str!("idls/codec.idl");
+    let generated = JsClientGenerator::from_idl(idl)
+        .generate()
+        .expect("generate ts client");
+
+    // Included: both_method, scale_only, both_query
+    assert!(
+        generated.contains("bothMethod"),
+        "expected bothMethod to be present"
+    );
+    assert!(
+        generated.contains("scaleOnly"),
+        "expected scaleOnly to be present"
+    );
+    assert!(
+        generated.contains("bothQuery"),
+        "expected bothQuery to be present"
+    );
+
+    // Excluded: ethabi_only, ethabi_query
+    assert!(
+        !generated.contains("ethabiOnly"),
+        "expected ethabiOnly to be filtered out, got:\n{generated}"
+    );
+    assert!(
+        !generated.contains("ethabiQuery"),
+        "expected ethabiQuery to be filtered out, got:\n{generated}"
+    );
+
+    assert_snapshot!("codec_selection", generated);
+}

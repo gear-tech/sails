@@ -1,0 +1,93 @@
+---
+source: rs/client-gen-js/tests/generator.rs
+expression: generated
+---
+import {GearApi, HexString} from "@gear-js/api";
+import {QueryBuilderWithHeader, TransactionBuilderWithHeader, TypeResolver} from "sails-js";
+import {InterfaceId, SailsMessageHeader} from "sails-js-parser-idl-v2";
+
+export class CodecProgram {
+    private _typeResolver: TypeResolver;
+    constructor(
+        public api: GearApi,
+        private _programId?: `0x${string}`,
+    ) {
+        this._typeResolver = new TypeResolver([]);
+    }
+
+    private get registry() {
+        return this._typeResolver.registry;
+    }
+
+    public get programId(): HexString {
+        if (!this._programId) throw new Error("Program ID is not set");
+        return this._programId;
+    }
+
+    public get codecTest(): CodecTest {
+        return new CodecTest(this.api, this.programId, 1);
+    }
+}
+
+export class CodecTest {
+    private _typeResolver: TypeResolver;
+    constructor(
+        private _api: GearApi,
+        private _programId: HexString,
+        private _routeIdx: number = 0,
+    ) {
+        this._typeResolver = new TypeResolver([]);
+    }
+    private get registry() {
+        return this._typeResolver.registry;
+    }
+    public get interfaceId(): InterfaceId {
+        return InterfaceId.from("0x577754119419635e");
+    }
+    /**
+     * Available via both codecs (default)
+     */
+    public bothMethod(p1: number): TransactionBuilderWithHeader<string> {
+        return new TransactionBuilderWithHeader<string>(
+            this._api,
+            this.registry,
+            "send_message",
+            SailsMessageHeader.v1(this.interfaceId, 0, this._routeIdx),
+            p1,
+            this._typeResolver.getTypeDeclString("u32"),
+            this._typeResolver.getTypeDeclString("String"),
+            this._programId,
+        );
+    }
+
+    /**
+     * Query available via both
+     */
+    public bothQuery(p1: boolean): QueryBuilderWithHeader<boolean> {
+        return new QueryBuilderWithHeader<boolean>(
+            this._api,
+            this.registry,
+            this._programId,
+            SailsMessageHeader.v1(this.interfaceId, 3, this._routeIdx),
+            p1,
+            this._typeResolver.getTypeDeclString("bool"),
+            this._typeResolver.getTypeDeclString("bool"),
+        );
+    }
+
+    /**
+     * SCALE only
+     */
+    public scaleOnly(p1: number): TransactionBuilderWithHeader<number> {
+        return new TransactionBuilderWithHeader<number>(
+            this._api,
+            this.registry,
+            "send_message",
+            SailsMessageHeader.v1(this.interfaceId, 1, this._routeIdx),
+            p1,
+            this._typeResolver.getTypeDeclString("u32"),
+            this._typeResolver.getTypeDeclString("u32"),
+            this._programId,
+        );
+    }
+}

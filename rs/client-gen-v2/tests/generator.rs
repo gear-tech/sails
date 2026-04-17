@@ -80,6 +80,37 @@ fn test_aliases_works() {
     insta::assert_snapshot!(gen_client(IDL));
 }
 
+#[test]
+fn codec_selection() {
+    let idl = include_str!("idls/codec.idl");
+    let generated = gen_client(idl);
+
+    // Included: BothMethod, ScaleOnly, BothQuery (lowered to snake_case in client code)
+    assert!(
+        generated.contains("both_method"),
+        "expected both_method to be present"
+    );
+    assert!(
+        generated.contains("scale_only"),
+        "expected scale_only to be present"
+    );
+    assert!(
+        generated.contains("both_query"),
+        "expected both_query to be present"
+    );
+
+    // Excluded: EthabiOnly, EthabiQuery
+    assert!(
+        !generated.contains("ethabi_only"),
+        "expected ethabi_only to be filtered out"
+    );
+    assert!(
+        !generated.contains("ethabi_query"),
+        "expected ethabi_query to be filtered out"
+    );
+    insta::assert_snapshot!(generated);
+}
+
 fn gen_client(program: &str) -> String {
     ClientGenerator::from_idl(program)
         .with_mocks("with_mocks")
