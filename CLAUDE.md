@@ -102,7 +102,7 @@ Maintained for compatibility with deployed programs and their client generation.
 Current version.
 - Parser `rs/idl-parser-v2/`.
 - Grammar: **Pest** (`idl.pest`) — declarative PEG.
-- `rs/idl-parser-v2` exposes the shared AST as `ast` via `pub use sails_idl_meta as ast;`, while `sails-idl-meta` re-exports the underlying types from `sails-idl-ast` with `pub use sails_idl_ast::*;`. This keeps one canonical type model across the v2 parser and the rest of the toolchain.
+- AST types live in `sails-idl-ast` (`rs/idl-ast/`); `rs/idl-parser-v2` re-exports them as `ast` via `pub use sails_idl_ast as ast;`. `sails-idl-meta` holds only runtime metadata traits (`ServiceMeta`, `ProgramMeta`, etc.) plus a `pub use sails_idl_ast::InterfaceId;` re-export. This keeps one canonical type model across the v2 parser and the rest of the toolchain.
 - **`no_std` + `alloc`** core with an opt-in `std` feature — the same crate runs in WASM and on host.
 - **Preprocessor with `!@include` directives** (`rs/idl-parser-v2/src/preprocess/`): an `IdlLoader` trait with built-in `FsLoader` and `GitLoader` implementations, enabling multi-file IDLs assembled from local paths or `git://` URLs, with per-source deduplication.
 - Consumed by `rs/client-gen-v2/`, `rs/sol-gen/`, and the JS toolchain.
