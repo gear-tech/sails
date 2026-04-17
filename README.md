@@ -629,7 +629,7 @@ When this feature is active:
   - `#[export(scale, ethabi)]` — expose through both paths (same as bare `#[export]`).
   - `#[export(payable)]` or `#[export(ethabi, payable)]` — mark the method as payable. `payable` requires `ethabi` transport; writing `#[export(scale, payable)]` is a compile error.
 
-  Transport flags control **runtime dispatch visibility only**. All exported methods remain in the service's IDL metadata, interface hash, and method metadata regardless of their transport selection. Single-transport methods receive an `@scale` or `@ethabi` annotation in the generated IDL.
+  Transport flags control **runtime dispatch visibility only**. All exported methods remain in the service's IDL metadata, interface hash, and method metadata regardless of their transport selection. Single-transport methods receive a `@codec: scale` or `@codec: ethabi` annotation in the generated IDL.
 
   Without the `ethexe` feature, only `#[export]` and `#[export(scale)]` are accepted; the `ethabi` and `payable` flags are unavailable.
 
@@ -639,7 +639,7 @@ When this feature is active:
 >
 > The accepted value (tokens) depends on whether the `ethexe` feature is enabled. Without the feature, these are native VARA tokens; with the feature, these are ETH.
 
-- The generated IDL is enhanced with structured annotations to signify payable methods, methods that return value, transport-restricted methods, and indexed event fields. Specifically, methods marked with `#[export(payable)]` will have an `@payable` annotation, methods returning `CommandReply<T>` will have a `@returns_value` annotation, and single-transport methods will have an `@scale` or `@ethabi` annotation. Additionally, event fields marked with `#[indexed]` will have an `@indexed` annotation. This metadata is necessary for the correct generation of Solidity interfaces via the `sails-sol-gen` crate.
+- The generated IDL is enhanced with structured annotations to signify payable methods, methods that return value, transport-restricted methods, and indexed event fields. Specifically, methods marked with `#[export(payable)]` will have an `@payable` annotation, methods returning `CommandReply<T>` will have a `@returns_value` annotation, and single-transport methods will have a `@codec: scale` or `@codec: ethabi` annotation. Additionally, event fields marked with `#[indexed]` will have an `@indexed` annotation. This metadata is necessary for the correct generation of Solidity interfaces via the `sails-sol-gen` crate.
 
 Here is an example demonstrating these features:
 
