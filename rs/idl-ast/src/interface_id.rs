@@ -115,8 +115,7 @@ impl Decode for InterfaceId {
     fn decode<I: parity_scale_codec::Input>(input: &mut I) -> Result<Self, Error> {
         let mut bytes = [0u8; 8];
         input.read(&mut bytes)?;
-        let mut slice = bytes.as_slice();
-        Self::try_read_bytes(&mut slice).map_err(Error::from)
+        Ok(Self(bytes))
     }
 }
 
