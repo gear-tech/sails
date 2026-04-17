@@ -27,6 +27,28 @@ fn works_with_basics() {
 }
 
 #[test]
+fn works_with_explicit_scale_transport() {
+    let input = quote! {
+        impl SomeService {
+            #[export(scale)]
+            pub async fn do_this(&mut self, p1: u32, p2: String) -> String {
+                format!("{p1}: ") + &p2
+            }
+
+            #[export]
+            pub fn this(&self, p1: bool) -> bool {
+                p1
+            }
+        }
+    };
+
+    let result = gservice(TokenStream::new(), input).to_string();
+    let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
+
+    insta::assert_snapshot!(result);
+}
+
+#[test]
 fn works_with_lifetimes_and_generics() {
     let input = quote! {
         impl<'a, 'b, T, U> SomeService<'a, 'b, T, U>

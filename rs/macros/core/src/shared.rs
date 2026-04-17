@@ -86,14 +86,20 @@ pub(crate) struct InvocationExport {
     pub payable: bool,
     pub overrides: Option<Path>,
     pub entry_id: Option<u16>,
+    pub scale: bool,
+    #[cfg(feature = "ethexe")]
+    pub ethabi: bool,
 }
 
 pub(crate) fn invocation_export(fn_impl: &ImplItemFn) -> Option<InvocationExport> {
     export::parse_export_args(&fn_impl.attrs).map(|(args, span)| {
         let ident = &fn_impl.sig.ident;
         let unwrap_result = args.unwrap_result();
+        let scale = args.scale();
         #[cfg(feature = "ethexe")]
         let payable = args.payable();
+        #[cfg(feature = "ethexe")]
+        let ethabi = args.ethabi();
 
         let route = args.route().map_or_else(
             || ident.to_string().to_case(Case::Pascal),
@@ -108,6 +114,9 @@ pub(crate) fn invocation_export(fn_impl: &ImplItemFn) -> Option<InvocationExport
             payable,
             overrides: args.overrides().cloned(),
             entry_id: args.entry_id(),
+            scale,
+            #[cfg(feature = "ethexe")]
+            ethabi,
         }
     })
 }
@@ -124,6 +133,9 @@ pub(crate) fn invocation_export_or_default(fn_impl: &ImplItemFn) -> InvocationEx
             payable: false,
             overrides: None,
             entry_id: None,
+            scale: true,
+            #[cfg(feature = "ethexe")]
+            ethabi: true,
         }
     })
 }
@@ -308,6 +320,9 @@ pub(crate) struct FnBuilder<'a> {
     pub result_type: Type,
     pub error_type: Option<Type>,
     pub sails_path: &'a Path,
+    pub scale: bool,
+    #[cfg(feature = "ethexe")]
+    pub ethabi: bool,
 }
 
 impl<'a> FnBuilder<'a> {
@@ -325,6 +340,9 @@ impl<'a> FnBuilder<'a> {
             payable,
             overrides,
             entry_id: override_entry_id,
+            scale,
+            #[cfg(feature = "ethexe")]
+            ethabi,
             ..
         } = ie;
         let signature = &impl_fn.sig;
@@ -355,6 +373,9 @@ impl<'a> FnBuilder<'a> {
             result_type,
             error_type,
             sails_path,
+            scale,
+            #[cfg(feature = "ethexe")]
+            ethabi,
         }
     }
 
@@ -367,6 +388,21 @@ impl<'a> FnBuilder<'a> {
             .sig
             .receiver()
             .is_none_or(|r| r.mutability.is_none())
+    }
+
+    pub(crate) fn has_scale_codec(&self) -> bool {
+        self.scale
+    }
+
+    #[cfg(feature = "ethexe")]
+    pub(crate) fn has_ethabi_codec(&self) -> bool {
+        self.ethabi
+    }
+
+    #[cfg(not(feature = "ethexe"))]
+    #[allow(dead_code)]
+    pub(crate) fn has_ethabi_codec(&self) -> bool {
+        false
     }
 
     pub(crate) fn result_type_with_value(&self) -> (&Type, bool) {

@@ -25,6 +25,109 @@ fn works_with_basics() {
 }
 
 #[test]
+fn works_with_explicit_scale_only() {
+    let input = quote! {
+        impl SomeService {
+            #[export(scale)]
+            pub fn scale_method(&self, p1: u32) -> u32 {
+                p1
+            }
+        }
+    };
+
+    let result = gservice(TokenStream::new(), input).to_string();
+    let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
+
+    insta::assert_snapshot!(result);
+}
+
+#[test]
+fn works_with_explicit_ethabi_only() {
+    let input = quote! {
+        impl SomeService {
+            #[export(ethabi)]
+            pub fn ethabi_method(&self, p1: u32) -> u32 {
+                p1
+            }
+        }
+    };
+
+    let result = gservice(TokenStream::new(), input).to_string();
+    let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
+
+    insta::assert_snapshot!(result);
+}
+
+#[test]
+fn works_with_explicit_dual_export() {
+    let input = quote! {
+        impl SomeService {
+            #[export(scale, ethabi)]
+            pub fn dual_method(&self, p1: u32) -> u32 {
+                p1
+            }
+        }
+    };
+
+    let result = gservice(TokenStream::new(), input).to_string();
+    let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
+
+    insta::assert_snapshot!(result);
+}
+
+#[test]
+fn works_with_mixed_transports() {
+    let input = quote! {
+        impl SomeService {
+            #[export(scale)]
+            pub fn scale_only(&self, p1: u32) -> u32 {
+                p1
+            }
+
+            #[export(ethabi)]
+            pub fn ethabi_only(&self, p1: u32) -> u32 {
+                p1
+            }
+
+            #[export(scale, ethabi)]
+            pub fn dual(&self, p1: u32) -> u32 {
+                p1
+            }
+
+            #[export]
+            pub fn default_both(&self, p1: u32) -> u32 {
+                p1
+            }
+        }
+    };
+
+    let result = gservice(TokenStream::new(), input).to_string();
+    let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
+
+    insta::assert_snapshot!(result);
+}
+
+#[test]
+fn works_with_ethabi_only_non_scale_type() {
+    let input = quote! {
+        impl SomeService {
+            #[export(ethabi)]
+            pub fn abi_method(
+                &self,
+                addr: sails_rs::alloy_primitives::Address,
+            ) -> sails_rs::alloy_primitives::B256 {
+                sails_rs::alloy_primitives::B256::ZERO
+            }
+        }
+    };
+
+    let result = gservice(TokenStream::new(), input).to_string();
+    let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
+
+    insta::assert_snapshot!(result);
+}
+
+#[test]
 fn works_with_lifetimes_and_generics() {
     let input = quote! {
         impl<'a, 'b, T, U> SomeService<'a, 'b, T, U>

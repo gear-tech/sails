@@ -44,13 +44,10 @@ impl<T> core::ops::DerefMut for SomeServiceExposure<T> {
     }
 }
 impl SomeServiceExposure<SomeService> {
-    /// `DoThis` command
-    /// Second line
-    #[export]
-    pub async fn do_this(&mut self, p1: u32, p2: String) -> u32 {
-        p1
+    #[export(scale)]
+    pub async fn do_this(&mut self, p1: u32, p2: String) -> String {
+        format!("{p1}: ") + &p2
     }
-    /// `This` query
     #[export]
     pub fn this(&self, p1: bool) -> bool {
         p1
@@ -113,7 +110,7 @@ impl SomeServiceExposure<SomeService> {
                     .expect("Failed to decode params");
                 let result = self.do_this(request.p1, request.p2).await;
                 let value = 0u128;
-                if !sails_rs::gstd::is_empty_tuple::<u32>() {
+                if !sails_rs::gstd::is_empty_tuple::<String>() {
                     sails_rs::gstd::encode_invocation_payload::<
                         some_service_meta::__DoThisParams,
                         _,
@@ -146,7 +143,7 @@ mod some_service_meta {
     const __INTERFACE_ID: sails_rs::meta::InterfaceId = {
         let mut final_hash = sails_rs::keccak_const::Keccak256::new();
         final_hash = final_hash
-            .update(&sails_rs::hash_fn!(command DoThis(u32, String) -> u32));
+            .update(&sails_rs::hash_fn!(command DoThis(u32, String) -> String));
         final_hash = final_hash.update(&sails_rs::hash_fn!(query This(bool) -> bool));
         let hash = final_hash.finalize();
         sails_rs::meta::InterfaceId::from_bytes_32(hash)
@@ -163,7 +160,7 @@ mod some_service_meta {
             sails_rs::meta::MethodMetadata {
                 name: "DoThis",
                 entry_id: 0u16,
-                hash: sails_rs::hash_fn!(command DoThis(u32, String) -> u32),
+                hash: sails_rs::hash_fn!(command DoThis(u32, String) -> String),
                 is_async: true,
             },
             sails_rs::meta::MethodMetadata {
@@ -186,14 +183,11 @@ mod some_service_meta {
     #[derive(sails_rs::TypeInfo)]
     #[type_info(crate = sails_rs::type_info)]
     pub enum CommandsMeta {
-        /// `DoThis` command
-        /// Second line
-        DoThis(__DoThisParams, u32),
+        DoThis(__DoThisParams, String),
     }
     #[derive(sails_rs::TypeInfo)]
     #[type_info(crate = sails_rs::type_info)]
     pub enum QueriesMeta {
-        /// `This` query
         This(__ThisParams, bool),
     }
     #[derive(sails_rs::TypeInfo)]

@@ -15,6 +15,7 @@ mod service_with_extends_and_lifetimes;
 mod service_with_lifecycles_and_generics;
 mod service_with_reply_with_value;
 mod service_with_trait_bounds;
+mod service_with_transport_selection;
 
 #[tokio::test]
 async fn service_with_basics() {
@@ -323,4 +324,68 @@ async fn service_with_trait_bounds() {
 
     let result = sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice());
     assert_eq!(Ok(42u32), result);
+}
+
+#[test]
+fn service_transport_selection_runtime_dispatch() {
+    use sails_rs::{
+        Encode,
+        alloy_sol_types::SolValue,
+        gstd::services::Service,
+        meta::{Identifiable, ServiceMeta, find_method_data},
+    };
+    use service_with_transport_selection::MyService;
+
+    fn ignore_result(_: &[u8], _: u128) {}
+
+    let methods = <MyService as ServiceMeta>::METHODS;
+    let scale_only = find_method_data(methods, "ScaleOnly", None)
+        .unwrap()
+        .entry_id;
+    let ethabi_only = find_method_data(methods, "EthabiOnly", None)
+        .unwrap()
+        .entry_id;
+    let dual = find_method_data(methods, "Dual", None).unwrap().entry_id;
+    let interface_id = <MyService as Identifiable>::INTERFACE_ID;
+
+    let scale_input = 7u32.encode();
+    let abi_input = (false, 7u32).abi_encode_sequence();
+
+    assert!(
+        MyService
+            .expose(1)
+            .try_handle(interface_id, scale_only, &scale_input, ignore_result)
+            .is_some()
+    );
+    assert!(
+        MyService
+            .expose(1)
+            .try_handle(interface_id, ethabi_only, &scale_input, ignore_result)
+            .is_none()
+    );
+    assert!(
+        MyService
+            .expose(1)
+            .try_handle(interface_id, dual, &scale_input, ignore_result)
+            .is_some()
+    );
+
+    assert!(
+        MyService
+            .expose(1)
+            .try_handle_solidity(interface_id, scale_only, &abi_input)
+            .is_none()
+    );
+    assert!(
+        MyService
+            .expose(1)
+            .try_handle_solidity(interface_id, ethabi_only, &abi_input)
+            .is_some()
+    );
+    assert!(
+        MyService
+            .expose(1)
+            .try_handle_solidity(interface_id, dual, &abi_input)
+            .is_some()
+    );
 }

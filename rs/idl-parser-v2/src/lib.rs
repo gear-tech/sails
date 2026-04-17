@@ -82,12 +82,10 @@ fn build_idl(top: Pair<Rule>) -> Result<IdlDoc> {
                 globals.push(parse_annotation(p)?);
             }
             Rule::ServiceDecl => services.push(parse_service(p)?),
-            Rule::ProgramDecl => {
-                if program.replace(parse_program(p)?).is_some() {
-                    return Err(Error::Validation(
-                        "expected at most one program per IDL document".to_string(),
-                    ));
-                }
+            Rule::ProgramDecl if program.replace(parse_program(p)?).is_some() => {
+                return Err(Error::Validation(
+                    "expected at most one program per IDL document".to_string(),
+                ));
             }
             _ => {}
         }

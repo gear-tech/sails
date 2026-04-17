@@ -71,12 +71,20 @@ struct ServiceBuilder<'a> {
     meta_module_ident: Ident,
 }
 
+#[derive(Clone, Copy)]
+pub(crate) enum Codec {
+    Scale,
+    #[cfg(feature = "ethexe")]
+    Ethabi,
+}
+
 struct DispatchParams<'a> {
     is_async: bool,
     method_name_ident: &'a Ident,
     method_sig: &'a TokenStream,
     extra_imports: &'a TokenStream,
     metadata_type: &'a TokenStream,
+    codec: Codec,
 }
 
 impl<'a> ServiceBuilder<'a> {
@@ -229,12 +237,23 @@ impl FnBuilder<'_> {
             None
         };
 
+        #[cfg(feature = "ethexe")]
+        let codec_ann: Option<TokenStream> = match (self.has_scale_codec(), self.has_ethabi_codec())
+        {
+            (true, false) => Some(quote!(#[annotate(codec = "scale")])),
+            (false, true) => Some(quote!(#[annotate(codec = "ethabi")])),
+            _ => None,
+        };
+        #[cfg(not(feature = "ethexe"))]
+        let codec_ann: Option<TokenStream> = None;
+
         if let Some(err_ty) = &self.error_type {
             let err_ty = shared::replace_any_lifetime_with_static(err_ty.clone());
             quote!(
                 #( #handler_docs_attrs )*
                 #payable_ann
                 #returns_value_ann
+                #codec_ann
                 #handler_route_ident(#params_struct_ident, #result_type, #err_ty)
             )
         } else {
@@ -242,6 +261,7 @@ impl FnBuilder<'_> {
                 #( #handler_docs_attrs )*
                 #payable_ann
                 #returns_value_ann
+                #codec_ann
                 #handler_route_ident(#params_struct_ident, #result_type)
             )
         }
@@ -279,6 +299,8 @@ impl FnBuilder<'_> {
             (quote! { #own_interface_id }, quote! { #entry_id })
         };
 
+        let decode_disabled = (!self.has_scale_codec()).then(|| quote!(decode = false,));
+
         quote!(
             #sails_path::invocation_io!(
                 pub struct #params_struct_ident {
@@ -286,6 +308,7 @@ impl FnBuilder<'_> {
                 },
                 interface_id = #interface_id_computation,
                 entry_id = #entry_id_computation,
+                #decode_disabled
             );
         )
     }

@@ -1,0 +1,5 @@
+error: `export` attribute cannot be parsed: duplicate `scale` flag in `#[export]`
+ --> tests/ui/gservice_fails_export_duplicate_scale.rs:7:21
+  |
+7 |     #[export(scale, scale)]
+  |                     ^^^^^

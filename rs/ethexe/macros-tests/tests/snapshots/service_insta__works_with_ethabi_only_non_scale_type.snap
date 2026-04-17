@@ -40,14 +40,13 @@ impl<T> core::ops::DerefMut for SomeServiceExposure<T> {
         &mut self.inner
     }
 }
-impl<'a, 'b, T, U> SomeServiceExposure<SomeService<'a, 'b, T, U>>
-where
-    T: Clone,
-    U: Iterator<Item = u32>,
-{
-    #[export]
-    pub fn do_this(&mut self) -> u32 {
-        42
+impl SomeServiceExposure<SomeService> {
+    #[export(ethabi)]
+    pub fn abi_method(
+        &self,
+        addr: sails_rs::alloy_primitives::Address,
+    ) -> sails_rs::alloy_primitives::B256 {
+        sails_rs::alloy_primitives::B256::ZERO
     }
     pub fn try_handle(
         mut self,
@@ -58,37 +57,6 @@ where
     ) -> Option<()> {
         use sails_rs::gstd::CommandReply;
         match (interface_id, entry_id) {
-            (
-                id,
-                0u16,
-            ) if id
-                == <self::SomeService<
-                    'a,
-                    'b,
-                    T,
-                    U,
-                > as sails_rs::meta::Identifiable>::INTERFACE_ID => {
-                let request: some_service_meta::__DoThisParams = sails_rs::scale_codec::Decode::decode(
-                        &mut input,
-                    )
-                    .expect("Failed to decode params");
-                let result = self.do_this();
-                let value = 0u128;
-                if !sails_rs::gstd::is_empty_tuple::<u32>() {
-                    sails_rs::gstd::encode_invocation_payload::<
-                        some_service_meta::__DoThisParams,
-                        _,
-                        _,
-                    >(
-                        &result,
-                        self.route_idx,
-                        |encoded_result| result_handler(encoded_result, value),
-                    );
-                } else if false && value > 0 {
-                    result_handler(&[], value);
-                }
-                return Some(());
-            }
             _ => None,
         }
     }
@@ -116,21 +84,19 @@ where
                 id,
                 0u16,
             ) if id
-                == <self::SomeService<
-                    'a,
-                    'b,
-                    T,
-                    U,
-                > as sails_rs::meta::Identifiable>::INTERFACE_ID => {
-                let (__encode_reply,): (bool,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
-                        input,
-                    )
-                    .ok()?;
+                == <self::SomeService as sails_rs::meta::Identifiable>::INTERFACE_ID => {
+                let (
+                    __encode_reply,
+                    addr,
+                ): (
+                    bool,
+                    <<sails_rs::alloy_primitives::Address as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::RustType,
+                ) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(input).ok()?;
                 #[cfg(target_arch = "wasm32")]
                 if sails_rs::gstd::msg::value() > 0 {
-                    core::panic!("'do_this' accepts no value");
+                    core::panic!("'abi_method' accepts no value");
                 }
-                let result = self.do_this();
+                let result = self.abi_method(addr.into());
                 let value = 0u128;
                 let output = if __encode_reply {
                     let message_id = sails_rs::alloy_primitives::B256::new(
@@ -159,11 +125,7 @@ where
         }
     }
 }
-impl<'a, 'b, T, U> sails_rs::gstd::services::Service for SomeService<'a, 'b, T, U>
-where
-    T: Clone,
-    U: Iterator<Item = u32>,
-{
+impl sails_rs::gstd::services::Service for SomeService {
     type Exposure = SomeServiceExposure<Self>;
     fn expose(self, route_idx: u8) -> Self::Exposure {
         Self::Exposure {
@@ -176,68 +138,69 @@ mod some_service_meta {
     use super::*;
     const __INTERFACE_ID: sails_rs::meta::InterfaceId = {
         let mut final_hash = sails_rs::keccak_const::Keccak256::new();
-        final_hash = final_hash.update(&sails_rs::hash_fn!(command DoThis() -> u32));
+        final_hash = final_hash
+            .update(
+                &sails_rs::hash_fn!(
+                    query AbiMethod(sails_rs::alloy_primitives::Address) ->
+                    sails_rs::alloy_primitives::B256
+                ),
+            );
         let hash = final_hash.finalize();
         sails_rs::meta::InterfaceId::from_bytes_32(hash)
     };
-    impl<'a, 'b, T, U> sails_rs::meta::Identifiable for super::SomeService<'a, 'b, T, U>
-    where
-        T: Clone,
-        U: Iterator<Item = u32>,
-    {
+    impl sails_rs::meta::Identifiable for super::SomeService {
         const INTERFACE_ID: sails_rs::meta::InterfaceId = __INTERFACE_ID;
     }
-    impl<'a, 'b, T, U> sails_rs::meta::ServiceMeta for super::SomeService<'a, 'b, T, U>
-    where
-        T: Clone,
-        U: Iterator<Item = u32>,
-    {
+    impl sails_rs::meta::ServiceMeta for super::SomeService {
         type CommandsMeta = CommandsMeta;
         type QueriesMeta = QueriesMeta;
         type EventsMeta = EventsMeta;
         const BASE_SERVICES: &'static [sails_rs::meta::BaseServiceMeta] = &[];
         const METHODS: &'static [sails_rs::meta::MethodMetadata] = &[
             sails_rs::meta::MethodMetadata {
-                name: "DoThis",
+                name: "AbiMethod",
                 entry_id: 0u16,
-                hash: sails_rs::hash_fn!(command DoThis() -> u32),
+                hash: sails_rs::hash_fn!(
+                    query AbiMethod(sails_rs::alloy_primitives::Address) ->
+                    sails_rs::alloy_primitives::B256
+                ),
                 is_async: false,
             },
         ];
         const ASYNC: bool = false;
     }
     sails_rs::invocation_io!(
-        pub struct __DoThisParams {}, interface_id = __INTERFACE_ID, entry_id = 0u16,
+        pub struct __AbiMethodParams { pub (super) addr :
+        sails_rs::alloy_primitives::Address, }, interface_id = __INTERFACE_ID, entry_id =
+        0u16, decode = false,
     );
     #[derive(sails_rs::TypeInfo)]
     #[type_info(crate = sails_rs::type_info)]
-    pub enum CommandsMeta {
-        DoThis(__DoThisParams, u32),
-    }
+    pub enum CommandsMeta {}
     #[derive(sails_rs::TypeInfo)]
     #[type_info(crate = sails_rs::type_info)]
-    pub enum QueriesMeta {}
+    pub enum QueriesMeta {
+        #[annotate(codec = "ethabi")]
+        AbiMethod(__AbiMethodParams, sails_rs::alloy_primitives::B256),
+    }
     #[derive(sails_rs::TypeInfo)]
     #[type_info(crate = sails_rs::type_info)]
     pub enum NoEvents {}
     pub type EventsMeta = NoEvents;
 }
-impl<'a, 'b, T, U> sails_rs::solidity::ServiceSignature for SomeService<'a, 'b, T, U>
-where
-    T: Clone,
-    U: Iterator<Item = u32>,
-{
+impl sails_rs::solidity::ServiceSignature for SomeService {
     const METHODS: &'static [sails_rs::solidity::MethodExpo] = &[
         (
             <SomeService as sails_rs::meta::Identifiable>::INTERFACE_ID,
             0u16,
-            "DoThis",
+            "AbiMethod",
             <<(
                 bool,
+                sails_rs::alloy_primitives::Address,
             ) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
             <<(
                 sails_rs::alloy_primitives::B256,
-                u32,
+                sails_rs::alloy_primitives::B256,
             ) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
         ),
     ];

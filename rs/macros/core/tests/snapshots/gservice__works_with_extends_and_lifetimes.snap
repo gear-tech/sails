@@ -78,7 +78,7 @@ impl<'a> ExtendedLifetimeExposure<ExtendedLifetime<'a>> {
         mut input: &[u8],
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
-        use sails_rs::gstd::{InvocationIo, CommandReply};
+        use sails_rs::gstd::CommandReply;
         match (interface_id, entry_id) {
             (
                 id,
@@ -94,7 +94,11 @@ impl<'a> ExtendedLifetimeExposure<ExtendedLifetime<'a>> {
                 let result = self.extended_name();
                 let value = 0u128;
                 if !sails_rs::gstd::is_empty_tuple::<String>() {
-                    <extended_lifetime_meta::__ExtendedNameParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                    sails_rs::gstd::encode_invocation_payload::<
+                        extended_lifetime_meta::__ExtendedNameParams,
+                        _,
+                        _,
+                    >(
                         &result,
                         self.route_idx,
                         |encoded_result| result_handler(encoded_result, value),
@@ -118,7 +122,11 @@ impl<'a> ExtendedLifetimeExposure<ExtendedLifetime<'a>> {
                 let result = self.name();
                 let value = 0u128;
                 if !sails_rs::gstd::is_empty_tuple::<String>() {
-                    <extended_lifetime_meta::__NameParams as sails_rs::gstd::InvocationIo>::with_optimized_encode(
+                    sails_rs::gstd::encode_invocation_payload::<
+                        extended_lifetime_meta::__NameParams,
+                        _,
+                        _,
+                    >(
                         &result,
                         self.route_idx,
                         |encoded_result| result_handler(encoded_result, value),
@@ -154,7 +162,7 @@ impl<'a> ExtendedLifetimeExposure<ExtendedLifetime<'a>> {
         mut input: &[u8],
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
-        use sails_rs::gstd::{InvocationIo, CommandReply};
+        use sails_rs::gstd::CommandReply;
         match (interface_id, entry_id) {
             (
                 id,
