@@ -363,9 +363,9 @@ mod some_service_meta {
     pub enum QueriesMeta {
         DefaultBoth(__DefaultBothParams, u32),
         Dual(__DualParams, u32),
-        #[annotate(ethabi)]
+        #[annotate(codec = "ethabi")]
         EthabiOnly(__EthabiOnlyParams, u32),
-        #[annotate(scale)]
+        #[annotate(codec = "scale")]
         ScaleOnly(__ScaleOnlyParams, u32),
     }
     #[derive(sails_rs::TypeInfo)]

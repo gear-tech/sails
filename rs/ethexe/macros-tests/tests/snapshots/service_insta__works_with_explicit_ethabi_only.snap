@@ -168,7 +168,7 @@ mod some_service_meta {
     #[derive(sails_rs::TypeInfo)]
     #[type_info(crate = sails_rs::type_info)]
     pub enum QueriesMeta {
-        #[annotate(ethabi)]
+        #[annotate(codec = "ethabi")]
         EthabiMethod(__EthabiMethodParams, u32),
     }
     #[derive(sails_rs::TypeInfo)]

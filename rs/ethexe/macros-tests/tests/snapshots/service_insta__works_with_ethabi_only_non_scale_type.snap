@@ -180,7 +180,7 @@ mod some_service_meta {
     #[derive(sails_rs::TypeInfo)]
     #[type_info(crate = sails_rs::type_info)]
     pub enum QueriesMeta {
-        #[annotate(ethabi)]
+        #[annotate(codec = "ethabi")]
         AbiMethod(__AbiMethodParams, sails_rs::alloy_primitives::B256),
     }
     #[derive(sails_rs::TypeInfo)]

@@ -164,7 +164,7 @@ mod some_service_meta {
     #[derive(sails_rs::TypeInfo)]
     #[type_info(crate = sails_rs::type_info)]
     pub enum QueriesMeta {
-        #[annotate(scale)]
+        #[annotate(codec = "scale")]
         ScaleMethod(__ScaleMethodParams, u32),
     }
     #[derive(sails_rs::TypeInfo)]

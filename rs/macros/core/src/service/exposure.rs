@@ -148,7 +148,7 @@ impl ServiceBuilder<'_> {
             method_sig,
             extra_imports,
             metadata_type,
-            transport,
+            codec,
         } = params;
 
         let (async_kw, await_token) = if is_async {
@@ -164,12 +164,12 @@ impl ServiceBuilder<'_> {
                 continue;
             }
 
-            let transport_ok = match transport {
-                Transport::Scale => fn_builder.has_scale_transport(),
+            let codec_ok = match codec {
+                Codec::Scale => fn_builder.has_scale_codec(),
                 #[cfg(feature = "ethexe")]
-                Transport::Ethabi => fn_builder.has_ethabi_transport(),
+                Codec::Ethabi => fn_builder.has_ethabi_codec(),
             };
-            if !transport_ok {
+            if !codec_ok {
                 continue;
             }
 
@@ -268,7 +268,7 @@ impl ServiceBuilder<'_> {
             method_sig: &method_sig,
             extra_imports: &extra_imports,
             metadata_type: &metadata_type,
-            transport: Transport::Scale,
+            codec: Codec::Scale,
         };
 
         self.generate_dispatch_impl(

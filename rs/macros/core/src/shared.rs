@@ -390,18 +390,18 @@ impl<'a> FnBuilder<'a> {
             .is_none_or(|r| r.mutability.is_none())
     }
 
-    pub(crate) fn has_scale_transport(&self) -> bool {
+    pub(crate) fn has_scale_codec(&self) -> bool {
         self.scale
     }
 
     #[cfg(feature = "ethexe")]
-    pub(crate) fn has_ethabi_transport(&self) -> bool {
+    pub(crate) fn has_ethabi_codec(&self) -> bool {
         self.ethabi
     }
 
     #[cfg(not(feature = "ethexe"))]
     #[allow(dead_code)]
-    pub(crate) fn has_ethabi_transport(&self) -> bool {
+    pub(crate) fn has_ethabi_codec(&self) -> bool {
         false
     }
 
