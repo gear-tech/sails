@@ -1,5 +1,5 @@
-use crate::ast;
 use alloc::string::String;
+use sails_idl_ast as ast;
 
 // The main trait for visiting the IDL AST.
 //

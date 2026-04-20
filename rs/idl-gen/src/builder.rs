@@ -485,6 +485,7 @@ mod tests {
     use core::marker::PhantomData;
     use core::num::NonZeroU128;
     use gprimitives::{ActorId, CodeId, H160, H256, MessageId, NonZeroU256, U256};
+    use sails_idl_meta::{BaseServiceMeta, Identifiable, MethodMetadata, ServiceMeta};
     use sails_type_registry::TypeInfo;
 
     mod utils {
@@ -830,7 +831,7 @@ mod tests {
         assert_eq!(meta.types.len(), 1);
         assert!(matches!(
             meta.types.first(),
-            Some(sails_idl_meta::Type { name, .. }) if name == "CtorType"
+            Some(sails_idl_ast::Type { name, .. }) if name == "CtorType"
         ));
     }
 
@@ -1200,7 +1201,7 @@ mod tests {
 
         let base_ty = &base_service.types[0];
         assert!(base_ty.name.starts_with("GenericConstStruct"));
-        let sails_idl_meta::TypeDef::Struct(base_struct_def) = &base_ty.def else {
+        let sails_idl_ast::TypeDef::Struct(base_struct_def) = &base_ty.def else {
             panic!("expected struct type");
         };
         assert_eq!(base_struct_def.fields.len(), 1);
@@ -1208,7 +1209,7 @@ mod tests {
 
         let ext_ty = &ext_service.types[0];
         assert!(ext_ty.name.starts_with("GenericConstStruct"));
-        let sails_idl_meta::TypeDef::Struct(ext_struct_def) = &ext_ty.def else {
+        let sails_idl_ast::TypeDef::Struct(ext_struct_def) = &ext_ty.def else {
             panic!("expected struct type");
         };
         assert_eq!(ext_struct_def.fields.len(), 1);
@@ -1657,7 +1658,7 @@ mod tests {
         assert_eq!(service.types.len(), 1);
         assert!(matches!(
             service.types.first(),
-            Some(sails_idl_meta::Type { name, .. }) if name == "EventTwoParams"
+            Some(sails_idl_ast::Type { name, .. }) if name == "EventTwoParams"
         ));
     }
 
@@ -2354,7 +2355,7 @@ mod tests {
             if expected_type_count == 1 {
                 assert!(matches!(
                     service.types.first(),
-                    Some(sails_idl_meta::Type { name, .. }) if name == "NonUserDefinedArgs"
+                    Some(sails_idl_ast::Type { name, .. }) if name == "NonUserDefinedArgs"
                 ));
             }
         };
@@ -2427,7 +2428,7 @@ mod tests {
         assert_eq!(meta2.types.len(), 1);
         assert!(matches!(
             meta2.types.first(),
-            Some(sails_idl_meta::Type { name, .. }) if name == "CustomType"
+            Some(sails_idl_ast::Type { name, .. }) if name == "CustomType"
         ));
     }
 
@@ -2522,7 +2523,7 @@ mod tests {
         let mut has_u32_field = false;
         let mut has_shared_custom_type_field = false;
         for ty in simple_params {
-            let sails_idl_meta::TypeDef::Struct(def) = &ty.def else {
+            let sails_idl_ast::TypeDef::Struct(def) = &ty.def else {
                 continue;
             };
             if def

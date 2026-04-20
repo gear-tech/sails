@@ -20,7 +20,7 @@ pub(crate) struct ServiceGenerator<'ast> {
     events_tokens: Tokens,
     types_tokens: Tokens,
     mocks_tokens: Tokens,
-    interface_id: sails_idl_meta::InterfaceId,
+    interface_id: sails_idl_ast::InterfaceId,
     no_derive_traits: bool,
 }
 
@@ -30,7 +30,7 @@ impl<'ast> ServiceGenerator<'ast> {
         sails_path: &'ast str,
         external_types: &'ast HashMap<&'ast str, &'ast str>,
         mocks_feature_name: Option<&'ast str>,
-        interface_id: sails_idl_meta::InterfaceId,
+        interface_id: sails_idl_ast::InterfaceId,
         no_derive_traits: bool,
     ) -> Self {
         Self {

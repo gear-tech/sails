@@ -1,3 +1,4 @@
+// Sails IDL v2 — parser using `pest-rs`
 #![no_std]
 
 extern crate alloc;
@@ -5,37 +6,31 @@ extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std;
 
+pub mod error;
+mod post_process;
+pub mod preprocess;
+pub mod visitor;
+#[cfg(feature = "ffi")]
+pub mod ffi {
+    pub mod ast;
+}
+
+use crate::error::{Error, Result};
 use alloc::{
     boxed::Box,
     format,
     string::{String, ToString},
     vec::Vec,
 };
-pub use sails_idl_meta as ast;
-
-pub mod error;
-#[cfg(feature = "ffi")]
-pub mod ffi {
-    pub mod ast;
-}
-mod post_process;
-pub mod preprocess;
-pub mod visitor;
-
-#[cfg(feature = "std")]
-pub use preprocess::fs::FsLoader;
-#[cfg(feature = "std")]
-pub use preprocess::git::GitLoader;
-pub use preprocess::{IdlLoader, IdlSource};
-
-// Sails IDL v2 — parser using `pest-rs`
-use crate::error::{Error, Result};
 use core::str::FromStr;
 use pest::Parser;
 use pest::iterators::{Pair, Pairs};
-use sails_idl_meta::*;
-
-type Annotation = (String, Option<String>);
+pub use preprocess::{IdlLoader, IdlSource};
+#[cfg(feature = "std")]
+pub use preprocess::{fs::FsLoader, git::GitLoader};
+use sails_idl_ast::*;
+// re-export
+pub use sails_idl_ast as ast;
 
 #[derive(pest_derive::Parser)]
 #[grammar = "idl.pest"]
@@ -821,11 +816,11 @@ mod tests {
         let ty = parse_type(pairs.next().expect("alias")).expect("alias should be supported");
 
         assert_eq!(ty.name, "AliasName");
-        assert!(matches!(ty.def, ast::TypeDef::Alias(_)));
-        if let ast::TypeDef::Alias(alias) = ty.def {
+        assert!(matches!(ty.def, TypeDef::Alias(_)));
+        if let TypeDef::Alias(alias) = ty.def {
             assert!(matches!(
                 alias.target,
-                ast::TypeDecl::Primitive(ast::PrimitiveType::U32)
+                TypeDecl::Primitive(PrimitiveType::U32)
             ));
         }
     }

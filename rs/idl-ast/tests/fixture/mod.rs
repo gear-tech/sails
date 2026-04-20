@@ -1,6 +1,6 @@
 #![allow(unused)]
 
-use sails_idl_meta::{PrimitiveType::*, TypeDecl::*, TypeDef::*, *};
+use sails_idl_ast::{PrimitiveType::*, TypeDecl::*, TypeDef::*, *};
 use std::string::String;
 
 pub fn globals() -> Vec<(String, Option<String>)> {

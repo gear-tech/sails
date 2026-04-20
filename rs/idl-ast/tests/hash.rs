@@ -1,4 +1,4 @@
-use sails_idl_meta::*;
+use sails_idl_ast::*;
 
 mod fixture;
 
