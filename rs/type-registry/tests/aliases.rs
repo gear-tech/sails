@@ -1,8 +1,8 @@
 use alloc::string::String;
 use alloc::vec::Vec;
+use sails_idl_ast::{StructDef, TypeDef};
 use sails_type_registry::alloc;
-use sails_type_registry::ty::TypeDef;
-use sails_type_registry::{Registry, TypeInfo};
+use sails_type_registry::{Registry, TypeDecl, TypeInfo};
 
 #[test]
 fn test_deep_alias_recursion_expansion() {
@@ -25,26 +25,39 @@ fn test_deep_alias_recursion_expansion() {
     let deep_ref = registry.register_type::<Deep<u32, String>>();
     let deep_ty = registry.get_type(deep_ref).expect("Deep type not found");
 
-    // In the new world, everything is in `def`.
-    let TypeDef::Composite(comp) = &deep_ty.def else {
-        panic!()
-    };
-    let field_ty_id = comp.fields[0].ty;
-    let field_ty = registry.get_type(field_ty_id).unwrap();
+    // Check that Deep has type_params
+    assert_eq!(deep_ty.type_params.len(), 2);
+    assert_eq!(deep_ty.type_params[0].name, "T");
+    assert_eq!(deep_ty.type_params[1].name, "E");
 
-    // Verify it's normalized to Result (from L3)
-    if let TypeDef::Result { ok, err } = &field_ty.def {
-        // Since we are looking at the generic definition of Deep<T, E>,
-        // the field type L3<T, E> is resolved to its base Result<L2<T>, E>.
-        // In the context of Deep, the arguments to L3 are its own T and E.
+    // Check field type_decl
+    if let TypeDef::Struct(StructDef { fields }) = &deep_ty.def {
+        assert_eq!(fields.len(), 1);
 
-        let ok_ty = registry.get_type(*ok).unwrap();
-        // L2<T> is the first arg of L3. In the normalized Result, it's represented as a Parameter
-        assert!(matches!(ok_ty.def, TypeDef::Parameter(ref name) if name == "T"));
-
-        let err_ty = registry.get_type(*err).unwrap();
-        assert!(matches!(err_ty.def, TypeDef::Parameter(ref name) if name == "E"));
+        // field: L3<T, E> should be Named { name: "L3", generics: [T_param, E_param] }
+        match &fields[0].type_decl {
+            TypeDecl::Named { name, generics, .. } => {
+                assert_eq!(name, "L3");
+                assert_eq!(generics.len(), 2);
+                // Check generics are parameters
+                match &generics[0] {
+                    TypeDecl::Named { name, param, .. } => {
+                        assert_eq!(name, "T");
+                        assert_eq!(param, &Some(sails_idl_ast::NamedParam::Type));
+                    }
+                    other => panic!("Expected T parameter, got {:?}", other),
+                }
+                match &generics[1] {
+                    TypeDecl::Named { name, param, .. } => {
+                        assert_eq!(name, "E");
+                        assert_eq!(param, &Some(sails_idl_ast::NamedParam::Type));
+                    }
+                    other => panic!("Expected E parameter, got {:?}", other),
+                }
+            }
+            other => panic!("Expected L3 named type, got {:?}", other),
+        }
     } else {
-        panic!("Expected Result type for alias, got {:?}", field_ty.def);
+        panic!("Expected Struct definition, got {:?}", deep_ty.def);
     }
 }

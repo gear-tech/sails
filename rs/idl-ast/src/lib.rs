@@ -23,6 +23,9 @@ use serde::{Deserialize, Serialize};
 // -------------------------------- IDL model ---------------------------------
 pub type Annotation = (String, Option<String>);
 
+/// Canonical IDL annotation marking a service function as a read-only query.
+pub const QUERY_ANNOTATION: &str = "query";
+
 /// Root AST node representing a single parsed Sails IDL document.
 ///
 /// Mirrors one `.idl` file from the specification:
@@ -427,6 +430,11 @@ pub enum TypeDecl {
             serde(default, skip_serializing_if = "Vec::is_empty")
         )]
         generics: Vec<TypeDecl>,
+        #[cfg_attr(
+            feature = "serde",
+            serde(default, skip_serializing_if = "Option::is_none")
+        )]
+        param: Option<NamedParam>,
     },
     /// Built-in primitive type from `PrimitiveType`.
     #[cfg_attr(feature = "serde", serde(untagged))]
@@ -438,6 +446,7 @@ impl TypeDecl {
         TypeDecl::Named {
             name,
             generics: vec![],
+            param: None,
         }
     }
 
@@ -449,6 +458,7 @@ impl TypeDecl {
         TypeDecl::Named {
             name: "Option".to_string(),
             generics: vec![item],
+            param: None,
         }
     }
 
@@ -456,12 +466,13 @@ impl TypeDecl {
         TypeDecl::Named {
             name: "Result".to_string(),
             generics: vec![ok, err],
+            param: None,
         }
     }
 
     pub fn option_type_decl(ty: &TypeDecl) -> Option<TypeDecl> {
         match ty {
-            TypeDecl::Named { name, generics } if name == "Option" => {
+            TypeDecl::Named { name, generics, .. } if name == "Option" => {
                 if let [item] = generics.as_slice() {
                     Some(item.clone())
                 } else {
@@ -474,7 +485,7 @@ impl TypeDecl {
 
     pub fn result_type_decl(ty: &TypeDecl) -> Option<(TypeDecl, TypeDecl)> {
         match ty {
-            TypeDecl::Named { name, generics } if name == "Result" => {
+            TypeDecl::Named { name, generics, .. } if name == "Result" => {
                 if let [ok, err] = generics.as_slice() {
                     Some((ok.clone(), err.clone()))
                 } else {
@@ -513,7 +524,7 @@ impl Display for TypeDecl {
                 f.write_char(')')?;
                 Ok(())
             }
-            Named { name, generics } => {
+            Named { name, generics, .. } => {
                 write!(f, "{name}")?;
                 if !generics.is_empty() {
                     f.write_char('<')?;
@@ -602,6 +613,18 @@ impl Display for PrimitiveType {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.write_str(self.as_str())
     }
+}
+
+/// Special meaning attached to a named type entry.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(
+    feature = "serde",
+    derive(Serialize, Deserialize),
+    serde(tag = "kind", rename_all = "lowercase")
+)]
+pub enum NamedParam {
+    Type,
+    Const { value: String },
 }
 
 impl core::str::FromStr for PrimitiveType {

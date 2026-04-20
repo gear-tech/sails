@@ -175,7 +175,11 @@ fn parse_type_decl(p: Pair<Rule>) -> Result<TypeDecl> {
                     _ => {}
                 }
             }
-            TypeDecl::Named { name, generics }
+            TypeDecl::Named {
+                name,
+                generics,
+                param: None,
+            }
         }
         other => {
             return Err(Error::Rule(format!(
@@ -703,7 +707,8 @@ mod tests {
                     types: vec![
                         Named {
                             name: "Point".to_string(),
-                            generics: vec![Primitive(U32)]
+                            generics: vec![Primitive(U32)],
+                            param: None
                         },
                         TypeDecl::option(TypeDecl::named("PointStatus".to_string())),
                         Primitive(U32)
@@ -744,7 +749,8 @@ mod tests {
                 output: Primitive(Void),
                 throws: Some(Named {
                     name: "ColorError".to_string(),
-                    generics: vec![]
+                    generics: vec![],
+                    param: None
                 }),
                 kind: FunctionKind::Command,
                 entry_id: 0,

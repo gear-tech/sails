@@ -5,13 +5,25 @@ expression: formatted
 #[automatically_derived]
 impl ::sails_type_registry::TypeInfo for Empty {
     type Identity = Self;
-    fn type_info(
+    fn type_decl(
         registry: &mut ::sails_type_registry::Registry,
-    ) -> ::sails_type_registry::ty::Type {
+    ) -> ::sails_type_registry::TypeDecl {
+        let generics = ::sails_type_registry::prelude::alloc::vec![];
+        ::sails_type_registry::TypeDecl::Named {
+            name: "Empty".into(),
+            generics,
+            param: None,
+        }
+    }
+    fn type_def(
+        registry: &mut ::sails_type_registry::Registry,
+    ) -> core::option::Option<::sails_type_registry::Type> {
         let mut type_builder = ::sails_type_registry::builder::TypeBuilder::new()
             .module_path(::core::module_path!())
             .name("Empty");
-        let mut builder = type_builder.variant();
-        builder.build()
+        core::option::Option::Some({
+            let mut __builder = type_builder.variant();
+            __builder.build()
+        })
     }
 }

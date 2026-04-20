@@ -124,7 +124,7 @@ fn hash_type_decl(
             }
             hash.finalize()
         }
-        TypeDecl::Named { name, generics } => {
+        TypeDecl::Named { name, generics, .. } => {
             // Resolve generic parameters if a mapping is provided (e.g., T -> u32).
             if generics.is_empty()
                 && let Some(map) = type_params
@@ -293,6 +293,7 @@ mod tests {
         assert_type_decl!(
             Option<u8>,
             Named {
+                param: None,
                 name: "Option".to_string(),
                 generics: vec![Primitive(U8)]
             }
@@ -300,6 +301,7 @@ mod tests {
         assert_type_decl!(
             Option<(u8, &str, [u8; 32])>,
             Named {
+                param: None,
                 name: "Option".to_string(),
                 generics: vec![Tuple {
                     types: vec![
@@ -320,6 +322,7 @@ mod tests {
         assert_type_decl!(
             Result<u8, &str>,
             Named {
+                param: None,
                 name: "Result".to_string(),
                 generics: vec![Primitive(U8), Primitive(String)]
             }
@@ -327,6 +330,7 @@ mod tests {
         assert_type_decl!(
             Result<(u8, &str, [u8; 32]), ()>,
             Named {
+                param: None,
                 name: "Result".to_string(),
                 generics: vec![Tuple {
                     types: vec![
@@ -360,6 +364,7 @@ mod tests {
         assert_type_decl!(
             UnitStruct,
             Named {
+                param: None,
                 name: "UnitStruct".to_string(),
                 generics: vec![]
             },
@@ -393,6 +398,7 @@ mod tests {
         assert_type_decl!(
             TupleStruct,
             Named {
+                param: None,
                 name: "TupleStruct".to_string(),
                 generics: vec![]
             },
@@ -424,6 +430,7 @@ mod tests {
                     StructField {
                         name: Some("f2".to_string()),
                         type_decl: Named {
+                            param: None,
                             name: "Option".to_string(),
                             generics: vec![Primitive(String)],
                         },
@@ -440,6 +447,7 @@ mod tests {
         assert_type_decl!(
             NamedStruct,
             Named {
+                param: None,
                 name: "NamedStruct".to_string(),
                 generics: vec![]
             },
@@ -474,6 +482,7 @@ mod tests {
                     StructField {
                         name: Some("f1".to_string()),
                         type_decl: Named {
+                            param: None,
                             name: "T1".to_string(),
                             generics: vec![],
                         },
@@ -483,8 +492,10 @@ mod tests {
                     StructField {
                         name: Some("f2".to_string()),
                         type_decl: Named {
+                            param: None,
                             name: "Option".to_string(),
                             generics: vec![Named {
+                                param: None,
                                 name: "T2".to_string(),
                                 generics: vec![],
                             }],
@@ -500,10 +511,12 @@ mod tests {
         map.insert("GenericStruct", &ty);
 
         let ty_u8_str = Named {
+            param: None,
             name: "GenericStruct".to_string(),
             generics: vec![Primitive(U8), Primitive(String)],
         };
         let ty_str_u8 = Named {
+            param: None,
             name: "GenericStruct".to_string(),
             generics: vec![Primitive(String), Primitive(U8)],
         };
@@ -516,6 +529,7 @@ mod tests {
         assert_type_decl!(
             GenericStruct<u8, &str>,
             Named {
+                param: None,
                 name: "GenericStruct".to_string(),
                 generics: vec![Primitive(U8), Primitive(String)],
             },
@@ -525,6 +539,7 @@ mod tests {
         assert_type_decl!(
             GenericStruct<&str, u8>,
             Named {
+                param: None,
                 name: "GenericStruct".to_string(),
                 generics: vec![Primitive(String), Primitive(U8)],
             },
@@ -549,6 +564,7 @@ mod tests {
 
         let struct_hash = hash_type_decl(&target, &map, None).unwrap();
         let alias_decl = TypeDecl::Named {
+            param: None,
             name: "MyAlias".to_string(),
             generics: vec![],
         };

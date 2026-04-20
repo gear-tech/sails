@@ -9,8 +9,9 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-alloy-primitives = { workspace = true, optional = true }
+sails-idl-ast = { workspace = true }
 gprimitives = { workspace = true, optional = true }
+alloy-primitives = { workspace = true, optional = true }
 sails-type-registry-derive = { workspace = true, optional = true }
 
 [dev-dependencies]
@@ -19,14 +20,14 @@ trybuild.workspace = true
 
 [features]
 default = ["derive"]
-alloy-primitives = ["dep:alloy-primitives", "gprimitives"]
 derive = ["dep:sails-type-registry-derive"]
 gprimitives = ["dep:gprimitives"]
-
-[[test]]
-name = "alloy_primitives"
-required-features = ["alloy-primitives"]
+alloy-primitives = ["dep:alloy-primitives"]
 
 [[test]]
 name = "gprimitives"
 required-features = ["gprimitives"]
+
+[[test]]
+name = "alloy_primitives"
+required-features = ["alloy-primitives"]

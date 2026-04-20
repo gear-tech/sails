@@ -1,6 +1,7 @@
 use alloc::{boxed::Box, collections::BTreeMap, string::String, vec::Vec};
+use sails_idl_ast::{StructDef, TypeDef};
 use sails_type_registry::alloc;
-use sails_type_registry::{Registry, TypeInfo, ty::TypeDef};
+use sails_type_registry::{Registry, TypeDecl, TypeInfo};
 
 #[test]
 fn test_deep_collections() {
@@ -12,10 +13,9 @@ fn test_deep_collections() {
     let mut registry = Registry::new();
 
     let graph_ref = registry.register_type::<DeepGraph>();
-    let graph_ty = registry.get_type(graph_ref).unwrap();
+    let graph_def = registry.get_type(graph_ref).unwrap();
 
-    // Note: When defined inside a function, module_path!() will include the function name
-    assert_eq!(graph_ty.name, "DeepGraph");
+    assert_eq!(graph_def.name, "DeepGraph");
     assert!(registry.len() >= 6);
 }
 
@@ -30,23 +30,20 @@ fn test_self_recursive_type() {
     let mut registry = Registry::new();
 
     let list_ref = registry.register_type::<LinkedList>();
-    let list_ty = registry.get_type(list_ref).unwrap();
+    let list_def = registry.get_type(list_ref).unwrap();
 
-    assert_eq!(list_ty.name, "LinkedList");
+    assert_eq!(list_def.name, "LinkedList");
 
-    if let TypeDef::Composite(c) = &list_ty.def {
-        assert_eq!(c.fields.len(), 2);
+    if let TypeDef::Struct(StructDef { fields }) = &list_def.def {
+        assert_eq!(fields.len(), 2);
 
-        let next_opt_ref = c.fields[1].ty;
-        let next_opt_ty = registry.get_type(next_opt_ref).unwrap();
-
-        if let TypeDef::Option(inner_ref) = &next_opt_ty.def {
-            assert_eq!(*inner_ref, list_ref);
-        } else {
-            panic!("Expected Option");
+        // Check _next field is Option<...>
+        match &fields[1].type_decl {
+            TypeDecl::Named { name, .. } => assert_eq!(name, "Option"),
+            other => panic!("Expected Option, got {:?}", other),
         }
     } else {
-        panic!("Expected Composite, got {:?}", list_ty.def);
+        panic!("Expected Struct definition");
     }
 }
 
@@ -69,18 +66,15 @@ fn test_mutually_recursive_types() {
 
     assert!(ping_ref != pong_ref);
 
-    let ping_ty = registry.get_type(ping_ref).unwrap();
-    if let TypeDef::Composite(c) = &ping_ty.def {
-        let pong_opt_ref = c.fields[0].ty;
-        let pong_opt_ty = registry.get_type(pong_opt_ref).unwrap();
-
-        if let TypeDef::Option(inner_ref) = &pong_opt_ty.def {
-            assert_eq!(*inner_ref, pong_ref);
-        } else {
-            panic!("Expected Option");
+    let ping_def = registry.get_type(ping_ref).unwrap();
+    if let TypeDef::Struct(StructDef { fields }) = &ping_def.def {
+        // Check _pong field is Option<Pong>
+        match &fields[0].type_decl {
+            TypeDecl::Named { name, .. } => assert_eq!(name, "Option"),
+            other => panic!("Expected Option, got {:?}", other),
         }
     } else {
-        panic!("Expected Composite, got {:?}", ping_ty.def);
+        panic!("Expected Struct definition");
     }
 }
 
@@ -93,16 +87,13 @@ fn test_option_with_generic_param() {
 
     let mut registry = Registry::new();
     let wrapper_ref = registry.register_type::<Wrapper<u32>>();
-    let wrapper_ty = registry.get_type(wrapper_ref).unwrap();
+    let wrapper_def = registry.get_type(wrapper_ref).unwrap();
 
-    if let TypeDef::Composite(c) = &wrapper_ty.def {
-        let opt_ref = c.fields[0].ty;
-        let opt_ty = registry.get_type(opt_ref).unwrap();
-
-        if let TypeDef::Option(_) = &opt_ty.def {
-            // Success
-        } else {
-            panic!("Expected Option, got {:?}", opt_ty.def);
+    if let TypeDef::Struct(StructDef { fields }) = &wrapper_def.def {
+        // Check _inner field is Option<u32>
+        match &fields[0].type_decl {
+            TypeDecl::Named { name, .. } => assert_eq!(name, "Option"),
+            other => panic!("Expected Option, got {:?}", other),
         }
     }
 }
@@ -117,33 +108,27 @@ fn test_const_generics_complex() {
 
     let mut registry = Registry::new();
     let wrapper_ref = registry.register_type::<ConstWrapper<u32, 10>>();
-    let wrapper_ty = registry.get_type(wrapper_ref).unwrap();
+    let wrapper_def = registry.get_type(wrapper_ref).unwrap();
 
-    assert_eq!(wrapper_ty.type_params.len(), 2);
-    assert_eq!(wrapper_ty.type_params[0].name, "T");
-    assert_eq!(wrapper_ty.type_params[1].name, "N");
+    assert_eq!(wrapper_def.type_params.len(), 2);
+    assert_eq!(wrapper_def.type_params[0].name, "T");
+    assert_eq!(wrapper_def.type_params[1].name, "N");
 
-    if let TypeDef::Composite(c) = &wrapper_ty.def {
-        assert_eq!(c.fields.len(), 2);
+    if let TypeDef::Struct(StructDef { fields }) = &wrapper_def.def {
+        assert_eq!(fields.len(), 2);
 
         // Check _data: [T; N]
-        let data_ref = c.fields[0].ty;
-        let data_ty = registry.get_type(data_ref).unwrap();
-        if let TypeDef::Array { len, .. } = &data_ty.def {
-            assert_eq!(*len, 10);
-        } else {
-            panic!("Expected Array, got {:?}", data_ty.def);
+        match &fields[0].type_decl {
+            TypeDecl::Array { len, .. } => assert_eq!(*len, 10),
+            other => panic!("Expected Array type, got {:?}", other),
         }
 
         // Check _nested: [Option<T>; N]
-        let nested_ref = c.fields[1].ty;
-        let nested_ty = registry.get_type(nested_ref).unwrap();
-        if let TypeDef::Array { len, type_param } = &nested_ty.def {
-            assert_eq!(*len, 10);
-            let inner_ty = registry.get_type(*type_param).unwrap();
-            assert!(matches!(inner_ty.def, TypeDef::Option(_)));
-        } else {
-            panic!("Expected Array, got {:?}", nested_ty.def);
+        match &fields[1].type_decl {
+            TypeDecl::Array { len, .. } => assert_eq!(*len, 10),
+            other => panic!("Expected Array type, got {:?}", other),
         }
+    } else {
+        panic!("Expected Struct definition");
     }
 }

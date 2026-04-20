@@ -13,6 +13,10 @@
 pub extern crate alloc;
 pub use core;
 
+/// Annotation key carrying the Rust module path of a user-defined type.
+/// Written by the derive macro, consumed by IDL generation for name disambiguation.
+pub const PATH_ANNOTATION: &str = "path";
+
 /// Builders for constructing [`Type`] metadata manually.
 pub mod builder;
 /// Type-erased wrapper around a [`TypeInfo`] implementation.
@@ -22,14 +26,12 @@ pub mod registry;
 /// Built-in `TypeInfo` implementations for standard Rust types.
 pub mod trait_impls;
 /// Core metadata structures stored in the registry.
-pub mod ty;
-
 pub use crate::builder::{
-    CompositeBuilder, FieldBuilder, ParamBuilder, TypeBuilder, VariantBuilder, VariantDefBuilder,
+    CompositeBuilder, FieldBuilder, TypeBuilder, VariantBuilder, VariantDefBuilder,
 };
 pub use crate::meta_type::MetaType;
 pub use crate::registry::{Registry, TypeInfo, TypeRef};
-pub use crate::ty::Type;
+pub use sails_idl_ast::{NamedParam, Type, TypeDecl};
 
 /// Derive macro for generating [`TypeInfo`] implementations.
 #[cfg(feature = "derive")]
@@ -39,9 +41,8 @@ pub use sails_type_registry_derive::TypeInfo;
 pub mod prelude {
     pub use crate::alloc;
     pub use crate::builder::{
-        CompositeBuilder, FieldBuilder, ParamBuilder, TypeBuilder, VariantBuilder,
-        VariantDefBuilder,
+        CompositeBuilder, FieldBuilder, TypeBuilder, VariantBuilder, VariantDefBuilder,
     };
     pub use crate::registry::{Registry, TypeInfo, TypeRef};
-    pub use crate::ty::Type;
+    pub use sails_idl_ast::{NamedParam, Type, TypeDecl};
 }

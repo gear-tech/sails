@@ -1,4 +1,4 @@
-use sails_type_registry::ty::{Annotation, TypeDef};
+use sails_idl_ast::{StructDef, TypeDef};
 use sails_type_registry::{Registry, TypeInfo};
 
 #[test]
@@ -13,7 +13,9 @@ fn test_struct_annotation() {
     let ty_ref = registry.register_type::<Indexed>();
     let ty = registry.get_type(ty_ref).unwrap();
 
-    assert_eq!(ty.annotations, [Annotation::new("indexed")]);
+    // module_path adds "path" annotation, plus our "indexed"
+    assert!(ty.annotations.iter().any(|(n, _)| n == "path"));
+    assert!(ty.annotations.iter().any(|(n, _)| n == "indexed"));
 }
 
 #[test]
@@ -29,10 +31,10 @@ fn test_multiple_annotations_on_struct() {
     let ty_ref = registry.register_type::<MultiAnnotated>();
     let ty = registry.get_type(ty_ref).unwrap();
 
-    assert_eq!(
-        ty.annotations,
-        [Annotation::new("compressed"), Annotation::new("versioned")]
-    );
+    // module_path adds "path" annotation
+    assert!(ty.annotations.iter().any(|(n, _)| n == "path"));
+    assert!(ty.annotations.iter().any(|(n, _)| n == "compressed"));
+    assert!(ty.annotations.iter().any(|(n, _)| n == "versioned"));
 }
 
 #[test]
@@ -48,7 +50,9 @@ fn test_enum_annotation() {
     let ty_ref = registry.register_type::<Sealed>();
     let ty = registry.get_type(ty_ref).unwrap();
 
-    assert_eq!(ty.annotations, [Annotation::new("sealed")]);
+    // module_path adds "path" annotation
+    assert!(ty.annotations.iter().any(|(n, _)| n == "path"));
+    assert!(ty.annotations.iter().any(|(n, _)| n == "sealed"));
 }
 
 #[test]
@@ -64,11 +68,14 @@ fn test_variant_annotation() {
     let ty_ref = registry.register_type::<Tagged>();
     let ty = registry.get_type(ty_ref).unwrap();
 
-    if let TypeDef::Variant(v) = &ty.def {
-        assert_eq!(v.variants[0].annotations, [Annotation::new("deprecated")]);
-        assert!(v.variants[1].annotations.is_empty());
+    if let TypeDef::Enum(e) = &ty.def {
+        assert_eq!(
+            e.variants[0].annotations,
+            [("deprecated".to_string(), None)]
+        );
+        assert!(e.variants[1].annotations.is_empty());
     } else {
-        panic!("Expected Variant, got {:?}", ty.def);
+        panic!("Expected Enum, got {:?}", ty.def);
     }
 }
 
@@ -85,11 +92,11 @@ fn test_field_annotation() {
     let ty_ref = registry.register_type::<WithFieldAnnotation>();
     let ty = registry.get_type(ty_ref).unwrap();
 
-    if let TypeDef::Composite(c) = &ty.def {
-        assert_eq!(c.fields[0].annotations, [Annotation::new("sensitive")]);
-        assert!(c.fields[1].annotations.is_empty());
+    if let TypeDef::Struct(StructDef { fields }) = &ty.def {
+        assert_eq!(fields[0].annotations, [("sensitive".to_string(), None)]);
+        assert!(fields[1].annotations.is_empty());
     } else {
-        panic!("Expected Composite, got {:?}", ty.def);
+        panic!("Expected Struct, got {:?}", ty.def);
     }
 }
 
@@ -104,7 +111,10 @@ fn test_no_annotations_by_default() {
     let ty_ref = registry.register_type::<Plain>();
     let ty = registry.get_type(ty_ref).unwrap();
 
-    assert!(ty.annotations.is_empty());
+    // module_path adds "path" annotation, but no user annotations
+    assert!(ty.annotations.iter().any(|(n, _)| n == "path"));
+    // No other annotations besides path
+    assert_eq!(ty.annotations.len(), 1);
 }
 
 #[test]
@@ -119,11 +129,10 @@ fn test_annotation_with_value() {
     let ty_ref = registry.register_type::<Versioned>();
     let ty = registry.get_type(ty_ref).unwrap();
 
-    assert_eq!(
-        ty.annotations,
-        [Annotation {
-            name: "version".into(),
-            value: Some("2".into()),
-        }]
+    // Check for version annotation with value
+    assert!(
+        ty.annotations
+            .iter()
+            .any(|(n, v)| n == "version" && v.as_deref() == Some("2"))
     );
 }

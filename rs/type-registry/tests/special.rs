@@ -4,8 +4,9 @@ use core::{
     ops::{Range, RangeInclusive},
     time::Duration,
 };
+use sails_idl_ast::{StructDef, TypeDef};
+use sails_type_registry::Registry;
 use sails_type_registry::alloc;
-use sails_type_registry::{Registry, ty::TypeDef};
 
 #[test]
 fn test_transparent_wrappers() {
@@ -45,12 +46,12 @@ fn test_phantom_data() {
     let phantom_ref = registry.register_type::<PhantomData<u32>>();
     let phantom_ty = registry.get_type(phantom_ref).unwrap();
 
-    // PhantomData is represented as an empty tuple with a specific path
+    // PhantomData is represented as a Named type with specific path
     assert_eq!(phantom_ty.name, "PhantomData");
-    if let TypeDef::Tuple(fields) = &phantom_ty.def {
+    if let TypeDef::Struct(StructDef { fields }) = &phantom_ty.def {
         assert!(fields.is_empty());
     } else {
-        panic!("Expected Tuple, got {:?}", phantom_ty.def);
+        panic!("Expected Struct, got {:?}", phantom_ty.def);
     }
 }
 
@@ -62,12 +63,12 @@ fn test_duration() {
     let duration_ty = registry.get_type(duration_ref).unwrap();
 
     assert_eq!(duration_ty.name, "Duration");
-    if let TypeDef::Composite(c) = &duration_ty.def {
-        assert_eq!(c.fields.len(), 2);
-        assert_eq!(c.fields[0].name.as_deref(), Some("secs"));
-        assert_eq!(c.fields[1].name.as_deref(), Some("nanos"));
+    if let TypeDef::Struct(StructDef { fields }) = &duration_ty.def {
+        assert_eq!(fields.len(), 2);
+        assert_eq!(fields[0].name.as_deref(), Some("secs"));
+        assert_eq!(fields[1].name.as_deref(), Some("nanos"));
     } else {
-        panic!("Expected Composite, got {:?}", duration_ty.def);
+        panic!("Expected Struct, got {:?}", duration_ty.def);
     }
 }
 
@@ -79,12 +80,12 @@ fn test_ranges() {
     let range_ty = registry.get_type(range_ref).unwrap();
 
     assert_eq!(range_ty.name, "Range");
-    if let TypeDef::Composite(c) = &range_ty.def {
-        assert_eq!(c.fields.len(), 2);
-        assert_eq!(c.fields[0].name.as_deref(), Some("start"));
-        assert_eq!(c.fields[1].name.as_deref(), Some("end"));
+    if let TypeDef::Struct(StructDef { fields }) = &range_ty.def {
+        assert_eq!(fields.len(), 2);
+        assert_eq!(fields[0].name.as_deref(), Some("start"));
+        assert_eq!(fields[1].name.as_deref(), Some("end"));
     } else {
-        panic!("Expected Composite, got {:?}", range_ty.def);
+        panic!("Expected Struct, got {:?}", range_ty.def);
     }
 
     let inclusive_ref = registry.register_type::<RangeInclusive<u32>>();
@@ -119,6 +120,7 @@ fn test_meta_type_registration() {
     assert!(registry.is_type::<alloc::vec::Vec<u8>>(refs[2]));
     assert!(registry.is_type::<Option<bool>>(refs[3]));
 
+    // Check IDL doesn't have MetaType, so we just check registry
     // Check that IDs are stable
     assert_eq!(registry.register_type::<u32>(), refs[0]);
 }

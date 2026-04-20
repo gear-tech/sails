@@ -226,6 +226,7 @@ pub fn service_func() -> ServiceFunc {
                     TypeDecl::Named {
                         name: "NonZero".to_string(),
                         generics: vec![Primitive(U8)],
+                        param: None,
                     },
                 ]),
             },

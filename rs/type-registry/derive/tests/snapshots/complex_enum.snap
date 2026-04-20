@@ -5,44 +5,85 @@ expression: formatted
 #[automatically_derived]
 impl ::sails_type_registry::TypeInfo for Complex {
     type Identity = Self;
-    fn type_info(
+    fn type_decl(
         registry: &mut ::sails_type_registry::Registry,
-    ) -> ::sails_type_registry::ty::Type {
+    ) -> ::sails_type_registry::TypeDecl {
+        let generics = ::sails_type_registry::prelude::alloc::vec![];
+        ::sails_type_registry::TypeDecl::Named {
+            name: "Complex".into(),
+            generics,
+            param: None,
+        }
+    }
+    fn type_def(
+        registry: &mut ::sails_type_registry::Registry,
+    ) -> core::option::Option<::sails_type_registry::Type> {
         let mut type_builder = ::sails_type_registry::builder::TypeBuilder::new()
             .module_path(::core::module_path!())
             .name("Complex")
             .annotate("top")
             .value("val");
-        let mut builder = type_builder.variant();
-        builder = {
-            let mut builder = builder
-                .add_variant("V1")
-                .doc("Variant with named fields and annotations")
-                .annotate("v1");
-            {
-                let ty = { registry.register_type::<u32>() };
-                builder = builder.field("f").annotate("f1").value("v").ty(ty);
-            }
-            builder.finish_variant()
-        };
-        builder = {
-            let mut builder = builder
-                .add_variant("V2")
-                .doc("Variant with unnamed fields");
-            {
-                let ty = { registry.register_type::<u64>() };
-                builder = builder.unnamed().ty(ty);
-            }
-            {
-                let ty = { registry.register_type::<String>() };
-                builder = builder.unnamed().ty(ty);
-            }
-            builder.finish_variant()
-        };
-        builder = {
-            let mut builder = builder.add_variant("V3").doc("Unit variant");
-            builder.finish_variant()
-        };
-        builder.build()
+        core::option::Option::Some({
+            let mut __builder = type_builder.variant();
+            __builder = {
+                let __v_builder = __builder
+                    .add_variant("V1")
+                    .doc("Variant with named fields and annotations")
+                    .annotate("v1");
+                let __v_builder = __v_builder
+                    .field("f")
+                    .annotate("f1")
+                    .value("v")
+                    .ty({
+                        {
+                            let id = registry.register_type::<u32>();
+                            registry
+                                .get_type_decl(id)
+                                .cloned()
+                                .unwrap_or(
+                                    ::sails_type_registry::TypeDecl::named("<unknown>".into()),
+                                )
+                        }
+                    });
+                __v_builder.finish_variant()
+            };
+            __builder = {
+                let __v_builder = __builder
+                    .add_variant("V2")
+                    .doc("Variant with unnamed fields");
+                let __v_builder = __v_builder
+                    .unnamed()
+                    .ty({
+                        {
+                            let id = registry.register_type::<u64>();
+                            registry
+                                .get_type_decl(id)
+                                .cloned()
+                                .unwrap_or(
+                                    ::sails_type_registry::TypeDecl::named("<unknown>".into()),
+                                )
+                        }
+                    });
+                let __v_builder = __v_builder
+                    .unnamed()
+                    .ty({
+                        {
+                            let id = registry.register_type::<String>();
+                            registry
+                                .get_type_decl(id)
+                                .cloned()
+                                .unwrap_or(
+                                    ::sails_type_registry::TypeDecl::named("<unknown>".into()),
+                                )
+                        }
+                    });
+                __v_builder.finish_variant()
+            };
+            __builder = {
+                let __v_builder = __builder.add_variant("V3").doc("Unit variant");
+                __v_builder.finish_variant()
+            };
+            __builder.build()
+        })
     }
 }

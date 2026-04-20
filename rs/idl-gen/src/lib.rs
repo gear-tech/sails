@@ -16,7 +16,7 @@ use askama::Template;
 pub use errors::*;
 pub use program::*;
 use sails_idl_ast::*;
-use sails_idl_meta::{AnyServiceMeta, ProgramMeta};
+use sails_idl_meta::{AnyServiceMeta, ProgramMeta, ServiceMeta};
 
 mod builder;
 mod errors;
@@ -26,7 +26,6 @@ const SAILS_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub mod program {
     use super::*;
-    use sails_idl_meta::ProgramMeta;
 
     pub fn generate_idl<P: ProgramMeta>(
         program_name: Option<&str>,
@@ -58,7 +57,6 @@ pub mod program {
 
 pub mod service {
     use super::*;
-    use sails_idl_meta::ServiceMeta;
 
     pub fn generate_idl<S: ServiceMeta>(
         service_name: &str,

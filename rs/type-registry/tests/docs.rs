@@ -1,6 +1,6 @@
 use alloc::string::String;
+use sails_idl_ast::{StructDef, TypeDef};
 use sails_type_registry::alloc;
-use sails_type_registry::ty::TypeDef;
 use sails_type_registry::{Registry, TypeInfo};
 
 #[test]
@@ -41,12 +41,9 @@ fn test_documentation_collection() {
         ]
     );
 
-    if let TypeDef::Composite(c) = &struct_ty.def {
-        assert_eq!(c.fields[0].docs, vec!["The unique identifier.".to_string()]);
-        assert_eq!(
-            c.fields[1].docs,
-            vec!["The name of the entity.".to_string()]
-        );
+    if let TypeDef::Struct(StructDef { fields }) = &struct_ty.def {
+        assert_eq!(fields[0].docs, vec!["The unique identifier.".to_string()]);
+        assert_eq!(fields[1].docs, vec!["The name of the entity.".to_string()]);
     }
 
     // Check enum docs
@@ -55,14 +52,14 @@ fn test_documentation_collection() {
 
     assert_eq!(enum_ty.docs, vec!["This is a test enum.".to_string()]);
 
-    if let TypeDef::Variant(v) = &enum_ty.def {
-        assert_eq!(v.variants[0].docs, vec!["First variant.".to_string()]);
+    if let TypeDef::Enum(e) = &enum_ty.def {
+        assert_eq!(e.variants[0].docs, vec!["First variant.".to_string()]);
         assert_eq!(
-            v.variants[1].docs,
+            e.variants[1].docs,
             vec!["Second variant with fields.".to_string()]
         );
         assert_eq!(
-            v.variants[1].fields[0].docs,
+            e.variants[1].def.fields[0].docs,
             vec!["A nested field.".to_string()]
         );
     }

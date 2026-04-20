@@ -1,60 +1,59 @@
 use super::*;
 use alloc::boxed::Box;
 use convert_case::{Case, Casing};
-use sails_type_registry::{
-    Registry, TypeRef,
-    trait_impls::StructuralEq,
-    ty::{Field, GenericArg, Primitive, Type, TypeDef},
-};
+use sails_idl_ast::{NamedParam, Type, TypeDecl, TypeDef, TypeParameter};
+use sails_type_registry::{PATH_ANNOTATION, Registry, TypeRef};
 
 #[derive(Debug, Clone)]
 pub struct TypeResolver<'a> {
     registry: &'a Registry,
     map: BTreeMap<TypeRef, TypeDecl>,
     user_defined: BTreeMap<String, UserDefinedEntry>,
+    excluded: BTreeSet<TypeRef>,
+    resolved: BTreeSet<String>,
 }
 
 #[derive(Debug, Clone)]
 pub struct UserDefinedEntry {
-    pub meta_type: sails_idl_ast::Type,
+    pub meta_type: Type,
     pub ty: Type,
 }
 
 impl UserDefinedEntry {
     fn is_path_equals(&self, type_info: &Type) -> bool {
-        self.ty.module_path == type_info.module_path && self.ty.name == type_info.name
+        type_path(&self.ty) == type_path(type_info) && self.ty.name == type_info.name
     }
 
-    fn is_fields_equal(&self, type_info: &Type, registry: &Registry) -> bool {
-        Self::field_types(&self.ty).structurally_eq(&Self::field_types(type_info), registry)
+    fn is_fields_equal(&self, type_info: &Type) -> bool {
+        Self::field_types(&self.ty) == Self::field_types(type_info)
     }
 
-    fn field_types(type_info: &Type) -> Vec<TypeRef> {
+    fn field_types(type_info: &Type) -> Vec<TypeDecl> {
         match &type_info.def {
-            TypeDef::Composite(comp) => comp.fields.iter().map(|f| f.ty).collect(),
-            TypeDef::Variant(var) => {
+            TypeDef::Struct(comp) => comp.fields.iter().map(|f| f.type_decl.clone()).collect(),
+            TypeDef::Enum(var) => {
                 let mut fields = Vec::new();
                 for v in &var.variants {
-                    fields.extend(v.fields.iter().map(|f| f.ty));
+                    fields.extend(v.def.fields.iter().map(|f| f.type_decl.clone()));
                 }
                 fields
             }
-            _ => unreachable!(),
+            TypeDef::Alias(_) => Vec::new(),
         }
     }
 
     #[cfg(test)]
     fn meta_fields(&self) -> Vec<StructField> {
         match &self.meta_type.def {
-            sails_idl_ast::TypeDef::Struct(StructDef { fields }) => fields.clone(),
-            sails_idl_ast::TypeDef::Enum(EnumDef { variants }) => {
+            TypeDef::Struct(StructDef { fields }) => fields.clone(),
+            TypeDef::Enum(EnumDef { variants }) => {
                 let mut fields = Vec::new();
                 variants.iter().for_each(|v| {
                     fields.extend(v.def.fields.iter().cloned());
                 });
                 fields
             }
-            sails_idl_ast::TypeDef::Alias(_) => Vec::new(),
+            TypeDef::Alias(_) => Vec::new(),
         }
     }
 }
@@ -70,16 +69,47 @@ impl<'a> TypeResolver<'a> {
             registry,
             map: BTreeMap::new(),
             user_defined: BTreeMap::new(),
+            excluded: exclude.clone(),
+            resolved: BTreeSet::new(),
         };
-        resolver.build_type_decl_map(exclude)?;
+        resolver.build_type_decl_map(&exclude)?;
         Ok(resolver)
     }
 
-    pub fn into_types(self) -> Vec<sails_idl_ast::Type> {
+    pub fn find_type_ref(&self, decl: &TypeDecl) -> Option<TypeRef> {
+        self.registry
+            .types()
+            .find_map(|(id, candidate)| (candidate == decl).then_some(id))
+    }
+
+    pub fn find_type_ref_by_name(&self, name: &str) -> Option<TypeRef> {
+        self.registry.types().find_map(|(id, ty)| {
+            if let TypeDecl::Named { name: ty_name, .. } = &ty {
+                (ty_name == name).then_some(id)
+            } else {
+                None
+            }
+        })
+    }
+
+    pub fn resolve_decl_in_context(
+        &mut self,
+        parent_ref: TypeRef,
+        type_decl: &TypeDecl,
+    ) -> Result<TypeDecl> {
+        let type_args = self.type_args_for(parent_ref)?;
+        self.resolve_type_decl_inner(type_decl, &type_args)
+    }
+
+    pub fn into_types(self) -> Vec<Type> {
         let mut vec: Vec<_> = self
             .user_defined
             .into_values()
-            .map(|v| v.meta_type)
+            .map(|v| {
+                let mut ty = v.meta_type;
+                ty.annotations.retain(|(k, _)| k != PATH_ANNOTATION);
+                ty
+            })
             .collect();
         vec.sort_by(|a, b| a.name.cmp(&b.name));
         vec
@@ -92,132 +122,256 @@ impl<'a> TypeResolver<'a> {
 
     #[cfg(test)]
     pub fn get_user_defined(&self, name: &str) -> Option<&UserDefinedEntry> {
-        self.user_defined.get(name)
+        if let Some(entry) = self.user_defined.get(name) {
+            return Some(entry);
+        }
+
+        self.user_defined
+            .iter()
+            .find(|(k, _)| {
+                k.starts_with(name) && {
+                    let rest = &k[name.len()..];
+                    rest.is_empty() || rest.parse::<u32>().is_ok()
+                }
+            })
+            .map(|(_, v)| v)
     }
 
-    fn build_type_decl_map(&mut self, exclude: BTreeSet<TypeRef>) -> Result<()> {
+    fn build_type_decl_map(&mut self, exclude: &BTreeSet<TypeRef>) -> Result<()> {
         let all_types: Vec<_> = self.registry.types().collect();
-        for (id, _) in all_types {
+        let user_defined_ids: Vec<_> = all_types
+            .iter()
+            .filter_map(|(id, _)| {
+                (!exclude.contains(id) && self.registry.get_type(*id).is_some()).then_some(*id)
+            })
+            .collect();
+
+        for id in &user_defined_ids {
+            self.register_user_defined_placeholder(*id)?;
+        }
+        for id in &user_defined_ids {
+            self.resolve_user_defined_fields(*id)?;
+        }
+
+        for (id, decl) in all_types {
             if exclude.contains(&id) {
                 continue;
             }
-            let type_decl = self.resolve_by_id(id)?;
-            self.map.insert(id, type_decl);
+            let resolved_decl = self.resolve_type_decl_with_id(decl, id)?;
+            self.map.insert(id, resolved_decl);
         }
         Ok(())
     }
 
-    pub fn resolve_by_id(&mut self, id: TypeRef) -> Result<TypeDecl> {
-        self.resolve_by_id_inner(id, &BTreeMap::new())
-    }
-
-    pub(crate) fn resolve_by_id_inner(
-        &mut self,
-        id: TypeRef,
-        type_args: &BTreeMap<String, TypeDecl>,
-    ) -> Result<TypeDecl> {
-        if type_args.is_empty()
-            && let Some(decl) = self.map.get(&id)
-        {
-            return Ok(decl.clone());
-        }
-
+    fn type_args_for(&self, type_ref: TypeRef) -> Result<BTreeMap<String, TypeDecl>> {
         let ty = self
             .registry
-            .get_type(id)
-            .ok_or(Error::TypeIdIsUnknown(id.get()))?;
+            .get_type(type_ref)
+            .ok_or(Error::TypeIdIsUnknown(type_ref.get()))?;
+        let decl = self
+            .registry
+            .get_type_decl(type_ref)
+            .ok_or(Error::TypeIdIsUnknown(type_ref.get()))?;
 
-        let type_decl = match &ty.def {
-            TypeDef::Primitive(p) => TypeDecl::Primitive(primitive_map(p)?),
-            TypeDef::GPrimitive(g) => TypeDecl::Primitive(gprimitive_map(g)?),
-            TypeDef::Sequence(type_param) => TypeDecl::Slice {
-                item: Box::new(self.resolve_by_id_inner(*type_param, type_args)?),
+        let mut args = BTreeMap::new();
+        if let TypeDecl::Named { generics, .. } = decl {
+            for (param, arg) in ty.type_params.iter().zip(generics.iter()) {
+                args.insert(param.name.clone(), arg.clone());
+            }
+        }
+        Ok(args)
+    }
+
+    /// Recursively resolve TypeDecl with TypeRef context
+    fn resolve_type_decl_with_id(
+        &mut self,
+        type_decl: &TypeDecl,
+        type_ref: TypeRef,
+    ) -> Result<TypeDecl> {
+        if self.registry.get_type(type_ref).is_some() {
+            let name = self.register_user_defined(type_ref)?;
+            let type_args = self.type_args_for(type_ref)?;
+            let concrete_decl = self
+                .registry
+                .get_type_decl(type_ref)
+                .ok_or(Error::TypeIdIsUnknown(type_ref.get()))?;
+
+            let generics = if let TypeDecl::Named { generics, .. } = concrete_decl {
+                generics
+                    .iter()
+                    .filter(|g| !is_const_generic(g))
+                    .map(|g| self.resolve_type_decl_inner(g, &type_args))
+                    .collect::<Result<Vec<_>>>()?
+            } else {
+                vec![]
+            };
+
+            return Ok(TypeDecl::Named {
+                name,
+                generics,
+                param: None,
+            });
+        }
+
+        self.resolve_type_decl_inner(type_decl, &BTreeMap::new())
+    }
+
+    fn resolve_type_decl_inner(
+        &mut self,
+        type_decl: &TypeDecl,
+        type_args: &BTreeMap<String, TypeDecl>,
+    ) -> Result<TypeDecl> {
+        let result = match type_decl {
+            TypeDecl::Slice { item } => TypeDecl::Slice {
+                item: Box::new(self.resolve_type_decl_inner(item, type_args)?),
             },
-            TypeDef::Array { len, type_param } => TypeDecl::Array {
-                item: Box::new(self.resolve_by_id_inner(*type_param, type_args)?),
+            TypeDecl::Array { item, len } => TypeDecl::Array {
+                item: Box::new(self.resolve_type_decl_inner(item, type_args)?),
                 len: *len,
             },
-            TypeDef::Tuple(fields) => {
-                if fields.is_empty() {
+            TypeDecl::Tuple { types } => {
+                if types.is_empty() {
                     TypeDecl::Primitive(PrimitiveType::Void)
                 } else {
-                    let types = fields
+                    let types = types
                         .iter()
-                        .map(|f| self.resolve_by_id_inner(*f, type_args))
+                        .map(|f| self.resolve_type_decl_inner(f, type_args))
                         .collect::<Result<Vec<_>>>()?;
                     TypeDecl::Tuple { types }
                 }
             }
-            TypeDef::Map { key, value } => {
-                let key_decl = self.resolve_by_id_inner(*key, type_args)?;
-                let value_decl = self.resolve_by_id_inner(*value, type_args)?;
-                TypeDecl::Slice {
-                    item: Box::new(TypeDecl::Tuple {
-                        types: vec![key_decl, value_decl],
-                    }),
-                }
-            }
-            TypeDef::Option(type_param) => {
-                let inner = self.resolve_by_id_inner(*type_param, type_args)?;
-                TypeDecl::Named {
-                    name: "Option".to_string(),
-                    generics: vec![inner],
-                }
-            }
-            TypeDef::Result { ok, err } => {
-                let ok_decl = self.resolve_by_id_inner(*ok, type_args)?;
-                let err_decl = self.resolve_by_id_inner(*err, type_args)?;
-                TypeDecl::Named {
-                    name: "Result".to_string(),
-                    generics: vec![ok_decl, err_decl],
-                }
-            }
-            TypeDef::Composite(_) | TypeDef::Variant(_) => {
-                let name = self.register_user_defined(ty)?;
-                let mut generics = Vec::new();
-                for param in &ty.type_params {
-                    if let GenericArg::Type(arg_id) = &param.arg {
-                        generics.push(self.resolve_by_id_inner(*arg_id, type_args)?);
+            TypeDecl::Named {
+                name,
+                generics,
+                param,
+            } => {
+                if param
+                    .as_ref()
+                    .map(|p| matches!(p, NamedParam::Type))
+                    .unwrap_or(false)
+                {
+                    if let Some(mapped) = type_args.get(name) {
+                        return Ok(mapped.clone());
                     }
+                    return Ok(type_decl.clone());
                 }
-                TypeDecl::Named { name, generics }
-            }
-            TypeDef::Parameter(name) => {
-                if let Some(mapped) = type_args.get(name) {
-                    mapped.clone()
-                } else {
-                    TypeDecl::Named {
-                        name: name.clone(),
-                        generics: vec![],
-                    }
-                }
-            }
-            TypeDef::Applied { base, args } => {
-                self.registry
-                    .get_type(*base)
-                    .ok_or(Error::TypeIdIsUnknown(base.get()))?;
 
-                let base_decl = self.resolve_by_id_inner(*base, &BTreeMap::new())?;
-                if let TypeDecl::Named { name, .. } = base_decl {
-                    let mut generics = Vec::new();
-                    for arg in args {
-                        generics.push(self.resolve_by_id_inner(*arg, type_args)?);
-                    }
-                    TypeDecl::Named { name, generics }
+                if let Some(NamedParam::Const { .. }) = param {
+                    return Ok(type_decl.clone());
+                }
+
+                let resolved_generics = generics
+                    .iter()
+                    .map(|g| self.resolve_type_decl_inner(g, type_args))
+                    .collect::<Result<Vec<_>>>()?;
+
+                let concrete_decl = TypeDecl::Named {
+                    name: name.clone(),
+                    generics: resolved_generics.clone(),
+                    param: None,
+                };
+
+                let resolved_name = if let Some(type_ref) = self.find_type_ref(&concrete_decl)
+                    && !self.excluded.contains(&type_ref)
+                    && self.registry.get_type(type_ref).is_some()
+                {
+                    self.register_user_defined(type_ref)?
+                } else if let Some(registered_name) = self.find_registered_name_for_template(name) {
+                    registered_name
                 } else {
-                    base_decl
+                    let mut const_suffix = String::new();
+                    for (k, v) in const_pairs_from_generics(&resolved_generics) {
+                        const_suffix.push_str(&k);
+                        const_suffix.push_str(&v);
+                    }
+                    if const_suffix.is_empty() {
+                        name.clone()
+                    } else {
+                        alloc::format!("{}{}", name, const_suffix)
+                    }
+                };
+
+                TypeDecl::Named {
+                    name: resolved_name,
+                    generics: resolved_generics
+                        .into_iter()
+                        .filter(|g| !is_const_generic(g))
+                        .collect(),
+                    param: None,
                 }
             }
+            TypeDecl::Primitive(_) => type_decl.clone(),
         };
-
-        if type_args.is_empty() {
-            self.map.insert(id, type_decl.clone());
-        }
-        Ok(type_decl)
+        Ok(result)
     }
 
-    fn register_user_defined(&mut self, ty: &Type) -> Result<String> {
-        let name = match self.unique_type_name(ty) {
+    fn find_registered_name_for_template(&self, raw_name: &str) -> Option<String> {
+        let (path_hint, short_name) = match raw_name.rsplit_once("::") {
+            Some((p, s)) => (p, s),
+            None => ("", raw_name),
+        };
+        let hint_segs: Vec<&str> = path_hint.split("::").filter(|s| !s.is_empty()).collect();
+
+        let matches: Vec<_> = self
+            .user_defined
+            .iter()
+            .filter(|(_, entry)| entry.ty.name == short_name || entry.ty.name == raw_name)
+            .collect();
+
+        let path_filtered: Vec<_> = if hint_segs.is_empty() {
+            matches.clone()
+        } else {
+            matches
+                .iter()
+                .filter(|(_, entry)| {
+                    let entry_path = type_path(&entry.ty).unwrap_or_default();
+                    let entry_segs: Vec<&str> =
+                        entry_path.split("::").filter(|s| !s.is_empty()).collect();
+                    if hint_segs.len() > entry_segs.len() {
+                        return false;
+                    }
+                    entry_segs
+                        .iter()
+                        .rev()
+                        .zip(hint_segs.iter().rev())
+                        .all(|(a, b)| a == b)
+                })
+                .cloned()
+                .collect()
+        };
+
+        let chosen = if !path_filtered.is_empty() {
+            path_filtered
+        } else {
+            matches
+        };
+
+        chosen
+            .into_iter()
+            .min_by_key(|(registered_name, _)| {
+                (
+                    (!raw_name.ends_with(registered_name.as_str())) as u8,
+                    (*registered_name != raw_name) as u8,
+                    usize::MAX - registered_name.len(),
+                    (*registered_name).clone(),
+                )
+            })
+            .map(|(registered_name, _)| (*registered_name).clone())
+    }
+
+    fn register_user_defined(&mut self, type_ref: TypeRef) -> Result<String> {
+        let name = self.register_user_defined_placeholder(type_ref)?;
+        self.resolve_user_defined_fields(type_ref)?;
+        Ok(name)
+    }
+
+    fn register_user_defined_placeholder(&mut self, type_ref: TypeRef) -> Result<String> {
+        let ty = self
+            .registry
+            .get_type(type_ref)
+            .ok_or(Error::TypeIdIsUnknown(type_ref.get()))?
+            .clone();
+        let name = match self.unique_type_name(&ty) {
             Ok(name) => name,
             Err(exist) => return Ok(exist),
         };
@@ -229,10 +383,10 @@ impl<'a> TypeResolver<'a> {
         self.user_defined.insert(
             name.clone(),
             UserDefinedEntry {
-                meta_type: sails_idl_ast::Type {
+                meta_type: Type {
                     name: name.clone(),
                     type_params: vec![],
-                    def: sails_idl_ast::TypeDef::Struct(StructDef { fields: vec![] }),
+                    def: TypeDef::Struct(StructDef { fields: vec![] }),
                     docs: vec![],
                     annotations: vec![],
                 },
@@ -240,122 +394,120 @@ impl<'a> TypeResolver<'a> {
             },
         );
 
-        let empty_args = BTreeMap::new();
+        Ok(name)
+    }
 
+    fn resolve_user_defined_fields(&mut self, type_ref: TypeRef) -> Result<()> {
+        let ty = self
+            .registry
+            .get_type(type_ref)
+            .ok_or(Error::TypeIdIsUnknown(type_ref.get()))?
+            .clone();
+        let name = match self.unique_type_name(&ty) {
+            Ok(name) => name,
+            Err(exist) => exist,
+        };
+
+        if self.resolved.contains(&name) {
+            return Ok(());
+        }
+        self.resolved.insert(name.clone());
+
+        let type_args = BTreeMap::new();
         let def = match &ty.def {
-            TypeDef::Composite(comp) => {
+            TypeDef::Struct(comp) => {
                 let fields = comp
                     .fields
                     .iter()
-                    .map(|f| self.resolve_field_inner(f, &empty_args))
-                    .collect::<Result<Vec<_>>>()?;
-                sails_idl_ast::TypeDef::Struct(StructDef { fields })
-            }
-            TypeDef::Variant(var) => {
-                let variants = var
-                    .variants
-                    .iter()
-                    .map(|v| {
-                        let fields = v
-                            .fields
-                            .iter()
-                            .map(|f| self.resolve_field_inner(f, &empty_args))
-                            .collect::<Result<Vec<_>>>()?;
-                        Ok(EnumVariant {
-                            name: v.name.to_string(),
-                            def: StructDef { fields },
-                            entry_id: 0,
-                            docs: v.docs.iter().map(|d| d.to_string()).collect(),
-                            annotations: v
-                                .annotations
-                                .iter()
-                                .map(|a| (a.name.clone(), a.value.clone()))
-                                .collect(),
+                    .map(|f| -> Result<_> {
+                        Ok(StructField {
+                            name: f.name.clone(),
+                            type_decl: self.resolve_type_decl_inner(&f.type_decl, &type_args)?,
+                            docs: f.docs.clone(),
+                            annotations: f.annotations.clone(),
                         })
                     })
                     .collect::<Result<Vec<_>>>()?;
-                sails_idl_ast::TypeDef::Enum(EnumDef { variants })
+                TypeDef::Struct(StructDef { fields })
             }
-            _ => unreachable!(),
+            TypeDef::Enum(var) => {
+                let variants = var
+                    .variants
+                    .iter()
+                    .map(|v| -> Result<_> {
+                        let fields = v
+                            .def
+                            .fields
+                            .iter()
+                            .map(|f| -> Result<_> {
+                                Ok(StructField {
+                                    name: f.name.clone(),
+                                    type_decl: self
+                                        .resolve_type_decl_inner(&f.type_decl, &type_args)?,
+                                    docs: f.docs.clone(),
+                                    annotations: f.annotations.clone(),
+                                })
+                            })
+                            .collect::<Result<Vec<_>>>()?;
+                        Ok(EnumVariant {
+                            name: v.name.clone(),
+                            def: StructDef { fields },
+                            entry_id: v.entry_id,
+                            docs: v.docs.clone(),
+                            annotations: v.annotations.clone(),
+                        })
+                    })
+                    .collect::<Result<Vec<_>>>()?;
+                TypeDef::Enum(EnumDef { variants })
+            }
+            TypeDef::Alias(alias) => TypeDef::Alias(alias.clone()),
         };
 
-        let meta_type = sails_idl_ast::Type {
+        let meta_type = Type {
             name: name.clone(),
             type_params: ty
                 .type_params
                 .iter()
-                .filter(|p| matches!(p.arg, GenericArg::Type(_)))
-                .map(|p| sails_idl_ast::TypeParameter {
+                .filter(|p| !p.ty.as_ref().is_some_and(is_const_generic))
+                .map(|p| TypeParameter {
                     name: p.name.clone(),
-                    ty: None,
+                    ty: p.ty.clone(),
                 })
                 .collect(),
             def,
-            docs: ty.docs.iter().map(|d| d.to_string()).collect(),
-            annotations: ty
-                .annotations
-                .iter()
-                .map(|a| (a.name.clone(), a.value.clone()))
-                .collect(),
+            docs: ty.docs.clone(),
+            annotations: ty.annotations.clone(),
         };
 
         self.user_defined.insert(
-            name.clone(),
+            name,
             UserDefinedEntry {
                 meta_type,
                 ty: ty.clone(),
             },
         );
 
-        Ok(name)
-    }
-
-    fn resolve_field_inner(
-        &mut self,
-        field: &Field,
-        type_args: &BTreeMap<String, TypeDecl>,
-    ) -> Result<StructField> {
-        let type_decl = self.resolve_by_id_inner(field.ty, type_args)?;
-        Ok(StructField {
-            name: field.name.clone(),
-            type_decl,
-            docs: field.docs.iter().map(|d| d.to_string()).collect(),
-            annotations: field
-                .annotations
-                .iter()
-                .map(|a| (a.name.clone(), a.value.clone()))
-                .collect(),
-        })
+        Ok(())
     }
 
     fn unique_type_name(&self, ty: &Type) -> Result<String, String> {
-        let mut segments: Vec<&str> = ty
-            .module_path
-            .split("::")
-            .filter(|s| !s.is_empty())
-            .collect();
+        let module_path = type_path(ty).unwrap_or_default();
+        let mut segments: Vec<&str> = module_path.split("::").filter(|s| !s.is_empty()).collect();
         segments.push(&ty.name);
 
         let mut base_name = String::new();
-        let mut consts = Vec::new();
-        for param in &ty.type_params {
-            if let GenericArg::Const(val) = &param.arg {
-                consts.push((param.name.clone(), val.clone()));
-            }
-        }
-        consts.sort_by(|a, b| a.0.cmp(&b.0));
-        let mut const_suffix = String::new();
-        for (k, v) in consts {
-            const_suffix.push_str(&k);
-            const_suffix.push_str(&v);
-        }
+        let consts = const_pairs_from_params(&ty.type_params);
+        let const_suffix: String = consts
+            .iter()
+            .flat_map(|(k, v)| [k.as_str(), v.as_str()])
+            .collect();
 
         for segment in segments.into_iter().rev() {
             base_name = segment.to_case(Case::Pascal) + &base_name;
-            let name_with_consts = format!("{}{}", base_name, const_suffix);
+            let name_with_consts = format!("{base_name}{const_suffix}");
 
             if let Some(exists) = self.user_defined.get(&name_with_consts) {
-                if exists.is_path_equals(ty) && exists.is_fields_equal(ty, self.registry) {
+                if exists.is_path_equals(ty) && exists.is_fields_equal(ty) {
                     return Err(name_with_consts);
                 } else {
                     continue;
@@ -365,53 +517,73 @@ impl<'a> TypeResolver<'a> {
             }
         }
 
-        let mut final_name = format!("{}{}", base_name, const_suffix);
+        let mut final_name = format!("{base_name}{const_suffix}");
         let mut i = 1;
         while self.user_defined.contains_key(&final_name) {
-            final_name = format!("{}{}{}", base_name, const_suffix, i);
+            final_name = format!("{base_name}{const_suffix}{i}");
             i += 1;
         }
         Ok(final_name)
     }
+}
 
-    pub fn resolve_field_with_args(
-        &mut self,
-        field: &Field,
-        type_args: &BTreeMap<String, TypeDecl>,
-    ) -> Result<StructField> {
-        self.resolve_field_inner(field, type_args)
+/// Read the `@path` annotation written by `type-registry`'s derive macro.
+/// Used only for user-type name disambiguation; stripped before emitting IDL.
+fn type_path(ty: &Type) -> Option<String> {
+    ty.annotations
+        .iter()
+        .find(|(k, _)| k == PATH_ANNOTATION)
+        .and_then(|(_, v)| v.clone())
+}
+
+fn is_const_generic(decl: &TypeDecl) -> bool {
+    matches!(
+        decl,
+        TypeDecl::Named {
+            param: Some(NamedParam::Const { .. }),
+            ..
+        }
+    )
+}
+
+fn const_value(decl: &TypeDecl) -> Option<&String> {
+    if let TypeDecl::Named {
+        param: Some(NamedParam::Const { value }),
+        ..
+    } = decl
+    {
+        Some(value)
+    } else {
+        None
     }
 }
 
-fn primitive_map(type_def_primitive: &Primitive) -> Result<PrimitiveType> {
-    use PrimitiveType::*;
-    Ok(match type_def_primitive {
-        Primitive::Bool => Bool,
-        Primitive::Char => Char,
-        Primitive::Str => String,
-        Primitive::U8 => U8,
-        Primitive::U16 => U16,
-        Primitive::U32 => U32,
-        Primitive::U64 => U64,
-        Primitive::U128 => U128,
-        Primitive::I8 => I8,
-        Primitive::I16 => I16,
-        Primitive::I32 => I32,
-        Primitive::I64 => I64,
-        Primitive::I128 => I128,
-    })
+fn const_pairs_from_generics(generics: &[TypeDecl]) -> Vec<(String, String)> {
+    let mut pairs: Vec<_> = generics
+        .iter()
+        .filter_map(|g| {
+            if let TypeDecl::Named { name, .. } = g {
+                const_value(g).map(|v| (name.clone(), v.clone()))
+            } else {
+                None
+            }
+        })
+        .collect();
+    pairs.sort_by(|a, b| a.0.cmp(&b.0));
+    pairs
 }
 
-fn gprimitive_map(g: &sails_type_registry::ty::GPrimitive) -> Result<PrimitiveType> {
-    use sails_type_registry::ty::GPrimitive::*;
-    Ok(match g {
-        U256 => PrimitiveType::U256,
-        H160 => PrimitiveType::H160,
-        H256 => PrimitiveType::H256,
-        ActorId => PrimitiveType::ActorId,
-        MessageId => PrimitiveType::MessageId,
-        CodeId => PrimitiveType::CodeId,
-    })
+fn const_pairs_from_params(params: &[TypeParameter]) -> Vec<(String, String)> {
+    let mut pairs: Vec<_> = params
+        .iter()
+        .filter_map(|p| {
+            p.ty.as_ref()
+                .and_then(const_value)
+                .map(|v| (p.name.clone(), v.clone()))
+        })
+        .collect();
+    pairs.sort_by(|a, b| a.0.cmp(&b.0));
+    pairs
 }
 
 #[cfg(test)]
@@ -419,7 +591,6 @@ mod tests {
     use super::*;
     use core::num::{NonZeroU8, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU128};
     use gprimitives::NonZeroU256;
-    use sails_idl_ast::TypeDef;
     use sails_type_registry::{Registry, TypeInfo};
 
     #[allow(dead_code)]
@@ -531,7 +702,8 @@ mod tests {
             *generic_struct_decl,
             TypeDecl::Named {
                 name: "GenericStruct".to_string(),
-                generics: vec![TypeDecl::Primitive(PrimitiveType::H256)]
+                generics: vec![TypeDecl::Primitive(PrimitiveType::H256)],
+                param: None,
             }
         );
         assert_eq!(generic_struct_decl.to_string(), "GenericStruct<H256>");
@@ -1021,15 +1193,25 @@ mod tests {
 
         // Also verify concrete_names for some representative fields to keep parity with original test spirit
         // Retrieve struct type to check underlying field concrete ids
-        let struct_type = registry
+        let struct_decl = registry
             .types()
             .find(|(id, _)| *id == struct_id)
             .map(|(_, ty)| ty)
             .unwrap();
 
+        let struct_name = match struct_decl {
+            TypeDecl::Named { name, .. } => name.clone(),
+            _ => panic!("expected named type"),
+        };
+
+        let struct_type = registry
+            .named_types()
+            .find(|ty| ty.name == struct_name)
+            .unwrap();
+
         let struct_def = &struct_type.def;
 
-        if let sails_type_registry::ty::TypeDef::Composite(_composite) = struct_def {
+        if let TypeDef::Struct(_composite) = struct_def {
             let meta_fields = struct_generic.meta_fields();
             let find_field_name = |name: &str| {
                 meta_fields
@@ -1494,14 +1676,22 @@ mod tests {
             );
         }
 
-        let struct_type = registry
+        let struct_decl = registry
             .types()
             .find(|(id, _)| *id == struct_id)
             .map(|(_, ty)| ty)
             .unwrap();
+        let struct_name = match struct_decl {
+            TypeDecl::Named { name, .. } => name.clone(),
+            _ => panic!("expected named type"),
+        };
+        let struct_type = registry
+            .named_types()
+            .find(|ty| ty.name == struct_name)
+            .unwrap();
         let struct_def = &struct_type.def;
 
-        if let sails_type_registry::ty::TypeDef::Composite(_composite) = struct_def {
+        if let TypeDef::Struct(_composite) = struct_def {
             let find_field_name = |name: &str| {
                 struct_generic
                     .meta_fields()
@@ -1519,16 +1709,24 @@ mod tests {
             panic!("Expected composite type");
         }
 
-        let enum_type = registry
+        let enum_decl = registry
             .types()
             .find(|(id, _)| *id == enum_id)
             .map(|(_, ty)| ty)
             .unwrap();
+        let enum_name = match enum_decl {
+            TypeDecl::Named { name, .. } => name.clone(),
+            _ => panic!("expected named type"),
+        };
+        let enum_type = registry
+            .named_types()
+            .find(|ty| ty.name == enum_name)
+            .unwrap();
         let enum_def = &enum_type.def;
 
-        if let sails_type_registry::ty::TypeDef::Variant(_variant) = enum_def {
+        if let TypeDef::Enum(_variant) = enum_def {
             let enum_variants = match &enum_generic.meta_type.def {
-                sails_idl_ast::TypeDef::Enum(e) => &e.variants,
+                TypeDef::Enum(e) => &e.variants,
                 _ => panic!("Expected enum definition"),
             };
             let find_variant_field = |v_name: &str, f_idx: usize| {
@@ -2068,5 +2266,51 @@ mod tests {
                 enum_field_types
             );
         }
+    }
+
+    // Guards the `const_params_equal` branch in `unique_type_name`: a literally-named
+    // struct whose name matches a const-generic template's name-with-const suffix must
+    // not be merged with that template.
+    #[test]
+    fn literal_named_struct_does_not_collide_with_const_generic_template() {
+        #[allow(dead_code)]
+        #[derive(TypeInfo)]
+        struct GenericConstStructN8O12 {
+            field: u8,
+        }
+
+        let mut registry = Registry::new();
+        let const_id = registry.register_type::<GenericConstStruct<8, 12, u8>>();
+        let literal_id = registry.register_type::<GenericConstStructN8O12>();
+        let resolver = TypeResolver::from_registry(&registry);
+
+        let const_name = resolver.get(const_id).unwrap().to_string();
+        let literal_name = resolver.get(literal_id).unwrap().to_string();
+        assert_ne!(
+            const_name, literal_name,
+            "literal struct and const-generic template must resolve to distinct names"
+        );
+    }
+
+    // Guards the const-generics equality filter in `find_registered_name_for_template`:
+    // when multiple user-defined entries share the same short name, lookups must
+    // disambiguate by const-generic values.
+    #[test]
+    fn const_generic_instantiations_resolve_to_distinct_names() {
+        let mut registry = Registry::new();
+        let a_id = registry.register_type::<GenericConstStruct<8, 12, u32>>();
+        let b_id = registry.register_type::<GenericConstStruct<16, 12, u32>>();
+        let c_id = registry.register_type::<GenericConstStruct<8, 12, u64>>();
+        let resolver = TypeResolver::from_registry(&registry);
+
+        let a = resolver.get(a_id).unwrap().to_string();
+        let b = resolver.get(b_id).unwrap().to_string();
+        let c = resolver.get(c_id).unwrap().to_string();
+
+        assert_eq!(a, "GenericConstStructN8O12<u32>");
+        assert_eq!(b, "GenericConstStructN16O12<u32>");
+        assert_eq!(c, "GenericConstStructN8O12<u64>");
+        assert_ne!(a, b, "different N must produce distinct template names");
+        assert_ne!(a, c, "different T must produce distinct decl strings");
     }
 }

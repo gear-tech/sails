@@ -248,7 +248,7 @@ pub fn accept_type_decl<'ast>(
         ast::TypeDecl::Primitive(primitive_type) => {
             visitor.visit_primitive_type(*primitive_type);
         }
-        ast::TypeDecl::Named { name, generics } => {
+        ast::TypeDecl::Named { name, generics, .. } => {
             visitor.visit_named_type_decl(name, generics);
         }
     }

@@ -6,98 +6,96 @@ expression: formatted
 impl<T: ::sails_type_registry::TypeInfo, const N: usize> ::sails_type_registry::TypeInfo
 for Generics<T, N> {
     type Identity = Self;
-    fn type_info(
+    fn type_decl(
         registry: &mut ::sails_type_registry::Registry,
-    ) -> ::sails_type_registry::ty::Type {
-        let mut args: ::sails_type_registry::prelude::alloc::vec::Vec<
-            (&'static str, _),
-        > = ::sails_type_registry::prelude::alloc::vec![];
-        let arg_id = registry.register_type::<T>();
-        args.push(("T", arg_id));
-        let mut args = args.into_iter();
+    ) -> ::sails_type_registry::TypeDecl {
+        let generics = ::sails_type_registry::prelude::alloc::vec![
+            {
+                let id = registry.register_type::<T>();
+                registry
+                    .get_type_decl(id)
+                    .cloned()
+                    .unwrap_or(
+                        ::sails_type_registry::TypeDecl::named("<unknown>".into()),
+                    )
+            },
+            ::sails_type_registry::TypeDecl::Named {
+                name: "N".into(),
+                generics: ::sails_type_registry::prelude::alloc::vec![],
+                param: Some(::sails_type_registry::NamedParam::Const {
+                    value: ::sails_type_registry::prelude::alloc::format!("{}", N),
+                }),
+            },
+        ];
+        ::sails_type_registry::TypeDecl::Named {
+            name: "Generics".into(),
+            generics,
+            param: None,
+        }
+    }
+    fn type_def(
+        registry: &mut ::sails_type_registry::Registry,
+    ) -> core::option::Option<::sails_type_registry::Type> {
         let mut type_builder = ::sails_type_registry::builder::TypeBuilder::new()
             .module_path(::core::module_path!())
             .name("Generics");
-        if let Some((name, arg_id)) = args.next() {
-            type_builder = type_builder.param(name).arg(arg_id);
-        }
+        type_builder = type_builder.parameter("T");
         type_builder = type_builder
-            .param("N")
-            .val(::sails_type_registry::prelude::alloc::format!("{}", N));
-        let mut builder = type_builder.composite();
-        {
-            let ty = {
-                let base_id = registry.register_type::<Vec<Vec<T>>>();
-                let args = ::sails_type_registry::prelude::alloc::vec![
-                    {
-                        let base_id = registry.register_type::<Vec<T>>();
-                        let args = ::sails_type_registry::prelude::alloc::vec![
+            .const_parameter(
+                "N",
+                ::sails_type_registry::prelude::alloc::format!("{}", N),
+            );
+        core::option::Option::Some({
+            let mut composite_builder = type_builder.composite();
+            let composite_builder = composite_builder
+                .field("matrix")
+                .doc("Nested generics")
+                .ty({
+                    ::sails_type_registry::TypeDecl::Slice {
+                        item: ::sails_type_registry::prelude::alloc::boxed::Box::new(::sails_type_registry::TypeDecl::Slice {
+                            item: ::sails_type_registry::prelude::alloc::boxed::Box::new(::sails_type_registry::TypeDecl::Named {
+                                name: "T".into(),
+                                generics: ::sails_type_registry::prelude::alloc::vec![],
+                                param: Some(::sails_type_registry::NamedParam::Type),
+                            }),
+                        }),
+                    }
+                });
+            let composite_builder = composite_builder
+                .field("data")
+                .doc("Array with const param")
+                .ty({
+                    ::sails_type_registry::TypeDecl::Array {
+                        item: ::sails_type_registry::prelude::alloc::boxed::Box::new(::sails_type_registry::TypeDecl::Named {
+                            name: "T".into(),
+                            generics: ::sails_type_registry::prelude::alloc::vec![],
+                            param: Some(::sails_type_registry::NamedParam::Type),
+                        }),
+                        len: N as u32,
+                    }
+                });
+            let composite_builder = composite_builder
+                .field("result")
+                .doc("Complex path with generics")
+                .ty({
+                    ::sails_type_registry::TypeDecl::result(
+                        ::sails_type_registry::TypeDecl::option(::sails_type_registry::TypeDecl::Named {
+                            name: "T".into(),
+                            generics: ::sails_type_registry::prelude::alloc::vec![],
+                            param: Some(::sails_type_registry::NamedParam::Type),
+                        }),
+                        {
+                            let id = registry.register_type::<String>();
                             registry
-                                .register_type_def(
-                                    ::sails_type_registry::ty::Type::builder()
-                                        .name("T")
-                                        .parameter("T"),
-                                ),
-                        ];
-                        registry
-                            .register_type_def(
-                                ::sails_type_registry::ty::Type::builder()
-                                    .applied(base_id, args),
-                            )
-                    },
-                ];
-                registry
-                    .register_type_def(
-                        ::sails_type_registry::ty::Type::builder().applied(base_id, args),
+                                .get_type_decl(id)
+                                .cloned()
+                                .unwrap_or(
+                                    ::sails_type_registry::TypeDecl::named("<unknown>".into()),
+                                )
+                        },
                     )
-            };
-            builder = builder.field("matrix").doc("Nested generics").ty(ty);
-        }
-        {
-            let ty = {
-                let inner_id = registry
-                    .register_type_def(
-                        ::sails_type_registry::ty::Type::builder()
-                            .name("T")
-                            .parameter("T"),
-                    );
-                registry
-                    .register_type_def(
-                        ::sails_type_registry::ty::Type::builder()
-                            .array(inner_id, N as u32),
-                    )
-            };
-            builder = builder.field("data").doc("Array with const param").ty(ty);
-        }
-        {
-            let ty = {
-                let base_id = registry.register_type::<Result<Option<T>, String>>();
-                let args = ::sails_type_registry::prelude::alloc::vec![
-                    {
-                        let base_id = registry.register_type::<Option<T>>();
-                        let args = ::sails_type_registry::prelude::alloc::vec![
-                            registry
-                                .register_type_def(
-                                    ::sails_type_registry::ty::Type::builder()
-                                        .name("T")
-                                        .parameter("T"),
-                                ),
-                        ];
-                        registry
-                            .register_type_def(
-                                ::sails_type_registry::ty::Type::builder()
-                                    .applied(base_id, args),
-                            )
-                    },
-                    { registry.register_type::<String>() },
-                ];
-                registry
-                    .register_type_def(
-                        ::sails_type_registry::ty::Type::builder().applied(base_id, args),
-                    )
-            };
-            builder = builder.field("result").doc("Complex path with generics").ty(ty);
-        }
-        builder.build()
+                });
+            composite_builder.build()
+        })
     }
 }

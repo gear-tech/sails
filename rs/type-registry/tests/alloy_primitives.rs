@@ -1,21 +1,21 @@
 use alloy_primitives::{Address, B256};
-use sails_type_registry::{
-    Registry,
-    ty::{GPrimitive, TypeDef},
-};
+use sails_idl_ast::{PrimitiveType, TypeDecl};
+use sails_type_registry::Registry;
 
 macro_rules! assert_alloy_primitive {
     ($registry:expr, $ty:ty, $expected_primitive:ident) => {
         let id = $registry.register_type::<$ty>();
-        let ty = $registry.get_type(id).expect("Type should be in registry");
-        assert_eq!(ty.def, TypeDef::GPrimitive(GPrimitive::$expected_primitive));
-        assert!(
-            ty.module_path.is_empty(),
-            "Primitives should not have a path"
+        let type_decl = $registry
+            .get_type_decl(id)
+            .expect("Type declaration should be in registry");
+        assert_eq!(
+            type_decl,
+            &TypeDecl::Primitive(PrimitiveType::$expected_primitive)
         );
+        // Primitives don't have a full Type definition (only TypeDecl), so get_type returns None
         assert!(
-            ty.annotations.is_empty(),
-            "Primitives should not have annotations"
+            $registry.get_type(id).is_none(),
+            "Primitives should not have a full Type definition"
         );
     };
 }
