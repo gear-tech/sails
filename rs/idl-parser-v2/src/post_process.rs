@@ -1,6 +1,4 @@
-use crate::ast;
 use crate::{
-    ast::{IdlDoc, InterfaceId, PrimitiveType},
     error::{Error, Result},
     visitor::{self, Visitor},
 };
@@ -12,6 +10,7 @@ use alloc::{
     vec::Vec,
 };
 use core::str::FromStr;
+use sails_idl_ast::*;
 
 const ALLOWED_TYPES: &[&str] = &[
     "Option",
@@ -92,7 +91,7 @@ impl<'a> Validator<'a> {
 }
 
 impl<'a> visitor::Visitor<'a> for Validator<'a> {
-    fn visit_service_unit(&mut self, service: &'a ast::ServiceUnit) {
+    fn visit_service_unit(&mut self, service: &'a ServiceUnit) {
         self.push_scope();
         for ty in &service.types {
             self.add_type(&ty.name);
@@ -101,7 +100,7 @@ impl<'a> visitor::Visitor<'a> for Validator<'a> {
         self.pop_scope();
     }
 
-    fn visit_type(&mut self, ty: &'a ast::Type) {
+    fn visit_type(&mut self, ty: &'a Type) {
         self.push_scope();
         for param in &ty.type_params {
             self.add_type(&param.name);
@@ -110,7 +109,7 @@ impl<'a> visitor::Visitor<'a> for Validator<'a> {
         self.pop_scope();
     }
 
-    fn visit_named_type_decl(&mut self, name: &'a str, generics: &'a [ast::TypeDecl]) {
+    fn visit_named_type_decl(&mut self, name: &'a str, generics: &'a [TypeDecl]) {
         if PrimitiveType::from_str(name).is_err() && !self.is_type_known(name) {
             self.errors
                 .push(Error::Validation(format!("Unknown type '{name}'")));
@@ -121,7 +120,7 @@ impl<'a> visitor::Visitor<'a> for Validator<'a> {
         }
     }
 
-    fn visit_struct_def(&mut self, struct_def: &'a ast::StructDef) {
+    fn visit_struct_def(&mut self, struct_def: &'a StructDef) {
         if !struct_def.fields.is_empty() {
             let first_field_is_named = struct_def.fields[0].name.is_some();
             if !struct_def

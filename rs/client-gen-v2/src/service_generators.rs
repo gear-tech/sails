@@ -5,7 +5,7 @@ use crate::type_generators::{TopLevelTypeGenerator, generate_type_decl_with_path
 use convert_case::{Case, Casing};
 use genco::prelude::*;
 use rust::Tokens;
-use sails_idl_meta::codec::has_scale_codec;
+use sails_idl_ast::codec::has_scale_codec;
 use sails_idl_parser_v2::{ast, visitor, visitor::Visitor};
 use std::collections::HashMap;
 
@@ -21,7 +21,7 @@ pub(crate) struct ServiceGenerator<'ast> {
     events_tokens: Tokens,
     types_tokens: Tokens,
     mocks_tokens: Tokens,
-    interface_id: sails_idl_meta::InterfaceId,
+    interface_id: sails_idl_ast::InterfaceId,
     no_derive_traits: bool,
 }
 
@@ -31,7 +31,7 @@ impl<'ast> ServiceGenerator<'ast> {
         sails_path: &'ast str,
         external_types: &'ast HashMap<&'ast str, &'ast str>,
         mocks_feature_name: Option<&'ast str>,
-        interface_id: sails_idl_meta::InterfaceId,
+        interface_id: sails_idl_ast::InterfaceId,
         no_derive_traits: bool,
     ) -> Self {
         Self {

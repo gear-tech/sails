@@ -1,7 +1,7 @@
 [package]
 name = "sails-idl-meta"
 description = "IDL meta information for the Sails framework"
-documentation = "https://docs.rs/sails-idl-gen"
+documentation = "https://docs.rs/sails-idl-meta"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
@@ -10,28 +10,6 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-askama = { workspace = true, optional = true, features = ["alloc", "derive"] }
-keccak-const.workspace = true
 parity-scale-codec = { workspace = true, features = ["derive"] }
-serde = { workspace = true, features = ["alloc", "derive"], optional = true }
-serde-json = { workspace = true, features = ["alloc"], optional = true }
+sails-idl-ast.workspace = true
 sails-type-registry = { workspace = true, features = ["derive"] }
-
-[dev-dependencies]
-gprimitives.workspace = true
-insta.workspace = true
-sails-reflect-hash.workspace = true
-
-[features]
-default = ["ast"]
-ast = []
-serde = ["dep:serde", "dep:serde-json", "ast"]
-templates = ["dep:askama", "ast"]
-
-[[test]]
-name = "serde"
-required-features = ["serde"]
-
-[[test]]
-name = "templates"
-required-features = ["templates"]

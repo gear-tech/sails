@@ -1,9 +1,8 @@
 use anyhow::Result;
 use convert_case::{Case, Casing};
 use handlebars::Handlebars;
-use sails_idl_meta::codec::has_ethabi_codec;
 use sails_idl_parser_v2::{
-    ast::{IdlDoc, PrimitiveType, TypeDecl},
+    ast::{IdlDoc, PrimitiveType, TypeDecl, codec::has_ethabi_codec},
     parse_idl,
 };
 use serde::Serialize;

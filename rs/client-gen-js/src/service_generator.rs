@@ -5,7 +5,7 @@ use crate::{
 };
 use genco::prelude::*;
 use js::Tokens;
-use sails_idl_meta::codec::has_scale_codec;
+use sails_idl_ast::codec::has_scale_codec;
 use sails_idl_parser_v2::ast;
 
 pub(crate) struct ServiceGenerator<'a> {

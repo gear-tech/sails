@@ -38,6 +38,7 @@ members = [
     "rs/client-gen-v2",
     "rs/client-gen-js",
     "rs/client-gen",
+    "rs/idl-ast",
     "rs/idl-embed",
     "rs/idl-gen",
     "rs/idl-meta",
@@ -60,6 +61,7 @@ members = [
 
 [workspace.dependencies]
 # The order matches with publishing order.
+sails-idl-ast = { path = "rs/idl-ast" }
 sails-idl-meta = { path = "rs/idl-meta" }
 sails-idl-parser = { path = "rs/idl-parser" }
 sails-idl-parser-v2 = { path = "rs/idl-parser-v2", default-features = false }

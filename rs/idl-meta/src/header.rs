@@ -1,4 +1,5 @@
-use crate::{InterfaceId, Vec};
+use crate::InterfaceId;
+use alloc::vec::Vec;
 use core::num::NonZeroU8;
 use parity_scale_codec::{Decode, Encode, Error, Input, Output};
 

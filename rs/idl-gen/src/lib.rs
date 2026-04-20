@@ -15,7 +15,8 @@ use alloc::{
 use askama::Template;
 pub use errors::*;
 pub use program::*;
-use sails_idl_meta::*;
+use sails_idl_ast::*;
+use sails_idl_meta::{AnyServiceMeta, ProgramMeta};
 
 mod builder;
 mod errors;

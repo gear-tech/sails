@@ -1,4 +1,11 @@
-use crate::InterfaceId;
+#![no_std]
+
+extern crate alloc;
+
+pub mod codec;
+mod hash;
+mod interface_id;
+
 use alloc::{
     boxed::Box,
     format,
@@ -10,10 +17,12 @@ use core::{
     fmt::{Display, Write},
     str::FromStr,
 };
+pub use interface_id::InterfaceId;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 // -------------------------------- IDL model ---------------------------------
+pub type Annotation = (String, Option<String>);
 
 /// Root AST node representing a single parsed Sails IDL document.
 ///
@@ -33,7 +42,7 @@ pub struct IdlDoc {
         feature = "serde",
         serde(default, skip_serializing_if = "Vec::is_empty")
     )]
-    pub globals: Vec<(String, Option<String>)>,
+    pub globals: Vec<Annotation>,
     #[cfg_attr(feature = "serde", serde(skip_serializing_if = "Option::is_none"))]
     pub program: Option<ProgramUnit>,
     #[cfg_attr(
@@ -97,7 +106,7 @@ pub struct ProgramUnit {
         feature = "serde",
         serde(default, skip_serializing_if = "Vec::is_empty")
     )]
-    pub annotations: Vec<(String, Option<String>)>,
+    pub annotations: Vec<Annotation>,
 }
 
 impl ProgramUnit {
@@ -183,7 +192,7 @@ pub struct ServiceExpo {
         feature = "serde",
         serde(default, skip_serializing_if = "Vec::is_empty")
     )]
-    pub annotations: Vec<(String, Option<String>)>,
+    pub annotations: Vec<Annotation>,
 }
 
 /// Constructor function of a program, declared in `constructors { ... }`.
@@ -215,7 +224,7 @@ pub struct CtorFunc {
         feature = "serde",
         serde(default, skip_serializing_if = "Vec::is_empty")
     )]
-    pub annotations: Vec<(String, Option<String>)>,
+    pub annotations: Vec<Annotation>,
 }
 
 /// AST node describing a `service` definition.
@@ -265,7 +274,7 @@ pub struct ServiceUnit {
         feature = "serde",
         serde(default, skip_serializing_if = "Vec::is_empty")
     )]
-    pub annotations: Vec<(String, Option<String>)>,
+    pub annotations: Vec<Annotation>,
 }
 
 impl ServiceUnit {
@@ -333,7 +342,7 @@ pub struct ServiceFunc {
         feature = "serde",
         serde(default, skip_serializing_if = "Vec::is_empty")
     )]
-    pub annotations: Vec<(String, Option<String>)>,
+    pub annotations: Vec<Annotation>,
 }
 
 /// Function kind based on mutability.
@@ -663,7 +672,7 @@ pub struct Type {
         feature = "serde",
         serde(default, skip_serializing_if = "Vec::is_empty")
     )]
-    pub annotations: Vec<(String, Option<String>)>,
+    pub annotations: Vec<Annotation>,
 }
 
 impl Type {
@@ -792,7 +801,7 @@ pub struct StructField {
         feature = "serde",
         serde(default, skip_serializing_if = "Vec::is_empty")
     )]
-    pub annotations: Vec<(String, Option<String>)>,
+    pub annotations: Vec<Annotation>,
 }
 
 /// Enum definition backing a named enum type.
@@ -835,7 +844,7 @@ pub struct EnumVariant {
         feature = "serde",
         serde(default, skip_serializing_if = "Vec::is_empty")
     )]
-    pub annotations: Vec<(String, Option<String>)>,
+    pub annotations: Vec<Annotation>,
 }
 
 /// Alias definition backing a named alias type.

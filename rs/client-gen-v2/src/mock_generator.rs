@@ -2,7 +2,7 @@ use crate::helpers::fn_args_with_types_path;
 use convert_case::{Case, Casing};
 use genco::prelude::*;
 use rust::Tokens;
-use sails_idl_meta::codec::has_scale_codec;
+use sails_idl_ast::codec::has_scale_codec;
 use sails_idl_parser_v2::{
     ast::{self, ServiceIdent},
     visitor::{self, Visitor},
