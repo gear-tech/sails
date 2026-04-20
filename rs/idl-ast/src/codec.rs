@@ -5,19 +5,29 @@
 //! (e.g. `@codec: scale`, `@codec: ethabi`, `@codec: scale,ethabi`).
 //! No codec annotations means both codecs (default).
 
-use alloc::collections::BTreeSet;
 use alloc::string::String;
 
 type Annotation = (String, Option<String>);
 
-/// Available codecs for a method's dispatch path.
-#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
-pub enum Codec {
-    Scale,
-    Ethabi,
+/// Codec availability for a method's dispatch paths.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+struct Codecs {
+    scale: bool,
+    ethabi: bool,
 }
 
-/// Resolves the set of codecs a method is available through based on its
+impl Codecs {
+    const BOTH: Self = Self {
+        scale: true,
+        ethabi: true,
+    };
+    const NONE: Self = Self {
+        scale: false,
+        ethabi: false,
+    };
+}
+
+/// Resolves which codecs a method is available through based on its
 /// `@codec` annotations.
 ///
 /// Semantics:
@@ -26,8 +36,8 @@ pub enum Codec {
 /// - repeated `@codec` annotations → union of all declared codec values
 /// - unknown codec tokens → ignored
 /// - empty / whitespace-only tokens → ignored
-pub fn codecs(annotations: &[Annotation]) -> BTreeSet<Codec> {
-    let mut result = BTreeSet::new();
+fn codecs(annotations: &[Annotation]) -> Codecs {
+    let mut result = Codecs::NONE;
     let mut saw_codec_annotation = false;
 
     for (name, value) in annotations {
@@ -37,8 +47,7 @@ pub fn codecs(annotations: &[Annotation]) -> BTreeSet<Codec> {
         saw_codec_annotation = true;
         match value {
             None => {
-                result.insert(Codec::Scale);
-                result.insert(Codec::Ethabi);
+                result = Codecs::BOTH;
             }
             Some(value) => {
                 for token in value
@@ -47,12 +56,8 @@ pub fn codecs(annotations: &[Annotation]) -> BTreeSet<Codec> {
                     .filter(|token| !token.is_empty())
                 {
                     match token {
-                        "scale" => {
-                            result.insert(Codec::Scale);
-                        }
-                        "ethabi" => {
-                            result.insert(Codec::Ethabi);
-                        }
+                        "scale" => result.scale = true,
+                        "ethabi" => result.ethabi = true,
                         _ => {}
                     }
                 }
@@ -61,8 +66,7 @@ pub fn codecs(annotations: &[Annotation]) -> BTreeSet<Codec> {
     }
 
     if !saw_codec_annotation {
-        result.insert(Codec::Scale);
-        result.insert(Codec::Ethabi);
+        result = Codecs::BOTH;
     }
 
     result
@@ -70,12 +74,12 @@ pub fn codecs(annotations: &[Annotation]) -> BTreeSet<Codec> {
 
 /// Returns `true` if the method is available through SCALE/Gear dispatch.
 pub fn has_scale_codec(annotations: &[Annotation]) -> bool {
-    codecs(annotations).contains(&Codec::Scale)
+    codecs(annotations).scale
 }
 
 /// Returns `true` if the method is available through Solidity ABI dispatch.
 pub fn has_ethabi_codec(annotations: &[Annotation]) -> bool {
-    codecs(annotations).contains(&Codec::Ethabi)
+    codecs(annotations).ethabi
 }
 
 #[cfg(test)]
