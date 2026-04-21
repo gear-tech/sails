@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 use convert_case::{Case, Casing};
 use handlebars::Handlebars;
 use sails_idl_parser_v2::{
@@ -54,6 +54,20 @@ pub struct GenerateContractResult {
     pub name: String,
 }
 
+fn resolve_type_decl(decl: &TypeDecl, doc: &IdlDoc) -> Result<String> {
+    let TypeDecl::Named { name, .. } = decl else {
+        return decl.get_ty();
+    };
+    doc.program
+        .iter()
+        .flat_map(|p| p.types.iter())
+        .chain(doc.services.iter().flat_map(|s| s.types.iter()))
+        .find(|ty| ty.name == *name)
+        .and_then(|ty| ty.annotations.iter().find(|(k, _)| k == "sol_type"))
+        .and_then(|(_, v)| v.clone())
+        .ok_or_else(|| anyhow!("named type '{name}' has no @sol_type annotation"))
+}
+
 pub fn generate_solidity_contract(idl_content: &str, name: &str) -> Result<GenerateContractResult> {
     let doc = parse_idl(idl_content)?;
 
@@ -87,7 +101,7 @@ fn functions_from_idl(doc: &IdlDoc) -> Result<Vec<FunctionData>> {
             let mut args = Vec::new();
             for p in &func.params {
                 let arg = ArgData {
-                    ty: p.type_decl.get_ty()?,
+                    ty: resolve_type_decl(&p.type_decl, doc)?,
                     name: p.name.to_case(Case::Camel),
                     mem_location: p.type_decl.get_mem_location(),
                 };
@@ -109,14 +123,14 @@ fn functions_from_idl(doc: &IdlDoc) -> Result<Vec<FunctionData>> {
             let mut args = Vec::new();
             for p in &f.params {
                 let arg = ArgData {
-                    ty: p.type_decl.get_ty()?,
+                    ty: resolve_type_decl(&p.type_decl, doc)?,
                     name: p.name.to_case(Case::Camel),
                     mem_location: p.type_decl.get_mem_location(),
                 };
                 args.push(arg);
             }
             let reply_type = if f.output != TypeDecl::Primitive(PrimitiveType::Void) {
-                Some(f.output.get_ty()?)
+                Some(resolve_type_decl(&f.output, doc)?)
             } else {
                 None
             };
@@ -144,7 +158,7 @@ fn events_from_idl(doc: &IdlDoc) -> Result<Vec<EventData>> {
             let mut args = Vec::new();
             for f in &e.def.fields {
                 let arg = EventArgData {
-                    ty: f.type_decl.get_ty()?,
+                    ty: resolve_type_decl(&f.type_decl, doc)?,
                     indexed: f.annotations.iter().any(|(k, _)| k == "indexed"),
                     name: f.name.as_ref().map(|name| name.to_case(Case::Camel)),
                 };

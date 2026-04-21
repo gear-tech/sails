@@ -38,7 +38,11 @@ pub mod gstd;
 pub use gtest;
 #[cfg(all(feature = "mockall", not(target_arch = "wasm32")))]
 pub use mockall;
+#[cfg(feature = "ethexe")]
+mod address;
 pub mod prelude;
+#[cfg(feature = "ethexe")]
+pub use address::Address;
 #[cfg(feature = "ethexe")]
 pub mod solidity;
 mod types;

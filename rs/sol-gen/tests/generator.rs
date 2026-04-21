@@ -140,3 +140,38 @@ fn test_generate_payable_contract() {
     );
     assert_snapshot!(String::from_utf8(contract.unwrap().data).unwrap());
 }
+
+const IDL_W_ADDRESS: &str = r#"
+program TokenProgram {
+    constructors {
+        New();
+    }
+    services {
+        TokenSvc: TokenSvc
+    }
+}
+
+service TokenSvc {
+    functions {
+        Transfer(from: Address, to: Address, amount: u128) -> bool;
+        BalanceOf(owner: Address) -> u128;
+    }
+
+    types {
+        @sol_type: address
+        struct Address(H160);
+    }
+}
+"#;
+
+#[test]
+fn test_generate_contract_w_address_type() {
+    let contract = generate_solidity_contract(IDL_W_ADDRESS, "TokenContract");
+
+    assert!(
+        contract.is_ok(),
+        "Failed to generate contract: {:?}",
+        contract.err()
+    );
+    assert_snapshot!(String::from_utf8(contract.unwrap().data).unwrap());
+}

@@ -58,6 +58,8 @@ pub use sails_idl_meta::{Identifiable, InterfaceId, MethodMeta};
 pub use sails_reflect_hash::{self as sails_reflect_hash, ReflectHash};
 pub use sails_type_registry::{self as type_info, TypeInfo};
 
+#[cfg(feature = "ethexe")]
+pub use crate::address::Address;
 #[cfg(all(feature = "gstd", feature = "ethexe"))]
 pub use crate::gstd::EthEvent;
 #[cfg(feature = "ethexe")]
