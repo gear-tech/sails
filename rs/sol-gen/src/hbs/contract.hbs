@@ -25,7 +25,7 @@ contract {{contract_name}}Abi is I{{contract_name}} {
 
 interface I{{contract_name}}Callbacks {
     {{#each functions}}
-    function replyOn_{{name}}(bytes32 messageId{{#if reply_type}}, {{reply_type}} reply{{/if}}) external{{#if returns_value}} payable{{/if}};
+    function replyOn_{{name}}(bytes32 messageId{{#if reply_type}}, {{reply_type}}{{#if reply_mem_location}} {{reply_mem_location}}{{/if}} reply{{/if}}) external{{#if returns_value}} payable{{/if}};
 
     {{/each}}
     function onErrorReply(bytes32 messageId, bytes calldata payload, bytes4 replyCode) external payable;
@@ -52,7 +52,7 @@ contract {{contract_name}}Caller is I{{contract_name}}Callbacks {
     }
 
     {{#each functions}}
-    function replyOn_{{name}}(bytes32 messageId{{#if reply_type}}, {{reply_type}} reply{{/if}}) external{{#if returns_value}} payable{{/if}} onlyVaraEthProgram {
+    function replyOn_{{name}}(bytes32 messageId{{#if reply_type}}, {{reply_type}}{{#if reply_mem_location}} {{reply_mem_location}}{{/if}} reply{{/if}}) external{{#if returns_value}} payable{{/if}} onlyVaraEthProgram {
         // TODO: implement this
     }
 

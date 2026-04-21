@@ -10,6 +10,10 @@ interface ITokenContract {
 
     function tokenSvcBalanceOf(bool _callReply, address owner) external returns (bytes32 messageId);
 
+    function tokenSvcBatch(bool _callReply, address[] calldata recipients) external returns (bytes32 messageId);
+
+    function tokenSvcFixed(bool _callReply, address[3] calldata addrs) external returns (bytes32 messageId);
+
     function tokenSvcTransfer(bool _callReply, address from, address to, uint128 amount) external returns (bytes32 messageId);
 }
 
@@ -18,6 +22,10 @@ contract TokenContractAbi is ITokenContract {
 
     function tokenSvcBalanceOf(bool _callReply, address owner) external returns (bytes32 messageId) {}
 
+    function tokenSvcBatch(bool _callReply, address[] calldata recipients) external returns (bytes32 messageId) {}
+
+    function tokenSvcFixed(bool _callReply, address[3] calldata addrs) external returns (bytes32 messageId) {}
+
     function tokenSvcTransfer(bool _callReply, address from, address to, uint128 amount) external returns (bytes32 messageId) {}
 }
 
@@ -25,6 +33,10 @@ interface ITokenContractCallbacks {
     function replyOn_new(bytes32 messageId) external;
 
     function replyOn_tokenSvcBalanceOf(bytes32 messageId, uint128 reply) external;
+
+    function replyOn_tokenSvcBatch(bytes32 messageId, address[] calldata reply) external;
+
+    function replyOn_tokenSvcFixed(bytes32 messageId, address[3] calldata reply) external;
 
     function replyOn_tokenSvcTransfer(bytes32 messageId, bool reply) external;
 
@@ -56,6 +68,14 @@ contract TokenContractCaller is ITokenContractCallbacks {
     }
 
     function replyOn_tokenSvcBalanceOf(bytes32 messageId, uint128 reply) external onlyVaraEthProgram {
+        // TODO: implement this
+    }
+
+    function replyOn_tokenSvcBatch(bytes32 messageId, address[] calldata reply) external onlyVaraEthProgram {
+        // TODO: implement this
+    }
+
+    function replyOn_tokenSvcFixed(bytes32 messageId, address[3] calldata reply) external onlyVaraEthProgram {
         // TODO: implement this
     }
 

@@ -129,7 +129,6 @@ service MyService {
 "#;
 
 #[test]
-
 fn test_generate_payable_contract() {
     let contract = generate_solidity_contract(PAYABLE_IDL, "PayableContract");
 
@@ -155,6 +154,8 @@ service TokenSvc {
     functions {
         Transfer(from: Address, to: Address, amount: u128) -> bool;
         BalanceOf(owner: Address) -> u128;
+        Batch(recipients: [Address]) -> [Address];
+        Fixed(addrs: [Address; 3]) -> [Address; 3];
     }
 
     types {

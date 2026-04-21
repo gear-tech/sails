@@ -10,8 +10,6 @@ impl TypeDeclToSol for TypeDecl {
     fn get_ty(&self) -> Result<String> {
         match self {
             TypeDecl::Primitive(ty) => ty.get_ty(),
-            TypeDecl::Array { item, len } => Ok(format!("{}[{}]", item.get_ty()?, len)),
-            TypeDecl::Slice { item } => Ok(format!("{}[]", item.get_ty()?)),
             _ => Err(anyhow!("type is not supported")),
         }
     }

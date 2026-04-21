@@ -55,17 +55,20 @@ pub struct GenerateContractResult {
 }
 
 fn resolve_type_decl(decl: &TypeDecl, doc: &IdlDoc) -> Result<String> {
-    let TypeDecl::Named { name, .. } = decl else {
-        return decl.get_ty();
-    };
-    doc.program
-        .iter()
-        .flat_map(|p| p.types.iter())
-        .chain(doc.services.iter().flat_map(|s| s.types.iter()))
-        .find(|ty| ty.name == *name)
-        .and_then(|ty| ty.annotations.iter().find(|(k, _)| k == "sol_type"))
-        .and_then(|(_, v)| v.clone())
-        .ok_or_else(|| anyhow!("named type '{name}' has no @sol_type annotation"))
+    match decl {
+        TypeDecl::Named { name, .. } => doc
+            .program
+            .iter()
+            .flat_map(|p| p.types.iter())
+            .chain(doc.services.iter().flat_map(|s| s.types.iter()))
+            .find(|ty| ty.name == *name)
+            .and_then(|ty| ty.annotations.iter().find(|(k, _)| k == "sol_type"))
+            .and_then(|(_, v)| v.clone())
+            .ok_or_else(|| anyhow!("named type '{name}' has no @sol_type annotation")),
+        TypeDecl::Array { item, len } => Ok(format!("{}[{}]", resolve_type_decl(item, doc)?, len)),
+        TypeDecl::Slice { item } => Ok(format!("{}[]", resolve_type_decl(item, doc)?)),
+        _ => decl.get_ty(),
+    }
 }
 
 pub fn generate_solidity_contract(idl_content: &str, name: &str) -> Result<GenerateContractResult> {
