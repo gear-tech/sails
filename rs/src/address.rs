@@ -20,7 +20,7 @@ impl TypeInfo for Address {
         let h160_ref = registry.register_type::<H160>();
         Type::builder()
             .name("Address")
-            .annotate("sol_type")
+            .annotate("sol-type")
             .value("address")
             .composite()
             .unnamed()
@@ -124,8 +124,8 @@ mod tests {
         assert!(
             ty.annotations
                 .iter()
-                .any(|a| a.name == "sol_type" && a.value.as_deref() == Some("address")),
-            "expected @soltype: address annotation on Address type"
+                .any(|a| a.name == "sol-type" && a.value.as_deref() == Some("address")),
+            "expected @sol-type: address annotation on Address type"
         );
     }
 

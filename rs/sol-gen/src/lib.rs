@@ -59,7 +59,7 @@ fn resolve_type_decl(decl: &TypeDecl, types: &[Type]) -> Result<String> {
         TypeDecl::Named { name, .. } => types
             .iter()
             .find(|ty| ty.name == *name)
-            .and_then(|ty| ty.annotations.iter().find(|(k, _)| k == "sol_type"))
+            .and_then(|ty| ty.annotations.iter().find(|(k, _)| k == "sol-type"))
             .and_then(|(_, v)| v.clone())
             .ok_or_else(|| anyhow!("type is not supported")),
         TypeDecl::Array { item, len } => {

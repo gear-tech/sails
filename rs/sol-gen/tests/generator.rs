@@ -159,7 +159,7 @@ service TokenSvc {
     }
 
     types {
-        @sol_type: address
+        @sol-type: address
         struct Address(H160);
     }
 }
