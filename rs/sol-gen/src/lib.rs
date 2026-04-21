@@ -2,7 +2,7 @@ use anyhow::{Result, anyhow};
 use convert_case::{Case, Casing};
 use handlebars::Handlebars;
 use sails_idl_parser_v2::{
-    ast::{IdlDoc, PrimitiveType, TypeDecl},
+    ast::{IdlDoc, PrimitiveType, Type, TypeDecl},
     parse_idl,
 };
 use serde::Serialize;
@@ -54,19 +54,18 @@ pub struct GenerateContractResult {
     pub name: String,
 }
 
-fn resolve_type_decl(decl: &TypeDecl, doc: &IdlDoc) -> Result<String> {
+fn resolve_type_decl(decl: &TypeDecl, types: &[Type]) -> Result<String> {
     match decl {
-        TypeDecl::Named { name, .. } => doc
-            .program
+        TypeDecl::Named { name, .. } => types
             .iter()
-            .flat_map(|p| p.types.iter())
-            .chain(doc.services.iter().flat_map(|s| s.types.iter()))
             .find(|ty| ty.name == *name)
             .and_then(|ty| ty.annotations.iter().find(|(k, _)| k == "sol_type"))
             .and_then(|(_, v)| v.clone())
-            .ok_or_else(|| anyhow!("named type '{name}' has no @sol_type annotation")),
-        TypeDecl::Array { item, len } => Ok(format!("{}[{}]", resolve_type_decl(item, doc)?, len)),
-        TypeDecl::Slice { item } => Ok(format!("{}[]", resolve_type_decl(item, doc)?)),
+            .ok_or_else(|| anyhow!("type is not supported")),
+        TypeDecl::Array { item, len } => {
+            Ok(format!("{}[{}]", resolve_type_decl(item, types)?, len))
+        }
+        TypeDecl::Slice { item } => Ok(format!("{}[]", resolve_type_decl(item, types)?)),
         _ => decl.get_ty(),
     }
 }
@@ -104,7 +103,7 @@ fn functions_from_idl(doc: &IdlDoc) -> Result<Vec<FunctionData>> {
             let mut args = Vec::new();
             for p in &func.params {
                 let arg = ArgData {
-                    ty: resolve_type_decl(&p.type_decl, doc)?,
+                    ty: resolve_type_decl(&p.type_decl, &program.types)?,
                     name: p.name.to_case(Case::Camel),
                     mem_location: p.type_decl.get_mem_location(),
                 };
@@ -126,14 +125,14 @@ fn functions_from_idl(doc: &IdlDoc) -> Result<Vec<FunctionData>> {
             let mut args = Vec::new();
             for p in &f.params {
                 let arg = ArgData {
-                    ty: resolve_type_decl(&p.type_decl, doc)?,
+                    ty: resolve_type_decl(&p.type_decl, &svc.types)?,
                     name: p.name.to_case(Case::Camel),
                     mem_location: p.type_decl.get_mem_location(),
                 };
                 args.push(arg);
             }
             let reply_type = if f.output != TypeDecl::Primitive(PrimitiveType::Void) {
-                Some(resolve_type_decl(&f.output, doc)?)
+                Some(resolve_type_decl(&f.output, &svc.types)?)
             } else {
                 None
             };
@@ -161,7 +160,7 @@ fn events_from_idl(doc: &IdlDoc) -> Result<Vec<EventData>> {
             let mut args = Vec::new();
             for f in &e.def.fields {
                 let arg = EventArgData {
-                    ty: resolve_type_decl(&f.type_decl, doc)?,
+                    ty: resolve_type_decl(&f.type_decl, &svc.types)?,
                     indexed: f.annotations.iter().any(|(k, _)| k == "indexed"),
                     name: f.name.as_ref().map(|name| name.to_case(Case::Camel)),
                 };
