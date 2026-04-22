@@ -77,34 +77,49 @@ interface ISailsCtorFuncParams {
   readonly docs?: string;
 }
 
+// Cap echoed names in error messages so attacker-controlled bytes can't flood logs
+// with unbounded strings or smuggle control characters (e.g., ANSI escape sequences).
+const _MAX_ECHOED_NAME_LEN = 64;
+const _safeEchoedName = (name: string): string => {
+  const truncated = name.length > _MAX_ECHOED_NAME_LEN ? `${name.slice(0, _MAX_ECHOED_NAME_LEN)}...` : name;
+  // Strip anything outside printable ASCII.
+  return truncated.replaceAll(/[^ -~]/g, '?');
+};
+
+const _toHex = (bytes: Uint8Array | HexString | string): HexString =>
+  typeof bytes === 'string' ? (bytes as HexString) : u8aToHex(bytes);
+
 const _assertMatchingServicePrefix = (
-  bytes: HexString,
+  bytes: Uint8Array | HexString,
   expectedService: string,
   expectedFn: string,
   target: string,
 ) => {
+  const hex = _toHex(bytes);
   let actualService: string;
   let actualFn: string;
   try {
-    actualService = getServiceNamePrefix(bytes);
-    actualFn = getFnNamePrefix(bytes);
+    actualService = getServiceNamePrefix(hex);
+    actualFn = getFnNamePrefix(hex);
   } catch {
     throw new Error(`Invalid prefix for ${target}: cannot read service/function name`);
   }
   if (actualService !== expectedService || actualFn !== expectedFn) {
-    throw new Error(`Invalid prefix for ${target}: got ${actualService}.${actualFn}`);
+    throw new Error(
+      `Invalid prefix for ${target}: got ${_safeEchoedName(actualService)}.${_safeEchoedName(actualFn)}`,
+    );
   }
 };
 
 const _assertMatchingCtorPrefix = (bytes: Uint8Array | string, expectedName: string, target: string) => {
   let actual: string;
   try {
-    actual = getCtorNamePrefix(typeof bytes === 'string' ? (bytes as HexString) : u8aToHex(bytes));
+    actual = getCtorNamePrefix(_toHex(bytes));
   } catch {
     throw new Error(`Invalid prefix for ${target}: cannot read constructor name`);
   }
   if (actual !== expectedName) {
-    throw new Error(`Invalid prefix for ${target}: got ${actual}`);
+    throw new Error(`Invalid prefix for ${target}: got ${_safeEchoedName(actual)}`);
   }
 };
 
