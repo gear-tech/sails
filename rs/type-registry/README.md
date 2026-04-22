@@ -9,11 +9,13 @@ This crate is not a general-purpose reflection system.
 ## What It Provides
 
 - `TypeInfo`: trait for exposing a Rust type as portable metadata.
-- `Registry`: registry that interns type descriptions and returns stable
-  `TypeRef` handles.
-- `Type` / `TypeDef`: portable metadata model for primitives, composites,
+- `Registry`: nominal-type interner plus concrete binding cache. It stores
+  shared nominal definitions and records concrete generic arguments at use
+  sites.
+- `sails_idl_ast`: portable metadata model for primitives, composites,
   variants, collections, generic parameters, and applied generic types.
-- Builder API: manual construction of `Type` values for synthetic definitions.
+- Builder API: manual construction of nominal `Type` values for explicit
+  `TypeInfo` implementations.
 
 ## Derive-Based Usage
 
@@ -34,7 +36,7 @@ struct User {
 }
 
 let mut registry = Registry::new();
-let user_ref = registry.register_type::<User>();
+let user_ref = registry.register_type::<User>().expect("User is nominal");
 let user_ty = registry.get_type(user_ref).unwrap();
 
 assert_eq!(user_ty.name, "User");
@@ -53,43 +55,56 @@ struct User {
 }
 ```
 
-## Manual Registry Construction
+## Manual TypeInfo Implementations
 
-For synthetic or manually assembled metadata, construct `Type` values with the
-builder API and register them directly:
+For synthetic or manually assembled metadata, implement `TypeInfo` and return a
+nominal `Type` from `type_def`. The registry owns interning and unique-name
+disambiguation.
 
 ```rust
-use sails_type_registry::{Registry, Type};
+use sails_type_registry::ast::{PrimitiveType, Type, TypeDecl};
+use sails_type_registry::{Registry, TypeBuilder, TypeInfo};
+
+struct Pair;
+
+impl TypeInfo for Pair {
+    type Identity = Self;
+
+    fn type_decl(registry: &mut Registry) -> TypeDecl {
+        registry.register_named_type(Self::META, "Pair".into(), Vec::new(), |_| {})
+    }
+
+    fn type_def(_registry: &mut Registry) -> Option<Type> {
+        Some(
+            TypeBuilder::new()
+                .name("Pair")
+                .composite()
+                .field("left")
+                .ty(TypeDecl::Primitive(PrimitiveType::U32))
+                .field("right")
+                .ty(TypeDecl::Primitive(PrimitiveType::U32))
+                .build(),
+        )
+    }
+}
 
 let mut registry = Registry::new();
-let u32_ref = registry.register_type::<u32>();
-
-let pair = Type::builder()
-    .name("Pair")
-    .composite()
-    .field("left")
-    .ty(u32_ref)
-    .field("right")
-    .ty(u32_ref)
-    .build();
-
-let pair_ref = registry.register_type_def(pair);
+let pair_ref = registry.register_type::<Pair>().expect("Pair is nominal");
 assert!(registry.get_type(pair_ref).is_some());
 ```
-
-`register_type_def` normalizes definitions before insertion and deduplicates
-them by module path, name, type parameters, and normalized definition.
 
 ## Metadata Model
 
 Each registry entry stores:
 
-- `module_path`: recorded module path for display and disambiguation.
 - `name`: human-readable type name.
-- `type_params`: declared generic parameters and their assigned arguments.
+- `type_params`: declared generic parameters and optional defaults.
 - `def`: structural type definition.
 - `docs`: captured documentation lines.
 - `annotations`: captured custom metadata annotations.
+
+Concrete bindings store per-instantiation generic arguments separately from the
+shared nominal definition.
 
 `TypeDef` covers:
 

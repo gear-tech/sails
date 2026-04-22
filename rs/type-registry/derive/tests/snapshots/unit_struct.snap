@@ -5,13 +5,33 @@ expression: formatted
 #[automatically_derived]
 impl ::sails_type_registry::TypeInfo for Unit {
     type Identity = Self;
-    fn type_info(
+    fn module_path() -> &'static str {
+        ::core::module_path!()
+    }
+    fn type_decl(
         registry: &mut ::sails_type_registry::Registry,
-    ) -> ::sails_type_registry::ty::Type {
-        let mut type_builder = ::sails_type_registry::builder::TypeBuilder::new()
-            .module_path(::core::module_path!())
-            .name("Unit");
-        let mut builder = type_builder.composite();
-        builder.build()
+    ) -> ::sails_type_registry::ast::TypeDecl {
+        let base_name = ::sails_type_registry::alloc::string::String::from("Unit");
+        let generics = ::sails_type_registry::alloc::vec::Vec::new();
+        registry
+            .register_named_type(
+                <Self as ::sails_type_registry::TypeInfo>::META,
+                base_name,
+                generics,
+                |registry| {
+                    let _ = registry;
+                },
+            )
+    }
+    fn type_def(
+        _registry: &mut ::sails_type_registry::Registry,
+    ) -> ::core::option::Option<::sails_type_registry::ast::Type> {
+        let base_name = ::sails_type_registry::alloc::string::String::from("Unit");
+        ::core::option::Option::Some({
+            let __builder = ::sails_type_registry::builder::TypeBuilder::new()
+                .name(base_name);
+            let composite = __builder.composite();
+            composite.build()
+        })
     }
 }

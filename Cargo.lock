@@ -6566,6 +6566,7 @@ dependencies = [
  "alloy-primitives",
  "gprimitives",
  "insta",
+ "sails-idl-ast",
  "sails-type-registry-derive",
  "trybuild",
 ]

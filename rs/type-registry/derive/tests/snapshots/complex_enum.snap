@@ -5,44 +5,82 @@ expression: formatted
 #[automatically_derived]
 impl ::sails_type_registry::TypeInfo for Complex {
     type Identity = Self;
-    fn type_info(
+    fn module_path() -> &'static str {
+        ::core::module_path!()
+    }
+    fn type_decl(
         registry: &mut ::sails_type_registry::Registry,
-    ) -> ::sails_type_registry::ty::Type {
-        let mut type_builder = ::sails_type_registry::builder::TypeBuilder::new()
-            .module_path(::core::module_path!())
-            .name("Complex")
-            .annotate("top")
-            .value("val");
-        let mut builder = type_builder.variant();
-        builder = {
-            let mut builder = builder
-                .add_variant("V1")
-                .doc("Variant with named fields and annotations")
-                .annotate("v1");
-            {
-                let ty = { registry.register_type::<u32>() };
-                builder = builder.field("f").annotate("f1").value("v").ty(ty);
-            }
-            builder.finish_variant()
-        };
-        builder = {
-            let mut builder = builder
-                .add_variant("V2")
-                .doc("Variant with unnamed fields");
-            {
-                let ty = { registry.register_type::<u64>() };
-                builder = builder.unnamed().ty(ty);
-            }
-            {
-                let ty = { registry.register_type::<String>() };
-                builder = builder.unnamed().ty(ty);
-            }
-            builder.finish_variant()
-        };
-        builder = {
-            let mut builder = builder.add_variant("V3").doc("Unit variant");
-            builder.finish_variant()
-        };
-        builder.build()
+    ) -> ::sails_type_registry::ast::TypeDecl {
+        let base_name = ::sails_type_registry::alloc::string::String::from("Complex");
+        let generics = ::sails_type_registry::alloc::vec::Vec::new();
+        registry
+            .register_named_type(
+                <Self as ::sails_type_registry::TypeInfo>::META,
+                base_name,
+                generics,
+                |registry| {
+                    let _ = <u32 as ::sails_type_registry::TypeInfo>::type_decl(
+                        registry,
+                    );
+                    let _ = <u64 as ::sails_type_registry::TypeInfo>::type_decl(
+                        registry,
+                    );
+                    let _ = <String as ::sails_type_registry::TypeInfo>::type_decl(
+                        registry,
+                    );
+                },
+            )
+    }
+    fn type_def(
+        _registry: &mut ::sails_type_registry::Registry,
+    ) -> ::core::option::Option<::sails_type_registry::ast::Type> {
+        let base_name = ::sails_type_registry::alloc::string::String::from("Complex");
+        ::core::option::Option::Some({
+            let __builder = ::sails_type_registry::builder::TypeBuilder::new()
+                .name(base_name)
+                .annotate("top")
+                .value("val");
+            let mut variants = __builder.variant();
+            variants = {
+                let variant = variants
+                    .add_variant("V1")
+                    .doc("Variant with named fields and annotations")
+                    .annotate("v1");
+                variant
+                    .field("f")
+                    .annotate("f1")
+                    .value("v")
+                    .ty(
+                        ::sails_type_registry::ast::TypeDecl::Primitive(
+                            ::sails_type_registry::ast::PrimitiveType::U32,
+                        ),
+                    )
+                    .finish_variant()
+            };
+            variants = {
+                let variant = variants
+                    .add_variant("V2")
+                    .doc("Variant with unnamed fields");
+                variant
+                    .unnamed()
+                    .ty(
+                        ::sails_type_registry::ast::TypeDecl::Primitive(
+                            ::sails_type_registry::ast::PrimitiveType::U64,
+                        ),
+                    )
+                    .unnamed()
+                    .ty(
+                        ::sails_type_registry::ast::TypeDecl::Primitive(
+                            ::sails_type_registry::ast::PrimitiveType::String,
+                        ),
+                    )
+                    .finish_variant()
+            };
+            variants = {
+                let variant = variants.add_variant("V3").doc("Unit variant");
+                variant.finish_variant()
+            };
+            variants.build()
+        })
     }
 }

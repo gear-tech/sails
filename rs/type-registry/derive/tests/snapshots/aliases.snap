@@ -5,64 +5,98 @@ expression: formatted
 #[automatically_derived]
 impl<T: ::sails_type_registry::TypeInfo> ::sails_type_registry::TypeInfo for Aliases<T> {
     type Identity = Self;
-    fn type_info(
+    fn module_path() -> &'static str {
+        ::core::module_path!()
+    }
+    fn type_decl(
         registry: &mut ::sails_type_registry::Registry,
-    ) -> ::sails_type_registry::ty::Type {
-        let mut args: ::sails_type_registry::prelude::alloc::vec::Vec<
-            (&'static str, _),
-        > = ::sails_type_registry::prelude::alloc::vec![];
-        let arg_id = registry.register_type::<T>();
-        args.push(("T", arg_id));
-        let mut args = args.into_iter();
-        let mut type_builder = ::sails_type_registry::builder::TypeBuilder::new()
-            .module_path(::core::module_path!())
-            .name("Aliases");
-        if let Some((name, arg_id)) = args.next() {
-            type_builder = type_builder.param(name).arg(arg_id);
-        }
-        let mut builder = type_builder.composite();
-        {
-            let ty = {
-                let base_id = registry.register_type::<Outer<T>>();
-                let args = ::sails_type_registry::prelude::alloc::vec![
-                    registry
-                        .register_type_def(
-                            ::sails_type_registry::ty::Type::builder()
-                                .name("T")
-                                .parameter("T"),
-                        ),
-                ];
-                registry
-                    .register_type_def(
-                        ::sails_type_registry::ty::Type::builder().applied(base_id, args),
-                    )
-            };
-            builder = builder
+    ) -> ::sails_type_registry::ast::TypeDecl {
+        let base_name = ::sails_type_registry::alloc::string::String::from("Aliases");
+        let generics = ::sails_type_registry::alloc::vec![
+            <T as ::sails_type_registry::TypeInfo>::type_decl(registry),
+        ];
+        registry
+            .register_named_type(
+                <Self as ::sails_type_registry::TypeInfo>::META,
+                base_name,
+                generics,
+                |registry| {
+                    let _ = <Outer<
+                        T,
+                    > as ::sails_type_registry::TypeInfo>::type_decl(registry);
+                    let _ = <Middle<
+                        T,
+                    > as ::sails_type_registry::TypeInfo>::type_decl(registry);
+                },
+            )
+    }
+    fn type_def(
+        registry: &mut ::sails_type_registry::Registry,
+    ) -> ::core::option::Option<::sails_type_registry::ast::Type> {
+        let base_name = ::sails_type_registry::alloc::string::String::from("Aliases");
+        ::core::option::Option::Some({
+            let __builder = ::sails_type_registry::builder::TypeBuilder::new()
+                .name(base_name)
+                .param("T");
+            let composite = __builder.composite();
+            composite
                 .field("field")
                 .doc("Deeply nested aliases: Result<Vec<(T, bool)>, String>")
-                .ty(ty);
-        }
-        {
-            let ty = {
-                let base_id = registry.register_type::<Middle<T>>();
-                let args = ::sails_type_registry::prelude::alloc::vec![
-                    registry
-                        .register_type_def(
-                            ::sails_type_registry::ty::Type::builder()
-                                .name("T")
-                                .parameter("T"),
-                        ),
-                ];
-                registry
-                    .register_type_def(
-                        ::sails_type_registry::ty::Type::builder().applied(base_id, args),
-                    )
-            };
-            builder = builder
+                .ty({
+                    if let ::core::option::Option::Some(__registered) = registry
+                        .get_registered::<Outer<T>>()
+                    {
+                        let __name = registry
+                            .get_type(__registered.type_ref)
+                            .expect("registry entry exists")
+                            .name
+                            .clone();
+                        ::sails_type_registry::ast::TypeDecl::Named {
+                            name: __name,
+                            generics: ::sails_type_registry::alloc::vec![
+                                ::sails_type_registry::ast::TypeDecl::Named {
+                                    name: ::sails_type_registry::alloc::string::String::from(
+                                        "T",
+                                    ),
+                                    generics: ::sails_type_registry::alloc::vec::Vec::new(),
+                                },
+                            ],
+                        }
+                    } else {
+                        <Outer<
+                            T,
+                        > as ::sails_type_registry::TypeInfo>::type_decl(registry)
+                    }
+                })
                 .field("direct")
                 .doc("Direct use of intermediate alias")
-                .ty(ty);
-        }
-        builder.build()
+                .ty({
+                    if let ::core::option::Option::Some(__registered) = registry
+                        .get_registered::<Middle<T>>()
+                    {
+                        let __name = registry
+                            .get_type(__registered.type_ref)
+                            .expect("registry entry exists")
+                            .name
+                            .clone();
+                        ::sails_type_registry::ast::TypeDecl::Named {
+                            name: __name,
+                            generics: ::sails_type_registry::alloc::vec![
+                                ::sails_type_registry::ast::TypeDecl::Named {
+                                    name: ::sails_type_registry::alloc::string::String::from(
+                                        "T",
+                                    ),
+                                    generics: ::sails_type_registry::alloc::vec::Vec::new(),
+                                },
+                            ],
+                        }
+                    } else {
+                        <Middle<
+                            T,
+                        > as ::sails_type_registry::TypeInfo>::type_decl(registry)
+                    }
+                })
+                .build()
+        })
     }
 }
