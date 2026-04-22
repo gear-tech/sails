@@ -42,8 +42,6 @@ pub use mockall;
 mod address;
 pub mod prelude;
 #[cfg(feature = "ethexe")]
-pub use address::Address;
-#[cfg(feature = "ethexe")]
 pub mod solidity;
 mod types;
 mod utils;
