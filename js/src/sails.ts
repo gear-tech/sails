@@ -248,8 +248,17 @@ export class Sails {
           return result as T;
         },
         decodeResult: <T = any>(result: HexString) => {
-          const actualService = getServiceNamePrefix(result);
-          const actualFn = getFnNamePrefix(result);
+          let actualService: string;
+          let actualFn: string;
+          try {
+            actualService = getServiceNamePrefix(result);
+            actualFn = getFnNamePrefix(result);
+          } catch {
+            throw new Error(
+              `Invalid prefix for ${service.name}.${func.name} result: ` +
+                `cannot read service/function name`,
+            );
+          }
           if (actualService !== service.name || actualFn !== func.name) {
             throw new Error(
               `Invalid prefix for ${service.name}.${func.name} result: ` +

@@ -53,4 +53,17 @@ describe('Encode/Decode', () => {
       'Invalid prefix for Counter.Add result',
     );
   });
+
+  test('decodeResult throws a clear error on truncated reply bytes', () => {
+    const add = sails.services.Counter.functions.Add;
+    // Empty bytes / too short to even contain the compact-prefixed service name —
+    // the prefix helpers throw from the SCALE codec; decodeResult should surface
+    // a single, consistent "Invalid prefix" error instead.
+    expect(() => add.decodeResult('0x')).toThrow(
+      /Invalid prefix for Counter\.Add result/,
+    );
+    expect(() => add.decodeResult('0x01')).toThrow(
+      /Invalid prefix for Counter\.Add result/,
+    );
+  });
 });
