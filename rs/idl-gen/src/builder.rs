@@ -6,7 +6,12 @@ fn assert_non_generic_meta_type(registry: &Registry, id: TypeRef) -> Result<()> 
     let ty = registry
         .get_type(id)
         .ok_or(Error::TypeIdIsUnknown(id.get()))?;
-    assert!(ty.type_params.is_empty());
+    if !ty.type_params.is_empty() {
+        return Err(Error::MetaIsInvalid(format!(
+            "type {} must not be generic in this context",
+            ty.name
+        )));
+    }
     Ok(())
 }
 
