@@ -29,7 +29,7 @@ fn gear_primitives_lower_to_built_in_primitive_type_decl() {
 }
 
 #[test]
-fn non_zero_u256_registers_as_nominal_wrapper() {
+fn non_zero_u256_registers_as_named_wrapper() {
     use gprimitives::NonZeroU256;
 
     let mut registry = Registry::new();

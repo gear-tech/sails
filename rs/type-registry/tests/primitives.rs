@@ -43,7 +43,7 @@ fn standard_primitives_lower_to_primitive_type_decl() {
 }
 
 #[test]
-fn nonzero_integer_registers_as_nominal_wrapper() {
+fn nonzero_integer_registers_as_named_wrapper() {
     use core::num::NonZeroU8;
     use sails_idl_ast::TypeDef;
 
@@ -51,7 +51,7 @@ fn nonzero_integer_registers_as_nominal_wrapper() {
 
     let type_ref = registry
         .register_type::<NonZeroU8>()
-        .expect("NonZero is nominal");
+        .expect("NonZero is named");
     let ty = registry.get_type(type_ref).unwrap();
 
     assert_eq!(ty.name, "NonZeroU8");

@@ -14,7 +14,7 @@ impl ::sails_type_registry::TypeInfo for Complex {
         let base_name = ::sails_type_registry::alloc::string::String::from("Complex");
         let generics = ::sails_type_registry::alloc::vec::Vec::new();
         registry
-            .register_named_type(
+            .register_named_type_with_dependencies(
                 <Self as ::sails_type_registry::TypeInfo>::META,
                 base_name,
                 generics,

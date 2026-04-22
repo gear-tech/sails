@@ -401,7 +401,7 @@ pub type ServiceEvent = EnumVariant;
 /// - named types (e.g. `Point<u32>`)
 ///     - container types like `Option<T>`, `Result<T, E>`
 ///     - user-defined types with generics (`UserDefined`),
-///     - bare generic parameters (`T`).
+/// - generic type parameters (e.g. `T`).
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(
     feature = "serde",
@@ -415,11 +415,9 @@ pub enum TypeDecl {
     Array { item: Box<TypeDecl>, len: u32 },
     /// Tuple type `(T1, T2, ...)`, including `()` for an empty tuple.
     Tuple { types: Vec<TypeDecl> },
+    /// Generic type parameter reference declared by the surrounding [`Type`].
+    Generic { name: String },
     /// Named type, possibly generic (e.g. `Point<u32>`).
-    ///
-    /// - known named type, e.g. `Option<T>`, `Result<T, E>`
-    /// - user-defined named type
-    /// - generic type parameter (e.g. `T`) used in type definitions.
     Named {
         name: String,
         #[cfg_attr(
@@ -434,11 +432,19 @@ pub enum TypeDecl {
 }
 
 impl TypeDecl {
-    pub fn named(name: String) -> TypeDecl {
+    pub fn named(name: impl Into<String>) -> TypeDecl {
+        Self::named_with_generics(name, vec![])
+    }
+
+    pub fn named_with_generics(name: impl Into<String>, generics: Vec<TypeDecl>) -> TypeDecl {
         TypeDecl::Named {
-            name,
-            generics: vec![],
+            name: name.into(),
+            generics,
         }
+    }
+
+    pub fn generic(name: impl Into<String>) -> TypeDecl {
+        TypeDecl::Generic { name: name.into() }
     }
 
     pub fn tuple(types: Vec<TypeDecl>) -> TypeDecl {
@@ -513,6 +519,7 @@ impl Display for TypeDecl {
                 f.write_char(')')?;
                 Ok(())
             }
+            Generic { name } => f.write_str(name),
             Named { name, generics } => {
                 write!(f, "{name}")?;
                 if !generics.is_empty() {

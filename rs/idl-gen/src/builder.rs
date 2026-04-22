@@ -50,17 +50,17 @@ fn substitute_type_params(
                 .map(|ty| substitute_type_params(ty, type_args))
                 .collect(),
         },
-        TypeDecl::Named { name, generics } if generics.is_empty() => type_args
+        TypeDecl::Generic { name } => type_args
             .get(name)
             .cloned()
-            .unwrap_or_else(|| TypeDecl::named(name.clone())),
-        TypeDecl::Named { name, generics } => TypeDecl::Named {
-            name: name.clone(),
-            generics: generics
+            .unwrap_or_else(|| TypeDecl::generic(name.as_str())),
+        TypeDecl::Named { name, generics } => TypeDecl::named_with_generics(
+            name.as_str(),
+            generics
                 .iter()
                 .map(|ty| substitute_type_params(ty, type_args))
                 .collect(),
-        },
+        ),
         TypeDecl::Primitive(primitive) => TypeDecl::Primitive(*primitive),
     }
 }
@@ -1588,7 +1588,7 @@ mod tests {
                     def: StructDef {
                         fields: vec![StructField {
                             name: None,
-                            type_decl: TypeDecl::named("EventTwoParams".to_string()),
+                            type_decl: TypeDecl::named("EventTwoParams"),
                             docs: vec![],
                             annotations: vec![],
                         }],

@@ -29,12 +29,12 @@ fn deeply_nested_containers_lower_into_substituted_type_decl() {
             TypeDecl::Slice {
                 item: Box::new(TypeDecl::Tuple {
                     types: alloc::vec![
-                        TypeDecl::named("T".into()),
+                        TypeDecl::generic("T"),
                         TypeDecl::Primitive(PrimitiveType::U8),
                     ],
                 }),
             },
-            TypeDecl::named("E".into()),
+            TypeDecl::generic("E"),
         ],
     };
     assert_eq!(struct_def.fields[0].type_decl, expected_field_decl);

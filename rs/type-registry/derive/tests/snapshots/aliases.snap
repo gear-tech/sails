@@ -16,7 +16,7 @@ impl<T: ::sails_type_registry::TypeInfo> ::sails_type_registry::TypeInfo for Ali
             <T as ::sails_type_registry::TypeInfo>::type_decl(registry),
         ];
         registry
-            .register_named_type(
+            .register_named_type_with_dependencies(
                 <Self as ::sails_type_registry::TypeInfo>::META,
                 base_name,
                 generics,
@@ -51,17 +51,12 @@ impl<T: ::sails_type_registry::TypeInfo> ::sails_type_registry::TypeInfo for Ali
                             .expect("registry entry exists")
                             .name
                             .clone();
-                        ::sails_type_registry::ast::TypeDecl::Named {
-                            name: __name,
-                            generics: ::sails_type_registry::alloc::vec![
-                                ::sails_type_registry::ast::TypeDecl::Named {
-                                    name: ::sails_type_registry::alloc::string::String::from(
-                                        "T",
-                                    ),
-                                    generics: ::sails_type_registry::alloc::vec::Vec::new(),
-                                },
+                        ::sails_type_registry::ast::TypeDecl::named_with_generics(
+                            __name,
+                            ::sails_type_registry::alloc::vec![
+                                ::sails_type_registry::ast::TypeDecl::generic("T"),
                             ],
-                        }
+                        )
                     } else {
                         <Outer<
                             T,
@@ -79,17 +74,12 @@ impl<T: ::sails_type_registry::TypeInfo> ::sails_type_registry::TypeInfo for Ali
                             .expect("registry entry exists")
                             .name
                             .clone();
-                        ::sails_type_registry::ast::TypeDecl::Named {
-                            name: __name,
-                            generics: ::sails_type_registry::alloc::vec![
-                                ::sails_type_registry::ast::TypeDecl::Named {
-                                    name: ::sails_type_registry::alloc::string::String::from(
-                                        "T",
-                                    ),
-                                    generics: ::sails_type_registry::alloc::vec::Vec::new(),
-                                },
+                        ::sails_type_registry::ast::TypeDecl::named_with_generics(
+                            __name,
+                            ::sails_type_registry::alloc::vec![
+                                ::sails_type_registry::ast::TypeDecl::generic("T"),
                             ],
-                        }
+                        )
                     } else {
                         <Middle<
                             T,

@@ -43,7 +43,7 @@ pub struct ParamBuilder {
     param_name: String,
 }
 
-/// Entry-point builder for nominal [`Type`] values.
+/// Entry-point builder for named [`Type`] values.
 #[derive(Debug, Clone, Default)]
 pub struct TypeBuilder {
     name: String,
@@ -185,7 +185,7 @@ impl CompositeBuilder {
         self
     }
 
-    /// Builds the final nominal struct [`Type`].
+    /// Builds the final named struct [`Type`].
     pub fn build(self) -> Type {
         self.type_builder.build(TypeDef::Struct(StructDef {
             fields: self.fields,
@@ -204,7 +204,7 @@ impl VariantDefBuilder {
         }
     }
 
-    /// Builds the final nominal enum [`Type`].
+    /// Builds the final named enum [`Type`].
     pub fn build(self) -> Type {
         self.type_builder.build(TypeDef::Enum(EnumDef {
             variants: self.variants,
@@ -296,7 +296,7 @@ impl TypeBuilder {
         }
     }
 
-    /// Builds a nominal alias type definition.
+    /// Builds a named alias type definition.
     pub fn alias(self, target: TypeDecl) -> Type {
         self.build(TypeDef::Alias(sails_idl_ast::AliasDef { target }))
     }

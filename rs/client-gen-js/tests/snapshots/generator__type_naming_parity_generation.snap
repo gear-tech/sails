@@ -38,7 +38,7 @@ export class TypeNames {
         private _programId: HexString,
         private _routeIdx: number = 0,
     ) {
-        this._typeResolver = new TypeResolver([{"name":"Alias","type_params":[{"name":"T"}],"kind":"struct","fields":[{"type":{"kind":"named","name":"T"}}]}]);
+        this._typeResolver = new TypeResolver([{"name":"Alias","type_params":[{"name":"T"}],"kind":"struct","fields":[{"type":{"kind":"generic","name":"T"}}]}]);
     }
     private get registry() {
         return this._typeResolver.registry;

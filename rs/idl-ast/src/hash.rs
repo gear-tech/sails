@@ -124,16 +124,15 @@ fn hash_type_decl(
             }
             hash.finalize()
         }
+        TypeDecl::Generic { name } => {
+            let Some(param_ty) = type_params.and_then(|map| map.get(name)) else {
+                return Err(format!("generic type parameter `{name}` must be resolved"));
+            };
+            return hash_type_decl(param_ty, type_map, type_params);
+        }
         TypeDecl::Named { name, generics } => {
-            // Resolve generic parameters if a mapping is provided (e.g., T -> u32).
-            if generics.is_empty()
-                && let Some(map) = type_params
-                && let Some(param_ty) = map.get(name)
-            {
-                // generic type parameter `T`
-                return hash_type_decl(param_ty, type_map, type_params);
             // Normalize well-known container types to stable markers.
-            } else if let Some(ty) = TypeDecl::option_type_decl(type_decl) {
+            if let Some(ty) = TypeDecl::option_type_decl(type_decl) {
                 Keccak256::new()
                     .update(b"Option")
                     .update(&hash_type_decl(&ty, type_map, type_params)?)
@@ -473,9 +472,8 @@ mod tests {
                 fields: vec![
                     StructField {
                         name: Some("f1".to_string()),
-                        type_decl: Named {
+                        type_decl: Generic {
                             name: "T1".to_string(),
-                            generics: vec![],
                         },
                         docs: vec![],
                         annotations: vec![],
@@ -484,9 +482,8 @@ mod tests {
                         name: Some("f2".to_string()),
                         type_decl: Named {
                             name: "Option".to_string(),
-                            generics: vec![Named {
+                            generics: vec![Generic {
                                 name: "T2".to_string(),
-                                generics: vec![],
                             }],
                         },
                         docs: vec![],
@@ -530,6 +527,20 @@ mod tests {
             },
             map
         );
+    }
+
+    #[test]
+    fn hash_unresolved_generic_errors() {
+        let err = hash_type_decl(
+            &Generic {
+                name: "T".to_string(),
+            },
+            &BTreeMap::new(),
+            None,
+        )
+        .expect_err("unresolved Generic must not hash as a nominal type");
+
+        assert_eq!(err, "generic type parameter `T` must be resolved");
     }
 
     #[test]

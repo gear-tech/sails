@@ -56,13 +56,15 @@ fn process_derive(mut input: DeriveInput) -> syn::Result<TokenStream2> {
     let base_name_expr = build_base_name_expr(&registry, &name_str, &const_param_idents);
     let decl_generics_expr = build_decl_generics_expr(&registry, &type_param_idents);
     let dep_hook = build_dep_hook(&input.data, &registry)?;
+    let type_decl_body =
+        build_type_decl_body(&registry, &base_name_expr, &decl_generics_expr, &dep_hook);
 
-    let has_nominal_lookup = type_def_uses_registry(&input.data, &lower)
+    let has_named_lookup = type_def_uses_registry(&input.data, &lower)
         || type_param_defaults
             .iter()
             .flatten()
             .any(|ty| field_uses_registry(ty, &lower));
-    let type_def_param = if has_nominal_lookup {
+    let type_def_param = if has_named_lookup {
         quote!(registry)
     } else {
         quote!(_registry)
@@ -92,16 +94,7 @@ fn process_derive(mut input: DeriveInput) -> syn::Result<TokenStream2> {
             fn type_decl(
                 registry: &mut #registry::Registry,
             ) -> #registry::ast::TypeDecl {
-                let base_name = #base_name_expr;
-                let generics = #decl_generics_expr;
-                registry.register_named_type(
-                    <Self as #registry::TypeInfo>::META,
-                    base_name,
-                    generics,
-                    |registry| {
-                        #dep_hook
-                    },
-                )
+                #type_decl_body
             }
 
             fn type_def(
@@ -111,6 +104,26 @@ fn process_derive(mut input: DeriveInput) -> syn::Result<TokenStream2> {
             }
         }
     })
+}
+
+fn build_type_decl_body(
+    registry: &TokenStream2,
+    base_name_expr: &TokenStream2,
+    decl_generics_expr: &TokenStream2,
+    dep_hook: &TokenStream2,
+) -> TokenStream2 {
+    quote! {
+        let base_name = #base_name_expr;
+        let generics = #decl_generics_expr;
+        registry.register_named_type_with_dependencies(
+            <Self as #registry::TypeInfo>::META,
+            base_name,
+            generics,
+            |registry| {
+                #dep_hook
+            },
+        )
+    }
 }
 
 fn resolve_registry_path(input: &DeriveInput) -> syn::Result<TokenStream2> {
@@ -349,7 +362,7 @@ impl LowerContext<'_> {
                 }
             }
             Type::Path(tp) => self.lower_path(ty, tp),
-            _ => self.lower_user_nominal(ty, None),
+            _ => self.lower_user_named(ty, None),
         }
     }
 
@@ -360,10 +373,7 @@ impl LowerContext<'_> {
             let name = ident.to_string();
             if self.type_params.iter().any(|p| p == &name) {
                 return quote! {
-                    #registry::ast::TypeDecl::Named {
-                        name: #registry::alloc::string::String::from(#name),
-                        generics: #registry::alloc::vec::Vec::new(),
-                    }
+                    #registry::ast::TypeDecl::generic(#name)
                 };
             }
         }
@@ -372,7 +382,7 @@ impl LowerContext<'_> {
             return self.lower_known_path(known);
         }
 
-        self.lower_user_nominal(ty, Some(tp))
+        self.lower_user_named(ty, Some(tp))
     }
 
     fn lower_known_path(&self, known: KnownPath<'_>) -> TokenStream2 {
@@ -387,10 +397,10 @@ impl LowerContext<'_> {
             KnownPath::Named { name, generics } => {
                 let generics = generics.iter().map(|ty| self.lower(ty));
                 quote! {
-                    #registry::ast::TypeDecl::Named {
-                        name: #registry::alloc::string::String::from(#name),
-                        generics: #registry::alloc::vec![#(#generics),*],
-                    }
+                    #registry::ast::TypeDecl::named_with_generics(
+                        #name,
+                        #registry::alloc::vec![#(#generics),*],
+                    )
                 }
             }
             KnownPath::Slice(inner_ty) => {
@@ -418,7 +428,7 @@ impl LowerContext<'_> {
         }
     }
 
-    fn lower_user_nominal(&self, ty: &Type, tp: Option<&syn::TypePath>) -> TokenStream2 {
+    fn lower_user_named(&self, ty: &Type, tp: Option<&syn::TypePath>) -> TokenStream2 {
         let registry = self.registry;
 
         let abstract_generics: Vec<TokenStream2> = tp
@@ -445,10 +455,7 @@ impl LowerContext<'_> {
                         .expect("registry entry exists")
                         .name
                         .clone();
-                    #registry::ast::TypeDecl::Named {
-                        name: __name,
-                        generics: #generics_expr,
-                    }
+                    #registry::ast::TypeDecl::named_with_generics(__name, #generics_expr)
                 } else {
                     <#ty as #registry::TypeInfo>::type_decl(registry)
                 }

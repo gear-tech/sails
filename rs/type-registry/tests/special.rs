@@ -82,9 +82,9 @@ fn ranges_store_abstract_start_and_end_fields() {
     };
     assert_eq!(struct_def.fields.len(), 2);
     assert_eq!(struct_def.fields[0].name.as_deref(), Some("start"));
-    assert_eq!(struct_def.fields[0].type_decl, TypeDecl::named("T".into()));
+    assert_eq!(struct_def.fields[0].type_decl, TypeDecl::generic("T"));
     assert_eq!(struct_def.fields[1].name.as_deref(), Some("end"));
-    assert_eq!(struct_def.fields[1].type_decl, TypeDecl::named("T".into()));
+    assert_eq!(struct_def.fields[1].type_decl, TypeDecl::generic("T"));
 
     let inclusive_ref = registry.register_type::<RangeInclusive<u32>>().unwrap();
     let inclusive_ty = registry.get_type(inclusive_ref).unwrap();
@@ -92,7 +92,7 @@ fn ranges_store_abstract_start_and_end_fields() {
 }
 
 #[test]
-fn register_meta_type_accepts_nominal_handles() {
+fn register_meta_type_accepts_named_handles() {
     let mut registry = Registry::new();
 
     let types = alloc::vec![

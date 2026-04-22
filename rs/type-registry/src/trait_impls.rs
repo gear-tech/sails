@@ -86,12 +86,7 @@ macro_rules! impl_non_zero {
                 type Identity = Self;
 
                 fn type_decl(registry: &mut Registry) -> TypeDecl {
-                    registry.register_named_type(
-                        Self::META,
-                        stringify!($t).into(),
-                        Vec::new(),
-                        |_| {},
-                    )
+                    registry.register_named_type(Self::META, stringify!($t), Vec::new())
                 }
 
                 fn type_def(_registry: &mut Registry) -> Option<Type> {
@@ -149,10 +144,7 @@ impl<T: TypeInfo> TypeInfo for Option<T> {
     type Identity = Self;
 
     fn type_decl(registry: &mut Registry) -> TypeDecl {
-        TypeDecl::Named {
-            name: "Option".into(),
-            generics: vec![T::type_decl(registry)],
-        }
+        TypeDecl::option(T::type_decl(registry))
     }
 }
 
@@ -160,10 +152,7 @@ impl<T: TypeInfo, E: TypeInfo> TypeInfo for Result<T, E> {
     type Identity = Self;
 
     fn type_decl(registry: &mut Registry) -> TypeDecl {
-        TypeDecl::Named {
-            name: "Result".into(),
-            generics: vec![T::type_decl(registry), E::type_decl(registry)],
-        }
+        TypeDecl::result(T::type_decl(registry), E::type_decl(registry))
     }
 }
 
@@ -259,7 +248,7 @@ impl<T: TypeInfo> TypeInfo for PhantomData<T> {
 
     fn type_decl(registry: &mut Registry) -> TypeDecl {
         let generics = vec![T::type_decl(registry)];
-        registry.register_named_type(Self::META, "PhantomData".into(), generics, |_registry| {})
+        registry.register_named_type(Self::META, "PhantomData", generics)
     }
 
     fn type_def(_registry: &mut Registry) -> Option<Type> {
@@ -278,14 +267,11 @@ impl<T: TypeInfo> TypeInfo for Range<T> {
 
     fn type_decl(registry: &mut Registry) -> TypeDecl {
         let generics = vec![T::type_decl(registry)];
-        registry.register_named_type(Self::META, "Range".into(), generics, |_registry| {})
+        registry.register_named_type(Self::META, "Range", generics)
     }
 
     fn type_def(_registry: &mut Registry) -> Option<Type> {
-        let t = TypeDecl::Named {
-            name: "T".into(),
-            generics: Vec::new(),
-        };
+        let t = TypeDecl::generic("T");
         Some(
             TypeBuilder::new()
                 .name("Range")
@@ -305,19 +291,11 @@ impl<T: TypeInfo> TypeInfo for RangeInclusive<T> {
 
     fn type_decl(registry: &mut Registry) -> TypeDecl {
         let generics = vec![T::type_decl(registry)];
-        registry.register_named_type(
-            Self::META,
-            "RangeInclusive".into(),
-            generics,
-            |_registry| {},
-        )
+        registry.register_named_type(Self::META, "RangeInclusive", generics)
     }
 
     fn type_def(_registry: &mut Registry) -> Option<Type> {
-        let t = TypeDecl::Named {
-            name: "T".into(),
-            generics: Vec::new(),
-        };
+        let t = TypeDecl::generic("T");
         Some(
             TypeBuilder::new()
                 .name("RangeInclusive")
@@ -336,7 +314,7 @@ impl TypeInfo for Duration {
     type Identity = Self;
 
     fn type_decl(registry: &mut Registry) -> TypeDecl {
-        registry.register_named_type(Self::META, "Duration".into(), Vec::new(), |_registry| {})
+        registry.register_named_type(Self::META, "Duration", Vec::new())
     }
 
     fn type_def(_registry: &mut Registry) -> Option<Type> {
@@ -398,12 +376,7 @@ mod g_impls {
         type Identity = Self;
 
         fn type_decl(registry: &mut Registry) -> TypeDecl {
-            registry.register_named_type(
-                Self::META,
-                "NonZeroU256".into(),
-                Vec::new(),
-                |_registry| {},
-            )
+            registry.register_named_type(Self::META, "NonZeroU256", Vec::new())
         }
 
         fn type_def(_registry: &mut Registry) -> Option<Type> {

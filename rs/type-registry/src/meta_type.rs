@@ -37,12 +37,12 @@ impl MetaType {
         (self.fn_type_decl)(registry)
     }
 
-    /// Produces the stored nominal definition for the represented type, if any.
+    /// Produces the stored named definition for the represented type, if any.
     pub fn type_def(&self, registry: &mut Registry) -> Option<Type> {
         (self.fn_type_def)(registry)
     }
 
-    /// Returns the module path associated with the represented nominal type.
+    /// Returns the module path associated with the represented named type.
     pub fn module_path(&self) -> &'static str {
         (self.fn_module_path)()
     }

@@ -32,7 +32,7 @@ where
             <U as sails_rs::type_info::TypeInfo>::type_decl(registry),
         ];
         registry
-            .register_named_type(
+            .register_named_type_with_dependencies(
                 <Self as sails_rs::type_info::TypeInfo>::META,
                 base_name,
                 generics,
@@ -80,41 +80,37 @@ where
             composite
                 .field("next")
                 .doc("Recursive field")
-                .ty(sails_rs::type_info::ast::TypeDecl::Named {
-                    name: sails_rs::type_info::alloc::string::String::from("Option"),
-                    generics: sails_rs::type_info::alloc::vec![
-                        {
-                            if let ::core::option::Option::Some(__registered) = registry
-                                .get_registered::<Container<T, U, SIZE>>()
+                .ty(
+                    sails_rs::type_info::ast::TypeDecl::named_with_generics(
+                        "Option",
+                        sails_rs::type_info::alloc::vec![
                             {
-                                let __name = registry
-                                    .get_type(__registered.type_ref)
-                                    .expect("registry entry exists")
-                                    .name
-                                    .clone();
-                                sails_rs::type_info::ast::TypeDecl::Named {
-                                    name: __name,
-                                    generics: sails_rs::type_info::alloc::vec![
-                                        sails_rs::type_info::ast::TypeDecl::Named {
-                                            name: sails_rs::type_info::alloc::string::String::from("T"),
-                                            generics: sails_rs::type_info::alloc::vec::Vec::new(),
-                                        },
-                                        sails_rs::type_info::ast::TypeDecl::Named {
-                                            name: sails_rs::type_info::alloc::string::String::from("U"),
-                                            generics: sails_rs::type_info::alloc::vec::Vec::new(),
-                                        },
-                                    ],
+                                if let ::core::option::Option::Some(__registered) = registry
+                                    .get_registered::<Container<T, U, SIZE>>()
+                                {
+                                    let __name = registry
+                                        .get_type(__registered.type_ref)
+                                        .expect("registry entry exists")
+                                        .name
+                                        .clone();
+                                    sails_rs::type_info::ast::TypeDecl::named_with_generics(
+                                        __name,
+                                        sails_rs::type_info::alloc::vec![
+                                            sails_rs::type_info::ast::TypeDecl::generic("T"),
+                                            sails_rs::type_info::ast::TypeDecl::generic("U"),
+                                        ],
+                                    )
+                                } else {
+                                    <Container<
+                                        T,
+                                        U,
+                                        SIZE,
+                                    > as sails_rs::type_info::TypeInfo>::type_decl(registry)
                                 }
-                            } else {
-                                <Container<
-                                    T,
-                                    U,
-                                    SIZE,
-                                > as sails_rs::type_info::TypeInfo>::type_decl(registry)
-                            }
-                        },
-                    ],
-                })
+                            },
+                        ],
+                    ),
+                )
                 .field("data")
                 .doc("Field with many annotations")
                 .annotate("indexed")
@@ -123,10 +119,9 @@ where
                 .annotate("range")
                 .value("0..100")
                 .ty(sails_rs::type_info::ast::TypeDecl::Array {
-                    item: sails_rs::type_info::alloc::boxed::Box::new(sails_rs::type_info::ast::TypeDecl::Named {
-                        name: sails_rs::type_info::alloc::string::String::from("T"),
-                        generics: sails_rs::type_info::alloc::vec::Vec::new(),
-                    }),
+                    item: sails_rs::type_info::alloc::boxed::Box::new(
+                        sails_rs::type_info::ast::TypeDecl::generic("T"),
+                    ),
                     len: (SIZE) as u32,
                 })
                 .field("mapped")
@@ -136,10 +131,7 @@ where
                             sails_rs::type_info::ast::TypeDecl::Primitive(
                                 sails_rs::type_info::ast::PrimitiveType::String,
                             ),
-                            sails_rs::type_info::ast::TypeDecl::Named {
-                                name: sails_rs::type_info::alloc::string::String::from("U"),
-                                generics: sails_rs::type_info::alloc::vec::Vec::new(),
-                            },
+                            sails_rs::type_info::ast::TypeDecl::generic("U"),
                         ],
                     }),
                 })

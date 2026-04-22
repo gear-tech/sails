@@ -62,7 +62,7 @@ fn mixed_generics_share_one_const_suffixed_def() {
 }
 
 #[test]
-fn nested_nominal_fields_register_concrete_dependencies_and_store_abstract_decl() {
+fn nested_named_fields_register_concrete_dependencies_and_store_abstract_decl() {
     #[allow(dead_code)]
     #[derive(TypeInfo)]
     struct Node<T> {
@@ -142,7 +142,7 @@ mod right {
 }
 
 #[test]
-fn nested_nominal_field_uses_registry_unique_name() {
+fn nested_named_field_uses_registry_unique_name() {
     let mut registry = Registry::new();
     let _ = <right::SharedNode<String> as TypeInfo>::type_decl(&mut registry);
     let _ = <right::SharedWrapper<String> as TypeInfo>::type_decl(&mut registry);
@@ -164,7 +164,7 @@ fn nested_nominal_field_uses_registry_unique_name() {
 }
 
 #[test]
-fn nested_const_generic_nominal_field_uses_const_suffixed_lookup() {
+fn nested_const_generic_named_field_uses_const_suffixed_lookup() {
     #[allow(dead_code)]
     #[derive(TypeInfo)]
     struct Inner<T, const N: usize>(T, [u8; N]);
@@ -189,6 +189,7 @@ fn nested_const_generic_nominal_field_uses_const_suffixed_lookup() {
     };
     assert_eq!(name, "InnerN32");
     assert_eq!(generics.len(), 1);
+    assert_eq!(generics[0], TypeDecl::generic("T"));
 }
 
 mod domain {
@@ -203,10 +204,16 @@ mod domain {
     pub struct Vec<T> {
         pub value: T,
     }
+
+    #[allow(dead_code)]
+    #[derive(sails_type_registry::TypeInfo)]
+    pub struct T {
+        pub value: u32,
+    }
 }
 
 #[test]
-fn qualified_user_paths_with_builtin_names_stay_nominal() {
+fn qualified_user_paths_with_builtin_names_stay_named() {
     #[allow(dead_code)]
     #[derive(TypeInfo)]
     struct Holder<T> {
@@ -237,6 +244,41 @@ fn qualified_user_paths_with_builtin_names_stay_nominal() {
     };
     assert_eq!(name, "Vec");
     assert_eq!(generics.len(), 1);
+    assert_eq!(generics[0], TypeDecl::generic("T"));
+}
+
+#[test]
+fn named_field_name_does_not_collide_with_type_param_name() {
+    #[allow(dead_code)]
+    #[derive(TypeInfo)]
+    struct Holder<T> {
+        named: domain::T,
+        generic: T,
+    }
+
+    let mut registry = Registry::new();
+    let _ = <domain::T as TypeInfo>::type_decl(&mut registry);
+    let _ = <Holder<domain::T> as TypeInfo>::type_decl(&mut registry);
+
+    let holder_ref = registry
+        .get_registered::<Holder<domain::T>>()
+        .unwrap()
+        .type_ref;
+    let holder = registry.get_type(holder_ref).unwrap();
+    let TypeDef::Struct(def) = &holder.def else {
+        panic!("expected struct");
+    };
+
+    let TypeDecl::Named { name, generics } = &def.fields[0].type_decl else {
+        panic!("expected named domain::T");
+    };
+    assert_eq!(name, "T");
+    assert!(generics.is_empty());
+
+    let TypeDecl::Generic { name } = &def.fields[1].type_decl else {
+        panic!("expected generic T");
+    };
+    assert_eq!(name, "T");
 }
 
 #[test]
@@ -260,7 +302,7 @@ fn declared_default_type_params_are_preserved_in_type_def() {
 }
 
 #[test]
-fn nominal_default_type_params_are_preserved_in_type_def() {
+fn named_default_type_params_are_preserved_in_type_def() {
     #[allow(dead_code)]
     #[derive(TypeInfo)]
     struct DefaultValue {

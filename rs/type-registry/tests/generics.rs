@@ -33,8 +33,8 @@ fn multiple_type_generics_are_captured_as_abstract_params() {
     let TypeDef::Struct(struct_def) = &struct_ty.def else {
         panic!("expected struct");
     };
-    assert_eq!(struct_def.fields[0].type_decl, TypeDecl::named("T1".into()));
-    assert_eq!(struct_def.fields[1].type_decl, TypeDecl::named("T2".into()));
+    assert_eq!(struct_def.fields[0].type_decl, TypeDecl::generic("T1"));
+    assert_eq!(struct_def.fields[1].type_decl, TypeDecl::generic("T2"));
 
     let enum_ref = registry
         .register_type::<MultiEnum<bool, u64, i32>>()

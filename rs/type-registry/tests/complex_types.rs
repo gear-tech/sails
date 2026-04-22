@@ -135,7 +135,7 @@ fn option_of_generic_param_stored_abstractly() {
         struct_def.fields[0].type_decl,
         TypeDecl::Named {
             name: "Option".into(),
-            generics: alloc::vec![TypeDecl::named("T".into())],
+            generics: alloc::vec![TypeDecl::generic("T")],
         }
     );
 }
@@ -165,7 +165,7 @@ fn const_generic_struct_suffixes_name_and_substitutes_length() {
     assert_eq!(
         struct_def.fields[0].type_decl,
         TypeDecl::Array {
-            item: Box::new(TypeDecl::named("T".into())),
+            item: Box::new(TypeDecl::generic("T")),
             len: 10,
         }
     );
@@ -174,7 +174,7 @@ fn const_generic_struct_suffixes_name_and_substitutes_length() {
         TypeDecl::Array {
             item: Box::new(TypeDecl::Named {
                 name: "Option".into(),
-                generics: alloc::vec![TypeDecl::named("T".into())],
+                generics: alloc::vec![TypeDecl::generic("T")],
             }),
             len: 10,
         }

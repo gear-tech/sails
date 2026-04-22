@@ -25,7 +25,7 @@ for Generics<T, N> {
             <T as ::sails_type_registry::TypeInfo>::type_decl(registry),
         ];
         registry
-            .register_named_type(
+            .register_named_type_with_dependencies(
                 <Self as ::sails_type_registry::TypeInfo>::META,
                 base_name,
                 generics,
@@ -65,46 +65,37 @@ for Generics<T, N> {
                 .doc("Nested generics")
                 .ty(::sails_type_registry::ast::TypeDecl::Slice {
                     item: ::sails_type_registry::alloc::boxed::Box::new(::sails_type_registry::ast::TypeDecl::Slice {
-                        item: ::sails_type_registry::alloc::boxed::Box::new(::sails_type_registry::ast::TypeDecl::Named {
-                            name: ::sails_type_registry::alloc::string::String::from(
-                                "T",
-                            ),
-                            generics: ::sails_type_registry::alloc::vec::Vec::new(),
-                        }),
+                        item: ::sails_type_registry::alloc::boxed::Box::new(
+                            ::sails_type_registry::ast::TypeDecl::generic("T"),
+                        ),
                     }),
                 })
                 .field("data")
                 .doc("Array with const param")
                 .ty(::sails_type_registry::ast::TypeDecl::Array {
-                    item: ::sails_type_registry::alloc::boxed::Box::new(::sails_type_registry::ast::TypeDecl::Named {
-                        name: ::sails_type_registry::alloc::string::String::from("T"),
-                        generics: ::sails_type_registry::alloc::vec::Vec::new(),
-                    }),
+                    item: ::sails_type_registry::alloc::boxed::Box::new(
+                        ::sails_type_registry::ast::TypeDecl::generic("T"),
+                    ),
                     len: (N) as u32,
                 })
                 .field("result")
                 .doc("Complex path with generics")
-                .ty(::sails_type_registry::ast::TypeDecl::Named {
-                    name: ::sails_type_registry::alloc::string::String::from("Result"),
-                    generics: ::sails_type_registry::alloc::vec![
-                        ::sails_type_registry::ast::TypeDecl::Named {
-                            name: ::sails_type_registry::alloc::string::String::from(
+                .ty(
+                    ::sails_type_registry::ast::TypeDecl::named_with_generics(
+                        "Result",
+                        ::sails_type_registry::alloc::vec![
+                            ::sails_type_registry::ast::TypeDecl::named_with_generics(
                                 "Option",
+                                ::sails_type_registry::alloc::vec![
+                                    ::sails_type_registry::ast::TypeDecl::generic("T"),
+                                ],
                             ),
-                            generics: ::sails_type_registry::alloc::vec![
-                                ::sails_type_registry::ast::TypeDecl::Named {
-                                    name: ::sails_type_registry::alloc::string::String::from(
-                                        "T",
-                                    ),
-                                    generics: ::sails_type_registry::alloc::vec::Vec::new(),
-                                },
-                            ],
-                        },
-                        ::sails_type_registry::ast::TypeDecl::Primitive(
-                            ::sails_type_registry::ast::PrimitiveType::String,
-                        ),
-                    ],
-                })
+                            ::sails_type_registry::ast::TypeDecl::Primitive(
+                                ::sails_type_registry::ast::PrimitiveType::String,
+                            ),
+                        ],
+                    ),
+                )
                 .build()
         })
     }

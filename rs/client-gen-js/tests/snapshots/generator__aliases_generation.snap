@@ -44,7 +44,7 @@ export class Aliases {
         private _programId: HexString,
         private _routeIdx: number = 0,
     ) {
-        this._typeResolver = new TypeResolver([{"name":"MyStruct","kind":"struct","fields":[{"name":"f","type":"u32"}]}, {"name":"MyU32","kind":"alias","target":"u32"}, {"name":"MyStructAlias","kind":"alias","target":{"kind":"named","name":"MyStruct"}}, {"name":"MyGeneric","type_params":[{"name":"T"}],"kind":"alias","target":{"kind":"named","name":"Result","generics":[{"kind":"named","name":"T"},"String"]}}]);
+        this._typeResolver = new TypeResolver([{"name":"MyStruct","kind":"struct","fields":[{"name":"f","type":"u32"}]}, {"name":"MyU32","kind":"alias","target":"u32"}, {"name":"MyStructAlias","kind":"alias","target":{"kind":"named","name":"MyStruct"}}, {"name":"MyGeneric","type_params":[{"name":"T"}],"kind":"alias","target":{"kind":"named","name":"Result","generics":[{"kind":"generic","name":"T"},"String"]}}]);
     }
     private get registry() {
         return this._typeResolver.registry;

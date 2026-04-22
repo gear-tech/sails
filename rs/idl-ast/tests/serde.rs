@@ -46,3 +46,13 @@ fn idl_doc() {
     assert_eq!(doc, value);
     insta::assert_snapshot!(serialized);
 }
+
+#[test]
+fn generic_type_decl_json_shape() {
+    let decl = TypeDecl::generic("T");
+    let serialized = serde_json::to_string(&decl).unwrap();
+    let value: TypeDecl = serde_json::from_str(&serialized).unwrap();
+
+    assert_eq!(serialized, r#"{"kind":"generic","name":"T"}"#);
+    assert_eq!(value, decl);
+}

@@ -100,15 +100,15 @@ pub fn enum_variants_type() -> Type {
                         fields: vec![
                             StructField {
                                 name: Some("p1".to_string()),
-                                type_decl: TypeDecl::option(TypeDecl::named("T1".to_string())),
+                                type_decl: TypeDecl::option(TypeDecl::named("T1")),
                                 docs: vec![],
                                 annotations: vec![],
                             },
                             StructField {
                                 name: Some("p2".to_string()),
                                 type_decl: TypeDecl::tuple(vec![
-                                    TypeDecl::named("T2".to_string()),
-                                    TypeDecl::named("T2".to_string()),
+                                    TypeDecl::named("T2"),
+                                    TypeDecl::named("T2"),
                                 ]),
                                 docs: vec![],
                                 annotations: vec![],
@@ -231,7 +231,7 @@ pub fn service_func() -> ServiceFunc {
             },
             FuncParam {
                 name: "p4".to_string(),
-                type_decl: TypeDecl::named("TupleStruct".to_string()),
+                type_decl: TypeDecl::named("TupleStruct"),
             },
         ],
         output: TypeDecl::tuple(vec![Primitive(String), Primitive(U32)]),
@@ -269,7 +269,7 @@ pub fn this_that_service() -> ServiceUnit {
                         },
                         StructField {
                             name: Some("p3".to_string()),
-                            type_decl: TypeDecl::named("ManyVariants".to_string()),
+                            type_decl: TypeDecl::named("ManyVariants"),
                             docs: vec![],
                             annotations: vec![],
                         },
@@ -473,7 +473,7 @@ pub fn program_unit() -> ProgramUnit {
                         },
                         StructField {
                             name: Some("p3".to_string()),
-                            type_decl: TypeDecl::named("ManyVariants".to_string()),
+                            type_decl: TypeDecl::named("ManyVariants"),
                             docs: vec![],
                             annotations: vec![],
                         },
