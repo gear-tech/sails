@@ -2,11 +2,13 @@
 
 ## Unreleased
 
-- Fixed: `decodeResult` in both `Sails` (v1) and `SailsProgram` (v2) now validates the
-  reply prefix against the expected service/method (v1) or Sails header interface_id
-  and entry_id (v2), matching the existing behavior of `decodePayload`. Passing
-  headerless or mismatched reply bytes now throws a clear error instead of silently
-  producing garbage.
+- Fixed: every decode entry point on `Sails` (v1) and `SailsProgram` (v2) now
+  validates the reply prefix. In v2 `decodeResult` now calls `_assertMatchingHeader`
+  like the other decode methods. In v1 — where `decodePayload` (function and
+  constructor), `decodeResult`, and `event.decode` all previously skipped the
+  prefix check — each now verifies the `(service, function)` / `(service, event)` /
+  constructor name prefix against the method's identity, and surfaces a single
+  consistent `Invalid prefix for …` error on both mismatched and truncated bytes.
 - Documented the `sails-js/types`, `sails-js/parser`, and `sails-js/util` subpath
   exports in the README, which re-export types from the internal `sails-js-types`,
   `sails-js-parser-idl-v2`, and `sails-js-util` packages.

@@ -4,7 +4,7 @@ import { u8aToHex } from '@polkadot/util';
 import { getScaleCodecDef } from 'sails-js-util';
 
 import { ZERO_ADDRESS } from './consts.js';
-import { getFnNamePrefix, getServiceNamePrefix } from './prefix.js';
+import { getCtorNamePrefix, getFnNamePrefix, getServiceNamePrefix } from './prefix.js';
 import { QueryBuilder } from './query-builder.js';
 import { TransactionBuilder } from './transaction-builder.js';
 import { ISailsIdlParser, ISailsProgram, ISailsService, ISailsTypeDef } from './types.js';
@@ -76,6 +76,37 @@ interface ISailsCtorFuncParams {
   /** ### Docs from the IDL file */
   readonly docs?: string;
 }
+
+const _assertMatchingServicePrefix = (
+  bytes: HexString,
+  expectedService: string,
+  expectedFn: string,
+  target: string,
+) => {
+  let actualService: string;
+  let actualFn: string;
+  try {
+    actualService = getServiceNamePrefix(bytes);
+    actualFn = getFnNamePrefix(bytes);
+  } catch {
+    throw new Error(`Invalid prefix for ${target}: cannot read service/function name`);
+  }
+  if (actualService !== expectedService || actualFn !== expectedFn) {
+    throw new Error(`Invalid prefix for ${target}: got ${actualService}.${actualFn}`);
+  }
+};
+
+const _assertMatchingCtorPrefix = (bytes: Uint8Array | string, expectedName: string, target: string) => {
+  let actual: string;
+  try {
+    actual = getCtorNamePrefix(typeof bytes === 'string' ? (bytes as HexString) : u8aToHex(bytes));
+  } catch {
+    throw new Error(`Invalid prefix for ${target}: cannot read constructor name`);
+  }
+  if (actual !== expectedName) {
+    throw new Error(`Invalid prefix for ${target}: got ${actual}`);
+  }
+};
 
 export class Sails {
   private _parser: ISailsIdlParser;
@@ -240,6 +271,7 @@ export class Sails {
           return payload.toHex();
         },
         decodePayload: <T = any>(bytes: HexString) => {
+          _assertMatchingServicePrefix(bytes, service.name, func.name, `${service.name}.${func.name}`);
           const payload = this.registry.createType(`(String, String, ${params.map((p) => p.type).join(', ')})`, bytes);
           const result = {} as Record<string, any>;
           for (const [i, param] of params.entries()) {
@@ -248,23 +280,7 @@ export class Sails {
           return result as T;
         },
         decodeResult: <T = any>(result: HexString) => {
-          let actualService: string;
-          let actualFn: string;
-          try {
-            actualService = getServiceNamePrefix(result);
-            actualFn = getFnNamePrefix(result);
-          } catch {
-            throw new Error(
-              `Invalid prefix for ${service.name}.${func.name} result: ` +
-                `cannot read service/function name`,
-            );
-          }
-          if (actualService !== service.name || actualFn !== func.name) {
-            throw new Error(
-              `Invalid prefix for ${service.name}.${func.name} result: ` +
-                `got ${actualService}.${actualFn}`,
-            );
-          }
+          _assertMatchingServicePrefix(result, service.name, func.name, `${service.name}.${func.name} result`);
           const payload = this.registry.createType(`(String, String, ${returnType})`, result);
           return payload[2].toJSON() as T;
         },
@@ -300,6 +316,7 @@ export class Sails {
           return true;
         },
         decode: (payload: HexString) => {
+          _assertMatchingServicePrefix(payload, service.name, event.name, `${service.name}.${event.name}`);
           const data = this.registry.createType(`(String, String, ${typeStr})`, payload);
           return data[2].toJSON();
         },
@@ -383,6 +400,7 @@ export class Sails {
           return payload.toHex();
         },
         decodePayload: <T = any>(bytes: Uint8Array | string) => {
+          _assertMatchingCtorPrefix(bytes, func.name, `constructor "${func.name}"`);
           const payload = this.registry.createType(`(String, ${params.map((p) => p.type).join(', ')})`, bytes);
           const result = {} as Record<string, any>;
           for (const [i, param] of params.entries()) {

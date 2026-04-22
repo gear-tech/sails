@@ -66,4 +66,28 @@ describe('Encode/Decode', () => {
       /Invalid prefix for Counter\.Add result/,
     );
   });
+
+  test('decodePayload validates service/function prefix', () => {
+    const add = sails.services.Counter.functions.Add;
+    const mismatched = sails.registry
+      .createType('(String, String)', ['WrongService', 'Add'])
+      .toHex();
+    expect(() => add.decodePayload(mismatched)).toThrow(/Invalid prefix for Counter\.Add/);
+    expect(() => add.decodePayload('0x')).toThrow(/Invalid prefix for Counter\.Add/);
+  });
+
+  test('ctor decodePayload validates constructor prefix', () => {
+    const { New } = sails.ctors;
+    const mismatched = sails.registry.createType('String', 'Default').toHex();
+    expect(() => New.decodePayload(mismatched)).toThrow(/Invalid prefix for constructor "New"/);
+    expect(() => New.decodePayload('0x')).toThrow(/Invalid prefix for constructor "New"/);
+  });
+
+  test('event decode validates service/event prefix', () => {
+    const added = sails.services.Counter.events.Added;
+    const mismatched = sails.registry
+      .createType('(String, String)', ['Counter', 'WrongEvent'])
+      .toHex();
+    expect(() => added.decode(mismatched)).toThrow(/Invalid prefix for Counter\.Added/);
+  });
 });
