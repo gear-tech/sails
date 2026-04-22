@@ -538,7 +538,7 @@ mod tests {
             &BTreeMap::new(),
             None,
         )
-        .expect_err("unresolved Generic must not hash as a nominal type");
+        .expect_err("unresolved Generic must not hash as a named type");
 
         assert_eq!(err, "generic type parameter `T` must be resolved");
     }

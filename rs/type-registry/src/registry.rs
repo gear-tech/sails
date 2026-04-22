@@ -408,6 +408,7 @@ impl Registry {
     /// This runs only in debug assertions and catches derive/implementation bugs
     /// where two concrete instantiations of the same named key disagree on the
     /// stored shared definition.
+    #[cfg(debug_assertions)]
     fn assert_compatible_named_def(
         &self,
         existing_ref: TypeRef,

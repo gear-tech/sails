@@ -9,7 +9,19 @@ const named = (name: string, generics?: TypeDecl[]): TypeDecl => ({
   generics,
 });
 
+const generic = (name: string): TypeDecl => ({
+  kind: 'generic',
+  name,
+});
+
 describe('type-resolver-v2 generics', () => {
+  test('resolves explicit generic leaves', () => {
+    const resolver = new TypeResolver([]);
+
+    expect(resolver.getTypeDeclString(generic('T'), { T: 'u32' })).toBe('u32');
+    expect(resolver.getTypeDeclString(generic('T'))).toBe('T');
+  });
+
   test('registers generic types', () => {
     const registry = new TypeRegistry();
     registry.register({
@@ -50,8 +62,8 @@ describe('type-resolver-v2 generics', () => {
         name: 'Wrapper',
         type_params: [{ name: 'T' }],
         fields: [
-          { name: 'value', type: named('T') },
-          { name: 'items', type: { kind: 'slice', item: named('T') } },
+          { name: 'value', type: generic('T') },
+          { name: 'items', type: { kind: 'slice', item: generic('T') } },
         ],
       },
       {
@@ -59,8 +71,8 @@ describe('type-resolver-v2 generics', () => {
         name: 'Pair',
         type_params: [{ name: 'T' }, { name: 'U' }],
         fields: [
-          { name: 'left', type: named('T') },
-          { name: 'right', type: named('Option', [named('U')]) },
+          { name: 'left', type: generic('T') },
+          { name: 'right', type: named('Option', [generic('U')]) },
         ],
       },
     ];
@@ -101,7 +113,7 @@ describe('type-resolver-v2 generics', () => {
         type_params: [{ name: 'T' }],
         variants: [
           { name: 'None', fields: [] },
-          { name: 'Some', fields: [{ type: named('T') }] },
+          { name: 'Some', fields: [{ type: generic('T') }] },
         ],
       },
     ];
@@ -317,7 +329,7 @@ describe('type-resolver-v2 aliases', () => {
       kind: 'alias',
       name: 'GenericAlias',
       type_params: [{ name: 'T' }],
-      target: named('Option', [named('T')]),
+      target: named('Option', [generic('T')]),
     };
 
     const resolver = new TypeResolver([aliasType]);

@@ -31,7 +31,7 @@ pub fn validate_and_post_process(doc: &mut IdlDoc) -> Result<()> {
     // 1. Program types are added to the root scope so they remain visible to all services.
     if let Some(program) = &doc.program {
         for ty in &program.types {
-            validator.add_nominal_type(&ty.name);
+            validator.add_named_type(&ty.name);
         }
         // 2. Validate the program unit (ctors, type references, field consistency).
         validator.visit_program_unit(program);
@@ -63,7 +63,7 @@ pub fn validate_and_post_process(doc: &mut IdlDoc) -> Result<()> {
 }
 
 struct Validator<'a> {
-    nominal_scopes: Vec<Vec<&'a str>>,
+    named_scopes: Vec<Vec<&'a str>>,
     generic_scopes: Vec<Vec<&'a str>>,
     errors: Vec<Error>,
 }
@@ -71,18 +71,18 @@ struct Validator<'a> {
 impl<'a> Validator<'a> {
     fn new() -> Self {
         Self {
-            nominal_scopes: vec![vec![]],
+            named_scopes: vec![vec![]],
             generic_scopes: vec![vec![]],
             errors: Vec::new(),
         }
     }
 
-    fn push_nominal_scope(&mut self) {
-        self.nominal_scopes.push(Vec::new());
+    fn push_named_scope(&mut self) {
+        self.named_scopes.push(Vec::new());
     }
 
-    fn pop_nominal_scope(&mut self) {
-        self.nominal_scopes.pop();
+    fn pop_named_scope(&mut self) {
+        self.named_scopes.pop();
     }
 
     fn push_generic_scope(&mut self) {
@@ -93,16 +93,16 @@ impl<'a> Validator<'a> {
         self.generic_scopes.pop();
     }
 
-    fn add_nominal_type(&mut self, name: &'a str) {
-        self.nominal_scopes.last_mut().unwrap().push(name);
+    fn add_named_type(&mut self, name: &'a str) {
+        self.named_scopes.last_mut().unwrap().push(name);
     }
 
     fn add_generic_type(&mut self, name: &'a str) {
         self.generic_scopes.last_mut().unwrap().push(name);
     }
 
-    fn is_nominal_type_known(&self, name: &str) -> bool {
-        ALLOWED_TYPES.contains(&name) || self.nominal_scopes.iter().any(|s| s.contains(&name))
+    fn is_named_type_known(&self, name: &str) -> bool {
+        ALLOWED_TYPES.contains(&name) || self.named_scopes.iter().any(|s| s.contains(&name))
     }
 
     fn is_generic_type_known(&self, name: &str) -> bool {
@@ -112,12 +112,12 @@ impl<'a> Validator<'a> {
 
 impl<'a> visitor::Visitor<'a> for Validator<'a> {
     fn visit_service_unit(&mut self, service: &'a ServiceUnit) {
-        self.push_nominal_scope();
+        self.push_named_scope();
         for ty in &service.types {
-            self.add_nominal_type(&ty.name);
+            self.add_named_type(&ty.name);
         }
         visitor::accept_service_unit(service, self);
-        self.pop_nominal_scope();
+        self.pop_named_scope();
     }
 
     fn visit_type(&mut self, ty: &'a Type) {
@@ -130,7 +130,7 @@ impl<'a> visitor::Visitor<'a> for Validator<'a> {
     }
 
     fn visit_named_type_decl(&mut self, name: &'a str, generics: &'a [TypeDecl]) {
-        if PrimitiveType::from_str(name).is_err() && !self.is_nominal_type_known(name) {
+        if PrimitiveType::from_str(name).is_err() && !self.is_named_type_known(name) {
             self.errors
                 .push(Error::Validation(format!("Unknown type '{name}'")));
         }
