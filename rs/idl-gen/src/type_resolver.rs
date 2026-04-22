@@ -1,13 +1,13 @@
 use super::*;
 use alloc::boxed::Box;
 use convert_case::{Case, Casing};
+use core::cmp::Reverse;
 use sails_idl_ast::{NamedParam, Type, TypeDecl, TypeDef, TypeParameter};
 use sails_type_registry::{PATH_ANNOTATION, Registry, TypeRef};
 
 #[derive(Debug, Clone)]
 pub struct TypeResolver<'a> {
     registry: &'a Registry,
-    map: BTreeMap<TypeRef, TypeDecl>,
     user_defined: BTreeMap<String, UserDefinedEntry>,
     excluded: BTreeSet<TypeRef>,
     resolved: BTreeSet<String>,
@@ -64,10 +64,32 @@ impl<'a> TypeResolver<'a> {
         TypeResolver::try_from(registry, BTreeSet::new()).unwrap()
     }
 
+    #[cfg(test)]
+    pub fn get(&mut self, key: TypeRef) -> Option<TypeDecl> {
+        let decl = self.registry.get_type_decl(key)?.clone();
+        self.resolve_type_decl_with_id(&decl, key).ok()
+    }
+
+    #[cfg(test)]
+    pub fn get_user_defined(&self, name: &str) -> Option<&UserDefinedEntry> {
+        if let Some(entry) = self.user_defined.get(name) {
+            return Some(entry);
+        }
+
+        self.user_defined
+            .iter()
+            .find(|(k, _)| {
+                k.starts_with(name) && {
+                    let rest = &k[name.len()..];
+                    rest.is_empty() || rest.parse::<u32>().is_ok()
+                }
+            })
+            .map(|(_, v)| v)
+    }
+
     pub fn try_from(registry: &'a Registry, exclude: BTreeSet<TypeRef>) -> Result<Self> {
         let mut resolver = Self {
             registry,
-            map: BTreeMap::new(),
             user_defined: BTreeMap::new(),
             excluded: exclude.clone(),
             resolved: BTreeSet::new(),
@@ -115,28 +137,6 @@ impl<'a> TypeResolver<'a> {
         vec
     }
 
-    #[cfg(test)]
-    pub fn get(&self, key: TypeRef) -> Option<&TypeDecl> {
-        self.map.get(&key)
-    }
-
-    #[cfg(test)]
-    pub fn get_user_defined(&self, name: &str) -> Option<&UserDefinedEntry> {
-        if let Some(entry) = self.user_defined.get(name) {
-            return Some(entry);
-        }
-
-        self.user_defined
-            .iter()
-            .find(|(k, _)| {
-                k.starts_with(name) && {
-                    let rest = &k[name.len()..];
-                    rest.is_empty() || rest.parse::<u32>().is_ok()
-                }
-            })
-            .map(|(_, v)| v)
-    }
-
     fn build_type_decl_map(&mut self, exclude: &BTreeSet<TypeRef>) -> Result<()> {
         let all_types: Vec<_> = self.registry.types().collect();
         let user_defined_ids: Vec<_> = all_types
@@ -153,13 +153,6 @@ impl<'a> TypeResolver<'a> {
             self.resolve_user_defined_fields(*id)?;
         }
 
-        for (id, decl) in all_types {
-            if exclude.contains(&id) {
-                continue;
-            }
-            let resolved_decl = self.resolve_type_decl_with_id(decl, id)?;
-            self.map.insert(id, resolved_decl);
-        }
         Ok(())
     }
 
@@ -182,7 +175,7 @@ impl<'a> TypeResolver<'a> {
         Ok(args)
     }
 
-    /// Recursively resolve TypeDecl with TypeRef context
+    #[cfg(test)]
     fn resolve_type_decl_with_id(
         &mut self,
         type_decl: &TypeDecl,
@@ -306,44 +299,39 @@ impl<'a> TypeResolver<'a> {
     }
 
     fn find_registered_name_for_template(&self, raw_name: &str) -> Option<String> {
-        let (path_hint, short_name) = match raw_name.rsplit_once("::") {
-            Some((p, s)) => (p, s),
-            None => ("", raw_name),
-        };
+        let (path_hint, short_name) = raw_name.rsplit_once("::").unwrap_or(("", raw_name));
         let hint_segs: Vec<&str> = path_hint.split("::").filter(|s| !s.is_empty()).collect();
 
-        let matches: Vec<_> = self
+        let matches = self
             .user_defined
             .iter()
-            .filter(|(_, entry)| entry.ty.name == short_name || entry.ty.name == raw_name)
-            .collect();
+            .filter(|(_, entry)| entry.ty.name == short_name || entry.ty.name == raw_name);
 
-        let path_filtered: Vec<_> = if hint_segs.is_empty() {
-            matches.clone()
+        let candidates: Vec<_> = if hint_segs.is_empty() {
+            matches.collect()
         } else {
             matches
-                .iter()
                 .filter(|(_, entry)| {
                     let entry_path = type_path(&entry.ty).unwrap_or_default();
                     let entry_segs: Vec<&str> =
                         entry_path.split("::").filter(|s| !s.is_empty()).collect();
-                    if hint_segs.len() > entry_segs.len() {
-                        return false;
-                    }
-                    entry_segs
-                        .iter()
-                        .rev()
-                        .zip(hint_segs.iter().rev())
-                        .all(|(a, b)| a == b)
+                    hint_segs.len() <= entry_segs.len()
+                        && entry_segs
+                            .iter()
+                            .rev()
+                            .zip(hint_segs.iter().rev())
+                            .all(|(a, b)| a == b)
                 })
-                .cloned()
                 .collect()
         };
 
-        let chosen = if !path_filtered.is_empty() {
-            path_filtered
+        let chosen = if candidates.is_empty() {
+            self.user_defined
+                .iter()
+                .filter(|(_, entry)| entry.ty.name == short_name || entry.ty.name == raw_name)
+                .collect()
         } else {
-            matches
+            candidates
         };
 
         chosen
@@ -352,11 +340,11 @@ impl<'a> TypeResolver<'a> {
                 (
                     (!raw_name.ends_with(registered_name.as_str())) as u8,
                     (*registered_name != raw_name) as u8,
-                    usize::MAX - registered_name.len(),
+                    Reverse(registered_name.len()),
                     (*registered_name).clone(),
                 )
             })
-            .map(|(registered_name, _)| (*registered_name).clone())
+            .map(|(registered_name, _)| registered_name.clone())
     }
 
     fn register_user_defined(&mut self, type_ref: TypeRef) -> Result<String> {
@@ -692,14 +680,14 @@ mod tests {
         let h256_id = registry.register_type::<gprimitives::H256>();
         let h256_as_generic_param_id = registry.register_type::<GenericStruct<gprimitives::H256>>();
 
-        let resolver = TypeResolver::from_registry(&registry);
+        let mut resolver = TypeResolver::from_registry(&registry);
 
         let h256_decl = resolver.get(h256_id).unwrap();
-        assert_eq!(*h256_decl, TypeDecl::Primitive(PrimitiveType::H256));
+        assert_eq!(h256_decl, TypeDecl::Primitive(PrimitiveType::H256));
 
         let generic_struct_decl = resolver.get(h256_as_generic_param_id).unwrap();
         assert_eq!(
-            *generic_struct_decl,
+            generic_struct_decl,
             TypeDecl::Named {
                 name: "GenericStruct".to_string(),
                 generics: vec![TypeDecl::Primitive(PrimitiveType::H256)],
@@ -714,7 +702,7 @@ mod tests {
         let mut registry = Registry::new();
         let u32_struct_id = registry.register_type::<GenericStruct<u32>>();
         let string_struct_id = registry.register_type::<GenericStruct<String>>();
-        let resolver = TypeResolver::from_registry(&registry);
+        let mut resolver = TypeResolver::from_registry(&registry);
 
         let u32_struct = resolver.get(u32_struct_id).unwrap();
         assert_eq!(u32_struct.to_string(), "GenericStruct<u32>");
@@ -728,7 +716,7 @@ mod tests {
         let mut registry = Registry::new();
         let u32_string_enum_id = registry.register_type::<GenericEnum<u32, String>>();
         let bool_u32_enum_id = registry.register_type::<GenericEnum<bool, u32>>();
-        let resolver = TypeResolver::from_registry(&registry);
+        let mut resolver = TypeResolver::from_registry(&registry);
 
         let u32_string_enum = resolver.get(u32_string_enum_id).unwrap();
         assert_eq!(u32_string_enum.to_string(), "GenericEnum<u32, String>");
@@ -742,7 +730,7 @@ mod tests {
         let mut registry = Registry::new();
         let u32_array_id = registry.register_type::<[u32; 10]>();
         let as_generic_param_id = registry.register_type::<GenericStruct<[u32; 10]>>();
-        let resolver = TypeResolver::from_registry(&registry);
+        let mut resolver = TypeResolver::from_registry(&registry);
 
         let u32_array = resolver.get(u32_array_id).unwrap();
         assert_eq!(u32_array.to_string(), "[u32; 10]");
@@ -755,7 +743,7 @@ mod tests {
         let mut registry = Registry::new();
         let u32_vector_id = registry.register_type::<Vec<u32>>();
         let as_generic_param_id = registry.register_type::<GenericStruct<Vec<u32>>>();
-        let resolver = TypeResolver::from_registry(&registry);
+        let mut resolver = TypeResolver::from_registry(&registry);
 
         let u32_vector = resolver.get(u32_vector_id).unwrap();
         assert_eq!(u32_vector.to_string(), "[u32]");
@@ -768,7 +756,7 @@ mod tests {
         let mut registry = Registry::new();
         let u32_result_id = registry.register_type::<Result<u32, String>>();
         let as_generic_param_id = registry.register_type::<GenericStruct<Result<u32, String>>>();
-        let resolver = TypeResolver::from_registry(&registry);
+        let mut resolver = TypeResolver::from_registry(&registry);
 
         let u32_result = resolver.get(u32_result_id).unwrap();
         assert_eq!(u32_result.to_string(), "Result<u32, String>");
@@ -784,7 +772,7 @@ mod tests {
         let mut registry = Registry::new();
         let u32_option_id = registry.register_type::<Option<u32>>();
         let as_generic_param_id = registry.register_type::<GenericStruct<Option<u32>>>();
-        let resolver = TypeResolver::from_registry(&registry);
+        let mut resolver = TypeResolver::from_registry(&registry);
 
         let u32_option = resolver.get(u32_option_id).unwrap();
         assert_eq!(u32_option.to_string(), "Option<u32>");
@@ -797,7 +785,7 @@ mod tests {
         let mut registry = Registry::new();
         let u32_str_tuple_id = registry.register_type::<(u32, String)>();
         let as_generic_param_id = registry.register_type::<GenericStruct<(u32, String)>>();
-        let resolver = TypeResolver::from_registry(&registry);
+        let mut resolver = TypeResolver::from_registry(&registry);
 
         let u32_str_tuple = resolver.get(u32_str_tuple_id).unwrap();
         assert_eq!(u32_str_tuple.to_string(), "(u32, String)");
@@ -810,7 +798,7 @@ mod tests {
         let mut registry = Registry::new();
         let btree_map_id = registry.register_type::<BTreeMap<u32, String>>();
         let as_generic_param_id = registry.register_type::<GenericStruct<BTreeMap<u32, String>>>();
-        let resolver = TypeResolver::from_registry(&registry);
+        let mut resolver = TypeResolver::from_registry(&registry);
 
         let btree_map = resolver.get(btree_map_id).unwrap();
         assert_eq!(btree_map.to_string(), "[(u32, String)]");
@@ -826,7 +814,7 @@ mod tests {
         let mut registry = Registry::new();
         let id = registry.register_type::<ManyVariants>();
         let generic_id = registry.register_type::<GenericStruct<ManyVariants>>();
-        let resolver = TypeResolver::from_registry(&registry);
+        let mut resolver = TypeResolver::from_registry(&registry);
 
         let ty = resolver.get(id).unwrap();
         assert_eq!(ty.to_string(), "ManyVariants");
@@ -847,7 +835,7 @@ mod tests {
         let mut registry = Registry::new();
         let id = registry.register_type::<Test>();
         let generic_id = registry.register_type::<GenericStruct<Test>>();
-        let resolver = TypeResolver::from_registry(&registry);
+        let mut resolver = TypeResolver::from_registry(&registry);
 
         let ty = resolver.get(id).unwrap();
         assert_eq!(
@@ -867,7 +855,7 @@ mod tests {
             let mut registry = Registry::new();
             let id = registry.register_type::<$primitive>();
             let generic_id = registry.register_type::<GenericStruct<$primitive>>();
-            let resolver = TypeResolver::from_registry(&registry);
+            let mut resolver = TypeResolver::from_registry(&registry);
 
             let ty = resolver.get(id).unwrap();
             assert_eq!(ty.to_string(), stringify!($primitive));
@@ -921,7 +909,7 @@ mod tests {
         let mut registry = Registry::new();
         let t1_id = registry.register_type::<mod_1::T1>();
         let t2_id = registry.register_type::<mod_2::T1>();
-        let resolver = TypeResolver::from_registry(&registry);
+        let mut resolver = TypeResolver::from_registry(&registry);
 
         let t1_name = resolver.get(t1_id).unwrap().to_string();
         assert_eq!(t1_name, "T1");
@@ -935,7 +923,7 @@ mod tests {
         let mut registry = Registry::new();
         let t1_id = registry.register_type::<mod_1::mod_2::T2>();
         let t2_id = registry.register_type::<mod_2::T2>();
-        let resolver = TypeResolver::from_registry(&registry);
+        let mut resolver = TypeResolver::from_registry(&registry);
 
         let t1_name = resolver.get(t1_id).unwrap().to_string();
         assert_eq!(t1_name, "T2");
@@ -952,7 +940,7 @@ mod tests {
         let n32_id = registry.register_type::<GenericConstStruct<32, 8, u8>>();
         let n256_id = registry.register_type::<GenericConstStruct<256, 832, u8>>();
         let n32u256_id = registry.register_type::<GenericConstStruct<32, 8, gprimitives::U256>>();
-        let resolver = TypeResolver::from_registry(&registry);
+        let mut resolver = TypeResolver::from_registry(&registry);
 
         let n8_name = resolver.get(n8_id).unwrap().to_string();
         let n8_name_2 = resolver.get(n8_id_2).unwrap().to_string();
@@ -1087,21 +1075,20 @@ mod tests {
         let genericless_variantless_enum_id =
             registry.register_type::<GenericlessVariantlessEnum>();
 
-        let resolver = TypeResolver::from_registry(&registry);
+        let mut resolver = TypeResolver::from_registry(&registry);
 
         // Check main types
         assert_eq!(
             resolver.get(struct_id).unwrap().to_string(),
             "SimpleOneGenericStruct<u32>"
         );
-        let struct_generic = resolver
-            .get_user_defined("SimpleOneGenericStruct")
-            .expect("struct generic must exist");
-
         assert_eq!(
             resolver.get(enum_id).unwrap().to_string(),
             "SimpleOneGenericEnum<u32>"
         );
+        let struct_generic = resolver
+            .get_user_defined("SimpleOneGenericStruct")
+            .expect("struct generic must exist");
         let enum_generic = resolver
             .get_user_defined("SimpleOneGenericEnum")
             .expect("enum generic must exist");
@@ -1406,7 +1393,7 @@ mod tests {
         let struct_id = registry.register_type::<ComplexOneGenericStruct<bool>>();
         let enum_id = registry.register_type::<ComplexOneGenericEnum<bool>>();
 
-        let resolver = TypeResolver::from_registry(&registry);
+        let mut resolver = TypeResolver::from_registry(&registry);
 
         // Check top level resolved names
         let struct_complex = resolver.get(struct_id).unwrap();
@@ -1577,7 +1564,7 @@ mod tests {
         let mut registry = Registry::new();
         let struct_id = registry.register_type::<MultiGenStruct<u32, String, H256>>();
         let enum_id = registry.register_type::<MultiGenEnum<u32, String, H256>>();
-        let resolver = TypeResolver::from_registry(&registry);
+        let mut resolver = TypeResolver::from_registry(&registry);
 
         assert_eq!(
             resolver.get(struct_id).unwrap().to_string(),
@@ -1797,7 +1784,7 @@ mod tests {
         // Register ConstGenericEnum
         let enum_n8_bool_id = registry.register_type::<ConstGenericEnum<8, bool>>();
 
-        let resolver = TypeResolver::from_registry(&registry);
+        let mut resolver = TypeResolver::from_registry(&registry);
 
         // Check ConstGenericStruct with N=8, T=u32
         let struct_n8_u32_decl = resolver.get(struct_n8_u32_id).unwrap().to_string();
@@ -1819,7 +1806,7 @@ mod tests {
         else {
             panic!("Expected named type")
         };
-        let struct_n8_u32 = resolver.get_user_defined(struct_n8_u32_name).unwrap();
+        let struct_n8_u32 = resolver.get_user_defined(&struct_n8_u32_name).unwrap();
         let field_type_names: Vec<_> = struct_n8_u32
             .meta_fields()
             .iter()
@@ -1840,7 +1827,7 @@ mod tests {
         else {
             panic!("Expected named type")
         };
-        let two_const_generic = resolver.get_user_defined(two_const_name).unwrap();
+        let two_const_generic = resolver.get_user_defined(&two_const_name).unwrap();
         let field_type_names: Vec<_> = two_const_generic
             .meta_fields()
             .iter()
@@ -1867,7 +1854,7 @@ mod tests {
         else {
             panic!("Expected named type")
         };
-        let enum_generic = resolver.get_user_defined(enum_n8_bool_name).unwrap();
+        let enum_generic = resolver.get_user_defined(&enum_n8_bool_name).unwrap();
         let field_type_names: Vec<_> = enum_generic
             .meta_fields()
             .iter()
@@ -1894,12 +1881,12 @@ mod tests {
         let mut registry = Registry::new();
         let recursive_id = registry.register_type::<Recursive<u32>>();
 
-        let resolver = TypeResolver::from_registry(&registry);
+        let mut resolver = TypeResolver::from_registry(&registry);
 
         let TypeDecl::Named { name, .. } = resolver.get(recursive_id).unwrap() else {
             panic!("Expected named type")
         };
-        let recursive = resolver.get_user_defined(name).unwrap();
+        let recursive = resolver.get_user_defined(&name).unwrap();
 
         let next_ty = recursive
             .meta_fields()
@@ -1930,12 +1917,12 @@ mod tests {
         let mut registry = Registry::new();
         let holder_id = registry.register_type::<Holder<u32, 16>>();
 
-        let resolver = TypeResolver::from_registry(&registry);
+        let mut resolver = TypeResolver::from_registry(&registry);
 
         let TypeDecl::Named { name, .. } = resolver.get(holder_id).unwrap() else {
             panic!("Expected named type")
         };
-        let holder = resolver.get_user_defined(name).unwrap();
+        let holder = resolver.get_user_defined(&name).unwrap();
 
         let inner_ty = holder
             .meta_fields()
@@ -2011,7 +1998,7 @@ mod tests {
         let mut registry = Registry::new();
         let struct_id = registry.register_type::<TestStruct<u32, bool>>();
 
-        let resolver = TypeResolver::from_registry(&registry);
+        let mut resolver = TypeResolver::from_registry(&registry);
 
         // Check main type
         assert_eq!(
@@ -2163,7 +2150,7 @@ mod tests {
         let struct_id = registry.register_type::<ReuseTestStruct<u64, H256>>();
         let enum_id = registry.register_type::<ReuseTestEnum<u64, H256>>();
 
-        let resolver = TypeResolver::from_registry(&registry);
+        let mut resolver = TypeResolver::from_registry(&registry);
 
         assert_eq!(
             resolver.get(struct_id).unwrap().to_string(),
@@ -2282,7 +2269,7 @@ mod tests {
         let mut registry = Registry::new();
         let const_id = registry.register_type::<GenericConstStruct<8, 12, u8>>();
         let literal_id = registry.register_type::<GenericConstStructN8O12>();
-        let resolver = TypeResolver::from_registry(&registry);
+        let mut resolver = TypeResolver::from_registry(&registry);
 
         let const_name = resolver.get(const_id).unwrap().to_string();
         let literal_name = resolver.get(literal_id).unwrap().to_string();
@@ -2301,7 +2288,7 @@ mod tests {
         let a_id = registry.register_type::<GenericConstStruct<8, 12, u32>>();
         let b_id = registry.register_type::<GenericConstStruct<16, 12, u32>>();
         let c_id = registry.register_type::<GenericConstStruct<8, 12, u64>>();
-        let resolver = TypeResolver::from_registry(&registry);
+        let mut resolver = TypeResolver::from_registry(&registry);
 
         let a = resolver.get(a_id).unwrap().to_string();
         let b = resolver.get(b_id).unwrap().to_string();
