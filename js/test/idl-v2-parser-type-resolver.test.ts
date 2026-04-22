@@ -364,6 +364,16 @@ describe('v2 decodeResult header validation', () => {
     }
   `;
 
+  test('decodes result when header matches the expected method', () => {
+    const program = new SailsProgram(parser.parse(idl));
+    const add = program.services.Counter.functions.Add;
+    // Extract Add's valid 16-byte header from a request payload, then build a reply
+    // with the same header followed by a u32 return value.
+    const addHeader = hexToU8a(add.encodePayload(42)).slice(0, 16);
+    const reply = program.registry.createType('([u8; 16], u32)', [addHeader, 99]).toHex();
+    expect(add.decodeResult(reply)).toBe(99);
+  });
+
   test('throws when result bytes have no valid Sails header', () => {
     const program = new SailsProgram(parser.parse(idl));
     const add = program.services.Counter.functions.Add;
