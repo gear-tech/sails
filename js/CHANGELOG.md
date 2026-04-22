@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## Unreleased
+
+- Fixed: `decodeResult` in both `Sails` (v1) and `SailsProgram` (v2) now validates the
+  reply prefix against the expected service/method (v1) or Sails header interface_id
+  and entry_id (v2), matching the existing behavior of `decodePayload`. Passing
+  headerless or mismatched reply bytes now throws a clear error instead of silently
+  producing garbage.
+- Documented the `sails-js/types`, `sails-js/parser`, and `sails-js/util` subpath
+  exports in the README, which re-export types from the internal `sails-js-types`,
+  `sails-js-parser-idl-v2`, and `sails-js-util` packages.
+
 ## 0.5.1
 
 - Fixed: generation correct TransactionBuilder constructor calls (https://github.com/gear-tech/sails/pull/1070).

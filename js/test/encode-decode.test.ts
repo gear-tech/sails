@@ -38,4 +38,19 @@ describe('Encode/Decode', () => {
     expect(getServiceNamePrefix(walkEncoded)).toBe('Dog');
     expect(getFunctionNamePrefix(walkEncoded)).toBe('Walk');
   });
+
+  test('decodeResult validates service/function prefix', () => {
+    const add = sails.services.Counter.functions.Add;
+    const validReply = sails.registry
+      .createType('(String, String, u32)', ['Counter', 'Add', 99])
+      .toHex();
+    expect(add.decodeResult(validReply)).toBe(99);
+
+    const mismatchedReply = sails.registry
+      .createType('(String, String, u32)', ['WrongService', 'Add', 99])
+      .toHex();
+    expect(() => add.decodeResult(mismatchedReply)).toThrow(
+      'Invalid prefix for Counter.Add result',
+    );
+  });
 });

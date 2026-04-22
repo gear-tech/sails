@@ -248,6 +248,14 @@ export class Sails {
           return result as T;
         },
         decodeResult: <T = any>(result: HexString) => {
+          const actualService = getServiceNamePrefix(result);
+          const actualFn = getFnNamePrefix(result);
+          if (actualService !== service.name || actualFn !== func.name) {
+            throw new Error(
+              `Invalid prefix for ${service.name}.${func.name} result: ` +
+                `got ${actualService}.${actualFn}`,
+            );
+          }
           const payload = this.registry.createType(`(String, String, ${returnType})`, result);
           return payload[2].toJSON() as T;
         },
