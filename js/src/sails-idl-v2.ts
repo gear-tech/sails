@@ -2,6 +2,7 @@ import { GearApi, HexString, UserMessageSent } from '@gear-js/api';
 import { u8aToHex, u8aToU8a } from '@polkadot/util';
 
 import type {
+  Type,
   TypeDecl,
   IIdlDoc,
   IServiceExpo,
@@ -141,7 +142,7 @@ export class SailsProgram {
   constructor(doc: IIdlDoc) {
     this._doc = doc;
     if (this._doc.program) {
-      this._typeResolver = new TypeResolver(this._doc.program.types);
+      this._typeResolver = new TypeResolver(this._doc.program.types ?? []);
     }
     this._services = this._initServices();
   }
@@ -215,9 +216,29 @@ export class SailsProgram {
         this._programId,
         expo.route_idx,
         this._resolveServiceUnit,
+        program.types ?? [],
       );
     }
     return services;
+  }
+
+  /**
+   * Resolve a `TypeDecl` to its user-type definition in the scope of a named service.
+   * Service-local types shadow program-level types; program-level types are visible to
+   * every service. Returns `undefined` when the service doesn't exist, or the `TypeDecl`
+   * isn't a named user type.
+   *
+   * Looks up the AST directly (does not build a `SailsService` or `TypeResolver`) so it
+   * is safe to call in tight loops while walking large IDL trees.
+   */
+  resolveInService(serviceName: string, typeDecl: TypeDecl): Type | undefined {
+    if (typeof typeDecl === 'string' || typeDecl.kind !== 'named') return undefined;
+    const serviceUnit = this._doc.services?.find((s) => s.name === serviceName);
+    if (!serviceUnit) return undefined;
+    return (
+      serviceUnit.types?.find((t) => t.name === typeDecl.name) ??
+      this._doc.program?.types?.find((t) => t.name === typeDecl.name)
+    );
   }
 
   /** #### Constructor functions with arguments from the parsed IDL */
@@ -332,6 +353,7 @@ export class SailsService implements ISailsService {
   private _typeResolver: TypeResolver;
   private _api?: GearApi;
   private _routeIdx: number;
+  private _ambientTypes: Type[] = [];
 
   private _resolveServiceUnit?: (ident: IServiceIdent) => IServiceUnit | undefined;
 
@@ -341,12 +363,14 @@ export class SailsService implements ISailsService {
     programId?: HexString,
     routeIdx = 0,
     resolveServiceUnit?: (ident: IServiceIdent) => IServiceUnit | undefined,
+    ambientTypes: Type[] = [],
   ) {
     this._service = service;
     this._api = api;
     this._programId = programId;
     this._resolveServiceUnit = resolveServiceUnit;
-    this._typeResolver = new TypeResolver(service.types);
+    this._typeResolver = new TypeResolver(service.types ?? [], ambientTypes);
+    this._ambientTypes = ambientTypes;
     this._routeIdx = routeIdx;
 
     this.events = this._getEvents(service);
@@ -569,6 +593,7 @@ export class SailsService implements ISailsService {
         this._programId,
         this.routeIdx,
         this._resolveServiceUnit,
+        this._ambientTypes,
       );
     }
 
