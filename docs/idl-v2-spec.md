@@ -34,7 +34,7 @@ Examples
 - `@indexed`
 - `@query`
 - `@partial` (used for service subset generation)
-- `@entry-id: <number>` (explicit entry identifier)
+- `@entry_id: <number>` (explicit entry identifier)
 
 ## Comments
 
@@ -227,7 +227,7 @@ Service event is represented as an enum variant with an associated payload.
 Events in `events { ... }` are modeled as `Enum Variant` describing fields of the event,
 so the same machinery as for enums can be reused.
 
-- `@entry-id: <number>` allows overriding the automatic positional index (which starts from 0 for the first member).
+- `@entry_id: <number>` allows overriding the automatic positional index (which starts from 0 for the first member).
 
 ### Service functions
 
@@ -243,7 +243,7 @@ Service function entry
 - `output` is the return type (use `PrimitiveType::Void` for `()` / no value);
 - `throws` is an optional error type after the `throws` keyword;
 - `@query` marks read-only / query functions as defined by the spec;
-- `@entry-id: <number>` allows overriding the automatic positional index (which starts from 0 for the first member);
+- `@entry_id: <number>` allows overriding the automatic positional index (which starts from 0 for the first member);
 - may contain documentation comments and annotations.
 
 ### Partial Service Subset
@@ -256,11 +256,11 @@ Example of a partial IDL:
 @partial
 service PartialService@0x1234567890abcdef {
     events {
-        @entry-id: 2
+        @entry_id: 2
         SomethingHappened(String);
     }
     functions {
-        @entry-id: 5
+        @entry_id: 5
         SomeMethod() -> bool;
     }
 }

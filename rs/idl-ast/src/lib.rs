@@ -109,7 +109,7 @@ pub struct ProgramUnit {
 }
 
 impl ProgramUnit {
-    /// Compute `entry_id` for each constructor from `@entry-id` annotation,
+    /// Compute `entry_id` for each constructor from `@entry_id` annotation,
     /// falling back to declaration-order index.
     /// Must be called after parsing, before any reordering.
     pub fn normalize(&mut self) {
@@ -199,7 +199,7 @@ pub struct ServiceExpo {
 /// A constructor describes how to create or initialize a program instance:
 /// - `name` is the constructor identifier,
 /// - `params` are the IDL-level arguments,
-/// - `entry_id` is the on-chain entry identifier (computed from `@entry-id` annotation or declaration order),
+/// - `entry_id` is the on-chain entry identifier (computed from `@entry_id` annotation or declaration order),
 /// - may contain documentation comments and annotations.
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -279,13 +279,13 @@ pub struct ServiceUnit {
 impl ServiceUnit {
     /// Stabilize ordering for deterministic output and comparisons.
     ///
-    /// Also computes `entry_id` for each func and event from `@entry-id` annotation,
+    /// Also computes `entry_id` for each func and event from `@entry_id` annotation,
     /// falling back to declaration-order index.
     pub fn normalize(&mut self) {
         self.events.sort_by_key(|e| e.name.to_lowercase());
         self.funcs.sort_by_key(|f| f.name.to_lowercase());
         self.extends.sort_by_key(|e| e.name.to_lowercase());
-        // Assign entry_id AFTER sort: use @entry-id annotation if present,
+        // Assign entry_id AFTER sort: use @entry_id annotation if present,
         // otherwise the post-sort (alphabetical) index, which matches scale-codec ordering.
         for (idx, func) in self.funcs.iter_mut().enumerate() {
             func.entry_id = entry_id_from_annotations(&func.annotations, idx as u16);
@@ -298,7 +298,7 @@ impl ServiceUnit {
     /// Returns `true` if the service is annotated with `@partial`.
     ///
     /// Partial services describe a subset of an existing on-chain service and require
-    /// explicit `@entry-id` annotations on all functions and events.
+    /// explicit `@entry_id` annotations on all functions and events.
     pub fn is_partial(&self) -> bool {
         self.annotations.iter().any(|(k, _)| k == "partial")
     }
@@ -307,7 +307,7 @@ impl ServiceUnit {
 fn entry_id_from_annotations(annotations: &[(String, Option<String>)], fallback: u16) -> u16 {
     annotations
         .iter()
-        .find(|(k, _)| k == "entry-id")
+        .find(|(k, _)| k == "entry_id")
         .and_then(|(_, v)| v.as_ref()?.parse::<u16>().ok())
         .unwrap_or(fallback)
 }
@@ -318,7 +318,7 @@ fn entry_id_from_annotations(annotations: &[(String, Option<String>)], fallback:
 /// - `output` is the return type (use `PrimitiveType::Void` for `()` / no value);
 /// - `throws` is an optional error type after the `throws` keyword;
 /// - `is_query` marks read-only / query functions as defined by the spec;
-/// - `entry_id` is the on-chain entry identifier (computed from `@entry-id` annotation or declaration order);
+/// - `entry_id` is the on-chain entry identifier (computed from `@entry_id` annotation or declaration order);
 /// - may contain documentation comments and annotations.
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -826,7 +826,7 @@ pub struct EnumDef {
 /// - `name` is the variant identifier,
 /// - `def` is a `StructDef` describing the payload shape (unit / classic / tuple),
 /// - `entry_id` is the on-chain entry identifier; meaningful for service events,
-///   computed by [`ServiceUnit::normalize`] from `@entry-id` annotation or declaration order,
+///   computed by [`ServiceUnit::normalize`] from `@entry_id` annotation or declaration order,
 /// - `docs` and `annotations` are attached to the variant in IDL.
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(

@@ -3,14 +3,13 @@ COMMENT    = _{ "//" ~ !"/" ~ (!NEWLINE ~ ANY)* }
 
 // ---------- Lexemes ----------
 Ident        = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
-AnnKey       = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_" | "-")* }
 Number       = @{ ASCII_DIGIT+ }
 StrToEol     = @{ (!NEWLINE ~ ANY)* }
 ServiceIdent = @{ Ident ~ ("@0x" ~ HEX_DIGIT+)? }
 
 // ---------- Docs & Annotations ----------
-GlobalAnn = ${ WHITESPACE* ~ "!@" ~ AnnKey ~ (":" ~ StrToEol)? }
-LocalAnn  = ${ "@" ~ AnnKey ~ (":" ~ StrToEol)? }
+GlobalAnn = ${ WHITESPACE* ~ "!@" ~ Ident ~ (":" ~ StrToEol)? }
+LocalAnn  = ${ "@" ~ Ident ~ (":" ~ StrToEol)? }
 DocLine   = ${ "///" ~ StrToEol }
 
 DocsAndAnnotations = _{ WHITESPACE* ~ (DocLine | LocalAnn)+ }
