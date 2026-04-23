@@ -50,7 +50,7 @@ pub fn validate_and_post_process(doc: &mut IdlDoc) -> Result<()> {
         return Err(Error::Validation(error_messages.join("\n")));
     }
 
-    // 5. Validate entry_ids: check uniqueness and that @partial services have explicit @entry-id.
+    // 5. Validate entry_ids: check uniqueness and that @partial services have explicit @entry_id.
     validate_entry_ids(doc)?;
 
     // 6. Compute and assign `interface_id` for each service.
@@ -327,10 +327,10 @@ fn validate_entry_id_annotation(
     annotations: &[(String, Option<String>)],
     required: bool,
 ) -> Result<()> {
-    let Some((_, value)) = annotations.iter().find(|(k, _)| k == "entry-id") else {
+    let Some((_, value)) = annotations.iter().find(|(k, _)| k == "entry_id") else {
         if required {
             return Err(Error::Validation(format!(
-                "{owner_kind} `{owner_name}`: {item_kind} `{item_name}` is missing `@entry-id` annotation (required for @partial services)"
+                "{owner_kind} `{owner_name}`: {item_kind} `{item_name}` is missing `@entry_id` annotation (required for @partial services)"
             )));
         }
         return Ok(());
@@ -338,13 +338,13 @@ fn validate_entry_id_annotation(
 
     let Some(value) = value.as_deref() else {
         return Err(Error::Validation(format!(
-            "{owner_kind} `{owner_name}`: {item_kind} `{item_name}` has invalid `@entry-id` value (expected a u16)"
+            "{owner_kind} `{owner_name}`: {item_kind} `{item_name}` has invalid `@entry_id` value (expected a u16)"
         )));
     };
 
     value.parse::<u16>().map_err(|_| {
         Error::Validation(format!(
-            "{owner_kind} `{owner_name}`: {item_kind} `{item_name}` has invalid `@entry-id` value `{value}` (expected a u16)"
+            "{owner_kind} `{owner_name}`: {item_kind} `{item_name}` has invalid `@entry_id` value `{value}` (expected a u16)"
         ))
     })?;
 

@@ -20,7 +20,9 @@ describe('parser-v2 success', () => {
       'ValueFee',
       'Validator',
       'Chaos',
-      'Chain'
+      'Chain',
+      'BaseService',
+      'OverrideGenerics'
     ]);
   });
 

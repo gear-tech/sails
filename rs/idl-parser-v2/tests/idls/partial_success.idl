@@ -1,7 +1,7 @@
 @partial
 service Canvas@0x1234567890abcdef {
   functions {
-    @entry-id: 3
+    @entry_id: 3
     PointStatus(point: Point) -> Option<PointStatus>;
   }
   types {
