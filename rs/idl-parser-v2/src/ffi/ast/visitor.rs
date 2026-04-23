@@ -29,6 +29,8 @@ pub struct Visitor {
     >,
     pub visit_primitive_type:
         Option<unsafe extern "C" fn(context: *const (), primitive: ast::PrimitiveType)>,
+    pub visit_generic_type_decl:
+        Option<unsafe extern "C" fn(context: *const (), name_ptr: *const u8, name_len: u32)>,
     pub visit_named_type_decl: Option<
         unsafe extern "C" fn(
             context: *const (),
@@ -68,6 +70,7 @@ unsafe extern "C" {
     fn visit_array_type_decl(context: *const (), item_ty: *const TypeDecl, len: u32);
     fn visit_tuple_type_decl(context: *const (), items_ptr: *const TypeDecl, items_len: u32);
     fn visit_primitive_type(context: *const (), primitive: ast::PrimitiveType);
+    fn visit_generic_type_decl(context: *const (), name_ptr: *const u8, name_len: u32);
     fn visit_named_type_decl(
         context: *const (),
         path_ptr: *const u8,
@@ -99,6 +102,7 @@ static VISITOR: Visitor = Visitor {
     visit_array_type_decl: Some(visit_array_type_decl),
     visit_tuple_type_decl: Some(visit_tuple_type_decl),
     visit_primitive_type: Some(visit_primitive_type),
+    visit_generic_type_decl: Some(visit_generic_type_decl),
     visit_named_type_decl: Some(visit_named_type_decl),
     visit_service_func: Some(visit_service_func),
     visit_service_event: Some(visit_service_event),
@@ -220,6 +224,18 @@ impl<'a, 'ast> RawVisitor<'ast> for VisitorWrapper<'a> {
     fn visit_primitive_type(&mut self, primitive_type: ast::PrimitiveType) {
         if let Some(visit) = self.visitor.visit_primitive_type {
             unsafe { visit(self.context, primitive_type) };
+        }
+    }
+
+    fn visit_generic_type_decl(&mut self, name: &'ast str) {
+        let name_bytes = name.as_bytes().to_vec();
+        let boxed_name = name_bytes.into_boxed_slice();
+        let name_ptr = boxed_name.as_ptr();
+        let name_len = boxed_name.len() as u32;
+        self.allocations.strings.push(boxed_name);
+
+        if let Some(visit) = self.visitor.visit_generic_type_decl {
+            unsafe { visit(self.context, name_ptr, name_len) };
         }
     }
 
@@ -426,6 +442,9 @@ fn accept_type_decl_impl(
         }
         ast::TypeDecl::Tuple { types } => {
             wrapper.visit_tuple_type_decl(types);
+        }
+        ast::TypeDecl::Generic { name } => {
+            wrapper.visit_generic_type_decl(name);
         }
         ast::TypeDecl::Primitive(primitive_type) => wrapper.visit_primitive_type(*primitive_type),
         ast::TypeDecl::Named { name, generics } => {

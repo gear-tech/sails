@@ -277,6 +277,10 @@ impl<'ast> Visitor<'ast> for TypeDeclGenerator<'ast> {
         self.tokens.append(primitive_type.as_str());
     }
 
+    fn visit_generic_type_decl(&mut self, name: &'ast str) {
+        self.tokens.append(name);
+    }
+
     fn visit_named_type_decl(&mut self, name: &'ast str, generics: &'ast [ast::TypeDecl]) {
         if !self.path.is_empty() {
             self.tokens.append(self.path);

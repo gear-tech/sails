@@ -1,124 +1,131 @@
-use alloc::{borrow::Cow, boxed::Box, rc::Rc, sync::Arc};
-use core::{
-    marker::PhantomData,
-    ops::{Range, RangeInclusive},
-    time::Duration,
-};
+use alloc::borrow::Cow;
+use alloc::boxed::Box;
+use alloc::rc::Rc;
+use alloc::string::String;
+use alloc::sync::Arc;
+use alloc::vec::Vec;
+use core::marker::PhantomData;
+use core::ops::{Range, RangeInclusive};
+use core::time::Duration;
+use sails_idl_ast::{PrimitiveType, TypeDecl, TypeDef};
 use sails_type_registry::alloc;
-use sails_type_registry::{Registry, ty::TypeDef};
+use sails_type_registry::{MetaType, Registry};
 
 #[test]
-fn test_transparent_wrappers() {
+fn transparent_wrappers_inherit_inner_type_decl() {
     let mut registry = Registry::new();
 
-    // The inner type
-    let u32_ref = registry.register_type::<u32>();
+    let inner = TypeDecl::Primitive(PrimitiveType::U32);
 
-    // Box
-    let box_ref = registry.register_type::<Box<u32>>();
-    assert_eq!(box_ref, u32_ref, "Box should be transparent");
+    assert_eq!(registry.decl_for::<Box<u32>>(), inner);
+    assert_eq!(registry.decl_for::<Rc<u32>>(), inner);
+    assert_eq!(registry.decl_for::<Arc<u32>>(), inner);
+    assert_eq!(registry.decl_for::<Cow<'static, u32>>(), inner);
+    assert_eq!(registry.decl_for::<&'static u32>(), inner);
+    assert_eq!(registry.decl_for::<&'static mut u32>(), inner);
 
-    // Rc
-    let rc_ref = registry.register_type::<Rc<u32>>();
-    assert_eq!(rc_ref, u32_ref, "Rc should be transparent");
-
-    // Arc
-    let arc_ref = registry.register_type::<Arc<u32>>();
-    assert_eq!(arc_ref, u32_ref, "Arc should be transparent");
-
-    // Cow
-    let cow_ref = registry.register_type::<Cow<'static, u32>>();
-    assert_eq!(cow_ref, u32_ref, "Cow should be transparent");
-
-    // References
-    let ref_ref = registry.register_type::<&'static u32>();
-    assert_eq!(ref_ref, u32_ref, "Reference should be transparent");
-
-    let mut_ref_ref = registry.register_type::<&'static mut u32>();
-    assert_eq!(mut_ref_ref, u32_ref, "Mut reference should be transparent");
+    assert!(registry.is_empty());
 }
 
 #[test]
-fn test_phantom_data() {
+fn phantom_data_is_registered_as_unit_struct() {
     let mut registry = Registry::new();
 
-    let phantom_ref = registry.register_type::<PhantomData<u32>>();
-    let phantom_ty = registry.get_type(phantom_ref).unwrap();
+    let type_ref = registry.register_type::<PhantomData<u32>>().unwrap();
+    let ty = registry.get_type(type_ref).unwrap();
 
-    // PhantomData is represented as an empty tuple with a specific path
-    assert_eq!(phantom_ty.name, "PhantomData");
-    if let TypeDef::Tuple(fields) = &phantom_ty.def {
-        assert!(fields.is_empty());
-    } else {
-        panic!("Expected Tuple, got {:?}", phantom_ty.def);
-    }
+    assert_eq!(ty.name, "PhantomData");
+    assert_eq!(ty.type_params.len(), 1);
+    assert_eq!(ty.type_params[0].name, "T");
+
+    let TypeDef::Struct(struct_def) = &ty.def else {
+        panic!("expected struct, got {:?}", ty.def);
+    };
+    assert!(struct_def.fields.is_empty());
 }
 
 #[test]
-fn test_duration() {
+fn duration_has_named_secs_and_nanos_fields() {
     let mut registry = Registry::new();
 
-    let duration_ref = registry.register_type::<Duration>();
-    let duration_ty = registry.get_type(duration_ref).unwrap();
+    let type_ref = registry.register_type::<Duration>().unwrap();
+    let ty = registry.get_type(type_ref).unwrap();
 
-    assert_eq!(duration_ty.name, "Duration");
-    if let TypeDef::Composite(c) = &duration_ty.def {
-        assert_eq!(c.fields.len(), 2);
-        assert_eq!(c.fields[0].name.as_deref(), Some("secs"));
-        assert_eq!(c.fields[1].name.as_deref(), Some("nanos"));
-    } else {
-        panic!("Expected Composite, got {:?}", duration_ty.def);
-    }
+    assert_eq!(ty.name, "Duration");
+
+    let TypeDef::Struct(struct_def) = &ty.def else {
+        panic!("expected struct, got {:?}", ty.def);
+    };
+    assert_eq!(struct_def.fields.len(), 2);
+    assert_eq!(struct_def.fields[0].name.as_deref(), Some("secs"));
+    assert_eq!(
+        struct_def.fields[0].type_decl,
+        TypeDecl::Primitive(PrimitiveType::U64)
+    );
+    assert_eq!(struct_def.fields[1].name.as_deref(), Some("nanos"));
+    assert_eq!(
+        struct_def.fields[1].type_decl,
+        TypeDecl::Primitive(PrimitiveType::U32)
+    );
 }
 
 #[test]
-fn test_ranges() {
+fn ranges_store_abstract_start_and_end_fields() {
     let mut registry = Registry::new();
 
-    let range_ref = registry.register_type::<Range<u32>>();
+    let range_ref = registry.register_type::<Range<u32>>().unwrap();
     let range_ty = registry.get_type(range_ref).unwrap();
 
     assert_eq!(range_ty.name, "Range");
-    if let TypeDef::Composite(c) = &range_ty.def {
-        assert_eq!(c.fields.len(), 2);
-        assert_eq!(c.fields[0].name.as_deref(), Some("start"));
-        assert_eq!(c.fields[1].name.as_deref(), Some("end"));
-    } else {
-        panic!("Expected Composite, got {:?}", range_ty.def);
-    }
+    let TypeDef::Struct(struct_def) = &range_ty.def else {
+        panic!("expected struct");
+    };
+    assert_eq!(struct_def.fields.len(), 2);
+    assert_eq!(struct_def.fields[0].name.as_deref(), Some("start"));
+    assert_eq!(struct_def.fields[0].type_decl, TypeDecl::generic("T"));
+    assert_eq!(struct_def.fields[1].name.as_deref(), Some("end"));
+    assert_eq!(struct_def.fields[1].type_decl, TypeDecl::generic("T"));
 
-    let inclusive_ref = registry.register_type::<RangeInclusive<u32>>();
+    let inclusive_ref = registry.register_type::<RangeInclusive<u32>>().unwrap();
     let inclusive_ty = registry.get_type(inclusive_ref).unwrap();
-
     assert_eq!(inclusive_ty.name, "RangeInclusive");
 }
 
 #[test]
-fn test_meta_type_registration() {
-    use sails_type_registry::{MetaType, Registry};
-
+fn register_meta_type_accepts_named_handles() {
     let mut registry = Registry::new();
 
-    // Store different types in a single vector using MetaType
     let types = alloc::vec![
-        MetaType::new::<u32>(),
-        MetaType::new::<alloc::string::String>(),
-        MetaType::new::<alloc::vec::Vec<u8>>(),
-        MetaType::new::<Option<bool>>(),
+        MetaType::new::<Duration>(),
+        MetaType::new::<Range<u32>>(),
+        MetaType::new::<PhantomData<bool>>(),
     ];
 
-    // Register all of them
-    let refs: alloc::vec::Vec<_> = types
+    let refs: Vec<_> = types
         .into_iter()
         .map(|m| registry.register_meta_type(m))
         .collect();
 
-    // Verify registrations
-    assert!(registry.is_type::<u32>(refs[0]));
-    assert!(registry.is_type::<alloc::string::String>(refs[1]));
-    assert!(registry.is_type::<alloc::vec::Vec<u8>>(refs[2]));
-    assert!(registry.is_type::<Option<bool>>(refs[3]));
+    assert!(registry.is_type::<Duration>(refs[0]));
+    assert!(registry.is_type::<Range<u32>>(refs[1]));
+    assert!(registry.is_type::<PhantomData<bool>>(refs[2]));
 
-    // Check that IDs are stable
-    assert_eq!(registry.register_type::<u32>(), refs[0]);
+    assert_eq!(
+        registry.register_type::<Duration>(),
+        Some(refs[0]),
+        "IDs must stay stable across repeated registration"
+    );
+}
+
+#[test]
+fn register_type_returns_none_for_structural_declarations() {
+    let mut registry = Registry::new();
+
+    assert!(registry.register_type::<u32>().is_none());
+    assert!(registry.register_type::<String>().is_none());
+    assert!(registry.register_type::<()>().is_none());
+    assert!(registry.register_type::<Vec<u8>>().is_none());
+    assert!(registry.register_type::<Option<u32>>().is_none());
+    assert!(registry.register_type::<(u32, bool)>().is_none());
+    assert!(registry.is_empty());
 }

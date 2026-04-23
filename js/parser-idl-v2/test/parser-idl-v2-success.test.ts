@@ -46,4 +46,30 @@ describe('parser-v2 success', () => {
     // @ts-ignore
     expect(types?.[1].target).toEqual({ kind: 'named', name: 'T' });
   });
+
+  test('normalizes generic type parameters', async () => {
+    const parser = new SailsIdlParser();
+    await parser.init();
+
+    const idl = `
+      service S {
+        types {
+          struct Wrapper<T>(T, Option<T>);
+        }
+      }
+    `;
+    const doc = parser.parse(idl);
+
+    const wrapper = doc.services?.[0].types?.[0];
+    expect(wrapper?.name).toBe('Wrapper');
+    expect(wrapper?.kind).toBe('struct');
+    // @ts-ignore
+    expect(wrapper?.fields[0].type).toEqual({ kind: 'generic', name: 'T' });
+    // @ts-ignore
+    expect(wrapper?.fields[1].type).toEqual({
+      kind: 'named',
+      name: 'Option',
+      generics: [{ kind: 'generic', name: 'T' }],
+    });
+  });
 });

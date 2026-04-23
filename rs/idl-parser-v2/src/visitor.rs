@@ -106,6 +106,10 @@ pub trait Visitor<'ast> {
         }
     }
 
+    /// Visits a generic type parameter, `T`, from [ast::TypeDecl::Generic].
+    /// This is a leaf node.
+    fn visit_generic_type_decl(&mut self, _name: &'ast str) {}
+
     /// Visits a primitive type, [ast::PrimitiveType].
     /// This is a leaf node.
     fn visit_primitive_type(&mut self, _primitive_type: ast::PrimitiveType) {
@@ -244,6 +248,9 @@ pub fn accept_type_decl<'ast>(
         }
         ast::TypeDecl::Tuple { types } => {
             visitor.visit_tuple_type_decl(types);
+        }
+        ast::TypeDecl::Generic { name } => {
+            visitor.visit_generic_type_decl(name);
         }
         ast::TypeDecl::Primitive(primitive_type) => {
             visitor.visit_primitive_type(*primitive_type);

@@ -12,6 +12,7 @@ struct CountingVisitor {
     array_type_decl: u32,
     tuple_type_decl: u32,
     named_type_decl: u32,
+    generic_type_decl: u32,
     primitive_type: u32,
     service_func: u32,
     service_event: u32,
@@ -72,6 +73,10 @@ impl<'ast> Visitor<'ast> for CountingVisitor {
         for generic in generics {
             sails_idl_parser_v2::visitor::accept_type_decl(generic, self);
         }
+    }
+
+    fn visit_generic_type_decl(&mut self, _name: &'ast str) {
+        self.generic_type_decl += 1;
     }
 
     fn visit_primitive_type(&mut self, _t: ast::PrimitiveType) {
@@ -142,7 +147,8 @@ fn test_full_coverage_rust_visitor() {
     assert_eq!(visitor.slice_type_decl, 1);
     assert_eq!(visitor.array_type_decl, 1);
     assert_eq!(visitor.tuple_type_decl, 1);
-    assert_eq!(visitor.named_type_decl, 5);
+    assert_eq!(visitor.named_type_decl, 4);
+    assert_eq!(visitor.generic_type_decl, 1);
     assert_eq!(visitor.primitive_type, 22);
     assert_eq!(visitor.service_func, 3);
     assert_eq!(visitor.service_event, 3);
@@ -158,6 +164,7 @@ fn test_full_coverage_rust_visitor() {
         + visitor.array_type_decl
         + visitor.tuple_type_decl
         + visitor.named_type_decl
+        + visitor.generic_type_decl
         + visitor.primitive_type;
 
     assert_eq!(total_type_decls, 30, "Total TypeDecl nodes visited");

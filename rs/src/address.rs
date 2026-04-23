@@ -1,31 +1,18 @@
 use crate::{
     alloy_sol_types::{SolValue, Word, abi::token::WordToken, private::SolTypeValue, sol_data},
     prelude::*,
-    type_info::{Registry, Type},
 };
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Encode, Decode, Default)]
+#[derive(
+    Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Encode, Decode, Default, TypeInfo,
+)]
 #[codec(crate = crate::scale_codec)]
+#[annotate(sol_type = "address")]
 pub struct Address(pub H160);
 
 impl Address {
     pub const fn from_bytes(bytes: [u8; 20]) -> Self {
         Address(H160(bytes))
-    }
-}
-
-impl TypeInfo for Address {
-    type Identity = Self;
-    fn type_info(registry: &mut Registry) -> Type {
-        let h160_ref = registry.register_type::<H160>();
-        Type::builder()
-            .name("Address")
-            .annotate("sol_type")
-            .value("address")
-            .composite()
-            .unnamed()
-            .ty(h160_ref)
-            .build()
     }
 }
 
@@ -119,12 +106,12 @@ mod tests {
     fn type_info_has_soltype_address_annotation() {
         use sails_type_registry::Registry;
         let mut registry = Registry::new();
-        let ty = Address::type_info(&mut registry);
+        let ty = Address::type_def(&mut registry).expect("Address type is not registered");
         assert_eq!(ty.name, "Address");
         assert!(
             ty.annotations
                 .iter()
-                .any(|a| a.name == "sol_type" && a.value.as_deref() == Some("address")),
+                .any(|a| a.0 == "sol_type" && a.1.as_deref() == Some("address")),
             "expected @sol_type: address annotation on Address type"
         );
     }

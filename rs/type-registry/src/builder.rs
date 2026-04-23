@@ -1,9 +1,9 @@
-use crate::registry::TypeRef;
-use crate::ty::{
-    Annotation, Composite, Field, GenericArg, Primitive, Type, TypeDef, TypeParameter, Variant,
-    VariantDef,
-};
 use alloc::{string::String, vec::Vec};
+
+use sails_idl_ast::{
+    Annotation, EnumDef, EnumVariant, StructDef, StructField, Type, TypeDecl, TypeDef,
+    TypeParameter,
+};
 
 /// Builder for a field attached to a composite or variant parent.
 #[derive(Debug, Clone)]
@@ -19,21 +19,21 @@ pub struct VariantBuilder {
     parent: VariantDefBuilder,
     name: String,
     metadata: Metadata,
-    fields: Vec<Field>,
+    fields: Vec<StructField>,
 }
 
-/// Builder for composite type definitions.
+/// Builder for composite (struct) type definitions.
 #[derive(Debug, Clone)]
 pub struct CompositeBuilder {
     type_builder: TypeBuilder,
-    fields: Vec<Field>,
+    fields: Vec<StructField>,
 }
 
-/// Builder for variant type definitions.
+/// Builder for variant (enum) type definitions.
 #[derive(Debug, Clone)]
 pub struct VariantDefBuilder {
     type_builder: TypeBuilder,
-    variants: Vec<Variant>,
+    variants: Vec<EnumVariant>,
 }
 
 /// Builder for a single declared generic parameter.
@@ -43,10 +43,9 @@ pub struct ParamBuilder {
     param_name: String,
 }
 
-/// Entry-point builder for synthetic [`Type`] values.
+/// Entry-point builder for named [`Type`] values.
 #[derive(Debug, Clone, Default)]
 pub struct TypeBuilder {
-    module_path: String,
     name: String,
     type_params: Vec<TypeParameter>,
     metadata: Metadata,
@@ -61,15 +60,15 @@ struct Metadata {
 /// Helper trait implemented by builders that can receive fields.
 pub trait PushField: Sized {
     /// Appends a fully built field to the parent.
-    fn push_field(&mut self, field: Field);
+    fn push_field(&mut self, field: StructField);
 }
 
 impl<P: PushField> FieldBuilder<P> {
     /// Completes the field by assigning its type and returning the parent.
-    pub fn ty(mut self, ty: TypeRef) -> P {
-        self.parent.push_field(Field {
+    pub fn ty(mut self, type_decl: TypeDecl) -> P {
+        self.parent.push_field(StructField {
             name: self.name,
-            ty,
+            type_decl,
             docs: self.metadata.docs,
             annotations: self.metadata.annotations,
         });
@@ -136,9 +135,12 @@ impl VariantBuilder {
 
     /// Finishes the variant and returns to the enclosing variant builder.
     pub fn finish_variant(mut self) -> VariantDefBuilder {
-        self.parent.variants.push(Variant {
+        self.parent.variants.push(EnumVariant {
             name: self.name,
-            fields: self.fields,
+            def: StructDef {
+                fields: self.fields,
+            },
+            entry_id: 0,
             docs: self.metadata.docs,
             annotations: self.metadata.annotations,
         });
@@ -183,16 +185,16 @@ impl CompositeBuilder {
         self
     }
 
-    /// Builds the final composite [`Type`].
+    /// Builds the final named struct [`Type`].
     pub fn build(self) -> Type {
-        self.type_builder.build(TypeDef::Composite(Composite {
+        self.type_builder.build(TypeDef::Struct(StructDef {
             fields: self.fields,
         }))
     }
 }
 
 impl VariantDefBuilder {
-    /// Starts a new variant inside the enum-like definition.
+    /// Starts a new variant inside the enum definition.
     pub fn add_variant(self, name: impl Into<String>) -> VariantBuilder {
         VariantBuilder {
             parent: self,
@@ -202,29 +204,29 @@ impl VariantDefBuilder {
         }
     }
 
-    /// Builds the final variant [`Type`].
+    /// Builds the final named enum [`Type`].
     pub fn build(self) -> Type {
-        self.type_builder.build(TypeDef::Variant(VariantDef {
+        self.type_builder.build(TypeDef::Enum(EnumDef {
             variants: self.variants,
         }))
     }
 }
 
 impl ParamBuilder {
-    /// Assigns a type argument to the declared generic parameter.
-    pub fn arg(mut self, arg: TypeRef) -> TypeBuilder {
+    /// Assigns a default `TypeDecl` to the declared generic parameter.
+    pub fn default_ty(mut self, type_decl: TypeDecl) -> TypeBuilder {
         self.inner.type_params.push(TypeParameter {
             name: self.param_name,
-            arg: GenericArg::Type(arg),
+            ty: Some(type_decl),
         });
         self.inner
     }
 
-    /// Assigns a const argument to the declared generic parameter.
-    pub fn val(mut self, val: impl Into<String>) -> TypeBuilder {
+    /// Completes the parameter declaration with no default.
+    pub fn no_default(mut self) -> TypeBuilder {
         self.inner.type_params.push(TypeParameter {
             name: self.param_name,
-            arg: GenericArg::Const(val.into()),
+            ty: None,
         });
         self.inner
     }
@@ -242,18 +244,22 @@ impl TypeBuilder {
         self
     }
 
-    /// Sets the recorded module path.
-    pub fn module_path(mut self, module_path: impl Into<String>) -> Self {
-        self.module_path = module_path.into();
+    /// Declares a generic parameter with no default.
+    pub fn param(mut self, name: impl Into<String>) -> Self {
+        self.type_params.push(TypeParameter {
+            name: name.into(),
+            ty: None,
+        });
         self
     }
 
-    /// Declares a generic parameter on the type.
-    pub fn param(self, name: impl Into<String>) -> ParamBuilder {
-        ParamBuilder {
-            inner: self,
-            param_name: name.into(),
-        }
+    /// Declares a generic parameter with a default type.
+    pub fn param_with_default(mut self, name: impl Into<String>, type_decl: TypeDecl) -> Self {
+        self.type_params.push(TypeParameter {
+            name: name.into(),
+            ty: Some(type_decl),
+        });
+        self
     }
 
     /// Appends a documentation line to the type.
@@ -274,58 +280,7 @@ impl TypeBuilder {
         self
     }
 
-    /// Builds a primitive type description.
-    pub fn primitive(self, primitive: Primitive) -> Type {
-        self.build(TypeDef::Primitive(primitive))
-    }
-
-    /// Builds a Gear primitive type description.
-    #[cfg(feature = "gprimitives")]
-    pub fn gprimitive(self, gprimitive: crate::ty::GPrimitive) -> Type {
-        self.build(TypeDef::GPrimitive(gprimitive))
-    }
-
-    /// Builds a fixed-size array type description.
-    pub fn array(self, type_param: TypeRef, len: u32) -> Type {
-        self.build(TypeDef::Array { len, type_param })
-    }
-
-    /// Builds a sequence type description.
-    pub fn sequence(self, type_param: TypeRef) -> Type {
-        self.build(TypeDef::Sequence(type_param))
-    }
-
-    /// Builds a tuple type description.
-    pub fn tuple(self, elems: Vec<TypeRef>) -> Type {
-        self.build(TypeDef::Tuple(elems))
-    }
-
-    /// Builds a map type description.
-    pub fn map(self, key: TypeRef, value: TypeRef) -> Type {
-        self.build(TypeDef::Map { key, value })
-    }
-
-    /// Builds an option type description.
-    pub fn option(self, type_param: TypeRef) -> Type {
-        self.build(TypeDef::Option(type_param))
-    }
-
-    /// Builds a result type description.
-    pub fn result(self, ok: TypeRef, err: TypeRef) -> Type {
-        self.build(TypeDef::Result { ok, err })
-    }
-
-    /// Builds a generic parameter placeholder.
-    pub fn parameter(self, name: impl Into<String>) -> Type {
-        self.build(TypeDef::Parameter(name.into()))
-    }
-
-    /// Builds an applied generic type description.
-    pub fn applied(self, base: TypeRef, args: Vec<TypeRef>) -> Type {
-        self.build(TypeDef::Applied { base, args })
-    }
-
-    /// Starts building a composite type definition.
+    /// Starts building a composite (struct) type definition.
     pub fn composite(self) -> CompositeBuilder {
         CompositeBuilder {
             type_builder: self,
@@ -333,7 +288,7 @@ impl TypeBuilder {
         }
     }
 
-    /// Starts building a variant type definition.
+    /// Starts building a variant (enum) type definition.
     pub fn variant(self) -> VariantDefBuilder {
         VariantDefBuilder {
             type_builder: self,
@@ -341,9 +296,13 @@ impl TypeBuilder {
         }
     }
 
+    /// Builds a named alias type definition.
+    pub fn alias(self, target: TypeDecl) -> Type {
+        self.build(TypeDef::Alias(sails_idl_ast::AliasDef { target }))
+    }
+
     fn build(self, def: TypeDef) -> Type {
         Type {
-            module_path: self.module_path,
             name: self.name,
             type_params: self.type_params,
             def,
@@ -359,27 +318,24 @@ impl Metadata {
     }
 
     fn annotate(&mut self, name: impl Into<String>) {
-        self.annotations.push(Annotation {
-            name: name.into(),
-            value: None,
-        });
+        self.annotations.push((name.into(), None));
     }
 
     fn value(&mut self, value: impl Into<String>) {
         if let Some(ann) = self.annotations.last_mut() {
-            ann.value = Some(value.into());
+            ann.1 = Some(value.into());
         }
     }
 }
 
 impl PushField for CompositeBuilder {
-    fn push_field(&mut self, field: Field) {
+    fn push_field(&mut self, field: StructField) {
         self.fields.push(field);
     }
 }
 
 impl PushField for VariantBuilder {
-    fn push_field(&mut self, field: Field) {
+    fn push_field(&mut self, field: StructField) {
         self.fields.push(field);
     }
 }

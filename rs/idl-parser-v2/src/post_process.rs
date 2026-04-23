@@ -24,12 +24,14 @@ const ALLOWED_TYPES: &[&str] = &[
 ];
 
 pub fn validate_and_post_process(doc: &mut IdlDoc) -> Result<()> {
+    normalize_generics(doc);
+
     let mut validator = Validator::new();
 
     // 1. Program types are added to the root scope so they remain visible to all services.
     if let Some(program) = &doc.program {
         for ty in &program.types {
-            validator.add_type(&ty.name);
+            validator.add_named_type(&ty.name);
         }
         // 2. Validate the program unit (ctors, type references, field consistency).
         validator.visit_program_unit(program);
@@ -61,62 +63,88 @@ pub fn validate_and_post_process(doc: &mut IdlDoc) -> Result<()> {
 }
 
 struct Validator<'a> {
-    scopes: Vec<Vec<&'a str>>,
+    named_scopes: Vec<Vec<&'a str>>,
+    generic_scopes: Vec<Vec<&'a str>>,
     errors: Vec<Error>,
 }
 
 impl<'a> Validator<'a> {
     fn new() -> Self {
         Self {
-            scopes: vec![vec![]],
+            named_scopes: vec![vec![]],
+            generic_scopes: vec![vec![]],
             errors: Vec::new(),
         }
     }
 
-    fn push_scope(&mut self) {
-        self.scopes.push(Vec::new());
+    fn push_named_scope(&mut self) {
+        self.named_scopes.push(Vec::new());
     }
 
-    fn pop_scope(&mut self) {
-        self.scopes.pop();
+    fn pop_named_scope(&mut self) {
+        self.named_scopes.pop();
     }
 
-    fn add_type(&mut self, name: &'a str) {
-        self.scopes.last_mut().unwrap().push(name);
+    fn push_generic_scope(&mut self) {
+        self.generic_scopes.push(Vec::new());
     }
 
-    fn is_type_known(&self, name: &str) -> bool {
-        ALLOWED_TYPES.contains(&name) || self.scopes.iter().any(|s| s.contains(&name))
+    fn pop_generic_scope(&mut self) {
+        self.generic_scopes.pop();
+    }
+
+    fn add_named_type(&mut self, name: &'a str) {
+        self.named_scopes.last_mut().unwrap().push(name);
+    }
+
+    fn add_generic_type(&mut self, name: &'a str) {
+        self.generic_scopes.last_mut().unwrap().push(name);
+    }
+
+    fn is_named_type_known(&self, name: &str) -> bool {
+        ALLOWED_TYPES.contains(&name) || self.named_scopes.iter().any(|s| s.contains(&name))
+    }
+
+    fn is_generic_type_known(&self, name: &str) -> bool {
+        self.generic_scopes.iter().any(|s| s.contains(&name))
     }
 }
 
 impl<'a> visitor::Visitor<'a> for Validator<'a> {
     fn visit_service_unit(&mut self, service: &'a ServiceUnit) {
-        self.push_scope();
+        self.push_named_scope();
         for ty in &service.types {
-            self.add_type(&ty.name);
+            self.add_named_type(&ty.name);
         }
         visitor::accept_service_unit(service, self);
-        self.pop_scope();
+        self.pop_named_scope();
     }
 
     fn visit_type(&mut self, ty: &'a Type) {
-        self.push_scope();
+        self.push_generic_scope();
         for param in &ty.type_params {
-            self.add_type(&param.name);
+            self.add_generic_type(&param.name);
         }
         visitor::accept_type(ty, self);
-        self.pop_scope();
+        self.pop_generic_scope();
     }
 
     fn visit_named_type_decl(&mut self, name: &'a str, generics: &'a [TypeDecl]) {
-        if PrimitiveType::from_str(name).is_err() && !self.is_type_known(name) {
+        if PrimitiveType::from_str(name).is_err() && !self.is_named_type_known(name) {
             self.errors
                 .push(Error::Validation(format!("Unknown type '{name}'")));
         }
 
         for generic in generics {
             visitor::accept_type_decl(generic, self);
+        }
+    }
+
+    fn visit_generic_type_decl(&mut self, name: &'a str) {
+        if !self.is_generic_type_known(name) {
+            self.errors.push(Error::Validation(format!(
+                "Unknown generic type parameter '{name}'"
+            )));
         }
     }
 
@@ -136,6 +164,76 @@ impl<'a> visitor::Visitor<'a> for Validator<'a> {
         }
 
         visitor::accept_struct_def(struct_def, self);
+    }
+}
+
+fn normalize_generics(doc: &mut IdlDoc) {
+    if let Some(program) = &mut doc.program {
+        for ty in &mut program.types {
+            normalize_type_generics(ty);
+        }
+    }
+
+    for service in &mut doc.services {
+        for ty in &mut service.types {
+            normalize_type_generics(ty);
+        }
+    }
+}
+
+pub(crate) fn normalize_type_generics(ty: &mut Type) {
+    let generics = ty
+        .type_params
+        .iter()
+        .map(|param| param.name.clone())
+        .collect::<Vec<_>>();
+
+    for param in &mut ty.type_params {
+        if let Some(default) = &mut param.ty {
+            normalize_type_decl_generics(default, &generics);
+        }
+    }
+
+    match &mut ty.def {
+        TypeDef::Struct(def) => normalize_struct_def_generics(def, &generics),
+        TypeDef::Enum(def) => {
+            for variant in &mut def.variants {
+                normalize_struct_def_generics(&mut variant.def, &generics);
+            }
+        }
+        TypeDef::Alias(def) => normalize_type_decl_generics(&mut def.target, &generics),
+    }
+}
+
+fn normalize_struct_def_generics(def: &mut StructDef, generics: &[String]) {
+    for field in &mut def.fields {
+        normalize_type_decl_generics(&mut field.type_decl, generics);
+    }
+}
+
+fn normalize_type_decl_generics(type_decl: &mut TypeDecl, generics: &[String]) {
+    match type_decl {
+        TypeDecl::Slice { item } | TypeDecl::Array { item, .. } => {
+            normalize_type_decl_generics(item, generics);
+        }
+        TypeDecl::Tuple { types } => {
+            for ty in types {
+                normalize_type_decl_generics(ty, generics);
+            }
+        }
+        TypeDecl::Named {
+            name,
+            generics: args,
+        } => {
+            if args.is_empty() && generics.iter().any(|param| param == name) {
+                *type_decl = TypeDecl::Generic { name: name.clone() };
+            } else {
+                for arg in args {
+                    normalize_type_decl_generics(arg, generics);
+                }
+            }
+        }
+        TypeDecl::Generic { .. } | TypeDecl::Primitive(_) => {}
     }
 }
 
