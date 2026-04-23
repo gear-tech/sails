@@ -1,5 +1,5 @@
 
-!@sails: 1.0.0-beta.3
+!@sails: 1.0.0-beta.4
 
 service PingPongService@0x6a72968a4c62e7d7 {
     functions {
