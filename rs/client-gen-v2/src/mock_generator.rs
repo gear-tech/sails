@@ -2,6 +2,7 @@ use crate::helpers::fn_args_with_types_path;
 use convert_case::{Case, Casing};
 use genco::prelude::*;
 use rust::Tokens;
+use sails_idl_ast::codec::has_scale_codec;
 use sails_idl_parser_v2::{
     ast::{self, ServiceIdent},
     visitor::{self, Visitor},
@@ -59,6 +60,9 @@ impl<'ast> Visitor<'ast> for MockGenerator<'ast> {
     }
 
     fn visit_service_func(&mut self, func: &'ast ast::ServiceFunc) {
+        if !has_scale_codec(&func.annotations) {
+            return;
+        }
         let service_name_snake = &self.service_name.to_case(Case::Snake);
         let self_ref = if func.kind == ast::FunctionKind::Query {
             "&self"

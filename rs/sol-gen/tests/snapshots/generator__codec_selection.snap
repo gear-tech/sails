@@ -1,0 +1,69 @@
+---
+source: rs/sol-gen/tests/generator.rs
+expression: generated
+---
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.28;
+
+interface ICodecTest {
+    function codecTestBothMethod(bool _callReply, uint32 p1) external returns (bytes32 messageId);
+
+    function codecTestEthabiOnly(bool _callReply, uint32 p1) external returns (bytes32 messageId);
+
+    function codecTestPayableEthabi(bool _callReply, uint32 p1) external payable returns (bytes32 messageId);
+}
+
+contract CodecTestAbi is ICodecTest {
+    function codecTestBothMethod(bool _callReply, uint32 p1) external returns (bytes32 messageId) {}
+
+    function codecTestEthabiOnly(bool _callReply, uint32 p1) external returns (bytes32 messageId) {}
+
+    function codecTestPayableEthabi(bool _callReply, uint32 p1) external payable returns (bytes32 messageId) {}
+}
+
+interface ICodecTestCallbacks {
+    function replyOn_codecTestBothMethod(bytes32 messageId, string calldata reply) external;
+
+    function replyOn_codecTestEthabiOnly(bytes32 messageId, uint32 reply) external;
+
+    function replyOn_codecTestPayableEthabi(bytes32 messageId, uint32 reply) external;
+
+    function onErrorReply(bytes32 messageId, bytes calldata payload, bytes4 replyCode) external payable;
+}
+
+contract CodecTestCaller is ICodecTestCallbacks {
+    ICodecTest public immutable VARA_ETH_PROGRAM;
+
+    error UnauthorizedCaller();
+
+    constructor(ICodecTest _varaEthProgram) {
+        VARA_ETH_PROGRAM = _varaEthProgram;
+    }
+
+    modifier onlyVaraEthProgram() {
+        _onlyVaraEthProgram();
+        _;
+    }
+
+    function _onlyVaraEthProgram() internal view {
+        if (msg.sender != address(VARA_ETH_PROGRAM)) {
+            revert UnauthorizedCaller();
+        }
+    }
+
+    function replyOn_codecTestBothMethod(bytes32 messageId, string calldata reply) external onlyVaraEthProgram {
+        // TODO: implement this
+    }
+
+    function replyOn_codecTestEthabiOnly(bytes32 messageId, uint32 reply) external onlyVaraEthProgram {
+        // TODO: implement this
+    }
+
+    function replyOn_codecTestPayableEthabi(bytes32 messageId, uint32 reply) external onlyVaraEthProgram {
+        // TODO: implement this
+    }
+
+    function onErrorReply(bytes32 messageId, bytes calldata payload, bytes4 replyCode) external payable onlyVaraEthProgram {
+        // TODO: implement this
+    }
+}

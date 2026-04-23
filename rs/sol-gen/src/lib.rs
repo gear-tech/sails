@@ -2,7 +2,7 @@ use anyhow::{Result, anyhow};
 use convert_case::{Case, Casing};
 use handlebars::Handlebars;
 use sails_idl_parser_v2::{
-    ast::{IdlDoc, PrimitiveType, Type, TypeDecl},
+    ast::{IdlDoc, PrimitiveType, Type, TypeDecl, codec::has_ethabi_codec},
     parse_idl,
 };
 use serde::Serialize;
@@ -122,6 +122,9 @@ fn functions_from_idl(doc: &IdlDoc) -> Result<Vec<FunctionData>> {
 
     for svc in &doc.services {
         for f in &svc.funcs {
+            if !has_ethabi_codec(&f.annotations) {
+                continue;
+            }
             let mut args = Vec::new();
             for p in &f.params {
                 let arg = ArgData {

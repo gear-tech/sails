@@ -2,6 +2,7 @@
 
 extern crate alloc;
 
+pub mod codec;
 mod hash;
 mod interface_id;
 
