@@ -112,12 +112,12 @@ fn parse_annotation(p: Pair<Rule>) -> Result<Annotation> {
     let mut val = None;
     for i in p.into_inner() {
         match i.as_rule() {
-            Rule::AnnKey => key = Some(i.as_str().trim().to_string()),
+            Rule::Ident => key = Some(i.as_str().trim().to_string()),
             Rule::StrToEol => val = Some(i.as_str().trim().to_string()),
             _ => {}
         }
     }
-    let key = key.ok_or(Error::Rule("expected AnnKey".to_string()))?;
+    let key = key.ok_or(Error::Rule("expected Ident".to_string()))?;
     Ok((key, val))
 }
 

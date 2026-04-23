@@ -76,15 +76,15 @@ fn validate_invalid_entry_id_fails_for_regular_service() {
     let src = r#"
         service Canvas {
             functions {
-                @entry-id: foo
+                @entry_id: foo
                 Draw();
             }
         }
     "#;
-    let err = parse_idl(src).expect_err("Should have failed due to invalid @entry-id");
+    let err = parse_idl(src).expect_err("Should have failed due to invalid @entry_id");
     assert!(
         err.to_string().contains(
-            "service `Canvas`: function `Draw` has invalid `@entry-id` value `foo` (expected a u16)"
+            "service `Canvas`: function `Draw` has invalid `@entry_id` value `foo` (expected a u16)"
         ),
         "unexpected error: {err}"
     );
@@ -95,15 +95,15 @@ fn validate_invalid_entry_id_fails_for_constructor() {
     let src = r#"
         program Demo {
             constructors {
-                @entry-id: nope
+                @entry_id: nope
                 New();
             }
         }
     "#;
-    let err = parse_idl(src).expect_err("Should have failed due to invalid constructor @entry-id");
+    let err = parse_idl(src).expect_err("Should have failed due to invalid constructor @entry_id");
     assert!(
         err.to_string().contains(
-            "program `Demo`: constructor `New` has invalid `@entry-id` value `nope` (expected a u16)"
+            "program `Demo`: constructor `New` has invalid `@entry_id` value `nope` (expected a u16)"
         ),
         "unexpected error: {err}"
     );
