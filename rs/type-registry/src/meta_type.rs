@@ -5,16 +5,16 @@ use core::{
     hash::{Hash, Hasher},
 };
 
+use sails_idl_ast::{Type, TypeDecl};
+
 use crate::registry::{Registry, TypeInfo};
-use crate::ty::Type;
 
 /// Type-erased handle to a concrete [`TypeInfo`] implementation.
-///
-/// `MetaType` stores the type identity and the function pointer needed to
-/// produce its portable [`Type`] description inside a [`Registry`].
 #[derive(Clone, Copy)]
 pub struct MetaType {
-    fn_type_info: fn(&mut Registry) -> Type,
+    fn_type_decl: fn(&mut Registry) -> TypeDecl,
+    fn_type_def: fn(&mut Registry) -> Option<Type>,
+    fn_module_path: fn() -> &'static str,
     type_id: TypeId,
 }
 
@@ -25,19 +25,31 @@ impl MetaType {
         T: TypeInfo + ?Sized,
     {
         Self {
-            fn_type_info: T::type_info,
+            fn_type_decl: T::type_decl,
+            fn_type_def: T::type_def,
+            fn_module_path: T::module_path,
             type_id: TypeId::of::<T::Identity>(),
         }
+    }
+
+    /// Produces the use-site type declaration for the represented type.
+    pub fn type_decl(&self, registry: &mut Registry) -> TypeDecl {
+        (self.fn_type_decl)(registry)
+    }
+
+    /// Produces the stored named definition for the represented type, if any.
+    pub fn type_def(&self, registry: &mut Registry) -> Option<Type> {
+        (self.fn_type_def)(registry)
+    }
+
+    /// Returns the module path associated with the represented named type.
+    pub fn module_path(&self) -> &'static str {
+        (self.fn_module_path)()
     }
 
     /// Returns the unique identity of the represented type.
     pub const fn type_id(&self) -> TypeId {
         self.type_id
-    }
-
-    /// Produces the portable type metadata for the represented type.
-    pub fn type_info(&self, registry: &mut Registry) -> Type {
-        (self.fn_type_info)(registry)
     }
 }
 

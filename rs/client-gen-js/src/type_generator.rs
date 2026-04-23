@@ -183,6 +183,7 @@ impl TypeGenerator {
                     quote! { [$(for ty in tuple_types join (, ) => $ty)] }
                 }
             }
+            ast::TypeDecl::Generic { name } => quote! { $name },
             ast::TypeDecl::Named { name, generics } => {
                 if name == "Option" && generics.len() == 1 {
                     let ty = self.ts_type_decl(&generics[0]);

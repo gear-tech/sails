@@ -66,7 +66,13 @@ export interface IFuncParam {
 export type IServiceEvent = IEnumVariant;
 
 // Type declarations
-export type TypeDecl = PrimitiveType | ITypeDeclSlice | ITypeDeclArray | ITypeDeclTuple | ITypeDeclNamed;
+export type TypeDecl =
+  | PrimitiveType
+  | ITypeDeclSlice
+  | ITypeDeclArray
+  | ITypeDeclTuple
+  | ITypeDeclGeneric
+  | ITypeDeclNamed;
 
 export interface ITypeDeclSlice {
   kind: 'slice';
@@ -82,6 +88,11 @@ export interface ITypeDeclArray {
 export interface ITypeDeclTuple {
   kind: 'tuple';
   types: TypeDecl[];
+}
+
+export interface ITypeDeclGeneric {
+  kind: 'generic';
+  name: string;
 }
 
 export interface ITypeDeclNamed {

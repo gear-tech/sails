@@ -112,12 +112,12 @@ fn parse_annotation(p: Pair<Rule>) -> Result<Annotation> {
     let mut val = None;
     for i in p.into_inner() {
         match i.as_rule() {
-            Rule::AnnKey => key = Some(i.as_str().trim().to_string()),
+            Rule::Ident => key = Some(i.as_str().trim().to_string()),
             Rule::StrToEol => val = Some(i.as_str().trim().to_string()),
             _ => {}
         }
     }
-    let key = key.ok_or(Error::Rule("expected AnnKey".to_string()))?;
+    let key = key.ok_or(Error::Rule("expected Ident".to_string()))?;
     Ok((key, val))
 }
 
@@ -218,14 +218,16 @@ fn parse_field(p: Pair<'_, Rule>) -> Result<StructField> {
 }
 
 pub fn parse_type(p: Pair<Rule>) -> Result<Type> {
-    match p.as_rule() {
+    let mut ty = match p.as_rule() {
         Rule::StructDecl => parse_struct_type(p),
         Rule::EnumDecl => parse_enum_type(p),
         Rule::AliasDecl => parse_alias_decl(p),
         _ => Err(Error::Rule(
             "expected StructDecl | EnumDecl | AliasDecl".to_string(),
         )),
-    }
+    }?;
+    post_process::normalize_type_generics(&mut ty);
+    Ok(ty)
 }
 
 fn parse_alias_decl(p: Pair<Rule>) -> Result<Type> {
@@ -823,5 +825,23 @@ mod tests {
                 TypeDecl::Primitive(PrimitiveType::U32)
             ));
         }
+    }
+
+    #[test]
+    fn parse_type_normalizes_declared_generic_refs() {
+        const SRC: &str = r#"struct Wrapper<T> { value: T }"#;
+
+        let mut pairs = IdlParser::parse(Rule::StructDecl, SRC).expect("parse struct");
+        let ty = parse_type(pairs.next().expect("struct")).expect("parse type");
+
+        let TypeDef::Struct(def) = ty.def else {
+            panic!("expected struct");
+        };
+        assert_eq!(
+            def.fields[0].type_decl,
+            TypeDecl::Generic {
+                name: "T".to_string()
+            },
+        );
     }
 }

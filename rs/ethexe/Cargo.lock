@@ -4683,6 +4683,7 @@ version = "1.0.0-beta.3"
 dependencies = [
  "alloy-primitives",
  "gprimitives",
+ "sails-idl-ast",
  "sails-type-registry-derive",
 ]
 

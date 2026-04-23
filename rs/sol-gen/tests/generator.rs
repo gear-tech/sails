@@ -129,9 +129,45 @@ service MyService {
 "#;
 
 #[test]
-
 fn test_generate_payable_contract() {
     let contract = generate_solidity_contract(PAYABLE_IDL, "PayableContract");
+
+    assert!(
+        contract.is_ok(),
+        "Failed to generate contract: {:?}",
+        contract.err()
+    );
+    assert_snapshot!(String::from_utf8(contract.unwrap().data).unwrap());
+}
+
+const IDL_W_ADDRESS: &str = r#"
+program TokenProgram {
+    constructors {
+        New();
+    }
+    services {
+        TokenSvc: TokenSvc
+    }
+}
+
+service TokenSvc {
+    functions {
+        Transfer(from: Address, to: Address, amount: u128) -> bool;
+        BalanceOf(owner: Address) -> u128;
+        Batch(recipients: [Address]) -> [Address];
+        Fixed(addrs: [Address; 3]) -> [Address; 3];
+    }
+
+    types {
+        @sol_type: address
+        struct Address(H160);
+    }
+}
+"#;
+
+#[test]
+fn test_generate_contract_w_address_type() {
+    let contract = generate_solidity_contract(IDL_W_ADDRESS, "TokenContract");
 
     assert!(
         contract.is_ok(),

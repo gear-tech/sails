@@ -1,10 +1,10 @@
 use alloc::string::String;
+use sails_idl_ast::{PrimitiveType, TypeDecl, TypeDef};
 use sails_type_registry::alloc;
-use sails_type_registry::ty::{GenericArg, TypeDef};
 use sails_type_registry::{Registry, TypeInfo};
 
 #[test]
-fn test_multiple_generics() {
+fn multiple_type_generics_are_captured_as_abstract_params() {
     #[allow(dead_code)]
     #[derive(TypeInfo)]
     struct MultiGen<T1, T2> {
@@ -21,24 +21,24 @@ fn test_multiple_generics() {
 
     let mut registry = Registry::new();
 
-    // Check struct MultiGen<u32, String>
-    let struct_ref = registry.register_type::<MultiGen<u32, String>>();
+    let struct_ref = registry.register_type::<MultiGen<u32, String>>().unwrap();
     let struct_ty = registry.get_type(struct_ref).unwrap();
 
     assert_eq!(struct_ty.type_params.len(), 2);
     assert_eq!(struct_ty.type_params[0].name, "T1");
-    match &struct_ty.type_params[0].arg {
-        GenericArg::Type(_) => (),
-        _ => panic!("Expected Type argument for T1"),
-    }
+    assert!(struct_ty.type_params[0].ty.is_none());
     assert_eq!(struct_ty.type_params[1].name, "T2");
-    match &struct_ty.type_params[1].arg {
-        GenericArg::Type(_) => (),
-        _ => panic!("Expected Type argument for T2"),
-    }
+    assert!(struct_ty.type_params[1].ty.is_none());
 
-    // Check enum MultiEnum<bool, u64, i32>
-    let enum_ref = registry.register_type::<MultiEnum<bool, u64, i32>>();
+    let TypeDef::Struct(struct_def) = &struct_ty.def else {
+        panic!("expected struct");
+    };
+    assert_eq!(struct_def.fields[0].type_decl, TypeDecl::generic("T1"));
+    assert_eq!(struct_def.fields[1].type_decl, TypeDecl::generic("T2"));
+
+    let enum_ref = registry
+        .register_type::<MultiEnum<bool, u64, i32>>()
+        .unwrap();
     let enum_ty = registry.get_type(enum_ref).unwrap();
 
     assert_eq!(enum_ty.type_params.len(), 3);
@@ -48,7 +48,7 @@ fn test_multiple_generics() {
 }
 
 #[test]
-fn test_const_generics() {
+fn const_generics_encode_value_into_name_suffix() {
     #[allow(dead_code)]
     #[derive(TypeInfo)]
     struct ConstGen<const N: usize> {
@@ -56,25 +56,21 @@ fn test_const_generics() {
     }
 
     let mut registry = Registry::new();
-    let struct_ref = registry.register_type::<ConstGen<32>>();
+    let struct_ref = registry.register_type::<ConstGen<32>>().unwrap();
     let struct_ty = registry.get_type(struct_ref).unwrap();
 
-    assert_eq!(struct_ty.type_params.len(), 1);
-    assert_eq!(struct_ty.type_params[0].name, "N");
-    match &struct_ty.type_params[0].arg {
-        GenericArg::Const(val) => assert_eq!(val, "32"),
-        _ => panic!("Expected Const argument for N"),
-    }
+    assert_eq!(struct_ty.name, "ConstGenN32");
+    assert!(struct_ty.type_params.is_empty());
 
-    if let TypeDef::Composite(comp) = &struct_ty.def {
-        let field_ty_ref = comp.fields[0].ty;
-        let field_ty = registry.get_type(field_ty_ref).unwrap();
+    let TypeDef::Struct(struct_def) = &struct_ty.def else {
+        panic!("expected struct");
+    };
 
-        match &field_ty.def {
-            TypeDef::Array { len, .. } => assert_eq!(*len, 32),
-            _ => panic!("Expected Array definition for field data"),
+    assert_eq!(
+        struct_def.fields[0].type_decl,
+        TypeDecl::Array {
+            item: alloc::boxed::Box::new(TypeDecl::Primitive(PrimitiveType::U8)),
+            len: 32,
         }
-    } else {
-        panic!("Expected Composite definition");
-    }
+    );
 }

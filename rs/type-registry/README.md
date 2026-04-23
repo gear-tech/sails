@@ -9,11 +9,13 @@ This crate is not a general-purpose reflection system.
 ## What It Provides
 
 - `TypeInfo`: trait for exposing a Rust type as portable metadata.
-- `Registry`: registry that interns type descriptions and returns stable
-  `TypeRef` handles.
-- `Type` / `TypeDef`: portable metadata model for primitives, composites,
+- `Registry`: Named-type interner plus concrete binding cache. It stores
+  shared named definitions and records concrete generic arguments at use
+  sites.
+- `sails_idl_ast`: portable metadata model for primitives, composites,
   variants, collections, generic parameters, and applied generic types.
-- Builder API: manual construction of `Type` values for synthetic definitions.
+- Builder API: manual construction of named `Type` values for explicit
+  `TypeInfo` implementations.
 
 ## Derive-Based Usage
 
@@ -34,7 +36,7 @@ struct User {
 }
 
 let mut registry = Registry::new();
-let user_ref = registry.register_type::<User>();
+let user_ref = registry.register_type::<User>().expect("User is named");
 let user_ty = registry.get_type(user_ref).unwrap();
 
 assert_eq!(user_ty.name, "User");
@@ -53,55 +55,115 @@ struct User {
 }
 ```
 
-## Manual Registry Construction
+## Manual TypeInfo Implementations
 
-For synthetic or manually assembled metadata, construct `Type` values with the
-builder API and register them directly:
+For synthetic or manually assembled metadata, implement `TypeInfo` and return a
+named `Type` from `type_def`. The registry owns interning and unique-name
+disambiguation.
 
 ```rust
-use sails_type_registry::{Registry, Type};
+use sails_type_registry::ast::{PrimitiveType, Type, TypeDecl};
+use sails_type_registry::{Registry, TypeBuilder, TypeInfo};
+
+struct Pair;
+
+impl TypeInfo for Pair {
+    type Identity = Self;
+
+    fn type_decl(registry: &mut Registry) -> TypeDecl {
+        registry.register_named_type(Self::META, "Pair", Vec::new())
+    }
+
+    fn type_def(_registry: &mut Registry) -> Option<Type> {
+        Some(
+            TypeBuilder::new()
+                .name("Pair")
+                .composite()
+                .field("left")
+                .ty(TypeDecl::Primitive(PrimitiveType::U32))
+                .field("right")
+                .ty(TypeDecl::Primitive(PrimitiveType::U32))
+                .build(),
+        )
+    }
+}
 
 let mut registry = Registry::new();
-let u32_ref = registry.register_type::<u32>();
-
-let pair = Type::builder()
-    .name("Pair")
-    .composite()
-    .field("left")
-    .ty(u32_ref)
-    .field("right")
-    .ty(u32_ref)
-    .build();
-
-let pair_ref = registry.register_type_def(pair);
+let pair_ref = registry.register_type::<Pair>().expect("Pair is named");
 assert!(registry.get_type(pair_ref).is_some());
 ```
 
-`register_type_def` normalizes definitions before insertion and deduplicates
-them by module path, name, type parameters, and normalized definition.
+When a manual named type needs to register field dependencies after caching
+its own concrete `TypeId`, use `register_named_type_with_dependencies`:
+
+```rust
+fn type_decl(registry: &mut Registry) -> TypeDecl {
+    registry.register_named_type_with_dependencies(
+        Self::META,
+        "Node",
+        Vec::new(),
+        |registry| {
+            let _ = <Box<Node> as TypeInfo>::type_decl(registry);
+        },
+    )
+}
+```
+
+Most hand-written implementations should use `register_named_type`; the
+dependency-aware form is primarily for derive-generated recursive-safe code.
 
 ## Metadata Model
 
 Each registry entry stores:
 
-- `module_path`: recorded module path for display and disambiguation.
 - `name`: human-readable type name.
-- `type_params`: declared generic parameters and their assigned arguments.
+- `type_params`: declared generic parameters and optional defaults.
 - `def`: structural type definition.
 - `docs`: captured documentation lines.
 - `annotations`: captured custom metadata annotations.
 
-`TypeDef` covers:
+Concrete bindings store per-instantiation generic arguments separately from the
+shared named definition.
+
+For a generic named type, the stored definition stays abstract and field
+references to declared generic parameters are represented as
+`TypeDecl::Generic { name }`. Concrete use sites carry the applied generic
+arguments:
+
+```rust
+// Stored named definition field:
+TypeDecl::Generic { name: "T".into() }
+
+// Concrete use site:
+TypeDecl::Named {
+    name: "Wrapper".into(),
+    generics: vec![TypeDecl::Primitive(PrimitiveType::String)],
+}
+```
+
+This lets `Wrapper<String>` and `Wrapper<u32>` share one named `Type`
+definition while keeping concrete arguments available for IDL export.
+
+The metadata model covers:
 
 - primitives
 - composites and variants
 - sequences, arrays, tuples, and maps
 - `Option` and `Result`
-- generic parameters
+- generic parameter references
 - applied generic types
 
 Aliases are not represented as a separate metadata kind. The registry stores
 portable type descriptions, not source-level alias declarations.
+
+## Registry Naming
+
+The derive macro owns const-generic suffixes in base names, for example
+`Wrapper<T, const N: usize>` can register as `WrapperN32` for `N = 32`.
+The registry then handles only collision disambiguation between named types
+with the same base name from different module paths. It first tries the base
+name, then prepends module path segments in PascalCase, and finally appends a
+numeric suffix if needed.
 
 ## Features
 
