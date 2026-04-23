@@ -23,9 +23,9 @@ env:
   SAILS_CRATES: |
     sails-reflect-hash-derive
     sails-reflect-hash
+    sails-idl-ast
     sails-type-registry-derive
     sails-type-registry
-    sails-idl-ast
     sails-idl-meta
     sails-idl-parser
     sails-idl-parser-v2
