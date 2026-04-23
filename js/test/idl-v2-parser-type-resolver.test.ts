@@ -427,6 +427,45 @@ describe('sails v2 service-scoped type resolution', () => {
     expect(t?.name).toBe('Shared');
   });
 
+  test('extended services see program-level (ambient) types through the extends chain', () => {
+    const text = `
+      !@sails: 1.0.0-beta.3
+
+      service Base@0x4071744d7e684110 {
+        functions {
+          Ping() -> u32;
+        }
+      }
+
+      service Child@0x1f2c78d96df31861 {
+        extends {
+          Base@0x4071744d7e684110,
+        }
+      }
+
+      program Test {
+        constructors {
+          Default(shared: Shared);
+        }
+        services {
+          Child@0x1f2c78d96df31861,
+        }
+        types {
+          struct Shared {
+            v: u32,
+          }
+        }
+      }
+    `;
+    const program = new SailsProgram(parser.parse(text));
+    const child = program.services['Child'];
+    const baseThroughExtends = child.extends['Base'];
+    // Program-level Shared must be resolvable via the extended service's own resolver.
+    const t = baseThroughExtends.typeResolver.resolveNamed({ kind: 'named', name: 'Shared' });
+    expect(t?.kind).toBe('struct');
+    expect(t?.name).toBe('Shared');
+  });
+
   test('generic substitution: Envelope<[u8]>.payload resolves to [u8]', () => {
     const text = `
       !@sails: 1.0.0-beta.3
