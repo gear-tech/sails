@@ -339,7 +339,7 @@ describe('type-resolver-v2 substituteGenerics', () => {
 
   test('does not mutate the input tree', () => {
     const input: TypeDecl = { kind: 'slice', item: named('T') };
-    const snapshot = JSON.parse(JSON.stringify(input));
+    const snapshot = structuredClone(input);
     resolver.substituteGenerics(input, { T: 'u8' });
     expect(input).toEqual(snapshot);
   });

@@ -127,6 +127,10 @@ export class SailsProgram {
   private _api?: GearApi;
   private _programId?: HexString;
   private _services: Map<bigint, IServiceUnit>;
+  // Lazy indices for resolveInService. Populated on first call; not invalidated because
+  // `_doc` is immutable after parse.
+  private _serviceTypeIndex?: Map<string, Map<string, Type>>;
+  private _programTypeIndex?: Map<string, Type>;
   private _resolveServiceUnit = (ident: IServiceIdent): IServiceUnit | undefined => {
     if (!ident.interface_id) {
       throw new Error(`Service "${ident.name}" is missing interface_id in IDL`);
@@ -228,17 +232,29 @@ export class SailsProgram {
    * every service. Returns `undefined` when the service doesn't exist, or the `TypeDecl`
    * isn't a named user type.
    *
-   * Looks up the AST directly (does not build a `SailsService` or `TypeResolver`) so it
-   * is safe to call in tight loops while walking large IDL trees.
+   * Backed by a lazy `Map`-based index — O(1) per call after the first invocation.
+   * Safe to call in tight loops while walking large IDL trees.
    */
   resolveInService(serviceName: string, typeDecl: TypeDecl): Type | undefined {
     if (typeof typeDecl === 'string' || typeDecl.kind !== 'named') return undefined;
-    const serviceUnit = this._doc.services?.find((s) => s.name === serviceName);
-    if (!serviceUnit) return undefined;
+    if (!this._serviceTypeIndex) this._buildTypeIndex();
     return (
-      serviceUnit.types?.find((t) => t.name === typeDecl.name) ??
-      this._doc.program?.types?.find((t) => t.name === typeDecl.name)
+      this._serviceTypeIndex!.get(serviceName)?.get(typeDecl.name) ??
+      this._programTypeIndex!.get(typeDecl.name)
     );
+  }
+
+  private _buildTypeIndex(): void {
+    const serviceIndex = new Map<string, Map<string, Type>>();
+    for (const unit of this._doc.services ?? []) {
+      const local = new Map<string, Type>();
+      for (const t of unit.types ?? []) local.set(t.name, t);
+      serviceIndex.set(unit.name, local);
+    }
+    const programIndex = new Map<string, Type>();
+    for (const t of this._doc.program?.types ?? []) programIndex.set(t.name, t);
+    this._serviceTypeIndex = serviceIndex;
+    this._programTypeIndex = programIndex;
   }
 
   /** #### Constructor functions with arguments from the parsed IDL */
