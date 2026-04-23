@@ -16,16 +16,14 @@ export class TypeResolver {
   registry: TypeRegistry;
   private _userTypes: Record<string, Type> = {};
 
-  /**
-   * @param types service-local (or program-level) user types. Takes precedence over `ambientTypes` on name collision.
-   * @param ambientTypes program-level types visible to every service. Shadowed by `types` when names collide.
-   */
-  constructor(types: Type[], ambientTypes: Type[] = []) {
+  constructor(types: Type[]) {
     this.registry = new TypeRegistry();
 
     const scaleTypes: Record<string, any> = {};
     const userTypes: Record<string, Type> = {};
-    for (const type of [...ambientTypes, ...types]) {
+    // Iteration order is last-write-wins: callers that want ambient-type shadowing should
+    // pass `[...ambientTypes, ...localTypes]` so locals overwrite on name collision.
+    for (const type of types) {
       userTypes[type.name] = type;
     }
     this._userTypes = userTypes;
@@ -41,10 +39,9 @@ export class TypeResolver {
   /**
    * Resolve a `TypeDecl`'s named user type to its `Type` definition.
    *
-   * Returns `undefined` for primitives, slices, arrays, tuples, unknown names, and bare
-   * type parameters (a `{ kind: 'named', name: 'T' }` that isn't a registered user type).
-   * Does not recurse into generics — callers that want the substituted inner shape should
-   * pair this with {@link substituteGenerics}.
+   * Returns `undefined` for primitives, slices, arrays, tuples, type parameters
+   * (`{ kind: 'generic' }`), and unknown names. Does not recurse into generics — callers
+   * that want the substituted inner shape should pair this with {@link substituteGenerics}.
    *
    * The returned `Type` is shared with the resolver's internal state — do not mutate it.
    */
@@ -58,12 +55,12 @@ export class TypeResolver {
    * Recursively substitute type parameters through a `TypeDecl` tree.
    *
    * Pure: does not mutate inputs. Idempotent: passing an already-substituted tree yields an
-   * equivalent tree. Only bare `{ kind: 'named', name: 'T' }` leaves whose `name` appears in
+   * equivalent tree. Only `{ kind: 'generic', name: 'T' }` leaves whose `name` appears in
    * `substitutions` are replaced; wrapper shapes (`Option<T>`, `Vec<T>`, `Result<T, E>`, custom
-   * generics) are preserved and their inner types substituted in place.
+   * generics, and any `named` decl) are preserved and their inner types substituted in place.
    *
    * The function recurses through replacement chains (`{ T: U, U: u32 }` resolves `T` to `u32`).
-   * Cyclic maps (`{ T: { kind: 'named', name: 'T' } }` or `{ T: U, U: T }`) are detected at
+   * Cyclic maps (`{ T: { kind: 'generic', name: 'T' } }` or `{ T: U, U: T }`) are detected at
    * runtime and cause an error to be thrown rather than an unbounded recursion. Maps produced by
    * {@link genericsSubstitutions} from a parsed IDL cannot create cycles.
    */
@@ -89,28 +86,27 @@ export class TypeResolver {
       const next = type.types.map((t) => this._substituteGenerics(t, substitutions, visited));
       return next.every((t, i) => t === type.types[i]) ? type : { kind: 'tuple', types: next };
     }
-    if (type.kind === 'named') {
-      if (type.generics?.length) {
-        const next = type.generics.map((g) => this._substituteGenerics(g, substitutions, visited));
-        return next.every((g, i) => g === type.generics![i])
-          ? type
-          : { kind: 'named', name: type.name, generics: next };
-      }
-      // Bare named reference may be a type parameter. Track visited names so a cyclic map
+    if (type.kind === 'generic') {
+      // Explicit type-parameter leaf. Track visited names so a cyclic map
       // (`{ T: T }`, `{ T: U, U: T }`) throws instead of stack-overflowing.
       const replacement = substitutions[type.name];
-      if (replacement !== undefined) {
-        if (visited.has(type.name)) {
-          throw new Error(
-            `Cyclic substitution detected while resolving type parameter "${type.name}" — ` +
-              `substitution chain: ${[...visited, type.name].join(' → ')}`,
-          );
-        }
-        const nextVisited = new Set(visited);
-        nextVisited.add(type.name);
-        return this._substituteGenerics(replacement, substitutions, nextVisited);
+      if (replacement === undefined) return type;
+      if (visited.has(type.name)) {
+        throw new Error(
+          `Cyclic substitution detected while resolving type parameter "${type.name}" — ` +
+            `substitution chain: ${[...visited, type.name].join(' → ')}`,
+        );
       }
-      return type;
+      const nextVisited = new Set(visited);
+      nextVisited.add(type.name);
+      return this._substituteGenerics(replacement, substitutions, nextVisited);
+    }
+    if (type.kind === 'named') {
+      if (!type.generics?.length) return type;
+      const next = type.generics.map((g) => this._substituteGenerics(g, substitutions, visited));
+      return next.every((g, i) => g === type.generics![i])
+        ? type
+        : { kind: 'named', name: type.name, generics: next };
     }
     throw new Error('Unknown TypeDecl kind :: ' + JSON.stringify(type));
   }

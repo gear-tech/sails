@@ -385,7 +385,8 @@ export class SailsService implements ISailsService {
     this._api = api;
     this._programId = programId;
     this._resolveServiceUnit = resolveServiceUnit;
-    this._typeResolver = new TypeResolver(service.types ?? [], ambientTypes);
+    // Ambient types come first so service-local types shadow them on name collision.
+    this._typeResolver = new TypeResolver([...ambientTypes, ...(service.types ?? [])]);
     this._ambientTypes = ambientTypes;
     this._routeIdx = routeIdx;
 
