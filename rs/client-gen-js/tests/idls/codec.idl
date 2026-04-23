@@ -1,22 +1,22 @@
 service CodecTest {
     functions {
         /// Available via both codecs (default)
-        @entry-id: 0
+        @entry_id: 0
         BothMethod(p1: u32) -> string;
         /// SCALE only
-        @entry-id: 1
+        @entry_id: 1
         @codec: scale
         ScaleOnly(p1: u32) -> u32;
         /// Ethabi only — should be excluded from JS client
-        @entry-id: 2
+        @entry_id: 2
         @codec: ethabi
         EthabiOnly(p1: u32) -> u32;
         /// Query available via both
-        @entry-id: 3
+        @entry_id: 3
         @query
         BothQuery(p1: bool) -> bool;
         /// Query ethabi only — should be excluded
-        @entry-id: 4
+        @entry_id: 4
         @query
         @codec: ethabi
         EthabiQuery(p1: bool) -> bool;

@@ -159,7 +159,7 @@ fn codec_annotation_is_preserved_in_service_func() {
     let src = r#"
         service CodecAnn {
             functions {
-                @entry-id: 0
+                @entry_id: 0
                 @codec: scale,ethabi
                 Foo() -> bool;
             }

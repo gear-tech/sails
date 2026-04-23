@@ -189,18 +189,18 @@ program CodecProgram {
 service CodecTest {
     functions {
         /// Both codecs
-        @entry-id: 0
+        @entry_id: 0
         BothMethod(p1: u32) -> string;
         /// SCALE only - should be excluded from Solidity
-        @entry-id: 1
+        @entry_id: 1
         @codec: scale
         ScaleOnly(p1: u32) -> u32;
         /// Ethabi only
-        @entry-id: 2
+        @entry_id: 2
         @codec: ethabi
         EthabiOnly(p1: u32) -> u32;
         /// Payable ethabi
-        @entry-id: 3
+        @entry_id: 3
         @codec: ethabi
         @payable
         PayableEthabi(p1: u32) -> u32;
