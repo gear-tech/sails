@@ -23,9 +23,9 @@ env:
   SAILS_CRATES: |
     sails-reflect-hash-derive
     sails-reflect-hash
+    sails-idl-ast
     sails-type-registry-derive
     sails-type-registry
-    sails-idl-ast
     sails-idl-meta
     sails-idl-parser
     sails-idl-parser-v2
@@ -90,10 +90,10 @@ jobs:
           # Update workspace package version
           sed -i "s/^version = \".*\"/version = \"${VERSION}\"/" Cargo.toml
           sed -i "s/^version = \".*\"/version = \"${VERSION}\"/" ./rs/ethexe/Cargo.toml
-          cargo update sails-rs
-          cargo update sails-rs --manifest-path ./rs/ethexe/Cargo.toml
+          cargo check --workspace
+          cargo check --workspace --manifest-path ./rs/ethexe/Cargo.toml
 
-          git add Cargo.toml Cargo.lock ./rs/ethexe/Cargo.toml ./rs/ethexe/Cargo.lock
+          git add -- Cargo.toml Cargo.lock ./rs/ethexe/Cargo.toml ./rs/ethexe/Cargo.lock '*.idl'
           if ! git diff --cached --quiet; then
             git commit -m "build(rs): update version to v${VERSION}"
             git push origin "${{ steps.rc_branch.outputs.branch }}"
