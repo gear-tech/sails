@@ -288,11 +288,11 @@ describe('type-resolver-v2 structs', () => {
   });
 });
 
-describe('type-resolver-v2 substituteGenerics', () => {
+describe('type-resolver-v2 resolveGenerics', () => {
   const resolver = new TypeResolver([]);
 
   test('replaces a type parameter leaf with a primitive', () => {
-    expect(resolver.substituteGenerics(generic('T'), { T: 'u32' })).toBe('u32');
+    expect(resolver.resolveGenerics(generic('T'), { T: 'u32' })).toBe('u32');
   });
 
   test('recurses through slice / array / tuple', () => {
@@ -303,7 +303,7 @@ describe('type-resolver-v2 substituteGenerics', () => {
         { kind: 'array', item: generic('T'), len: 4 },
       ],
     };
-    expect(resolver.substituteGenerics(input, { T: 'u8' })).toEqual({
+    expect(resolver.resolveGenerics(input, { T: 'u8' })).toEqual({
       kind: 'tuple',
       types: [
         { kind: 'slice', item: 'u8' },
@@ -315,21 +315,21 @@ describe('type-resolver-v2 substituteGenerics', () => {
   test('recurses through named-with-generics (Option<T>, custom wrappers)', () => {
     const input: TypeDecl = named('Envelope', [named('Option', [generic('T')])]);
     expect(
-      resolver.substituteGenerics(input, { T: { kind: 'slice', item: 'u8' } }),
+      resolver.resolveGenerics(input, { T: { kind: 'slice', item: 'u8' } }),
     ).toEqual(named('Envelope', [named('Option', [{ kind: 'slice', item: 'u8' }])]));
   });
 
   test('passes through named refs unchanged (named is a concrete user type, never a param)', () => {
-    expect(resolver.substituteGenerics(named('Unknown'), {})).toEqual(named('Unknown'));
+    expect(resolver.resolveGenerics(named('Unknown'), {})).toEqual(named('Unknown'));
     // Even if substitutions map has a matching name, a `named` decl is not substituted.
-    expect(resolver.substituteGenerics(named('Unknown'), { Unknown: 'u32' })).toEqual(
+    expect(resolver.resolveGenerics(named('Unknown'), { Unknown: 'u32' })).toEqual(
       named('Unknown'),
     );
   });
 
   test('is a no-op on primitives and on inputs with no type params', () => {
-    expect(resolver.substituteGenerics('u32')).toBe('u32');
-    expect(resolver.substituteGenerics({ kind: 'slice', item: 'u8' }, { T: 'u64' })).toEqual({
+    expect(resolver.resolveGenerics('u32')).toBe('u32');
+    expect(resolver.resolveGenerics({ kind: 'slice', item: 'u8' }, { T: 'u64' })).toEqual({
       kind: 'slice',
       item: 'u8',
     });
@@ -337,37 +337,37 @@ describe('type-resolver-v2 substituteGenerics', () => {
 
   test('is idempotent', () => {
     const input: TypeDecl = named('Envelope', [generic('T')]);
-    const once = resolver.substituteGenerics(input, { T: 'u32' });
-    expect(resolver.substituteGenerics(once, { T: 'u32' })).toEqual(once);
+    const once = resolver.resolveGenerics(input, { T: 'u32' });
+    expect(resolver.resolveGenerics(once, { T: 'u32' })).toEqual(once);
   });
 
   test('does not mutate the input tree', () => {
     const input: TypeDecl = { kind: 'slice', item: generic('T') };
     const snapshot = structuredClone(input);
-    resolver.substituteGenerics(input, { T: 'u8' });
+    resolver.resolveGenerics(input, { T: 'u8' });
     expect(input).toEqual(snapshot);
   });
 
   test('resolves substitution chains (T -> U -> u32)', () => {
-    expect(resolver.substituteGenerics(generic('T'), { T: generic('U'), U: 'u32' })).toBe('u32');
+    expect(resolver.resolveGenerics(generic('T'), { T: generic('U'), U: 'u32' })).toBe('u32');
   });
 
   test('throws on self-referential substitution map', () => {
-    expect(() => resolver.substituteGenerics(generic('T'), { T: generic('T') })).toThrow(
+    expect(() => resolver.resolveGenerics(generic('T'), { T: generic('T') })).toThrow(
       /[Cc]yclic/,
     );
   });
 
   test('throws on cyclic substitution chain (T -> U -> T)', () => {
     expect(() =>
-      resolver.substituteGenerics(generic('T'), { T: generic('U'), U: generic('T') }),
+      resolver.resolveGenerics(generic('T'), { T: generic('U'), U: generic('T') }),
     ).toThrow(/[Cc]yclic/);
   });
 
   test('throws on unknown TypeDecl kind', () => {
     // A `Type` (kind: 'struct') is not a valid TypeDecl — catch the misuse loudly.
     const bogus = { kind: 'struct', name: 'X', fields: [] } as unknown as TypeDecl;
-    expect(() => resolver.substituteGenerics(bogus)).toThrow(/Unknown TypeDecl kind/);
+    expect(() => resolver.resolveGenerics(bogus)).toThrow(/Unknown TypeDecl kind/);
   });
 });
 
@@ -386,15 +386,90 @@ describe('type-resolver-v2 resolveNamed', () => {
       { name: 'payload', type: generic('T') },
     ],
   };
+  const maybe: Type = {
+    kind: 'enum',
+    name: 'Maybe',
+    type_params: [{ name: 'T' }],
+    variants: [
+      { name: 'None', fields: [] },
+      { name: 'Some', fields: [{ type: generic('T') }] },
+    ],
+  };
+  const genericAlias: Type = {
+    kind: 'alias',
+    name: 'MaybeOpt',
+    type_params: [{ name: 'T' }],
+    target: named('Option', [generic('T')]),
+  };
 
-  test('returns the user Type for a known named decl', () => {
+  test('returns the raw user Type for a known named decl with no generics', () => {
     const resolver = new TypeResolver([packet]);
     expect(resolver.resolveNamed(named('Packet'))).toBe(packet);
   });
 
-  test('returns the user Type for a generic named decl (ignoring generics)', () => {
+  test('returns a concrete substituted Type when the named decl carries generics', () => {
     const resolver = new TypeResolver([envelope]);
-    expect(resolver.resolveNamed(named('Envelope', ['u32']))).toBe(envelope);
+    const result = resolver.resolveNamed(named('Envelope', ['u32']));
+    expect(result).toEqual({
+      kind: 'struct',
+      name: 'Envelope',
+      docs: undefined,
+      annotations: undefined,
+      fields: [
+        { name: 'id', type: 'u32' },
+        { name: 'payload', type: 'u32' },
+      ],
+    });
+    // type_params must be omitted on the concrete result.
+    expect(result?.type_params).toBeUndefined();
+  });
+
+  test('substitutes generics across enum variants', () => {
+    const resolver = new TypeResolver([maybe]);
+    const result = resolver.resolveNamed(named('Maybe', [{ kind: 'slice', item: 'u8' }]));
+    expect(result?.kind).toBe('enum');
+    const variants = (result as any).variants;
+    expect(variants[0]).toEqual({ name: 'None', fields: [] });
+    expect(variants[1].fields[0].type).toEqual({ kind: 'slice', item: 'u8' });
+    expect(result?.type_params).toBeUndefined();
+  });
+
+  test('substitutes generics through alias targets', () => {
+    const resolver = new TypeResolver([genericAlias]);
+    const result = resolver.resolveNamed(named('MaybeOpt', ['u32']));
+    expect(result).toEqual({
+      kind: 'alias',
+      name: 'MaybeOpt',
+      docs: undefined,
+      annotations: undefined,
+      target: named('Option', ['u32']),
+    });
+  });
+
+  test('string overload: by name returns the raw user Type', () => {
+    const resolver = new TypeResolver([packet]);
+    expect(resolver.resolveNamed('Packet')).toBe(packet);
+  });
+
+  test('string overload: name + concrete generics returns substituted Type', () => {
+    const resolver = new TypeResolver([envelope]);
+    const result = resolver.resolveNamed('Envelope', [{ kind: 'slice', item: 'u8' }]);
+    expect((result as any).fields[1].type).toEqual({ kind: 'slice', item: 'u8' });
+    expect(result?.type_params).toBeUndefined();
+  });
+
+  test('string overload prefers the explicit generics list over any on the decl', () => {
+    const resolver = new TypeResolver([envelope]);
+    // Caller has a name string, provides its own generics.
+    const result = resolver.resolveNamed('Envelope', ['u64']);
+    expect((result as any).fields[1].type).toBe('u64');
+  });
+
+  test('explicit generics arg on TypeDecl overload overrides the decl.generics field', () => {
+    const resolver = new TypeResolver([envelope]);
+    // Pass generics as a separate argument — should win over typeDecl.generics.
+    const result = resolver.resolveNamed(named('Envelope', ['u32']), ['String']);
+    expect((result as any).fields[1].type).toBe('String');
   });
 
   test('returns undefined for primitives, slices, arrays, tuples, type params', () => {
@@ -409,46 +484,8 @@ describe('type-resolver-v2 resolveNamed', () => {
   test('returns undefined for unknown names', () => {
     const resolver = new TypeResolver([]);
     expect(resolver.resolveNamed(named('Unknown'))).toBeUndefined();
-  });
-});
-
-describe('type-resolver-v2 genericsSubstitutions', () => {
-  test('zips type_params with concrete generics', () => {
-    const resolver = new TypeResolver([]);
-    const userType: Type = {
-      kind: 'struct',
-      name: 'Pair',
-      type_params: [{ name: 'T' }, { name: 'U' }],
-      fields: [
-        { name: 'left', type: generic('T') },
-        { name: 'right', type: generic('U') },
-      ],
-    };
-    expect(resolver.genericsSubstitutions(userType, ['u32', 'String'])).toEqual({
-      T: 'u32',
-      U: 'String',
-    });
-  });
-
-  test('returns empty map when userType has no type_params', () => {
-    const resolver = new TypeResolver([]);
-    const userType: Type = {
-      kind: 'struct',
-      name: 'Plain',
-      fields: [{ name: 'x', type: 'u32' }],
-    };
-    expect(resolver.genericsSubstitutions(userType, ['u32'])).toEqual({});
-  });
-
-  test('ignores extra concrete generics past the declared params', () => {
-    const resolver = new TypeResolver([]);
-    const userType: Type = {
-      kind: 'struct',
-      name: 'One',
-      type_params: [{ name: 'T' }],
-      fields: [{ name: 'v', type: generic('T') }],
-    };
-    expect(resolver.genericsSubstitutions(userType, ['u8', 'u16'])).toEqual({ T: 'u8' });
+    expect(resolver.resolveNamed('Unknown')).toBeUndefined();
+    expect(resolver.resolveNamed('Unknown', ['u32'])).toBeUndefined();
   });
 });
 

@@ -490,22 +490,16 @@ describe('sails v2 service-scoped type resolution', () => {
     `;
     const program = new SailsProgram(parser.parse(text));
     const service = program.services['Gen'];
+    // resolveNamed(name, generics) returns a concrete substituted Type.
     const envelope = service.typeResolver.resolveNamed({
       kind: 'named',
       name: 'Envelope',
       generics: [{ kind: 'slice', item: 'u8' }],
     });
     expect(envelope?.kind).toBe('struct');
-    // Build substitution map from the concrete generics list on the arg.
-    const subs = service.typeResolver.genericsSubstitutions(envelope!, [
-      { kind: 'slice', item: 'u8' },
-    ]);
-    expect(subs).toEqual({ T: { kind: 'slice', item: 'u8' } });
-
-    // Walk the struct fields through substituteGenerics — payload's T becomes [u8].
+    // type_params are stripped from the concrete result.
+    expect(envelope?.type_params).toBeUndefined();
     const payloadField = (envelope as any).fields.find((f: any) => f.name === 'payload');
-    expect(payloadField).toBeDefined();
-    const resolvedPayloadType = service.typeResolver.substituteGenerics(payloadField.type, subs);
-    expect(resolvedPayloadType).toEqual({ kind: 'slice', item: 'u8' });
+    expect(payloadField?.type).toEqual({ kind: 'slice', item: 'u8' });
   });
 });

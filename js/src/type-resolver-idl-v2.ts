@@ -37,53 +37,79 @@ export class TypeResolver {
   }
 
   /**
-   * Resolve a `TypeDecl`'s named user type to its `Type` definition.
+   * Resolve a named user type to its `Type` definition.
    *
-   * Returns `undefined` for primitives, slices, arrays, tuples, type parameters
-   * (`{ kind: 'generic' }`), and unknown names. Does not recurse into generics — callers
-   * that want the substituted inner shape should pair this with {@link substituteGenerics}.
+   * Two call shapes:
+   * - `resolveNamed(typeDecl)` — pass a `TypeDecl`; returns the user type for a
+   *   `{ kind: 'named', name, generics? }` decl, or `undefined` for primitives, slices,
+   *   arrays, tuples, type parameters, and unknown names.
+   * - `resolveNamed(name, generics?)` — pass the user type's name directly, with an
+   *   optional concrete generics list.
    *
-   * The returned `Type` is shared with the resolver's internal state — do not mutate it.
+   * When concrete generics are provided (either via the overload or via `typeDecl.generics`),
+   * the returned `Type` is a **concrete** substituted copy: every `{ kind: 'generic', name }`
+   * leaf is replaced according to the user type's declared `type_params`, and `type_params`
+   * is omitted from the result. When no generics are provided, the raw user `Type` is
+   * returned as-is (shared with the resolver's internal state — do not mutate).
    */
-  resolveNamed(type: TypeDecl): Type | undefined {
-    if (typeof type === 'string') return undefined;
-    if (type.kind !== 'named') return undefined;
-    return this._userTypes[type.name];
+  resolveNamed(type: TypeDecl): Type | undefined;
+  resolveNamed(name: string, generics?: TypeDecl[]): Type | undefined;
+  resolveNamed(typeOrName: TypeDecl | string, generics?: TypeDecl[]): Type | undefined {
+    let name: string;
+    let concrete: TypeDecl[] | undefined;
+
+    if (typeof typeOrName === 'string') {
+      // String is ambiguous: it's either a primitive (`'u32'`) or a user-type name.
+      // Primitives aren't in `_userTypes`, so lookup naturally returns `undefined` for them.
+      name = typeOrName;
+      concrete = generics;
+    } else if (typeOrName.kind === 'named') {
+      name = typeOrName.name;
+      concrete = generics ?? typeOrName.generics;
+    } else {
+      return undefined;
+    }
+
+    const userType = this._userTypes[name];
+    if (!userType) return undefined;
+    if (!concrete?.length) return userType;
+
+    const substitutions = this._genericsSubstitutions(userType, concrete);
+    return this._resolveTypeGenerics(userType, substitutions);
   }
 
   /**
-   * Recursively substitute type parameters through a `TypeDecl` tree.
+   * Recursively resolve type parameters through a `TypeDecl` tree.
    *
-   * Pure: does not mutate inputs. Idempotent: passing an already-substituted tree yields an
+   * Pure: does not mutate inputs. Idempotent: passing an already-resolved tree yields an
    * equivalent tree. Only `{ kind: 'generic', name: 'T' }` leaves whose `name` appears in
    * `substitutions` are replaced; wrapper shapes (`Option<T>`, `Vec<T>`, `Result<T, E>`, custom
-   * generics, and any `named` decl) are preserved and their inner types substituted in place.
+   * generics, and any `named` decl) are preserved and their inner types resolved in place.
    *
-   * The function recurses through replacement chains (`{ T: U, U: u32 }` resolves `T` to `u32`).
+   * Recurses through replacement chains (`{ T: U, U: u32 }` resolves `T` to `u32`).
    * Cyclic maps (`{ T: { kind: 'generic', name: 'T' } }` or `{ T: U, U: T }`) are detected at
-   * runtime and cause an error to be thrown rather than an unbounded recursion. Maps produced by
-   * {@link genericsSubstitutions} from a parsed IDL cannot create cycles.
+   * runtime and throw rather than stack-overflowing.
    */
-  substituteGenerics(type: TypeDecl, substitutions: Record<string, TypeDecl> = {}): TypeDecl {
-    return this._substituteGenerics(type, substitutions, new Set());
+  resolveGenerics(type: TypeDecl, substitutions: Record<string, TypeDecl> = {}): TypeDecl {
+    return this._resolveGenerics(type, substitutions, new Set());
   }
 
-  private _substituteGenerics(
+  private _resolveGenerics(
     type: TypeDecl,
     substitutions: Record<string, TypeDecl>,
     visited: Set<string>,
   ): TypeDecl {
     if (typeof type === 'string') return type;
     if (type.kind === 'slice') {
-      const item = this._substituteGenerics(type.item, substitutions, visited);
+      const item = this._resolveGenerics(type.item, substitutions, visited);
       return item === type.item ? type : { kind: 'slice', item };
     }
     if (type.kind === 'array') {
-      const item = this._substituteGenerics(type.item, substitutions, visited);
+      const item = this._resolveGenerics(type.item, substitutions, visited);
       return item === type.item ? type : { kind: 'array', item, len: type.len };
     }
     if (type.kind === 'tuple') {
-      const next = type.types.map((t) => this._substituteGenerics(t, substitutions, visited));
+      const next = type.types.map((t) => this._resolveGenerics(t, substitutions, visited));
       return next.every((t, i) => t === type.types[i]) ? type : { kind: 'tuple', types: next };
     }
     if (type.kind === 'generic') {
@@ -99,11 +125,11 @@ export class TypeResolver {
       }
       const nextVisited = new Set(visited);
       nextVisited.add(type.name);
-      return this._substituteGenerics(replacement, substitutions, nextVisited);
+      return this._resolveGenerics(replacement, substitutions, nextVisited);
     }
     if (type.kind === 'named') {
       if (!type.generics?.length) return type;
-      const next = type.generics.map((g) => this._substituteGenerics(g, substitutions, visited));
+      const next = type.generics.map((g) => this._resolveGenerics(g, substitutions, visited));
       return next.every((g, i) => g === type.generics![i])
         ? type
         : { kind: 'named', name: type.name, generics: next };
@@ -111,12 +137,10 @@ export class TypeResolver {
     throw new Error('Unknown TypeDecl kind :: ' + JSON.stringify(type));
   }
 
-  /**
-   * Build a substitution map from a user type's declared `type_params` and a concrete
-   * generics list (typically the `generics` field of a `{ kind: 'named', generics: [...] }`
-   * `TypeDecl`). Missing positions are omitted.
-   */
-  genericsSubstitutions(userType: Type, generics: TypeDecl[] = []): Record<string, TypeDecl> {
+  // Build a substitution map by zipping a user type's declared `type_params` with a concrete
+  // generics list. Internal: callers should use `resolveNamed(name, generics)` instead of
+  // building substitution maps by hand.
+  private _genericsSubstitutions(userType: Type, generics: TypeDecl[] = []): Record<string, TypeDecl> {
     const map: Record<string, TypeDecl> = {};
     const params = userType.type_params ?? [];
     const len = Math.min(params.length, generics.length);
@@ -124,6 +148,47 @@ export class TypeResolver {
       map[params[i].name] = generics[i];
     }
     return map;
+  }
+
+  // Return a `Type` with every `generic` leaf substituted and `type_params` stripped. The result
+  // is a shallow copy — fields/variants/targets are recursively resolved via `resolveGenerics`,
+  // which preserves unchanged subtrees by reference.
+  private _resolveTypeGenerics(type: Type, substitutions: Record<string, TypeDecl>): Type {
+    if (type.kind === 'struct') {
+      return {
+        kind: 'struct',
+        name: type.name,
+        docs: type.docs,
+        annotations: type.annotations,
+        fields: type.fields.map((f) => ({
+          ...f,
+          type: this.resolveGenerics(f.type, substitutions),
+        })),
+      };
+    }
+    if (type.kind === 'enum') {
+      return {
+        kind: 'enum',
+        name: type.name,
+        docs: type.docs,
+        annotations: type.annotations,
+        variants: type.variants.map((v) => ({
+          ...v,
+          fields: v.fields.map((f) => ({
+            ...f,
+            type: this.resolveGenerics(f.type, substitutions),
+          })),
+        })),
+      };
+    }
+    // alias
+    return {
+      kind: 'alias',
+      name: type.name,
+      docs: type.docs,
+      annotations: type.annotations,
+      target: this.resolveGenerics(type.target, substitutions),
+    };
   }
 
   /**
@@ -224,7 +289,7 @@ export class TypeResolver {
           .map((t: TypeDecl) => this.getTypeDeclString(t, generics, 'canonical'))
           .join('')}`;
         if (!this.registry.hasType(canonicalName)) {
-          const generics_map = this.genericsSubstitutions(userType, type.generics);
+          const generics_map = this._genericsSubstitutions(userType, type.generics);
           const typeDef = this.getTypeDef(userType, generics_map);
           /// When a user type with generics is resolved, the resolver constructs two names:
           // - genericName: readable, type-like syntax (example MyType<Option<u32>>).
