@@ -71,6 +71,18 @@ fn codec_selection() {
         !generated.contains("ethabiQuery"),
         "expected ethabiQuery to be filtered out, got:\n{generated}"
     );
+    assert!(
+        generated.contains("subscribeToBothEventEvent"),
+        "expected subscribeToBothEventEvent to be present"
+    );
+    assert!(
+        generated.contains("subscribeToScaleOnlyEventEvent"),
+        "expected subscribeToScaleOnlyEventEvent to be present"
+    );
+    assert!(
+        !generated.contains("subscribeToEthabiOnlyEventEvent"),
+        "expected subscribeToEthabiOnlyEventEvent to be filtered out, got:\n{generated}"
+    );
 
     assert_snapshot!("codec_selection", generated);
 }

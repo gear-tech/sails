@@ -51,6 +51,7 @@ impl<'a> ServiceGenerator<'a> {
         let event_tokens = service
             .events
             .iter()
+            .filter(|event| has_scale_codec(&event.annotations))
             .map(|event| self.render_event(event, event.entry_id));
 
         let extend_tokens = service.extends.iter().map(|base| {

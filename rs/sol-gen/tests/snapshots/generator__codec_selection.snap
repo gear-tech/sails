@@ -6,6 +6,10 @@ expression: generated
 pragma solidity ^0.8.28;
 
 interface ICodecTest {
+    event BothEvent(uint32);
+
+    event EthabiOnlyEvent(uint32);
+
     function codecTestBothMethod(bool _callReply, uint32 p1) external returns (bytes32 messageId);
 
     function codecTestEthabiOnly(bool _callReply, uint32 p1) external returns (bytes32 messageId);

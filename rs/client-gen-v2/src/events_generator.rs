@@ -1,4 +1,5 @@
 use genco::prelude::*;
+use sails_idl_ast::codec::has_scale_codec;
 use sails_idl_parser_v2::{ast, visitor, visitor::Visitor};
 
 use crate::helpers::generate_doc_comments;
@@ -25,6 +26,15 @@ impl<'ast> EventsModuleGenerator<'ast> {
 
 impl<'ast> Visitor<'ast> for EventsModuleGenerator<'ast> {
     fn visit_service_unit(&mut self, service: &'ast ast::ServiceUnit) {
+        let scale_events = service
+            .events
+            .iter()
+            .filter(|event| has_scale_codec(&event.annotations))
+            .collect::<Vec<_>>();
+        if scale_events.is_empty() {
+            return;
+        }
+
         let events_name = &format!("{}Events", self.service_name);
 
         quote_in! { self.tokens =>
@@ -46,7 +56,7 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator<'ast> {
             impl $events_name {
                 pub fn entry_id(&self) -> u16 {
                     match self {
-                        $(for event in &service.events join ($['\r']) =>
+                        $(for event in &scale_events join ($['\r']) =>
                             Self::$(&event.name) { .. } => $(event.entry_id),
                         )
                     }
@@ -77,6 +87,10 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator<'ast> {
     }
 
     fn visit_service_event(&mut self, event: &'ast ast::ServiceEvent) {
+        if !has_scale_codec(&event.annotations) {
+            return;
+        }
+
         generate_doc_comments(&mut self.tokens, &event.docs);
 
         let variant_name = &event.name;

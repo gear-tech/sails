@@ -132,7 +132,10 @@ impl SomeServiceExposure<SomeService> {
             _ => None,
         }
     }
-    pub fn emit_event(&self, event: SomeEvents) -> sails_rs::errors::Result<()> {
+    pub fn emit_event(&self, event: SomeEvents) -> sails_rs::errors::Result<()>
+    where
+        SomeEvents: sails_rs::SailsEvent,
+    {
         use sails_rs::gstd::services::ExposureWithEvents;
         self.emitter().emit_event(event)
     }

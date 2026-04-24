@@ -21,6 +21,19 @@ service CodecTest {
         @codec: ethabi
         EthabiQuery(p1: bool) -> bool;
     }
+    events {
+        /// Available through both codecs
+        @entry_id: 0
+        BothEvent(u32),
+        /// SCALE only
+        @entry_id: 1
+        @codec: scale
+        ScaleOnlyEvent(u32),
+        /// Ethabi only, should be excluded from Rust client events
+        @entry_id: 2
+        @codec: ethabi
+        EthabiOnlyEvent(u32),
+    }
 }
 
 program CodecProgram {
