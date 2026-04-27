@@ -66,6 +66,10 @@ impl Parse for EventArgs {
         }
 
         loop {
+            if input.is_empty() {
+                break;
+            }
+
             let lookahead = input.lookahead1();
             if lookahead.peek(Token![crate]) {
                 input.parse::<Token![crate]>()?;
@@ -168,8 +172,23 @@ mod tests {
     }
 
     #[test]
+    fn event_args_crate_path_allows_trailing_comma() {
+        let args = syn::parse2::<EventArgs>(quote!(crate = sails_rename,)).unwrap();
+        assert!(args.scale());
+        assert!(args.crate_path.is_some());
+    }
+
+    #[test]
     fn event_args_scale_only() {
         let args = syn::parse2::<EventArgs>(quote!(scale)).unwrap();
+        assert!(args.scale());
+        #[cfg(feature = "ethexe")]
+        assert!(!args.ethabi());
+    }
+
+    #[test]
+    fn event_args_scale_allows_trailing_comma() {
+        let args = syn::parse2::<EventArgs>(quote!(scale,)).unwrap();
         assert!(args.scale());
         #[cfg(feature = "ethexe")]
         assert!(!args.ethabi());
