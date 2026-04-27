@@ -1,5 +1,5 @@
 use crate::sails_paths::sails_path_or_default;
-use args::{CratePathAttr, SAILS_PATH};
+use args::{CratePathAttr, EventArgs, SAILS_PATH};
 use parity_scale_codec::Encode;
 use proc_macro_error::abort;
 use proc_macro2::TokenStream;
@@ -27,13 +27,36 @@ pub fn event(attrs: TokenStream, input: TokenStream) -> TokenStream {
     input.variants = variants.into_iter().collect();
 
     // Parse the attributes into a syntax tree.
-    let sails_path_attr = syn::parse2::<CratePathAttr>(attrs).ok();
-    let sails_path = &sails_path_or_default(sails_path_attr.map(|attr| attr.path()));
+    let args = syn::parse2::<EventArgs>(attrs)
+        .unwrap_or_else(|err| abort!(err.span(), "invalid `event` arguments: {}", err));
+    let sails_path = &sails_path_or_default(args.crate_path.clone());
 
-    let event_impl = generate_sails_event_impl(&input, sails_path);
+    // Determine codec annotation for single-codec events.
+    #[cfg(feature = "ethexe")]
+    let codec_ann: Option<&str> = match (args.scale(), args.ethabi()) {
+        (true, false) => Some("scale"),
+        (false, true) => Some("ethabi"),
+        _ => None,
+    };
+    #[cfg(not(feature = "ethexe"))]
+    let codec_ann: Option<&str> = None;
+
+    if let Some(codec) = codec_ann {
+        annotate_variants_with_codec(&mut input, codec);
+    }
+
+    let event_impl = if args.scale() {
+        generate_sails_event_impl(&input, sails_path)
+    } else {
+        quote!()
+    };
 
     #[cfg(feature = "ethexe")]
-    let eth_event_impl = ethexe::generate_eth_event_impl(&input, sails_path);
+    let eth_event_impl = if args.ethabi() {
+        ethexe::generate_eth_event_impl(&input, sails_path)
+    } else {
+        quote!()
+    };
     #[cfg(feature = "ethexe")]
     ethexe::process_indexed(&mut input);
     #[cfg(not(feature = "ethexe"))]
@@ -45,6 +68,15 @@ pub fn event(attrs: TokenStream, input: TokenStream) -> TokenStream {
         #event_impl
 
         #eth_event_impl
+    }
+}
+
+fn annotate_variants_with_codec(input: &mut ItemEnum, codec: &str) {
+    for variant in &mut input.variants {
+        let span = variant.ident.span();
+        variant.attrs.push(syn::parse_quote_spanned! { span =>
+            #[annotate(codec = #codec)]
+        });
     }
 }
 

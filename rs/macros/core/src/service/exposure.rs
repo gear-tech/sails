@@ -64,7 +64,10 @@ impl ServiceBuilder<'_> {
 
         self.events_type.map(|events_type| {
             quote! {
-                pub fn emit_event(&self, event: #events_type) -> #sails_path::errors::Result<()> {
+                pub fn emit_event(&self, event: #events_type) -> #sails_path::errors::Result<()>
+                where
+                    #events_type: #sails_path::SailsEvent,
+                {
                     use #sails_path::gstd::services::ExposureWithEvents;
 
                     self.emitter().emit_event(event)

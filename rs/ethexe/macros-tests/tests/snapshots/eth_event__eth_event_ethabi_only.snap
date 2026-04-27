@@ -1,0 +1,71 @@
+---
+source: macros-tests/tests/eth_event.rs
+expression: result
+---
+pub enum Events {
+    #[annotate(codec = "ethabi")]
+    MyEvent1 {
+        #[annotate(indexed)]
+        sender: sails_rs::alloy_primitives::Address,
+        amount: sails_rs::alloy_primitives::U256,
+    },
+    #[annotate(codec = "ethabi")]
+    MyEvent2,
+}
+impl sails_rs::EthEvent for Events {
+    const SIGNATURES: &'static [sails_rs::gstd::EthEventExpo] = &[
+        (
+            "MyEvent1",
+            <<(
+                sails_rs::alloy_primitives::Address,
+                sails_rs::alloy_primitives::U256,
+            ) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
+            sails_rs::keccak_const::Keccak256::new()
+                .update("MyEvent1".as_bytes())
+                .update(
+                    <<(
+                        sails_rs::alloy_primitives::Address,
+                        sails_rs::alloy_primitives::U256,
+                    ) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME
+                        .as_bytes(),
+                )
+                .finalize(),
+        ),
+        (
+            "MyEvent2",
+            <<() as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
+            sails_rs::keccak_const::Keccak256::new()
+                .update("MyEvent2".as_bytes())
+                .update(
+                    <<() as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME
+                        .as_bytes(),
+                )
+                .finalize(),
+        ),
+    ];
+    #[allow(unused)]
+    fn topics(&self) -> sails_rs::Vec<sails_rs::alloy_primitives::B256> {
+        match self {
+            Events::MyEvent1 { sender, amount } => {
+                let mut topics = sails_rs::Vec::with_capacity(2usize);
+                let (_, _, hash) = Self::SIGNATURES[0usize];
+                topics.push(sails_rs::alloy_primitives::B256::new(hash));
+                topics.push(Self::topic_hash(sender));
+                topics
+            }
+            Events::MyEvent2 => {
+                let mut topics = sails_rs::Vec::with_capacity(1usize);
+                let (_, _, hash) = Self::SIGNATURES[1usize];
+                topics.push(sails_rs::alloy_primitives::B256::new(hash));
+                topics
+            }
+        }
+    }
+    #[allow(unused)]
+    fn data(&self) -> sails_rs::Vec<u8> {
+        match self {
+            Events::MyEvent1 { sender, amount } => Self::encode_sequence(&(amount,)),
+            Events::MyEvent2 => Self::encode_sequence(&()),
+        }
+    }
+}

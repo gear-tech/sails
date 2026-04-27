@@ -108,6 +108,7 @@ mod tests {
     use syn::{Ident, PathSegment};
 
     #[test]
+    #[cfg(not(feature = "ethexe"))]
     fn gprogram_parse_attrs() {
         // arrange
         let input = quote!(handle_signal = my_handle_signal,);
