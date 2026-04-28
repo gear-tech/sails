@@ -206,7 +206,7 @@ fn full_with_sails_path() {
         service Counter {
             /// Add a value to the counter
             Add : (value: u32) -> u32;
-            /// Substract a value from the counter
+            /// Subtract a value from the counter
             Sub : (value: u32) -> u32;
             /// Get the current value
             query Value : () -> u32;

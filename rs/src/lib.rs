@@ -43,5 +43,6 @@ mod address;
 pub mod prelude;
 #[cfg(feature = "ethexe")]
 pub mod solidity;
+pub mod state;
 mod types;
 mod utils;
