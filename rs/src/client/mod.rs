@@ -212,11 +212,25 @@ impl<S, E: GearEnv, R: RouteHeader> Service<S, E, R> {
     }
 
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn listener(&self) -> ServiceListener<S::Event, E, R>
+    pub async fn listen(
+        &self,
+    ) -> Result<impl Stream<Item = (ActorId, S::Event)> + Unpin + use<S, E, R>, <E as GearEnv>::Error>
     where
         S: ServiceWithEvents<R>,
+        E: Listener<Error = <E as GearEnv>::Error>,
     {
-        ServiceListener::new(self.env.clone(), self.actor_id, self.route.clone())
+        let self_id = self.actor_id;
+        let route = self.route.clone();
+        self.env
+            .listen(move |(actor_id, payload)| {
+                if actor_id != self_id {
+                    return None;
+                }
+                S::Event::decode_event(&route, payload)
+                    .ok()
+                    .map(|e| (actor_id, e))
+            })
+            .await
     }
 }
 
@@ -237,44 +251,6 @@ impl<S, E: GearEnv> Service<S, E, RouteIdx> {
 #[cfg(not(target_arch = "wasm32"))]
 pub trait ServiceWithEvents<R: RouteHeader = RouteIdx> {
     type Event: Event<R>;
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-pub struct ServiceListener<D: Event<R>, E: GearEnv = GstdEnv, R: RouteHeader = RouteIdx> {
-    env: E,
-    actor_id: ActorId,
-    route: R,
-    _phantom: PhantomData<D>,
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-impl<D: Event<R>, E: GearEnv, R: RouteHeader> ServiceListener<D, E, R> {
-    pub fn new(env: E, actor_id: ActorId, route: R) -> Self {
-        ServiceListener {
-            env,
-            actor_id,
-            route,
-            _phantom: PhantomData,
-        }
-    }
-
-    pub async fn listen(
-        &self,
-    ) -> Result<impl Stream<Item = (ActorId, D)> + Unpin, <E as GearEnv>::Error>
-    where
-        E: Listener<Error = <E as GearEnv>::Error>,
-    {
-        let self_id = self.actor_id;
-        let route = self.route.clone();
-        self.env
-            .listen(move |(actor_id, payload)| {
-                if actor_id != self_id {
-                    return None;
-                }
-                D::decode_event(&route, payload).ok().map(|e| (actor_id, e))
-            })
-            .await
-    }
 }
 
 pin_project_lite::pin_project! {
@@ -820,7 +796,7 @@ pub trait Listener {
     async fn listen<E, F>(
         &self,
         f: F,
-    ) -> Result<impl Stream<Item = (ActorId, E)> + Unpin, Self::Error>
+    ) -> Result<impl Stream<Item = (ActorId, E)> + Unpin + use<Self, E, F>, Self::Error>
     where
         F: FnMut((ActorId, Vec<u8>)) -> Option<(ActorId, E)>;
 }

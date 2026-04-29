@@ -45,8 +45,7 @@ async fn counter_add_works() {
 
     let mut counter_client = demo_program.counter();
     // Listen to Counter events
-    let counter_listener = counter_client.listener();
-    let mut counter_events = counter_listener.listen().await.unwrap();
+    let mut counter_events = counter_client.listen().await.unwrap();
 
     // Act
 
@@ -78,8 +77,7 @@ async fn counter_sub_works() {
 
     let mut counter_client = demo_program.counter();
     // Listen to Counter events
-    let counter_listener = counter_client.listener();
-    let mut counter_events = counter_listener.listen().await.unwrap();
+    let mut counter_events = counter_client.listen().await.unwrap();
 
     // Act
 
@@ -223,8 +221,7 @@ async fn dog_barks() {
         .unwrap();
 
     let mut dog_client = demo_program.dog();
-    let dog_listener = dog_client.listener();
-    let mut dog_events = dog_listener.listen().await.unwrap();
+    let mut dog_events = dog_client.listen().await.unwrap();
 
     // Act
     let result = dog_client.make_sound().await.unwrap();
@@ -255,8 +252,7 @@ async fn dog_walks() {
 
     let dog_client = demo_program.dog();
     let mut walker_client = dog_client.walker_service();
-    let listener = walker_client.listener();
-    let mut events = listener.listen().await.unwrap();
+    let mut events = walker_client.listen().await.unwrap();
 
     // Act
     walker_client.walk(10, 20).await.unwrap();
@@ -390,8 +386,7 @@ async fn counter_add_works_via_next_mode() {
 
     let mut counter_client = demo_program.counter();
     // Listen to Counter events
-    let counter_listener = counter_client.listener();
-    let mut counter_events = counter_listener.listen().await.unwrap();
+    let mut counter_events = counter_client.listen().await.unwrap();
 
     // Act
     let result = counter_client.add(10).await.unwrap();
@@ -424,8 +419,7 @@ async fn counter_add_works_via_manual_mode() {
 
     let mut counter_client = demo_program.counter();
     // Listen to Counter events
-    let counter_listener = counter_client.listener();
-    let mut counter_events = counter_listener.listen().await.unwrap();
+    let mut counter_events = counter_client.listen().await.unwrap();
 
     // Use generated client code for calling Counter service
     let call_add = counter_client.add(10).send_for_reply().unwrap();

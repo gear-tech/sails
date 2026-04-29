@@ -40,8 +40,7 @@ async fn test_partial_client_subscribes_to_third_event() {
     let (env, code_id) = create_env();
     let program = env.deploy(code_id, vec![]).new().await.unwrap();
     let mut client = program.partial_idl_service();
-    let listener = client.listener();
-    let mut events = listener.listen().await.unwrap();
+    let mut events = client.listen().await.unwrap();
     client.third().await.unwrap();
     let event = events.next().await.unwrap();
     assert_eq!(
