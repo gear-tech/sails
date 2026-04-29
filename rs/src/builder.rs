@@ -102,10 +102,7 @@ impl<P: ProgramMeta> ClientBuilder<P> {
         Self {
             idl_path: Some(path.with_file_name(&program_name).with_extension("idl")),
             client_path: Some(path.with_file_name(&program_name).with_extension("rs")),
-            wasm_path: Some(
-                path.with_file_name(&program_name)
-                    .with_extension("opt.wasm"),
-            ),
+            wasm_path: Some(path.to_path_buf()),
             program_name,
             no_std: false,
             _marker: Default::default(),
