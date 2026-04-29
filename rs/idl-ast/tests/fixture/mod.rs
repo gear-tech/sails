@@ -157,7 +157,7 @@ pub fn counter_service() -> ServiceUnit {
                 throws: None,
                 kind: FunctionKind::Command,
                 entry_id: 1,
-                docs: vec!["Substract a value from the counter".to_string()],
+                docs: vec!["Subtract a value from the counter".to_string()],
                 annotations: vec![],
             },
             ServiceFunc {

@@ -11,12 +11,13 @@ impl ValidatorData {
     }
 }
 
-pub struct Validator<'a> {
-    data: &'a RefCell<ValidatorData>,
+pub struct Validator<S: StateMut<Item = ValidatorData, Error = Infallible> = RefCell<ValidatorData>>
+{
+    data: S,
 }
 
-impl<'a> Validator<'a> {
-    pub fn new(data: &'a RefCell<ValidatorData>) -> Self {
+impl<S: StateMut<Item = ValidatorData, Error = Infallible>> Validator<S> {
+    pub fn new(data: S) -> Self {
         Self { data }
     }
 }
@@ -29,7 +30,7 @@ pub enum ValidationError {
 }
 
 #[service]
-impl<'a> Validator<'a> {
+impl<S: StateMut<Item = ValidatorData, Error = Infallible>> Validator<S> {
     #[export(unwrap_result)]
     pub fn validate_range(
         &mut self,
@@ -38,10 +39,10 @@ impl<'a> Validator<'a> {
         max: u32,
     ) -> Result<u32, ValidationError> {
         if value < min {
-            self.data.borrow_mut().total_errors += 1;
+            self.data.get_mut().total_errors += 1;
             Err(ValidationError::TooSmall)
         } else if value > max {
-            self.data.borrow_mut().total_errors += 1;
+            self.data.get_mut().total_errors += 1;
             Err(ValidationError::TooBig)
         } else {
             Ok(value)
@@ -51,7 +52,7 @@ impl<'a> Validator<'a> {
     #[export(unwrap_result)]
     pub fn validate_nonzero(&mut self, value: u32) -> Result<(), String> {
         if value == 0 {
-            self.data.borrow_mut().total_errors += 1;
+            self.data.get_mut().total_errors += 1;
             Err("Value is zero".to_string())
         } else {
             Ok(())
@@ -69,6 +70,6 @@ impl<'a> Validator<'a> {
 
     #[export]
     pub fn total_errors(&self) -> u32 {
-        self.data.borrow().total_errors
+        self.data.get().total_errors
     }
 }

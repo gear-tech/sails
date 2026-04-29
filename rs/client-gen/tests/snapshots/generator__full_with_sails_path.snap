@@ -160,7 +160,7 @@ pub mod counter {
         type Env: my_crate::sails::client::GearEnv;
         /// Add a value to the counter
         fn add(&mut self, value: u32) -> my_crate::sails::client::PendingCall<io::Add, Self::Env>;
-        /// Substract a value from the counter
+        /// Subtract a value from the counter
         fn sub(&mut self, value: u32) -> my_crate::sails::client::PendingCall<io::Sub, Self::Env>;
         /// Get the current value
         fn value(&self) -> my_crate::sails::client::PendingCall<io::Value, Self::Env>;

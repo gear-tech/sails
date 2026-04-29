@@ -20,28 +20,28 @@ pub enum WalkerEvents {
     Walked { from: (i32, i32), to: (i32, i32) },
 }
 
-// Service extension requires the service to implement `Clone`
+// Yet another example of using `StateMut` for service state.
+// This time it demonstrates use of static lifetime with `RefCell<T>`
 #[derive(Clone)]
-pub struct WalkerService {
-    // Yet another example of using `RefCell` for service
-    // state. This time it demonstrates use of static lifetime
-    // even though it is not the best option
-    data: &'static RefCell<WalkerData>,
+pub struct WalkerService<
+    S: StateMut<Item = WalkerData, Error = Infallible> = &'static RefCell<WalkerData>,
+> {
+    data: S,
 }
 
-impl WalkerService {
-    pub fn new(data: &'static RefCell<WalkerData>) -> Self {
+impl<S: StateMut<Item = WalkerData, Error = Infallible>> WalkerService<S> {
+    pub fn new(data: S) -> Self {
         Self { data }
     }
 }
 
 #[service(events = WalkerEvents)]
-impl WalkerService {
+impl<S: StateMut<Item = WalkerData, Error = Infallible>> WalkerService<S> {
     #[export]
     pub fn walk(&mut self, dx: i32, dy: i32) {
         let from = self.position();
         {
-            let mut data = self.data.borrow_mut();
+            let mut data = self.data.get_mut();
             data.x += dx;
             data.y += dy;
         }
@@ -51,7 +51,7 @@ impl WalkerService {
 
     #[export]
     pub fn position(&self) -> (i32, i32) {
-        let data = self.data.borrow();
+        let data = self.data.get();
         (data.x, data.y)
     }
 }
