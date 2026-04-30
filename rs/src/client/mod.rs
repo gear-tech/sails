@@ -13,7 +13,7 @@ pub use sails_idl_meta::{Identifiable, InterfaceId, MethodMeta};
 #[cfg(all(feature = "gtest", not(target_arch = "wasm32")))]
 mod gtest_env;
 #[cfg(all(feature = "gtest", not(target_arch = "wasm32")))]
-pub use gtest_env::{BlockRunMode, GtestEnv, GtestError, GtestParams};
+pub use gtest_env::*;
 
 #[cfg(all(feature = "gclient", not(target_arch = "wasm32")))]
 mod gclient_env;

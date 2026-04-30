@@ -1,4 +1,8 @@
 use super::*;
+pub use ::gtest::constants::{
+    DEFAULT_USER_ALICE, DEFAULT_USER_BOB, DEFAULT_USER_CHARLIE, DEFAULT_USER_EVE,
+    DEFAULT_USERS_INITIAL_BALANCE, MAX_USER_GAS_LIMIT,
+};
 use ::gtest::{BlockRunResult, System, TestError};
 use core::{cell::RefCell, task::ready};
 use futures::{
@@ -57,7 +61,7 @@ crate::params_struct_impl!(
 );
 
 impl GtestEnv {
-    /// Create new `GTestRemoting` instance from `gtest::System` with specified `actor_id`
+    /// Create new `GtestEnv` instance from `gtest::System` with specified `actor_id`
     /// and `Auto` block run mode
     pub fn new(system: System, actor_id: ActorId) -> Self {
         let system = Rc::new(system);
@@ -68,6 +72,15 @@ impl GtestEnv {
             block_run_mode: BlockRunMode::Auto,
             block_reply_senders: Default::default(),
         }
+    }
+
+    /// Create `GtestEnv` instance with new `System` and `DEFAULT_USER_ALICE` actor
+    pub fn system_default() -> Self {
+        let system = System::new();
+        system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails_rs=debug");
+        system.mint_to(DEFAULT_USER_ALICE, DEFAULT_USERS_INITIAL_BALANCE);
+
+        GtestEnv::new(system, DEFAULT_USER_ALICE.into())
     }
 
     /// Avoid calling methods of `System` related to block execution.

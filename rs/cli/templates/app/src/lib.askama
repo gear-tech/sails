@@ -1,37 +1,92 @@
 #![no_std]
 
+use core::cell::RefCell;
 use sails_rs::prelude::*;
 
-struct {{ service_name }}(());
+/// State for the `{{ service_name }}` service.
+#[sails_rs::sails_type]
+#[derive(Default, Clone)]
+pub struct {{ service_name }}State {
+    pub last_caller: Option<ActorId>,
+}
 
-impl {{ service_name }} {
-    pub fn create() -> Self {
-        Self(())
+/// Events emitted by the `{{ service_name }}` service.
+#[sails_rs::sails_type]
+#[sails_rs::event]
+pub enum {{ service_name }}Events {
+    CalledBy { caller: ActorId },
+}
+
+struct {{ service_name }}<S: StateMut<Item = {{ service_name }}State, Error = Infallible> = RefCell<{{ service_name }}State>> {
+    state: S,
+}
+
+impl<S: StateMut<Item = {{ service_name }}State, Error = Infallible>> {{ service_name }}<S> {
+    pub fn new(state: S) -> Self {
+        Self { state }
     }
 }
 
-#[sails_rs::service]
-impl {{ service_name }} {
+#[sails_rs::service(events = {{ service_name }}Events)]
+impl<S: StateMut<Item = {{ service_name }}State, Error = Infallible>> {{ service_name }}<S> {
     // Service's method (command)
     #[export]
     pub fn do_something(&mut self) -> String {
-        sails_rs::gstd::debug!("Call `do_something`");
+        let caller = Syscall::message_source();
+        self.state.get_mut().last_caller = Some(caller);
+        self.emit_event({{ service_name }}Events::CalledBy { caller }).unwrap();
         "Hello from {{ service_name }}!".to_string()
+    }
+
+    // Query fn
+    #[export]
+    pub fn get_state(&self) -> {{ service_name }}State {
+        self.state.get().clone()
     }
 }
 
 #[derive(Default)]
-pub struct {{ program_struct_name }}(());
+pub struct {{ program_struct_name }} {
+    {{ service_name_snake }}_state: RefCell<{{ service_name }}State>,
+}
 
 #[sails_rs::program]
 impl {{ program_struct_name }} {
     // Program's constructor
     pub fn create() -> Self {
-        Self(())
+        Self::default()
     }
 
     // Exposed service
-    pub fn {{ service_name_snake}}(&self) -> {{ service_name }} {
-        {{ service_name }}::create()
+    pub fn {{ service_name_snake }}(&self) -> {{ service_name }}<&RefCell<{{ service_name }}State>> {
+        {{ service_name }}::new(&self.{{ service_name_snake }}_state)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sails_rs::gstd::services::Service as _;
+
+    #[test]
+    fn service_returns_initial_state() {
+        Syscall::with_message_source(ActorId::from(42));
+        let state = RefCell::new({{ service_name }}State::default());
+        let service = {{ service_name }}::new(&state).expose(0);
+        let res = service.get_state();
+        assert_eq!(None, res.last_caller);
+    }
+
+    #[test]
+    fn service_do_something() {
+        let actor = ActorId::from(42);
+        Syscall::with_message_source(actor);
+        let state = RefCell::new({{ service_name }}State::default());
+        let mut service = {{ service_name }}::new(&state).expose(0);
+        let res = service.do_something();
+        assert_eq!("Hello from {{ service_name }}!", res);
+
+        let res = service.get_state();
+        assert_eq!(Some(actor), res.last_caller);
     }
 }

@@ -1,27 +1,34 @@
-use sails_rs::{
-    client::*,
-    gtest::*,
-    prelude::*,
-};
 use ::{{ client_crate_name }}::{
     {{ client_program_name }} as _,
     {{ client_program_name }}Ctors as _,
     {{ service_name_snake }}::*,
 };
-
-const ACTOR_ID: u64 = 42;
+use sails_rs::prelude::futures::StreamExt as _;
+#[allow(unused_imports)]
+use sails_rs::{client::*, gtest::*, prelude::*};
 
 #[tokio::test]
 async fn do_something_works() {
     // Create Sails Env
-    let (env, program_code_id) = create_env();
+    let env = GtestEnv::system_default();
+    let code_id = env.system().submit_code(::{{ program_crate_name }}::WASM_BINARY);
 
-    let program = env.deploy::<::{{ client_crate_name }}::{{ client_program_name }}Program>(program_code_id, b"salt".to_vec())
+    // Deploy program
+    let program = env
+        .deploy::<::{{ client_crate_name }}::{{ client_program_name }}Program>(code_id, b"salt".to_vec())
         .create() // Call program's constructor
         .await
         .unwrap();
 
+    // Create service client
     let mut service_client = program.{{ service_name_snake }}();
+    
+    // Subscribe to service events
+    let mut service_events = service_client.listen().await.unwrap();
+
+    // Query service
+    let state = service_client.get_state().await.unwrap();
+    assert_eq!(None, state.last_caller);
 
     let result = service_client
         .do_something() // Call service's method
@@ -29,16 +36,18 @@ async fn do_something_works() {
         .unwrap();
 
     assert_eq!(result, "Hello from {{ service_name }}!".to_string());
-}
 
-fn create_env() -> (GtestEnv, CodeId) {
-    let system = System::new();
-    system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails_rs=debug");
-    system.mint_to(ACTOR_ID, 1_000_000_000_000_000);
-    // Submit program code into the system
-    let code_id = system.submit_code(::{{ program_crate_name }}::WASM_BINARY);
+    // Query service
+    let state = service_client.get_state().await.unwrap();
+    assert_eq!(Some(ActorId::from(DEFAULT_USER_ALICE)), state.last_caller);
 
-    // Create an Env instance for the System and set the block run mode to Next
-    let env = GtestEnv::new(system, ACTOR_ID.into());
-    (env, code_id)
+    // Read events
+    let (actor_id, event) = service_events.next().await.unwrap();
+    assert_eq!(program.id(), actor_id);
+    assert_eq!(
+        events::{{ service_name }}Events::CalledBy {
+            caller: ActorId::from(DEFAULT_USER_ALICE)
+        },
+        event
+    );
 }
