@@ -472,7 +472,7 @@ impl Listener for GtestEnv {
     async fn listen<E, F: FnMut((ActorId, Vec<u8>)) -> Option<(ActorId, E)>>(
         &self,
         f: F,
-    ) -> Result<impl Stream<Item = (ActorId, E)> + Unpin, Self::Error> {
+    ) -> Result<impl Stream<Item = (ActorId, E)> + Unpin + use<E, F>, Self::Error> {
         let (tx, rx) = mpsc::unbounded::<(ActorId, Vec<u8>)>();
         self.event_senders.borrow_mut().push(tx);
         Ok(rx.filter_map(f))
