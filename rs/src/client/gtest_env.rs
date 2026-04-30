@@ -60,17 +60,6 @@ crate::params_struct_impl!(
     }
 );
 
-impl Default for GtestEnv {
-    /// Create default `GtestEnv` instance with `DEFAULT_USER_ALICE` actor
-    fn default() -> Self {
-        let system = System::new();
-        system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails_rs=debug");
-        system.mint_to(DEFAULT_USER_ALICE, DEFAULT_USERS_INITIAL_BALANCE);
-
-        GtestEnv::new(system, DEFAULT_USER_ALICE.into())
-    }
-}
-
 impl GtestEnv {
     /// Create new `GtestEnv` instance from `gtest::System` with specified `actor_id`
     /// and `Auto` block run mode
@@ -83,6 +72,15 @@ impl GtestEnv {
             block_run_mode: BlockRunMode::Auto,
             block_reply_senders: Default::default(),
         }
+    }
+
+    /// Create `GtestEnv` instance with new `System` and `DEFAULT_USER_ALICE` actor
+    pub fn system_default() -> Self {
+        let system = System::new();
+        system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails_rs=debug");
+        system.mint_to(DEFAULT_USER_ALICE, DEFAULT_USERS_INITIAL_BALANCE);
+
+        GtestEnv::new(system, DEFAULT_USER_ALICE.into())
     }
 
     /// Avoid calling methods of `System` related to block execution.
