@@ -3,11 +3,24 @@
 use core::cell::RefCell;
 use sails_rs::prelude::*;
 
+/// A record of a single call into the service.
+///
+/// `#[sails_rs::sails_type]` derives `Encode`, `Decode`, `TypeInfo`, and
+/// `ReflectHash` with the right crate paths — required for any custom type
+/// that crosses a service boundary (parameter, return value, or state).
+#[sails_rs::sails_type]
+#[derive(Clone)]
+pub struct CallRecord {
+    pub caller: ActorId,
+    pub block: u32,
+}
+
 /// State for the `{{ service_name }}` service.
 #[sails_rs::sails_type]
 #[derive(Default, Clone)]
 pub struct {{ service_name }}State {
     pub last_caller: Option<ActorId>,
+    pub history: Vec<CallRecord>,
 }
 
 /// Events emitted by the `{{ service_name }}` service.
@@ -33,7 +46,12 @@ impl<S: StateMut<Item = {{ service_name }}State, Error = Infallible>> {{ service
     #[export]
     pub fn do_something(&mut self) -> String {
         let caller = Syscall::message_source();
-        self.state.get_mut().last_caller = Some(caller);
+        let block = Syscall::block_height();
+        {
+            let mut state = self.state.get_mut();
+            state.last_caller = Some(caller);
+            state.history.push(CallRecord { caller, block });
+        }
         self.emit_event({{ service_name }}Events::CalledBy { caller }).unwrap();
         "Hello from {{ service_name }}!".to_string()
     }
@@ -42,6 +60,14 @@ impl<S: StateMut<Item = {{ service_name }}State, Error = Infallible>> {{ service
     #[export]
     pub fn get_state(&self) -> {{ service_name }}State {
         self.state.get().clone()
+    }
+
+    // Query returning a custom-DTO collection. Service methods hash every
+    // parameter and return type via `ReflectHash`, so `CallRecord` must derive
+    // it — which `#[sails_rs::sails_type]` handles for us.
+    #[export]
+    pub fn get_history(&self) -> Vec<CallRecord> {
+        self.state.get().history.clone()
     }
 }
 
@@ -81,6 +107,7 @@ mod tests {
     fn service_do_something() {
         let actor = ActorId::from(42);
         Syscall::with_message_source(actor);
+        Syscall::with_block_height(7);
         let state = RefCell::new({{ service_name }}State::default());
         let mut service = {{ service_name }}::new(&state).expose(0);
         let res = service.do_something();
@@ -88,5 +115,10 @@ mod tests {
 
         let res = service.get_state();
         assert_eq!(Some(actor), res.last_caller);
+
+        let history = service.get_history();
+        assert_eq!(1, history.len());
+        assert_eq!(actor, history[0].caller);
+        assert_eq!(7, history[0].block);
     }
 }

@@ -41,6 +41,11 @@ async fn do_something_works() {
     let state = service_client.get_state().await.unwrap();
     assert_eq!(Some(ActorId::from(DEFAULT_USER_ALICE)), state.last_caller);
 
+    // Query a custom-DTO collection — exercises the `#[sails_type]` derives.
+    let history = service_client.get_history().await.unwrap();
+    assert_eq!(1, history.len());
+    assert_eq!(ActorId::from(DEFAULT_USER_ALICE), history[0].caller);
+
     // Read events
     let (actor_id, event) = service_events.next().await.unwrap();
     assert_eq!(program.id(), actor_id);
