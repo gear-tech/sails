@@ -3,6 +3,13 @@
 use core::cell::RefCell;
 use sails_rs::prelude::*;
 
+/// Maximum number of call records retained in history.
+///
+/// On-chain programs pay for storage, so any collection growing without
+/// bound is a permanent state-bomb. Cap unbounded collections at a fixed
+/// size — here we keep the most recent calls, dropping the oldest when full.
+const MAX_HISTORY: usize = 16;
+
 /// A record of a single call into the service.
 ///
 /// `#[sails_rs::sails_type]` derives `Encode`, `Decode`, `TypeInfo`, and
@@ -50,6 +57,10 @@ impl<S: StateMut<Item = {{ service_name }}State, Error = Infallible>> {{ service
         {
             let mut state = self.state.get_mut();
             state.last_caller = Some(caller);
+            // Cap history at MAX_HISTORY: drop the oldest entry when full.
+            if state.history.len() == MAX_HISTORY {
+                state.history.remove(0);
+            }
             state.history.push(CallRecord { caller, block });
         }
         self.emit_event({{ service_name }}Events::CalledBy { caller }).unwrap();
@@ -120,5 +131,27 @@ mod tests {
         assert_eq!(1, history.len());
         assert_eq!(actor, history[0].caller);
         assert_eq!(7, history[0].block);
+    }
+
+    #[test]
+    fn service_history_is_capped() {
+        let actor = ActorId::from(42);
+        Syscall::with_message_source(actor);
+        Syscall::with_block_height(0);
+        let state = RefCell::new({{ service_name }}State::default());
+        let mut service = {{ service_name }}::new(&state).expose(0);
+
+        // Drive past the cap: oldest entries must be evicted.
+        for i in 0..(MAX_HISTORY + 5) {
+            Syscall::with_block_height(i as u32);
+            let _ = service.do_something();
+        }
+
+        let history = service.get_history();
+        assert_eq!(MAX_HISTORY, history.len());
+        // First retained block is `5`: blocks 0..=4 were evicted.
+        assert_eq!(5, history[0].block);
+        // Last retained block is `MAX_HISTORY + 4`.
+        assert_eq!((MAX_HISTORY + 4) as u32, history[MAX_HISTORY - 1].block);
     }
 }
