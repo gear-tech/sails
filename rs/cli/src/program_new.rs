@@ -449,9 +449,9 @@ impl ProgramGenerator {
             manifest_path,
             Development,
             Some(if self.ethereum {
-                "ethexe,gtest,gclient"
+                "ethexe,gtest"
             } else {
-                "gtest,gclient"
+                "gtest"
             }),
         )?;
 
