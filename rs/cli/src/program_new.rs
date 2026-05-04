@@ -333,11 +333,7 @@ impl ProgramGenerator {
         self.cargo_add_sails_rs(
             manifest_path,
             Development,
-            Some(if self.ethereum {
-                "ethexe,std"
-            } else {
-                "std"
-            }),
+            Some(if self.ethereum { "ethexe,std" } else { "std" }),
         )?;
 
         let mut lib_rs = File::create(lib_rs_path(path))?;
