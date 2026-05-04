@@ -26,9 +26,8 @@ async fn do_something_works() {
     // Subscribe to service events
     let mut service_events = service_client.listen().await.unwrap();
 
-    // Query service
-    let state = service_client.get_state().await.unwrap();
-    assert_eq!(None, state.last_caller);
+    // History starts empty.
+    assert!(service_client.get_history().await.unwrap().is_empty());
 
     let result = service_client
         .do_something() // Call service's method
@@ -36,10 +35,6 @@ async fn do_something_works() {
         .unwrap();
 
     assert_eq!(result, "Hello from {{ service_name }}!".to_string());
-
-    // Query service
-    let state = service_client.get_state().await.unwrap();
-    assert_eq!(Some(ActorId::from(DEFAULT_USER_ALICE)), state.last_caller);
 
     // Query a custom-DTO collection — exercises the `#[sails_type]` derives.
     let history = service_client.get_history().await.unwrap();
