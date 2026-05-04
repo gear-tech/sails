@@ -329,6 +329,12 @@ impl ProgramGenerator {
 
         // add sails-rs refs
         self.cargo_add_sails_rs(manifest_path, Normal, self.ethereum.then_some("ethexe"))?;
+        // dev-dep with `std` enables `Syscall::with_*` mocks for inline unit tests.
+        self.cargo_add_sails_rs(
+            manifest_path,
+            Development,
+            Some(if self.ethereum { "ethexe,std" } else { "std" }),
+        )?;
 
         let mut lib_rs = File::create(lib_rs_path(path))?;
         self.app_lib().write_into(&mut lib_rs)?;

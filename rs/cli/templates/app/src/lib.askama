@@ -3,11 +3,30 @@
 use core::cell::RefCell;
 use sails_rs::prelude::*;
 
+/// Maximum number of call records retained in history.
+///
+/// On-chain programs pay for storage, so any collection growing without
+/// bound is a permanent state-bomb. Cap unbounded collections at a fixed
+/// size — here we keep the most recent calls, dropping the oldest when full.
+const MAX_HISTORY: usize = 16;
+
+/// A record of a single call into the service.
+///
+/// `#[sails_rs::sails_type]` derives `Encode`, `Decode`, `TypeInfo`, and
+/// `ReflectHash` with the right crate paths — required for any custom type
+/// that crosses a service boundary (parameter, return value, or state).
+#[sails_rs::sails_type]
+#[derive(Clone, Debug, PartialEq)]
+pub struct CallRecord {
+    pub caller: ActorId,
+    pub block: u32,
+}
+
 /// State for the `{{ service_name }}` service.
 #[sails_rs::sails_type]
 #[derive(Default, Clone)]
 pub struct {{ service_name }}State {
-    pub last_caller: Option<ActorId>,
+    pub history: Vec<CallRecord>,
 }
 
 /// Events emitted by the `{{ service_name }}` service.
@@ -33,15 +52,25 @@ impl<S: StateMut<Item = {{ service_name }}State, Error = Infallible>> {{ service
     #[export]
     pub fn do_something(&mut self) -> String {
         let caller = Syscall::message_source();
-        self.state.get_mut().last_caller = Some(caller);
+        let block = Syscall::block_height();
+        {
+            let mut state = self.state.get_mut();
+            // Cap history at MAX_HISTORY: drop the oldest entry when full.
+            if state.history.len() == MAX_HISTORY {
+                state.history.remove(0);
+            }
+            state.history.push(CallRecord { caller, block });
+        }
         self.emit_event({{ service_name }}Events::CalledBy { caller }).unwrap();
         "Hello from {{ service_name }}!".to_string()
     }
 
-    // Query fn
+    // Query returning a custom-DTO collection. Service methods hash every
+    // parameter and return type via `ReflectHash`, so `CallRecord` must derive
+    // it — which `#[sails_rs::sails_type]` handles for us.
     #[export]
-    pub fn get_state(&self) -> {{ service_name }}State {
-        self.state.get().clone()
+    pub fn get_history(&self) -> Vec<CallRecord> {
+        self.state.get().history.clone()
     }
 }
 
@@ -69,24 +98,55 @@ mod tests {
     use sails_rs::gstd::services::Service as _;
 
     #[test]
-    fn service_returns_initial_state() {
+    fn service_returns_empty_history() {
         Syscall::with_message_source(ActorId::from(42));
         let state = RefCell::new({{ service_name }}State::default());
         let service = {{ service_name }}::new(&state).expose(0);
-        let res = service.get_state();
-        assert_eq!(None, res.last_caller);
+        assert!(service.get_history().is_empty());
     }
 
     #[test]
     fn service_do_something() {
         let actor = ActorId::from(42);
         Syscall::with_message_source(actor);
+        Syscall::with_block_height(7);
         let state = RefCell::new({{ service_name }}State::default());
         let mut service = {{ service_name }}::new(&state).expose(0);
         let res = service.do_something();
         assert_eq!("Hello from {{ service_name }}!", res);
 
-        let res = service.get_state();
-        assert_eq!(Some(actor), res.last_caller);
+        let history = service.get_history();
+        assert_eq!(
+            vec![CallRecord {
+                caller: actor,
+                block: 7
+            }],
+            history
+        );
+    }
+
+    #[test]
+    fn service_history_is_capped() {
+        let actor = ActorId::from(42);
+        Syscall::with_message_source(actor);
+        let state = RefCell::new({{ service_name }}State::default());
+        let mut service = {{ service_name }}::new(&state).expose(0);
+
+        // Drive past the cap: oldest entries must be evicted.
+        for i in 0..(MAX_HISTORY + 5) {
+            Syscall::with_block_height(i as u32);
+            let _ = service.do_something();
+        }
+
+        let history = service.get_history();
+        assert_eq!(MAX_HISTORY, history.len());
+        // Blocks 0..=4 were evicted; the retained window is `5..MAX_HISTORY+5`.
+        let expected: Vec<CallRecord> = (5..(MAX_HISTORY + 5) as u32)
+            .map(|block| CallRecord {
+                caller: actor,
+                block,
+            })
+            .collect();
+        assert_eq!(expected, history);
     }
 }
