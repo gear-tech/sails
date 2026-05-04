@@ -487,6 +487,7 @@ export class SailsService implements ISailsService {
           return result as T;
         },
         decodeResult: <T = any>(result: HexString) => {
+          _assertMatchingHeader(result, header, `${service.name}.${func.name} result`);
           const payload = this.registry.createType(`([u8; 16], ${returnType})`, result);
           return payload[1].toJSON() as T;
         },
