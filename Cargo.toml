@@ -96,7 +96,7 @@ gwasm-builder = { version = "=1.10.0", package = "gear-wasm-builder" }
 alloy-primitives = { version = "1.5", default-features = false }
 alloy-sol-types = { version = "1.5", default-features = false }
 anyhow = "1"
-askama = { version = "0.15", default-features = false }
+askama = { version = "0.16", default-features = false }
 cargo_metadata = "0.23"
 clap = "4.6"
 fs2 = "0.4.3"
@@ -105,7 +105,7 @@ futures = { version = "0.3", default-features = false }
 genco = "0.19"
 git-download = "0.1"
 handlebars = "=6.4" # PIN version
-hashbrown = "0.16"
+hashbrown = "0.17"
 hex = { version = "0.4", default-features = false }
 insta = "1.47"
 itertools = "0.14"
@@ -133,7 +133,7 @@ syn = "2.0"
 thiserror = { version = "2.0", default-features = false }
 toml_edit = "0.25"
 tempfile = "3.27"
-tokio = "1.51"
+tokio = "1.52"
 tokio-stream = "0.1"
 trybuild = "1"
 
