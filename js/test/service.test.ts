@@ -163,8 +163,6 @@ describe('service', () => {
     expect(result.services.TestService.events.ThisDone.type).toBe('Null');
     expect(result.services.TestService.events.ThatDone.type).toBe('u32');
     expect(result.services.TestService.events.SomethingHappened.type).toBe('(String, u32)');
-
-    // Named-field struct: pre-fix this returned an object; post-fix it must be a string.
     expect(typeof result.services.TestService.events.Walked.type).toBe('string');
   });
 });

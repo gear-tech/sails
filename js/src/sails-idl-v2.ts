@@ -111,7 +111,7 @@ const _assertMatchingHeader = (
   if (
     header.interfaceId.asU64() !== expected.interfaceId.asU64() ||
     header.entryId !== expected.entryId ||
-    // route_idx 0 is the inference sentinel (spec docs/sails-header-v1-spec.md); skip equality for ctors.
+    // route_idx 0 is the inference sentinel — see docs/sails-header-v1-spec.md.
     (expected.routeIdx !== 0 && header.routeIdx !== expected.routeIdx)
   ) {
     throw new Error(
