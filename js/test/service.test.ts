@@ -147,19 +147,24 @@ describe('service', () => {
         ThisDone;
         ThatDone: u32;
         SomethingHappened: struct { str, u32 };
+        Walked: struct { from: u32, to: u32 };
       }
     }`;
 
     const result = sails.parseIdl(idl);
 
-    expect(Object.keys(result.services.TestService.events)).toHaveLength(3);
+    expect(Object.keys(result.services.TestService.events)).toHaveLength(4);
 
     expect(result.services.TestService.events).toHaveProperty('ThisDone');
     expect(result.services.TestService.events).toHaveProperty('ThatDone');
     expect(result.services.TestService.events).toHaveProperty('SomethingHappened');
+    expect(result.services.TestService.events).toHaveProperty('Walked');
 
     expect(result.services.TestService.events.ThisDone.type).toBe('Null');
     expect(result.services.TestService.events.ThatDone.type).toBe('u32');
     expect(result.services.TestService.events.SomethingHappened.type).toBe('(String, u32)');
+
+    // Named-field struct: pre-fix this returned an object; post-fix it must be a string.
+    expect(typeof result.services.TestService.events.Walked.type).toBe('string');
   });
 });
