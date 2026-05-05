@@ -506,10 +506,9 @@ export class SailsService implements ISailsService {
     for (const event of service.events) {
       const entryId = event.entry_id ?? 0;
       const header = SailsMessageHeader.v1(InterfaceId.from(service.interface_id), entryId, this.routeIdx);
-      const t = event.fields?.length ? this._typeResolver.getStructDef(event.fields) : 'Null';
       const typeStr = event.fields?.length ? this._typeResolver.getStructDef(event.fields, {}, true) : 'Null';
       events[event.name] = {
-        type: t,
+        type: typeStr,
         typeDef: event,
         docs: event.docs ? event.docs.join('\n') : undefined,
         is: ({ data: { message } }: UserMessageSent) => {
