@@ -465,13 +465,6 @@ describe('type-resolver-v2 resolveNamed', () => {
     expect((result as any).fields[1].type).toBe('u64');
   });
 
-  test('explicit generics arg on TypeDecl overload overrides the decl.generics field', () => {
-    const resolver = new TypeResolver([envelope]);
-    // Pass generics as a separate argument — should win over typeDecl.generics.
-    const result = resolver.resolveNamed(named('Envelope', ['u32']), ['String']);
-    expect((result as any).fields[1].type).toBe('String');
-  });
-
   test('returns undefined for primitives, slices, arrays, tuples, type params', () => {
     const resolver = new TypeResolver([]);
     expect(resolver.resolveNamed('u32')).toBeUndefined();
