@@ -86,4 +86,60 @@ describe('_assertMatchingHeader route_idx validation', () => {
 
     expect(() => program.ctors.New.decodePayload(payload)).not.toThrow();
   });
+
+  test('received route_idx = 0 is the inference sentinel and is accepted (spec §13.6)', () => {
+    const service = program.services.Echo;
+
+    const funcHeader = SailsMessageHeader.v1(InterfaceId.from(SERVICE_INTERFACE_ID), 1, 0);
+    const funcBody = service.registry.createType('u32', 42).toU8a();
+    const funcPayload = u8aToHex(u8aConcat(funcHeader.toBytes(), funcBody));
+    expect(service.functions.Ping.decodePayload(funcPayload)).toEqual({ value: 42 });
+
+    const eventHeader = SailsMessageHeader.v1(InterfaceId.from(SERVICE_INTERFACE_ID), 2, 0);
+    const eventBody = service.registry.createType('u32', 7).toU8a();
+    const eventPayload = u8aToHex(u8aConcat(eventHeader.toBytes(), eventBody));
+    expect(service.events.Pinged.decode(eventPayload)).toEqual(7);
+  });
+
+  test('event.is() returns false for wrong route_idx (consistent with decode)', () => {
+    const service = program.services.Echo;
+    const programId = '0x0000000000000000000000000000000000000000000000000000000000000001';
+    program.setProgramId(programId);
+
+    const wrongHeader = SailsMessageHeader.v1(InterfaceId.from(SERVICE_INTERFACE_ID), 2, 99);
+    const body = service.registry.createType('u32', 7).toU8a();
+    const wrongPayload = u8aConcat(wrongHeader.toBytes(), body);
+
+    const fakeMessage = {
+      data: {
+        message: {
+          source: { eq: () => true },
+          destination: { eq: () => true },
+          payload: wrongPayload,
+        },
+      },
+    } as any;
+
+    expect(service.events.Pinged.is(fakeMessage)).toBe(false);
+  });
+
+  test('event.is() returns true for inference sentinel route_idx = 0', () => {
+    const service = program.services.Echo;
+
+    const inferHeader = SailsMessageHeader.v1(InterfaceId.from(SERVICE_INTERFACE_ID), 2, 0);
+    const body = service.registry.createType('u32', 7).toU8a();
+    const inferPayload = u8aConcat(inferHeader.toBytes(), body);
+
+    const fakeMessage = {
+      data: {
+        message: {
+          source: { eq: () => true },
+          destination: { eq: () => true },
+          payload: inferPayload,
+        },
+      },
+    } as any;
+
+    expect(service.events.Pinged.is(fakeMessage)).toBe(true);
+  });
 });
