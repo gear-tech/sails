@@ -110,12 +110,15 @@ const _assertMatchingHeader = (
 
   if (
     header.interfaceId.asU64() !== expected.interfaceId.asU64() ||
-    header.entryId !== expected.entryId
+    header.entryId !== expected.entryId ||
+    // route_idx 0 is the inference sentinel (spec docs/sails-header-v1-spec.md); skip equality for ctors.
+    (expected.routeIdx !== 0 && header.routeIdx !== expected.routeIdx)
   ) {
     throw new Error(
       `Header mismatch for ${target}: expected interface_id=${expected.interfaceId.toString()} ` +
-      `entry_id=${expected.entryId}, got interface_id=${header.interfaceId.toString()} ` +
-      `entry_id=${header.entryId}`,
+      `entry_id=${expected.entryId} route_idx=${expected.routeIdx}, ` +
+      `got interface_id=${header.interfaceId.toString()} ` +
+      `entry_id=${header.entryId} route_idx=${header.routeIdx}`,
     );
   }
 };
