@@ -341,3 +341,165 @@ describe('type-resolver-v2 generics', () => {
     ).toEqual({ three: { p1: arrayTupleU8, p2: [['a', 'b', 'c', 'd'], null] } });
   });
 });
+
+describe('sails v2 service-scoped type resolution', () => {
+  const TWO_SERVICES_SAME_NAME = `
+    !@sails: 1.0.0-beta.3
+
+    service A@0xa667a3b129e57f5c {
+      functions {
+        Set(p: Packet);
+      }
+      types {
+        struct Packet {
+          payload: [u8; 4],
+        }
+      }
+    }
+
+    service B@0x8b02064fa4f2f602 {
+      functions {
+        Set(p: Packet);
+      }
+      types {
+        struct Packet {
+          payload: [u8; 8],
+        }
+      }
+    }
+
+    program Test {
+      services {
+        A@0xa667a3b129e57f5c,
+        B@0x8b02064fa4f2f602,
+      }
+    }
+  `;
+
+  test('resolveInService returns the service-local Type on name collision', () => {
+    const program = new SailsProgram(parser.parse(TWO_SERVICES_SAME_NAME));
+
+    const a = program.resolveInService('A', { kind: 'named', name: 'Packet' });
+    const b = program.resolveInService('B', { kind: 'named', name: 'Packet' });
+    expect(a?.kind).toBe('struct');
+    expect(b?.kind).toBe('struct');
+    // Differentiate by the array length on the single field.
+    const aField = (a as any).fields[0].type;
+    const bField = (b as any).fields[0].type;
+    expect(aField).toEqual({ kind: 'array', item: 'u8', len: 4 });
+    expect(bField).toEqual({ kind: 'array', item: 'u8', len: 8 });
+  });
+
+  test('resolveInService returns undefined for unknown service names', () => {
+    const program = new SailsProgram(parser.parse(TWO_SERVICES_SAME_NAME));
+    expect(program.resolveInService('Nonexistent', { kind: 'named', name: 'Packet' })).toBeUndefined();
+  });
+
+  test('program-level (ambient) types are visible inside service resolvers', () => {
+    // Program-level `Shared` is referenced by the ctor (parser rejects it in service signatures)
+    // but must still resolve through the service's resolver for consumers walking ctor args.
+    const text = `
+      !@sails: 1.0.0-beta.3
+
+      service A@0x4071744d7e684110 {
+        functions {
+          Ping() -> u32;
+        }
+      }
+
+      program Test {
+        constructors {
+          Default(shared: Shared);
+        }
+        services {
+          A@0x4071744d7e684110,
+        }
+        types {
+          struct Shared {
+            v: u32,
+          }
+        }
+      }
+    `;
+    const program = new SailsProgram(parser.parse(text));
+    const t = program.resolveInService('A', { kind: 'named', name: 'Shared' });
+    expect(t?.kind).toBe('struct');
+    expect(t?.name).toBe('Shared');
+  });
+
+  test('extended services see program-level (ambient) types through the extends chain', () => {
+    const text = `
+      !@sails: 1.0.0-beta.3
+
+      service Base@0x4071744d7e684110 {
+        functions {
+          Ping() -> u32;
+        }
+      }
+
+      service Child@0x1f2c78d96df31861 {
+        extends {
+          Base@0x4071744d7e684110,
+        }
+      }
+
+      program Test {
+        constructors {
+          Default(shared: Shared);
+        }
+        services {
+          Child@0x1f2c78d96df31861,
+        }
+        types {
+          struct Shared {
+            v: u32,
+          }
+        }
+      }
+    `;
+    const program = new SailsProgram(parser.parse(text));
+    const child = program.services['Child'];
+    const baseThroughExtends = child.extends['Base'];
+    // Program-level Shared must be resolvable via the extended service's own resolver.
+    const t = baseThroughExtends.typeResolver.resolveNamed({ kind: 'named', name: 'Shared' });
+    expect(t?.kind).toBe('struct');
+    expect(t?.name).toBe('Shared');
+  });
+
+  test('generic substitution: Envelope<[u8]>.payload resolves to [u8]', () => {
+    const text = `
+      !@sails: 1.0.0-beta.3
+
+      service Gen@0x8c5db6384e4cf753 {
+        functions {
+          SetPayload(p: Envelope<[u8]>);
+        }
+        types {
+          struct Envelope<T> {
+            id: u32,
+            payload: T,
+          }
+        }
+      }
+
+      program Test {
+        services {
+          Gen@0x8c5db6384e4cf753,
+        }
+      }
+    `;
+    const program = new SailsProgram(parser.parse(text));
+    const service = program.services['Gen'];
+    // resolveNamed(name, generics) returns a concrete substituted Type.
+    const envelope = service.typeResolver.resolveNamed({
+      kind: 'named',
+      name: 'Envelope',
+      generics: [{ kind: 'slice', item: 'u8' }],
+    });
+    expect(envelope?.kind).toBe('struct');
+    // type_params are stripped from the concrete result.
+    expect(envelope?.type_params).toBeUndefined();
+    const payloadField = (envelope as any).fields.find((f: any) => f.name === 'payload');
+    expect(payloadField?.type).toEqual({ kind: 'slice', item: 'u8' });
+  });
+});

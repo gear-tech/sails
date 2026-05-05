@@ -2,6 +2,7 @@ import { GearApi, HexString, UserMessageSent } from '@gear-js/api';
 import { u8aToHex, u8aToU8a } from '@polkadot/util';
 
 import type {
+  Type,
   TypeDecl,
   IIdlDoc,
   IServiceExpo,
@@ -126,6 +127,10 @@ export class SailsProgram {
   private _api?: GearApi;
   private _programId?: HexString;
   private _services: Map<bigint, IServiceUnit>;
+  // Lazy indices for resolveInService. Populated on first call; not invalidated because
+  // `_doc` is immutable after parse.
+  private _serviceTypeIndex?: Map<string, Map<string, Type>>;
+  private _programTypeIndex?: Map<string, Type>;
   private _resolveServiceUnit = (ident: IServiceIdent): IServiceUnit | undefined => {
     if (!ident.interface_id) {
       throw new Error(`Service "${ident.name}" is missing interface_id in IDL`);
@@ -141,7 +146,7 @@ export class SailsProgram {
   constructor(doc: IIdlDoc) {
     this._doc = doc;
     if (this._doc.program) {
-      this._typeResolver = new TypeResolver(this._doc.program.types);
+      this._typeResolver = new TypeResolver(this._doc.program.types ?? []);
     }
     this._services = this._initServices();
   }
@@ -215,9 +220,41 @@ export class SailsProgram {
         this._programId,
         expo.route_idx,
         this._resolveServiceUnit,
+        program.types ?? [],
       );
     }
     return services;
+  }
+
+  /**
+   * Resolve a `TypeDecl` to its user-type definition in the scope of a named service.
+   * Service-local types shadow program-level types; program-level types are visible to
+   * every service. Returns `undefined` when the service doesn't exist, or the `TypeDecl`
+   * isn't a named user type.
+   *
+   * Backed by a lazy `Map`-based index — O(1) per call after the first invocation.
+   * Safe to call in tight loops while walking large IDL trees.
+   */
+  resolveInService(serviceName: string, typeDecl: TypeDecl): Type | undefined {
+    if (typeof typeDecl === 'string' || typeDecl.kind !== 'named') return undefined;
+    if (!this._serviceTypeIndex) this._buildTypeIndex();
+    return (
+      this._serviceTypeIndex!.get(serviceName)?.get(typeDecl.name) ??
+      this._programTypeIndex!.get(typeDecl.name)
+    );
+  }
+
+  private _buildTypeIndex(): void {
+    const serviceIndex = new Map<string, Map<string, Type>>();
+    for (const unit of this._doc.services ?? []) {
+      const local = new Map<string, Type>();
+      for (const t of unit.types ?? []) local.set(t.name, t);
+      serviceIndex.set(unit.name, local);
+    }
+    const programIndex = new Map<string, Type>();
+    for (const t of this._doc.program?.types ?? []) programIndex.set(t.name, t);
+    this._serviceTypeIndex = serviceIndex;
+    this._programTypeIndex = programIndex;
   }
 
   /** #### Constructor functions with arguments from the parsed IDL */
@@ -332,6 +369,7 @@ export class SailsService implements ISailsService {
   private _typeResolver: TypeResolver;
   private _api?: GearApi;
   private _routeIdx: number;
+  private _ambientTypes: Type[] = [];
 
   private _resolveServiceUnit?: (ident: IServiceIdent) => IServiceUnit | undefined;
 
@@ -341,12 +379,15 @@ export class SailsService implements ISailsService {
     programId?: HexString,
     routeIdx = 0,
     resolveServiceUnit?: (ident: IServiceIdent) => IServiceUnit | undefined,
+    ambientTypes: Type[] = [],
   ) {
     this._service = service;
     this._api = api;
     this._programId = programId;
     this._resolveServiceUnit = resolveServiceUnit;
-    this._typeResolver = new TypeResolver(service.types);
+    // Ambient types come first so service-local types shadow them on name collision.
+    this._typeResolver = new TypeResolver([...ambientTypes, ...(service.types ?? [])]);
+    this._ambientTypes = ambientTypes;
     this._routeIdx = routeIdx;
 
     this.events = this._getEvents(service);
@@ -569,6 +610,7 @@ export class SailsService implements ISailsService {
         this._programId,
         this.routeIdx,
         this._resolveServiceUnit,
+        this._ambientTypes,
       );
     }
 
