@@ -568,11 +568,19 @@ describe('type-resolver-v2 aliases', () => {
   });
 });
 
-const mockIdent = (name: string): IServiceIdent => ({ name, interface_id: undefined });
+// Minimal mock service-units for direct-construction tests. The SailsService
+// constructor reads `interface_id` via `InterfaceId.from(...)` in `_getEvents`
+// regardless of whether events exist, so we pass an 8-byte zero placeholder.
+const ZERO_IFACE = new Uint8Array(8);
+
+const mockIdent = (name: string): IServiceIdent => ({ name, interface_id: ZERO_IFACE });
 
 const mockUnit = (name: string, extendsList: IServiceIdent[]): IServiceUnit => ({
   name,
+  interface_id: ZERO_IFACE,
   extends: extendsList,
+  funcs: [],
+  events: [],
 });
 
 const lookupFromMap =
@@ -610,10 +618,13 @@ describe('SailsService extends-chain cycle detection', () => {
     // from A through two paths, but the visited-set is per-recursion, not global.
     const c: IServiceUnit = {
       name: 'C',
+      interface_id: ZERO_IFACE,
+      funcs: [],
+      events: [],
       types: [{ kind: 'struct', name: 'Leaf', fields: [{ name: 'v', type: 'u32' }] }],
     };
-    const b: IServiceUnit = { name: 'B', extends: [mockIdent('C')] };
-    const a: IServiceUnit = { name: 'A', extends: [mockIdent('B'), mockIdent('C')] };
+    const b: IServiceUnit = { ...mockUnit('B', [mockIdent('C')]) };
+    const a: IServiceUnit = { ...mockUnit('A', [mockIdent('B'), mockIdent('C')]) };
     const lookup = lookupFromMap({ A: a, B: b, C: c });
     expect(() => new SailsService(a, undefined, undefined, 0, lookup)).not.toThrow();
   });

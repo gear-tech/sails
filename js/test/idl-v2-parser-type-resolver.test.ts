@@ -435,7 +435,7 @@ describe('sails v2 service-scoped type resolution', () => {
     const text = `
       !@sails: 1.0.0-beta.3
 
-      service Base@0xb45ddc41cf66e2da {
+      service Base {
         functions {
           Ping() -> u32;
         }
@@ -446,9 +446,9 @@ describe('sails v2 service-scoped type resolution', () => {
         }
       }
 
-      service Child@0x1f2c78d96df31861 {
+      service Child {
         extends {
-          Base@0xb45ddc41cf66e2da,
+          Base,
         }
       }
 
@@ -457,7 +457,7 @@ describe('sails v2 service-scoped type resolution', () => {
           Default();
         }
         services {
-          Child@0x1f2c78d96df31861,
+          Child,
         }
       }
     `;
