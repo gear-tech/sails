@@ -1,6 +1,7 @@
 import { TypeRegistry } from '@polkadot/types/create';
-import type { Type, TypeDecl } from 'sails-js-types';
+import type { IServiceIdent, IServiceUnit, Type, TypeDecl } from 'sails-js-types';
 
+import { SailsService } from '../src/sails-idl-v2.js';
 import { TypeResolver } from '../src/type-resolver-idl-v2.js';
 
 const named = (name: string, generics?: TypeDecl[]): TypeDecl => ({
@@ -564,5 +565,47 @@ describe('type-resolver-v2 aliases', () => {
 
     const encodedNull = resolver.registry.createType('GenericAlias<u32>', null);
     expect(encodedNull.toJSON()).toBe(null);
+  });
+});
+
+describe('SailsService extends-chain cycle detection', () => {
+  // _collectServiceScopeTypes (module-private) walks the extends graph depth-first
+  // with a visited-set guard. Pathological IDLs with cyclic extends graphs
+  // (`A extends B`, `B extends A`) must throw with the chain in the message rather
+  // than stack-overflow. The parser would normally reject these, but hand-built or
+  // wire-sourced ASTs can still produce them — the runtime guard is the safety net.
+  const ident = (name: string): IServiceIdent => ({ name, interface_id: undefined });
+  const unit = (name: string, extendsList: IServiceIdent[]): IServiceUnit => ({
+    name,
+    extends: extendsList,
+  });
+
+  test('throws on self-cycle (A extends A)', () => {
+    const a = unit('A', [ident('A')]);
+    const lookup = (i: IServiceIdent): IServiceUnit | undefined => (i.name === 'A' ? a : undefined);
+    expect(() => new SailsService(a, undefined, undefined, 0, lookup)).toThrow(/Cyclic service-extends chain detected at "A".*A → A/s);
+  });
+
+  test('throws on mutual cycle (A extends B, B extends A)', () => {
+    const a = unit('A', [ident('B')]);
+    const b = unit('B', [ident('A')]);
+    const lookup = (i: IServiceIdent): IServiceUnit | undefined =>
+      i.name === 'A' ? a : i.name === 'B' ? b : undefined;
+    // Walk starts from A → visits B → tries to revisit A. Chain is reported.
+    expect(() => new SailsService(a, undefined, undefined, 0, lookup)).toThrow(/Cyclic service-extends chain detected at "A".*A → B → A/s);
+  });
+
+  test('does not throw when the same service appears as a sibling base twice (diamond)', () => {
+    // A extends [B, C]; B extends C; C is a leaf. Not a cycle — `C` is reachable
+    // from A through two paths, but the visited-set is per-recursion, not global.
+    const c: IServiceUnit = {
+      name: 'C',
+      types: [{ kind: 'struct', name: 'Leaf', fields: [{ name: 'v', type: 'u32' }] }],
+    };
+    const b: IServiceUnit = { name: 'B', extends: [ident('C')] };
+    const a: IServiceUnit = { name: 'A', extends: [ident('B'), ident('C')] };
+    const lookup = (i: IServiceIdent): IServiceUnit | undefined =>
+      i.name === 'A' ? a : i.name === 'B' ? b : i.name === 'C' ? c : undefined;
+    expect(() => new SailsService(a, undefined, undefined, 0, lookup)).not.toThrow();
   });
 });

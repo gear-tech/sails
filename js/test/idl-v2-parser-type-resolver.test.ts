@@ -437,7 +437,7 @@ describe('sails v2 service-scoped type resolution', () => {
 
       service Base@0xb45ddc41cf66e2da {
         functions {
-          GetShared() -> Shared;
+          Ping() -> u32;
         }
         types {
           struct Shared {

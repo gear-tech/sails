@@ -294,8 +294,7 @@ export class SailsProgram {
 
     for (const unit of this._doc.services ?? []) {
       const merged = new Map<string, Type>();
-      // Walk extends-chain depth-first; service-local types come last so they win
-      // on collision with base types (Map.set is last-write-wins).
+      // Locals come last so they win on Map.set last-write-wins.
       for (const t of _collectServiceScopeTypes(unit, lookupBase)) {
         merged.set(t.name, t);
       }
@@ -430,9 +429,7 @@ export class SailsService implements ISailsService {
     this._api = api;
     this._programId = programId;
     this._resolveServiceUnit = resolveServiceUnit;
-    // Service IDL is self-contained: types in scope are this service's own `types`
-    // plus the types of every service it extends, transitively. Base types come first
-    // so service-local definitions shadow them on name collision.
+    // Self-contained scope: bases first so locals shadow on collision.
     this._typeResolver = new TypeResolver(_collectServiceScopeTypes(service, resolveServiceUnit));
     this._routeIdx = routeIdx;
 
