@@ -18,7 +18,7 @@ const MAX_HISTORY: usize = 16;
 #[sails_rs::sails_type]
 #[derive(Clone, Debug, PartialEq)]
 pub struct CallRecord {
-    pub caller: ActorId,
+    pub caller: {% if eth %}Address{% else %}ActorId{% endif %},
     pub block: u32,
 }
 
@@ -33,7 +33,7 @@ pub struct {{ service_name }}State {
 #[sails_rs::sails_type]
 #[sails_rs::event]
 pub enum {{ service_name }}Events {
-    CalledBy { caller: ActorId },
+    CalledBy { caller: {% if eth %}Address{% else %}ActorId{% endif %} },
 }
 
 struct {{ service_name }}<S: StateMut<Item = {{ service_name }}State, Error = Infallible> = RefCell<{{ service_name }}State>> {
@@ -51,7 +51,7 @@ impl<S: StateMut<Item = {{ service_name }}State, Error = Infallible>> {{ service
     // Service's method (command)
     #[export]
     pub fn do_something(&mut self) -> String {
-        let caller = Syscall::message_source();
+        let caller = {% if eth %}Address::from(Syscall::message_source()){% else %}Syscall::message_source(){% endif %};
         let block = Syscall::block_height();
         {
             let mut state = self.state.get_mut();
@@ -68,7 +68,7 @@ impl<S: StateMut<Item = {{ service_name }}State, Error = Infallible>> {{ service
     // Query returning a custom-DTO collection. Service methods hash every
     // parameter and return type via `ReflectHash`, so `CallRecord` must derive
     // it — which `#[sails_rs::sails_type]` handles for us.
-    #[export]
+    #[export{% if eth %}(scale){% endif %}]
     pub fn get_history(&self) -> Vec<CallRecord> {
         self.state.get().history.clone()
     }
@@ -118,7 +118,7 @@ mod tests {
         let history = service.get_history();
         assert_eq!(
             vec![CallRecord {
-                caller: actor,
+                caller: {% if eth %}Address::from(actor){% else %}actor{% endif %},
                 block: 7
             }],
             history
@@ -143,7 +143,7 @@ mod tests {
         // Blocks 0..=4 were evicted; the retained window is `5..MAX_HISTORY+5`.
         let expected: Vec<CallRecord> = (5..(MAX_HISTORY + 5) as u32)
             .map(|block| CallRecord {
-                caller: actor,
+                caller: {% if eth %}Address::from(actor){% else %}actor{% endif %},
                 block,
             })
             .collect();
