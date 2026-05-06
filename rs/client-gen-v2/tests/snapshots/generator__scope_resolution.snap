@@ -82,12 +82,12 @@ pub mod my_service {
             &mut self,
             input: ServiceCommonType,
         ) -> sails_rs::client::PendingCall<io::AnotherAction, Self::Env>;
-        /// Uses CommonType from program scope.
+        /// Uses the service-local CommonType.
         fn do_something(
             &mut self,
             input: CommonType,
         ) -> sails_rs::client::PendingCall<io::DoSomething, Self::Env>;
-        /// TBD: Uses ProgramOnlyType from program scope.
+        /// Uses the service-local ProgramOnlyType.
         fn use_program_type(
             &mut self,
             input: ProgramOnlyType,

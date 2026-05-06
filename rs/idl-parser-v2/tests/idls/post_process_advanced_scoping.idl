@@ -14,8 +14,7 @@ program ScopingProgram {
 service ServiceA {
     types {
         struct TypeA {
-            // Valid: uses a type from the "parent" program scope
-            root: RootType, 
+            val: u32,
         }
     }
     functions {

@@ -26,36 +26,36 @@ const ALLOWED_TYPES: &[&str] = &[
 pub fn validate_and_post_process(doc: &mut IdlDoc) -> Result<()> {
     normalize_generics(doc);
 
-    let mut validator = Validator::new();
+    let mut errors = Vec::new();
 
-    // 1. Program types are added to the root scope so they remain visible to all services.
+    // Program types are scoped to the program unit. Service IDL stays
+    // self-contained and is validated with its own named type scope.
     if let Some(program) = &doc.program {
+        let mut validator = Validator::new();
         for ty in &program.types {
             validator.add_named_type(&ty.name);
         }
-        // 2. Validate the program unit (ctors, type references, field consistency).
         validator.visit_program_unit(program);
+        errors.extend(validator.errors);
     }
 
-    // 3. Validate each service unit (funcs, events, types, field consistency).
+    // Validate each service unit (funcs, events, types, field consistency).
     for service in &doc.services {
+        let mut validator = Validator::new();
         validator.visit_service_unit(service);
+        errors.extend(validator.errors);
     }
 
-    // 4. Collect and return any validation errors found above.
-    if !validator.errors.is_empty() {
-        let error_messages: Vec<String> = validator
-            .errors
-            .into_iter()
-            .map(|e| e.to_string())
-            .collect();
+    // Collect and return any validation errors found above.
+    if !errors.is_empty() {
+        let error_messages: Vec<String> = errors.into_iter().map(|e| e.to_string()).collect();
         return Err(Error::Validation(error_messages.join("\n")));
     }
 
-    // 5. Validate entry_ids: check uniqueness and that @partial services have explicit @entry_id.
+    // Validate entry_ids: check uniqueness and that @partial services have explicit @entry_id.
     validate_entry_ids(doc)?;
 
-    // 6. Compute and assign `interface_id` for each service.
+    // Compute and assign `interface_id` for each service.
     let mut service_ids = ServiceInterfaceId::new(doc);
     service_ids.update_service_id()?;
 
