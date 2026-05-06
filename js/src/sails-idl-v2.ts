@@ -99,6 +99,46 @@ const _getArgsForTxBuilder = (args: any[], params: ISailsFuncArg[]) => {
   return args.slice(0, params.length);
 };
 
+/**
+ * Collect every `Type` in scope for a service per the self-sufficient service IDL
+ * contract: depth-first across the `extends` chain (with cycle detection), then the
+ * service's own `types` last so locals shadow base definitions on name collision.
+ *
+ * Throws on a cyclic `extends` graph (`A → B → A`), reporting the chain.
+ * Used by both `SailsService` (to seed its `TypeResolver`) and `SailsProgram`
+ * (to build `resolveInService`'s lazy index).
+ */
+const _collectServiceScopeTypes = (
+  service: IServiceUnit,
+  resolveServiceUnit?: (ident: IServiceIdent) => IServiceUnit | undefined,
+): Type[] => {
+  const out: Type[] = [];
+  const walk = (unit: IServiceUnit, visited: Set<string>) => {
+    if (visited.has(unit.name)) {
+      throw new Error(
+        `Cyclic service-extends chain detected at "${unit.name}" — chain: ` +
+          `${[...visited, unit.name].join(' → ')}`,
+      );
+    }
+    const nextVisited = new Set(visited);
+    nextVisited.add(unit.name);
+
+    if (resolveServiceUnit && unit.extends?.length) {
+      for (const ident of unit.extends as IServiceIdent[]) {
+        const baseUnit = resolveServiceUnit(ident);
+        if (!baseUnit) {
+          throw new Error(`Service definition for "${ident.name}" not found in IDL`);
+        }
+        walk(baseUnit, nextVisited);
+      }
+    }
+
+    for (const t of unit.types ?? []) out.push(t);
+  };
+  walk(service, new Set());
+  return out;
+};
+
 const _assertMatchingHeader = (
   payload: Uint8Array | HexString,
   expected: SailsMessageHeader,
@@ -127,10 +167,10 @@ export class SailsProgram {
   private _api?: GearApi;
   private _programId?: HexString;
   private _services: Map<bigint, IServiceUnit>;
-  // Lazy indices for resolveInService. Populated on first call; not invalidated because
-  // `_doc` is immutable after parse.
+  // Lazy index for resolveInService: per-service `Map<typeName, Type>`, pre-merged
+  // with the service's transitive extends chain. Populated on first call; not
+  // invalidated because `_doc` is immutable after parse.
   private _serviceTypeIndex?: Map<string, Map<string, Type>>;
-  private _programTypeIndex?: Map<string, Type>;
   private _resolveServiceUnit = (ident: IServiceIdent): IServiceUnit | undefined => {
     if (!ident.interface_id) {
       throw new Error(`Service "${ident.name}" is missing interface_id in IDL`);
@@ -220,7 +260,6 @@ export class SailsProgram {
         this._programId,
         expo.route_idx,
         this._resolveServiceUnit,
-        program.types ?? [],
       );
     }
     return services;
@@ -228,9 +267,14 @@ export class SailsProgram {
 
   /**
    * Resolve a `TypeDecl` to its user-type definition in the scope of a named service.
-   * Service-local types shadow program-level types; program-level types are visible to
-   * every service. Returns `undefined` when the service doesn't exist, or the `TypeDecl`
-   * isn't a named user type.
+   *
+   * Per the self-sufficient service IDL contract (see `docs/idl-v2-spec.md`), scope is
+   * the service's own `types` plus the types of every service it extends, transitively.
+   * Service-local definitions shadow base-service definitions on name collision.
+   * Program-level `types` are NOT in scope — they belong to program/ctor declarations.
+   *
+   * Returns `undefined` when the service doesn't exist, the `TypeDecl` isn't a named
+   * user type, or the name is not declared in the service's transitive scope.
    *
    * Backed by a lazy `Map`-based index — O(1) per call after the first invocation.
    * Safe to call in tight loops while walking large IDL trees.
@@ -238,23 +282,26 @@ export class SailsProgram {
   resolveInService(serviceName: string, typeDecl: TypeDecl): Type | undefined {
     if (typeof typeDecl === 'string' || typeDecl.kind !== 'named') return undefined;
     if (!this._serviceTypeIndex) this._buildTypeIndex();
-    return (
-      this._serviceTypeIndex!.get(serviceName)?.get(typeDecl.name) ??
-      this._programTypeIndex!.get(typeDecl.name)
-    );
+    return this._serviceTypeIndex!.get(serviceName)?.get(typeDecl.name);
   }
 
   private _buildTypeIndex(): void {
     const serviceIndex = new Map<string, Map<string, Type>>();
+    const unitByName = new Map<string, IServiceUnit>();
+    for (const unit of this._doc.services ?? []) unitByName.set(unit.name, unit);
+
+    const lookupBase = (ident: IServiceIdent): IServiceUnit | undefined => unitByName.get(ident.name);
+
     for (const unit of this._doc.services ?? []) {
-      const local = new Map<string, Type>();
-      for (const t of unit.types ?? []) local.set(t.name, t);
-      serviceIndex.set(unit.name, local);
+      const merged = new Map<string, Type>();
+      // Walk extends-chain depth-first; service-local types come last so they win
+      // on collision with base types (Map.set is last-write-wins).
+      for (const t of _collectServiceScopeTypes(unit, lookupBase)) {
+        merged.set(t.name, t);
+      }
+      serviceIndex.set(unit.name, merged);
     }
-    const programIndex = new Map<string, Type>();
-    for (const t of this._doc.program?.types ?? []) programIndex.set(t.name, t);
     this._serviceTypeIndex = serviceIndex;
-    this._programTypeIndex = programIndex;
   }
 
   /** #### Constructor functions with arguments from the parsed IDL */
@@ -369,7 +416,6 @@ export class SailsService implements ISailsService {
   private _typeResolver: TypeResolver;
   private _api?: GearApi;
   private _routeIdx: number;
-  private _ambientTypes: Type[] = [];
 
   private _resolveServiceUnit?: (ident: IServiceIdent) => IServiceUnit | undefined;
 
@@ -379,15 +425,15 @@ export class SailsService implements ISailsService {
     programId?: HexString,
     routeIdx = 0,
     resolveServiceUnit?: (ident: IServiceIdent) => IServiceUnit | undefined,
-    ambientTypes: Type[] = [],
   ) {
     this._service = service;
     this._api = api;
     this._programId = programId;
     this._resolveServiceUnit = resolveServiceUnit;
-    // Ambient types come first so service-local types shadow them on name collision.
-    this._typeResolver = new TypeResolver([...ambientTypes, ...(service.types ?? [])]);
-    this._ambientTypes = ambientTypes;
+    // Service IDL is self-contained: types in scope are this service's own `types`
+    // plus the types of every service it extends, transitively. Base types come first
+    // so service-local definitions shadow them on name collision.
+    this._typeResolver = new TypeResolver(_collectServiceScopeTypes(service, resolveServiceUnit));
     this._routeIdx = routeIdx;
 
     this.events = this._getEvents(service);
@@ -610,7 +656,6 @@ export class SailsService implements ISailsService {
         this._programId,
         this.routeIdx,
         this._resolveServiceUnit,
-        this._ambientTypes,
       );
     }
 

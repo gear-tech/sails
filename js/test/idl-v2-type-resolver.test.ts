@@ -482,27 +482,28 @@ describe('type-resolver-v2 resolveNamed', () => {
   });
 });
 
-describe('type-resolver-v2 last-write-wins merge (shadowing via call-site merge)', () => {
-  // Callers wire ambient-vs-local shadowing by passing `[...ambient, ...local]` so locals
-  // come last and the constructor's last-write-wins loop registers the local shape.
-  const ambientPacket: Type = {
+describe('type-resolver-v2 last-write-wins merge', () => {
+  // The constructor takes a single pre-merged Type[]; later entries override earlier
+  // ones on name collision. Callers compose the input array in the desired override
+  // order (e.g. base-service types first, service-local last for IDL extends-merging).
+  const firstPacket: Type = {
     kind: 'struct',
     name: 'Packet',
     fields: [{ name: 'payload', type: { kind: 'array', item: 'u8', len: 4 } }],
   };
-  const localPacket: Type = {
+  const secondPacket: Type = {
     kind: 'struct',
     name: 'Packet',
     fields: [{ name: 'payload', type: { kind: 'array', item: 'u8', len: 8 } }],
   };
 
   test('last-declared type wins on name collision', () => {
-    const resolver = new TypeResolver([ambientPacket, localPacket]);
-    expect(resolver.resolveNamed(named('Packet'))).toBe(localPacket);
+    const resolver = new TypeResolver([firstPacket, secondPacket]);
+    expect(resolver.resolveNamed(named('Packet'))).toBe(secondPacket);
   });
 
   test('registry reflects the last-declared shape', () => {
-    const resolver = new TypeResolver([ambientPacket, localPacket]);
+    const resolver = new TypeResolver([firstPacket, secondPacket]);
     const encoded = resolver.registry.createType('Packet', { payload: [1, 2, 3, 4, 5, 6, 7, 8] });
     expect(encoded.toJSON()).toEqual({ payload: '0x0102030405060708' });
     expect(() => resolver.registry.createType('Packet', { payload: [1, 2, 3, 4] })).toThrow();

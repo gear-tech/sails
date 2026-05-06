@@ -21,8 +21,9 @@ export class TypeResolver {
 
     const scaleTypes: Record<string, any> = {};
     const userTypes: Record<string, Type> = {};
-    // Iteration order is last-write-wins: callers that want ambient-type shadowing should
-    // pass `[...ambientTypes, ...localTypes]` so locals overwrite on name collision.
+    // Iteration order is last-write-wins: when two entries share a name, the later one
+    // overrides the earlier. Callers that want a "shadowing" merge pass already-merged
+    // arrays in the desired override order (e.g. base-service types first, locals last).
     for (const type of types) {
       userTypes[type.name] = type;
     }

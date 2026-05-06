@@ -395,9 +395,10 @@ describe('sails v2 service-scoped type resolution', () => {
     expect(program.resolveInService('Nonexistent', { kind: 'named', name: 'Packet' })).toBeUndefined();
   });
 
-  test('program-level (ambient) types are visible inside service resolvers', () => {
-    // Program-level `Shared` is referenced by the ctor (parser rejects it in service signatures)
-    // but must still resolve through the service's resolver for consumers walking ctor args.
+  test('service resolver does NOT see program-level types (self-sufficient service IDL)', () => {
+    // Per the self-sufficient service IDL contract (docs/idl-v2-spec.md), program.types
+    // are scoped to program/ctor declarations and are NOT ambient for services. A service
+    // IDL must be resolvable from its own `types` plus its extends chain.
     const text = `
       !@sails: 1.0.0-beta.3
 
@@ -422,33 +423,21 @@ describe('sails v2 service-scoped type resolution', () => {
       }
     `;
     const program = new SailsProgram(parser.parse(text));
-    const t = program.resolveInService('A', { kind: 'named', name: 'Shared' });
-    expect(t?.kind).toBe('struct');
-    expect(t?.name).toBe('Shared');
+    expect(program.resolveInService('A', { kind: 'named', name: 'Shared' })).toBeUndefined();
+    // The service's own resolver must not register the program-level type either.
+    expect(program.services['A'].registry.hasType('Shared')).toBe(false);
   });
 
-  test('extended services see program-level (ambient) types through the extends chain', () => {
+  test('extended services see base service types through the extends chain', () => {
+    // Per the spec: a service resolves types from its own `types` plus from
+    // explicitly extended service interfaces. Here `Child` has no `Shared` of its own,
+    // but its base `Base` does — and the extension must surface it.
     const text = `
       !@sails: 1.0.0-beta.3
 
-      service Base@0x4071744d7e684110 {
+      service Base@0xb45ddc41cf66e2da {
         functions {
-          Ping() -> u32;
-        }
-      }
-
-      service Child@0x1f2c78d96df31861 {
-        extends {
-          Base@0x4071744d7e684110,
-        }
-      }
-
-      program Test {
-        constructors {
-          Default(shared: Shared);
-        }
-        services {
-          Child@0x1f2c78d96df31861,
+          GetShared() -> Shared;
         }
         types {
           struct Shared {
@@ -456,14 +445,46 @@ describe('sails v2 service-scoped type resolution', () => {
           }
         }
       }
+
+      service Child@0x1f2c78d96df31861 {
+        extends {
+          Base@0xb45ddc41cf66e2da,
+        }
+      }
+
+      program Test {
+        constructors {
+          Default();
+        }
+        services {
+          Child@0x1f2c78d96df31861,
+        }
+      }
     `;
     const program = new SailsProgram(parser.parse(text));
+    // Direct lookup: extends-merged scope is reachable through resolveInService.
+    const fromProgram = program.resolveInService('Child', { kind: 'named', name: 'Shared' });
+    expect(fromProgram?.kind).toBe('struct');
+    expect(fromProgram?.name).toBe('Shared');
+
+    // The extender's own TypeResolver also has the base's type folded in.
     const child = program.services['Child'];
-    const baseThroughExtends = child.extends['Base'];
-    // Program-level Shared must be resolvable via the extended service's own resolver.
-    const t = baseThroughExtends.typeResolver.resolveNamed({ kind: 'named', name: 'Shared' });
-    expect(t?.kind).toBe('struct');
-    expect(t?.name).toBe('Shared');
+    const fromResolver = child.typeResolver.resolveNamed({ kind: 'named', name: 'Shared' });
+    expect(fromResolver?.kind).toBe('struct');
+    expect(fromResolver?.name).toBe('Shared');
+  });
+
+  test('sibling services do not bleed types via SailsProgram.resolveInService', () => {
+    // A and B both declare `Packet` with different shapes. resolveInService must
+    // return each service's own definition, never the sibling's.
+    const program = new SailsProgram(parser.parse(TWO_SERVICES_SAME_NAME));
+    const a = program.resolveInService('A', { kind: 'named', name: 'Packet' }) as any;
+    const b = program.resolveInService('B', { kind: 'named', name: 'Packet' }) as any;
+    expect(a.fields[0].type).toEqual({ kind: 'array', item: 'u8', len: 4 });
+    expect(b.fields[0].type).toEqual({ kind: 'array', item: 'u8', len: 8 });
+    // And neither service should see a same-named type that exists only on the other.
+    // (Already proven by the differing shapes above; this is a redundant invariant.)
+    expect(a.fields[0].type).not.toEqual(b.fields[0].type);
   });
 
   test('generic substitution: Envelope<[u8]>.payload resolves to [u8]', () => {
