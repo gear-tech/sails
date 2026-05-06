@@ -450,11 +450,7 @@ impl ProgramGenerator {
         self.cargo_add_sails_rs(
             manifest_path,
             Development,
-            Some(if self.eth {
-                "ethexe,gtest,gclient"
-            } else {
-                "gtest,gclient"
-            }),
+            Some(if self.eth { "ethexe,gtest" } else { "gtest" }),
         )?;
 
         // add tokio
