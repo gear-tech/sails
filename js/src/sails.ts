@@ -1,7 +1,7 @@
 import { GearApi, HexString, UserMessageSent } from '@gear-js/api';
 import { TypeRegistry } from '@polkadot/types/create';
 import { u8aToHex } from '@polkadot/util';
-import { getScaleCodecDef } from 'sails-js-util';
+import { getScaleCodecDef, toHexString } from 'sails-js-util';
 
 import { ZERO_ADDRESS } from './consts.js';
 import { getCtorNamePrefix, getFnNamePrefix, getServiceNamePrefix } from './prefix.js';
@@ -85,9 +85,6 @@ const _safeEchoedName = (name: string): string => {
   return truncated.replaceAll(/[^ -~]/g, '?');
 };
 
-const _toHex = (bytes: Uint8Array | HexString): HexString =>
-  typeof bytes === 'string' ? bytes : u8aToHex(bytes);
-
 const _assertMatchingServicePrefix = (
   bytes: Uint8Array | HexString,
   expectedService: string,
@@ -95,7 +92,7 @@ const _assertMatchingServicePrefix = (
   isResult = false,
 ) => {
   const target = isResult ? `${expectedService}.${expectedFn} result` : `${expectedService}.${expectedFn}`;
-  const hex = _toHex(bytes);
+  const hex = toHexString(bytes);
   let actualService: string;
   let actualFn: string;
   try {
@@ -115,7 +112,7 @@ const _assertMatchingCtorPrefix = (bytes: Uint8Array | HexString, expectedName: 
   const target = `constructor "${expectedName}"`;
   let actual: string;
   try {
-    actual = getCtorNamePrefix(_toHex(bytes));
+    actual = getCtorNamePrefix(toHexString(bytes));
   } catch {
     throw new Error(`Invalid prefix for ${target}: cannot read constructor name`);
   }
