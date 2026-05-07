@@ -1,4 +1,5 @@
 import { SailsIdlParser } from 'sails-js-parser-idl-v2';
+import { hexToU8a } from '@polkadot/util';
 
 import { SailsProgram } from '..';
 
@@ -339,6 +340,55 @@ describe('type-resolver-v2 generics', () => {
         })
         .toJSON(),
     ).toEqual({ three: { p1: arrayTupleU8, p2: [['a', 'b', 'c', 'd'], null] } });
+  });
+});
+
+describe('v2 decodeResult header validation', () => {
+  const idl = `
+    service Counter {
+      functions {
+        @entry_id: 0
+        Add(value: u32) -> u32;
+        @entry_id: 1
+        Sub(value: u32) -> u32;
+      }
+    }
+
+    program CounterProgram {
+      services {
+        Counter,
+      }
+      constructors {
+        Default();
+      }
+    }
+  `;
+
+  test('decodes result when header matches the expected method', () => {
+    const program = new SailsProgram(parser.parse(idl));
+    const add = program.services.Counter.functions.Add;
+    const addHeader = hexToU8a(add.encodePayload(42)).slice(0, 16);
+    const reply = program.registry.createType('([u8; 16], u32)', [addHeader, 99]).toHex();
+    expect(add.decodeResult(reply)).toBe(99);
+  });
+
+  test('throws when result bytes have no valid Sails header', () => {
+    const program = new SailsProgram(parser.parse(idl));
+    const add = program.services.Counter.functions.Add;
+    // No magic "GM" in the 16-byte prefix.
+    const bogusResult = program.registry
+      .createType('([u8; 16], u32)', [new Uint8Array(16), 99])
+      .toHex();
+    expect(() => add.decodeResult(bogusResult)).toThrow(/Invalid Sails header/);
+  });
+
+  test("throws when header belongs to a different method's entry_id", () => {
+    const program = new SailsProgram(parser.parse(idl));
+    const add = program.services.Counter.functions.Add;
+    const sub = program.services.Counter.functions.Sub;
+    const subHeader = hexToU8a(sub.encodePayload(42)).slice(0, 16);
+    const mismatchedResult = program.registry.createType('([u8; 16], u32)', [subHeader, 99]).toHex();
+    expect(() => add.decodeResult(mismatchedResult)).toThrow(/Header mismatch/);
   });
 });
 
