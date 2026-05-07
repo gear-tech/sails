@@ -212,13 +212,27 @@ Service definition
 - `types` Service types
 
 ```js
-service <ident> {
+service <ident>[@<interface_id>] {
     extends {}
     events {}
     functions {}
     types {}
 }
 ```
+
+The optional `@<interface_id>` suffix pins the service's identifier to a
+specific 8-byte value, written as `@0x` followed by 16 lowercase hex digits.
+For non-`@partial` services it is **optional**: omit it and the parser
+auto-computes the canonical id from the service signature; supply it and the
+parser validates the canonical id matches and rejects the IDL on mismatch.
+For `@partial` services it is **required** (see [Partial Service Subset](#partial-service-subset)).
+
+Tooling that emits IDL from another source (codegen, schema-first generators)
+can compute ids deterministically up front using `sails_idl_parser_v2::compute_interface_ids`
+(Rust) or `SailsIdlParser.computeInterfaceIds(idl)` (sails-js). Both ignore
+placeholder mismatches on non-`@partial` services so the same IDL text round-trips
+through "fill in the id and re-parse" without the trial-and-error against
+`parse_idl`'s mismatch error.
 
 Service IDL is self-contained. Types referenced by service functions, events,
 and `throws` declarations are resolved from the service's own `types` block and
