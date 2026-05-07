@@ -13,35 +13,22 @@
 pub extern crate alloc;
 pub use core;
 
-/// Builders for constructing [`Type`] metadata manually.
+/// Builders for constructing [`ast::Type`] metadata manually.
 pub mod builder;
 /// Type-erased wrapper around a [`TypeInfo`] implementation.
-pub mod meta_type;
+mod meta_type;
 /// Registry and trait entry points for portable type metadata.
-pub mod registry;
+mod registry;
 /// Built-in `TypeInfo` implementations for standard Rust types.
-pub mod trait_impls;
-/// Core metadata structures stored in the registry.
-pub mod ty;
+mod trait_impls;
 
 pub use crate::builder::{
     CompositeBuilder, FieldBuilder, ParamBuilder, TypeBuilder, VariantBuilder, VariantDefBuilder,
 };
 pub use crate::meta_type::MetaType;
-pub use crate::registry::{Registry, TypeInfo, TypeRef};
-pub use crate::ty::Type;
+pub use crate::registry::{Registry, TypeInfo, TypeRef, const_suffixed_name};
+pub use sails_idl_ast as ast;
 
 /// Derive macro for generating [`TypeInfo`] implementations.
 #[cfg(feature = "derive")]
 pub use sails_type_registry_derive::TypeInfo;
-
-/// Common imports for crates that build or consume type metadata directly.
-pub mod prelude {
-    pub use crate::alloc;
-    pub use crate::builder::{
-        CompositeBuilder, FieldBuilder, ParamBuilder, TypeBuilder, VariantBuilder,
-        VariantDefBuilder,
-    };
-    pub use crate::registry::{Registry, TypeInfo, TypeRef};
-    pub use crate::ty::Type;
-}

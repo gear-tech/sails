@@ -1,37 +1,155 @@
 #![no_std]
 
+use core::cell::RefCell;
 use sails_rs::prelude::*;
 
-struct {{ service_name }}(());
+/// Maximum number of call records retained in history.
+///
+/// On-chain programs pay for storage, so any collection growing without
+/// bound is a permanent state-bomb. Cap unbounded collections at a fixed
+/// size — here we keep the most recent calls, dropping the oldest when full.
+const MAX_HISTORY: usize = 16;
 
-impl {{ service_name }} {
-    pub fn create() -> Self {
-        Self(())
+/// A record of a single call into the service.
+///
+/// `#[sails_rs::sails_type]` derives `Encode`, `Decode`, `TypeInfo`, and
+/// `ReflectHash` with the right crate paths — required for any custom type
+/// that crosses a service boundary (parameter, return value, or state).
+#[sails_rs::sails_type]
+#[derive(Clone, Debug, PartialEq)]
+pub struct CallRecord {
+    pub caller: {% if eth %}Address{% else %}ActorId{% endif %},
+    pub block: u32,
+}
+
+/// State for the `{{ service_name }}` service.
+#[derive(Default, Clone)]
+pub struct {{ service_name }}State {
+    pub history: Vec<CallRecord>,
+}
+
+/// Events emitted by the `{{ service_name }}` service.
+#[sails_rs::sails_type]
+#[sails_rs::event]
+pub enum {{ service_name }}Events {
+    CalledBy { caller: {% if eth %}Address{% else %}ActorId{% endif %} },
+}
+
+struct {{ service_name }}<S: StateMut<Item = {{ service_name }}State, Error = Infallible> = RefCell<{{ service_name }}State>> {
+    state: S,
+}
+
+impl<S: StateMut<Item = {{ service_name }}State, Error = Infallible>> {{ service_name }}<S> {
+    pub fn new(state: S) -> Self {
+        Self { state }
     }
 }
 
-#[sails_rs::service]
-impl {{ service_name }} {
+#[sails_rs::service(events = {{ service_name }}Events)]
+impl<S: StateMut<Item = {{ service_name }}State, Error = Infallible>> {{ service_name }}<S> {
     // Service's method (command)
     #[export]
     pub fn do_something(&mut self) -> String {
-        sails_rs::gstd::debug!("Call `do_something`");
+        let caller = {% if eth %}Address::from(Syscall::message_source()){% else %}Syscall::message_source(){% endif %};
+        let block = Syscall::block_height();
+        {
+            let mut state = self.state.get_mut();
+            // Cap history at MAX_HISTORY: drop the oldest entry when full.
+            if state.history.len() == MAX_HISTORY {
+                state.history.remove(0);
+            }
+            state.history.push(CallRecord { caller, block });
+        }
+        self.emit_event({{ service_name }}Events::CalledBy { caller }).unwrap();
         "Hello from {{ service_name }}!".to_string()
+    }
+
+    // Query returning a custom-DTO collection. Service methods hash every
+    // parameter and return type via `ReflectHash`, so `CallRecord` must derive
+    // it — which `#[sails_rs::sails_type]` handles for us.
+{%- if eth %}
+    // Expose this query only over SCALE because custom Rust DTOs
+    // do not automatically implement Ethereum ABI encoding.
+{%- endif %}
+    #[export{% if eth %}(scale){% endif %}]
+    pub fn get_history(&self) -> Vec<CallRecord> {
+        self.state.get().history.clone()
     }
 }
 
 #[derive(Default)]
-pub struct {{ program_struct_name }}(());
+pub struct {{ program_struct_name }} {
+    {{ service_name_snake }}_state: RefCell<{{ service_name }}State>,
+}
 
 #[sails_rs::program]
 impl {{ program_struct_name }} {
     // Program's constructor
     pub fn create() -> Self {
-        Self(())
+        Self::default()
     }
 
     // Exposed service
-    pub fn {{ service_name_snake}}(&self) -> {{ service_name }} {
-        {{ service_name }}::create()
+    pub fn {{ service_name_snake }}(&self) -> {{ service_name }}<&RefCell<{{ service_name }}State>> {
+        {{ service_name }}::new(&self.{{ service_name_snake }}_state)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sails_rs::gstd::services::Service as _;
+
+    #[test]
+    fn service_returns_empty_history() {
+        Syscall::with_message_source(ActorId::from(42));
+        let state = RefCell::new({{ service_name }}State::default());
+        let service = {{ service_name }}::new(&state).expose(0);
+        assert!(service.get_history().is_empty());
+    }
+
+    #[test]
+    fn service_do_something() {
+        let actor = ActorId::from(42);
+        Syscall::with_message_source(actor);
+        Syscall::with_block_height(7);
+        let state = RefCell::new({{ service_name }}State::default());
+        let mut service = {{ service_name }}::new(&state).expose(0);
+        let res = service.do_something();
+        assert_eq!("Hello from {{ service_name }}!", res);
+
+        let history = service.get_history();
+        assert_eq!(
+            vec![CallRecord {
+                caller: {% if eth %}Address::from(actor){% else %}actor{% endif %},
+                block: 7
+            }],
+            history
+        );
+    }
+
+    #[test]
+    fn service_history_is_capped() {
+        let actor = ActorId::from(42);
+        Syscall::with_message_source(actor);
+        let state = RefCell::new({{ service_name }}State::default());
+        let mut service = {{ service_name }}::new(&state).expose(0);
+
+        // Drive past the cap: oldest entries must be evicted.
+        for i in 0..(MAX_HISTORY + 5) {
+            Syscall::with_block_height(i as u32);
+            let _ = service.do_something();
+        }
+
+        let history = service.get_history();
+        assert_eq!(MAX_HISTORY, history.len());
+        // Blocks 0..=4 were evicted; the retained window is `5..MAX_HISTORY+5`.
+        let expected: Vec<CallRecord> = (5..(MAX_HISTORY + 5) as u32)
+            .map(|block| CallRecord {
+                caller: {% if eth %}Address::from(actor){% else %}actor{% endif %},
+                block,
+            })
+            .collect();
+        assert_eq!(expected, history);
     }
 }

@@ -159,7 +159,7 @@ service TokenSvc {
     }
 
     types {
-        @sol-type: address
+        @sol_type: address
         struct Address(H160);
     }
 }
@@ -175,4 +175,84 @@ fn test_generate_contract_w_address_type() {
         contract.err()
     );
     assert_snapshot!(String::from_utf8(contract.unwrap().data).unwrap());
+}
+
+#[test]
+fn codec_selection() {
+    let idl = r#"
+program CodecProgram {
+    services {
+        CodecTest
+    }
+}
+
+service CodecTest {
+    functions {
+        /// Both codecs
+        @entry_id: 0
+        BothMethod(p1: u32) -> string;
+        /// SCALE only - should be excluded from Solidity
+        @entry_id: 1
+        @codec: scale
+        ScaleOnly(p1: u32) -> u32;
+        /// Ethabi only
+        @entry_id: 2
+        @codec: ethabi
+        EthabiOnly(p1: u32) -> u32;
+        /// Payable ethabi
+        @entry_id: 3
+        @codec: ethabi
+        @payable
+        PayableEthabi(p1: u32) -> u32;
+    }
+    events {
+        /// Both codecs
+        @entry_id: 0
+        BothEvent(u32),
+        /// SCALE only - should be excluded from Solidity
+        @entry_id: 1
+        @codec: scale
+        ScaleOnlyEvent(u32),
+        /// Ethabi only
+        @entry_id: 2
+        @codec: ethabi
+        EthabiOnlyEvent(u32),
+    }
+}
+"#;
+
+    let contract =
+        generate_solidity_contract(idl, "CodecTest").expect("generate solidity contract");
+    let generated = String::from_utf8(contract.data).expect("utf8 contract");
+
+    assert!(
+        generated.contains("function codecTestBothMethod"),
+        "expected codecTestBothMethod to be present"
+    );
+    assert!(
+        generated.contains("function codecTestEthabiOnly"),
+        "expected codecTestEthabiOnly to be present"
+    );
+    assert!(
+        generated.contains("function codecTestPayableEthabi"),
+        "expected codecTestPayableEthabi to be present"
+    );
+    assert!(
+        !generated.contains("function codecTestScaleOnly"),
+        "expected codecTestScaleOnly to be filtered out, got:\n{generated}"
+    );
+    assert!(
+        generated.contains("event BothEvent"),
+        "expected BothEvent to be present"
+    );
+    assert!(
+        generated.contains("event EthabiOnlyEvent"),
+        "expected EthabiOnlyEvent to be present"
+    );
+    assert!(
+        !generated.contains("event ScaleOnlyEvent"),
+        "expected ScaleOnlyEvent to be filtered out, got:\n{generated}"
+    );
+
+    assert_snapshot!(generated);
 }

@@ -5,40 +5,54 @@ expression: formatted
 #[automatically_derived]
 impl<T: ::sails_type_registry::TypeInfo> ::sails_type_registry::TypeInfo for Basic<T> {
     type Identity = Self;
-    fn type_info(
+    fn module_path() -> &'static str {
+        ::core::module_path!()
+    }
+    fn type_decl(
         registry: &mut ::sails_type_registry::Registry,
-    ) -> ::sails_type_registry::ty::Type {
-        let mut args: ::sails_type_registry::prelude::alloc::vec::Vec<
-            (&'static str, _),
-        > = ::sails_type_registry::prelude::alloc::vec![];
-        let arg_id = registry.register_type::<T>();
-        args.push(("T", arg_id));
-        let mut args = args.into_iter();
-        let mut type_builder = ::sails_type_registry::builder::TypeBuilder::new()
-            .module_path(::core::module_path!())
-            .name("Basic")
-            .doc("Basic struct with docs")
-            .doc("Second line of documentation");
-        if let Some((name, arg_id)) = args.next() {
-            type_builder = type_builder.param(name).arg(arg_id);
-        }
-        let mut builder = type_builder.composite();
-        {
-            let ty = { registry.register_type::<u32>() };
-            builder = builder
+    ) -> ::sails_type_registry::ast::TypeDecl {
+        let base_name = ::sails_type_registry::alloc::string::String::from("Basic");
+        let generics = ::sails_type_registry::alloc::vec![
+            <T as ::sails_type_registry::TypeInfo>::type_decl(registry),
+        ];
+        registry
+            .register_named_type_with_dependencies(
+                <Self as ::sails_type_registry::TypeInfo>::META,
+                base_name,
+                generics,
+                |registry| {
+                    let _ = <u32 as ::sails_type_registry::TypeInfo>::type_decl(
+                        registry,
+                    );
+                    let _ = <T as ::sails_type_registry::TypeInfo>::type_decl(registry);
+                },
+            )
+    }
+    fn type_def(
+        _registry: &mut ::sails_type_registry::Registry,
+    ) -> ::core::option::Option<::sails_type_registry::ast::Type> {
+        let base_name = ::sails_type_registry::alloc::string::String::from("Basic");
+        ::core::option::Option::Some({
+            let __builder = ::sails_type_registry::builder::TypeBuilder::new()
+                .name(base_name)
+                .doc("Basic struct with docs")
+                .doc("Second line of documentation")
+                .param("T");
+            let composite = __builder.composite();
+            composite
                 .field("a")
                 .doc("Simple field")
                 .annotate("name")
                 .value("custom")
-                .ty(ty);
-        }
-        {
-            let ty = registry
-                .register_type_def(
-                    ::sails_type_registry::ty::Type::builder().name("T").parameter("T"),
-                );
-            builder = builder.field("b").doc("Direct parameter").ty(ty);
-        }
-        builder.build()
+                .ty(
+                    ::sails_type_registry::ast::TypeDecl::Primitive(
+                        ::sails_type_registry::ast::PrimitiveType::U32,
+                    ),
+                )
+                .field("b")
+                .doc("Direct parameter")
+                .ty(::sails_type_registry::ast::TypeDecl::generic("T"))
+                .build()
+        })
     }
 }

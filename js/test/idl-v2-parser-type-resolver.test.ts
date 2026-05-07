@@ -397,3 +397,73 @@ describe('v2 decodeResult header validation', () => {
     expect(() => add.decodeResult(mismatchedResult)).toThrow(/Header mismatch/);
   });
 });
+
+describe('type-resolver-v2 service scopes', () => {
+  test('service resolver does not see program-level types', () => {
+    const text = `
+      !@sails: 1.0.0-beta.3
+
+      service A {
+        functions {
+          Ping() -> u32;
+        }
+      }
+
+      program Test {
+        constructors {
+          Default(shared: Shared);
+        }
+        services {
+          A,
+        }
+        types {
+          struct Shared {
+            v: u32,
+          }
+        }
+      }
+    `;
+
+    const program = new SailsProgram(parser.parse(text));
+    const service = program.services['A'];
+
+    expect(service.registry.hasType('Shared')).toBe(false);
+  });
+
+  test('service-local types shadow same-named program types', () => {
+    const text = `
+      !@sails: 1.0.0-beta.3
+
+      service A {
+        functions {
+          UseShared(input: Shared);
+        }
+        types {
+          struct Shared {
+            service_value: String,
+          }
+        }
+      }
+
+      program Test {
+        constructors {
+          Default(shared: Shared);
+        }
+        services {
+          A,
+        }
+        types {
+          struct Shared {
+            program_value: u32,
+          }
+        }
+      }
+    `;
+
+    const program = new SailsProgram(parser.parse(text));
+    const service = program.services['A'];
+    const encoded = service.registry.createType('Shared', { service_value: 'local' });
+
+    expect(encoded.toJSON()).toEqual({ service_value: 'local' });
+  });
+});

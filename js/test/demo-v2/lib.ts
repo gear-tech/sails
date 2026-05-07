@@ -187,7 +187,7 @@ export class Counter {
     }
 
     /**
-     * Substract a value from the counter
+     * Subtract a value from the counter
      */
     public sub(value: number): TransactionBuilderWithHeader<number> {
         return new TransactionBuilderWithHeader<number>(

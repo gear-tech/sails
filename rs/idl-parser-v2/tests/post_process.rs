@@ -33,6 +33,31 @@ fn validate_scoping_fails_on_sibling_service_type_usage() {
     let err = result.expect_err("Should have failed due to sibling service type usage");
     assert!(err.to_string().contains("Unknown type 'TypeX'"));
 }
+
+#[test]
+fn validate_named_types_fails_on_program_type_in_service() {
+    let src = r#"
+        program P {
+            types {
+                struct ProgramType { val: u32 }
+            }
+            services {
+                S: S,
+            }
+        }
+
+        service S {
+            functions {
+                UseProgramType(input: ProgramType);
+            }
+        }
+    "#;
+
+    let err =
+        parse_idl(src).expect_err("Should have failed due to program type used in service scope");
+    assert!(err.to_string().contains("Unknown type 'ProgramType'"));
+}
+
 #[test]
 fn validate_mixed_fields_fails() {
     let src = include_str!("idls/post_process_mixed_fields.idl");
@@ -76,15 +101,15 @@ fn validate_invalid_entry_id_fails_for_regular_service() {
     let src = r#"
         service Canvas {
             functions {
-                @entry-id: foo
+                @entry_id: foo
                 Draw();
             }
         }
     "#;
-    let err = parse_idl(src).expect_err("Should have failed due to invalid @entry-id");
+    let err = parse_idl(src).expect_err("Should have failed due to invalid @entry_id");
     assert!(
         err.to_string().contains(
-            "service `Canvas`: function `Draw` has invalid `@entry-id` value `foo` (expected a u16)"
+            "service `Canvas`: function `Draw` has invalid `@entry_id` value `foo` (expected a u16)"
         ),
         "unexpected error: {err}"
     );
@@ -95,15 +120,15 @@ fn validate_invalid_entry_id_fails_for_constructor() {
     let src = r#"
         program Demo {
             constructors {
-                @entry-id: nope
+                @entry_id: nope
                 New();
             }
         }
     "#;
-    let err = parse_idl(src).expect_err("Should have failed due to invalid constructor @entry-id");
+    let err = parse_idl(src).expect_err("Should have failed due to invalid constructor @entry_id");
     assert!(
         err.to_string().contains(
-            "program `Demo`: constructor `New` has invalid `@entry-id` value `nope` (expected a u16)"
+            "program `Demo`: constructor `New` has invalid `@entry_id` value `nope` (expected a u16)"
         ),
         "unexpected error: {err}"
     );
@@ -151,5 +176,27 @@ fn parse_doc_annotation_works() {
             "1. This is a field doc comment.",
             "2. This is also a field doc comment."
         ]
+    );
+}
+
+#[test]
+fn codec_annotation_is_preserved_in_service_func() {
+    let src = r#"
+        service CodecAnn {
+            functions {
+                @entry_id: 0
+                @codec: scale,ethabi
+                Foo() -> bool;
+            }
+        }
+    "#;
+    let doc = parse_idl(src).expect("parse idl");
+    let func = &doc.services[0].funcs[0];
+    assert!(
+        func.annotations
+            .iter()
+            .any(|(k, v)| k == "codec" && v.as_deref() == Some("scale,ethabi")),
+        "expected @codec annotation to be preserved, got: {:?}",
+        func.annotations
     );
 }

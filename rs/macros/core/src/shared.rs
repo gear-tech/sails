@@ -660,20 +660,22 @@ pub mod validation {
             assert!(is_reserved("uint16"));
             assert!(is_reserved("int24"));
             assert!(is_reserved("uint256"));
+            assert!(is_reserved("int"));
+            assert!(is_reserved("uint"));
+            // ok
             assert!(!is_reserved("uint9"));
             assert!(!is_reserved("int17"));
             assert!(!is_reserved("uint257"));
             assert!(!is_reserved("uint249"));
-            assert!(!is_reserved("uint"));
-            assert!(!is_reserved("int"));
 
             // ufixed<M>x<N> | fixed<M>x<N>
             assert!(is_reserved("fixed128x18"));
             assert!(is_reserved("ufixed256x80"));
             assert!(is_reserved("fixed8x1"));
             assert!(is_reserved("ufixed256x0"));
-            assert!(!is_reserved("fixed"));
-            assert!(!is_reserved("ufixed"));
+            assert!(is_reserved("fixed"));
+            assert!(is_reserved("ufixed"));
+            // ok
             assert!(!is_reserved("fixed128x81")); // N > 80
             assert!(!is_reserved("fixed264x18")); // M > 256
             assert!(!is_reserved("fixed129x18")); // M not divisible by 8

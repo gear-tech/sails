@@ -66,6 +66,8 @@ typedef struct Visitor {
   void (*visit_tuple_type_decl)(const void *context, const TypeDecl *items,
                                 uint32_t items_len);
   void (*visit_primitive_type)(const void *context, uint8_t primitive);
+  void (*visit_generic_type_decl)(const void *context, const uint8_t *name,
+                                  uint32_t name_len);
   void (*visit_named_type_decl)(const void *context, const uint8_t *path,
                                   uint32_t path_len,
                                   const TypeDecl *generics_ptr,

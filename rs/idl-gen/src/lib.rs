@@ -20,7 +20,6 @@ use sails_idl_meta::{AnyServiceMeta, ProgramMeta};
 
 mod builder;
 mod errors;
-mod type_resolver;
 
 const SAILS_VERSION: &str = env!("CARGO_PKG_VERSION");
 

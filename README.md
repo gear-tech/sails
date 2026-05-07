@@ -746,34 +746,85 @@ which can be used as parameters and return values in service methods.
 ### Working with Data
 
 In the real world, almost all apps work with some form of data, and apps developed
-using `Sails` are no exception. As discussed in the [Application](#application) section,
-services are instantiated for every incoming request message, indicating that these
-services are stateless. However, there are a few ways to enable your services to
-maintain some state. In this case, the state will be treated as external to the service.
+using `Sails` are no exception. As discussed in the [Application](#application)
+section, services are instantiated for every incoming request message, so they
+should treat persistent data as state owned outside the service instance.
 
-The most recommended way is demonstrated in the [Counter](examples/demo/app/src/counter/)
-service, where the data is stored as part of the program and passed to the service
-via `RefCell`. The service module merely defines the shape of the data but requires
-the data itself to be passed from the outside. This option provides you with full
-flexibility and allows you to unit test your services in a multi-threaded environment,
-ensuring the tests do not affect each other.
+`Sails` provides two traits for abstracting over state storage:
 
-Another method is illustrated in the [RmrkCatalog](examples/rmrk/catalog/app/src/services/)
-and [RmrkResource](examples/rmrk/resource/app/src/services/) services, where the data
-is stored in static variables within the service module. This strategy ensures that the
-state remains completely hidden from the outside, making the service entirely self-contained.
-However, this approach is not ideal for unit testing in a multi-threaded environment
-because each test can potentially influence others. Additionally, it's important
-not to overlook calling the service's `seed` method before its first use.
+- `State` — read access; `read(&self) -> Result<impl Deref<Target = Item>, Error>`
+- `StateMut: State` — write access; `write(&mut self) -> Result<impl DerefMut<Target = Item>, Error>`
 
-You can also explore other approaches, such as making a service require `&'a mut` for its
-data (which makes the service non-clonable), or using `Cell` (which requires data copying,
-incurring additional costs).
+Both traits use an associated `Error` type. Backends that cannot fail (e.g. `RefCell<T>`)
+set `Error = Infallible`, which unlocks the `.get()` and `.get_mut()` infallible shortcuts.
 
-In all scenarios, except when using `Cell`, it's crucial to consider the static nature
-of data, especially during asynchronous calls within service methods. This implies that
-data accessed before initiating an asynchronous call might change by the time the call
-completes. See the [RmrkResource](examples/rmrk/resource/app/src/services/) service's
+Built-in implementations are provided for `RefCell<T>`, `&RefCell<T>`,
+`Rc<RefCell<T>>`, and the blanket `&mut S` / `&S` forwarding impls. Custom wrappers
+(e.g. a pausing or rate-limiting layer) implement the traits directly and compose
+transparently.
+
+The recommended pattern is to make a service generic over its state handle:
+
+```rust
+pub struct CounterService<S: StateMut<Item = CounterData, Error = Infallible> = RefCell<CounterData>> {
+    data: S,
+}
+
+impl<S: StateMut<Item = CounterData, Error = Infallible>> CounterService<S> {
+    pub fn new(data: S) -> Self { Self { data } }
+}
+
+#[service]
+impl<S: StateMut<Item = CounterData, Error = Infallible>> CounterService<S> {
+    #[export]
+    pub fn add(&mut self, value: u32) -> u32 {
+        let mut data = self.data.get_mut();
+        data.counter += value;
+        data.counter
+    }
+}
+```
+
+The program owns the `RefCell<CounterData>` and passes a shared reference to the service:
+
+```rust
+pub struct MyProgram {
+    counter_data: RefCell<CounterData>,
+}
+
+#[program]
+impl MyProgram {
+    pub fn counter(&self) -> CounterService<&RefCell<CounterData>> {
+        CounterService::new(&self.counter_data)
+    }
+}
+```
+
+Unit tests can use an owned `RefCell` (the default `S`) or `&mut RefCell` without any
+program scaffolding:
+
+```rust
+let data = RefCell::new(CounterData::new(0));
+let mut svc = CounterService::new(&data).expose(0);
+assert_eq!(svc.add(5), 5);
+```
+
+This is the most recommended approach and is demonstrated in the
+[Counter](examples/demo/app/src/counter/) service. It keeps state ownership clear,
+services fully unit-testable, and leaves room for cross-cutting wrappers without
+changing the service itself.
+
+You can still store data in static variables inside a service module, as shown
+by the [RmrkCatalog](examples/rmrk/catalog/app/src/services/) and
+[RmrkResource](examples/rmrk/resource/app/src/services/) services. This hides the
+state from the outside and makes the service self-contained, but it is harder to
+isolate in tests because one test can affect another. It also requires explicit
+initialization such as calling the service's `seed` method before first use.
+
+In all scenarios, except when using `Cell` (which requires data copying), it's crucial to consider the static nature of data, especially during
+asynchronous calls within service methods. This implies that data accessed before
+initiating an asynchronous call might change by the time the call completes. See the
+[RmrkResource](examples/rmrk/resource/app/src/services/) service's
 `add_part_to_resource` method for more details.
 
 ### Events

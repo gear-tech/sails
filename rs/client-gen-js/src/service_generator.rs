@@ -5,6 +5,7 @@ use crate::{
 };
 use genco::prelude::*;
 use js::Tokens;
+use sails_idl_ast::codec::has_scale_codec;
 use sails_idl_parser_v2::ast;
 
 pub(crate) struct ServiceGenerator<'a> {
@@ -44,11 +45,13 @@ impl<'a> ServiceGenerator<'a> {
         let func_tokens = service
             .funcs
             .iter()
+            .filter(|func| has_scale_codec(&func.annotations))
             .map(|func| self.render_func(func, func.entry_id));
 
         let event_tokens = service
             .events
             .iter()
+            .filter(|event| has_scale_codec(&event.annotations))
             .map(|event| self.render_event(event, event.entry_id));
 
         let extend_tokens = service.extends.iter().map(|base| {

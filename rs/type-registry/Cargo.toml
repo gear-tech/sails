@@ -11,6 +11,7 @@ rust-version.workspace = true
 [dependencies]
 alloy-primitives = { workspace = true, optional = true }
 gprimitives = { workspace = true, optional = true }
+sails-idl-ast = { workspace = true }
 sails-type-registry-derive = { workspace = true, optional = true }
 
 [dev-dependencies]

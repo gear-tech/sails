@@ -36,6 +36,7 @@ int main() {
       .visit_array_type_decl = NULL,
       .visit_tuple_type_decl = NULL,
       .visit_primitive_type = NULL,
+      .visit_generic_type_decl = NULL,
       .visit_named_type_decl = NULL,
       .visit_service_func = NULL,
       .visit_service_event = NULL,

@@ -105,7 +105,10 @@ where
             _ => None,
         }
     }
-    pub fn emit_event(&self, event: MyEvents) -> sails_rs::errors::Result<()> {
+    pub fn emit_event(&self, event: MyEvents) -> sails_rs::errors::Result<()>
+    where
+        MyEvents: sails_rs::SailsEvent,
+    {
         use sails_rs::gstd::services::ExposureWithEvents;
         self.emitter().emit_event(event)
     }

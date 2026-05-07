@@ -114,6 +114,8 @@ int main() {
                     uint32_t))unexpected_ffi_call_extra_args,
       .visit_primitive_type =
           (void (*)(const void *, uint8_t))unexpected_ffi_call_extra_args,
+      .visit_generic_type_decl =
+          (void (*)(const void *, const uint8_t *, uint32_t))unexpected_ffi_call_extra_args,
       .visit_named_type_decl = c_visit_named_type_decl,
       .visit_service_func =
           (void (*)(const void *, const ServiceFunc *))unexpected_ffi_call,

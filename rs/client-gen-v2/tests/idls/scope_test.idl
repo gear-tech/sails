@@ -22,13 +22,13 @@ program MyProgram {
 
 service MyService {
     functions {
-        /// Uses CommonType from program scope.
+        /// Uses the service-local CommonType.
         DoSomething(input: CommonType) -> u32;
 
         /// Uses CommonType from service scope.
         AnotherAction(input: ServiceCommonType) -> u32;
 
-        /// TBD: Uses ProgramOnlyType from program scope.
+        /// Uses the service-local ProgramOnlyType.
         UseProgramType(input: ProgramOnlyType) -> bool;
     }
 

@@ -1,5 +1,5 @@
 error: Unions are not supported by SailsTypeRegistry
- --> tests/ui/unsupported_union.rs:4:7
+ --> tests/ui/unsupported_union.rs:4:1
   |
 4 | union MyUnion {
-  |       ^^^^^^^
+  | ^^^^^

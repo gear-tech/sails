@@ -87,6 +87,14 @@ export class TypeResolver {
       }
       return `(${type.types.map((t: TypeDecl) => this.getTypeDeclString(t, generics, nameKind)).join(',')})`;
     }
+    if (type.kind === 'generic') {
+      const generic = generics[type.name];
+      if (generic) {
+        return this.getTypeDeclString(generic, generics, nameKind);
+      }
+
+      return type.name;
+    }
     if (type.kind === 'named') {
       if (type.name === 'Option') {
         if (nameKind === 'canonical') {
@@ -140,11 +148,6 @@ export class TypeResolver {
           this.registry.register(scaleTypes);
         }
         return nameKind == 'generic' ? genericName : canonicalName;
-      }
-      // Generic param
-      const generic = generics[type.name];
-      if (generic) {
-        return this.getTypeDeclString(generic, generics, nameKind);
       }
 
       // Non-generic resolve as registered type

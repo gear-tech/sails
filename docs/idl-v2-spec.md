@@ -34,7 +34,7 @@ Examples
 - `@indexed`
 - `@query`
 - `@partial` (used for service subset generation)
-- `@entry-id: <number>` (explicit entry identifier)
+- `@entry_id: <number>` (explicit entry identifier)
 
 ## Comments
 
@@ -220,6 +220,16 @@ service <ident> {
 }
 ```
 
+Service IDL is self-contained. Types referenced by service functions, events,
+and `throws` declarations are resolved from the service's own `types` block and
+from explicitly extended service interfaces. Program-level `types` are not an
+ambient scope for services, so a service can be distributed independently from a
+particular program definition.
+
+Program-level `types` are available to program constructors and other
+program-level declarations. A program may expose services through `services`,
+but that does not make program-local types visible inside those services.
+
 ### Service Events
 
 Service event is represented as an enum variant with an associated payload.
@@ -227,7 +237,7 @@ Service event is represented as an enum variant with an associated payload.
 Events in `events { ... }` are modeled as `Enum Variant` describing fields of the event,
 so the same machinery as for enums can be reused.
 
-- `@entry-id: <number>` allows overriding the automatic positional index (which starts from 0 for the first member).
+- `@entry_id: <number>` allows overriding the automatic positional index (which starts from 0 for the first member).
 
 ### Service functions
 
@@ -243,7 +253,7 @@ Service function entry
 - `output` is the return type (use `PrimitiveType::Void` for `()` / no value);
 - `throws` is an optional error type after the `throws` keyword;
 - `@query` marks read-only / query functions as defined by the spec;
-- `@entry-id: <number>` allows overriding the automatic positional index (which starts from 0 for the first member);
+- `@entry_id: <number>` allows overriding the automatic positional index (which starts from 0 for the first member);
 - may contain documentation comments and annotations.
 
 ### Partial Service Subset
@@ -256,11 +266,11 @@ Example of a partial IDL:
 @partial
 service PartialService@0x1234567890abcdef {
     events {
-        @entry-id: 2
+        @entry_id: 2
         SomethingHappened(String);
     }
     functions {
-        @entry-id: 5
+        @entry_id: 5
         SomeMethod() -> bool;
     }
 }
@@ -417,4 +427,5 @@ program DemoCanvas {
 > 1. `extends` merge `events`, `functions` and `types` with service declaration according to
 >    - `functions` override decalaration (TBD)
 > 2. Namespaces are not included in the specification
->    - reference to service type `<service_ident>::<type_ident>` (TBD)
+>    - reference to service type `<service_ident>::<type_ident>` from program/root scopes (TBD)
+>    - service declarations do not implicitly resolve names from `program.types`

@@ -13,6 +13,7 @@ static int count_slice_type_decl = 0;
 static int count_array_type_decl = 0;
 static int count_tuple_type_decl = 0;
 static int count_named_type_decl = 0;
+static int count_generic_type_decl = 0;
 static int count_primitive_type = 0;
 static int count_service_func = 0;
 static int count_service_event = 0;
@@ -77,6 +78,12 @@ void cb_visit_tuple_type_decl(const void *context, const TypeDecl *items,
 
 void cb_visit_primitive_type(const void *context, uint8_t primitive) {
   count_primitive_type++;
+  // Leaf node, no accept call
+}
+
+void cb_visit_generic_type_decl(const void *context, const uint8_t *name,
+                                uint32_t name_len) {
+  count_generic_type_decl++;
   // Leaf node, no accept call
 }
 
@@ -168,6 +175,7 @@ int main() {
       .visit_array_type_decl = cb_visit_array_type_decl,
       .visit_tuple_type_decl = cb_visit_tuple_type_decl,
       .visit_primitive_type = cb_visit_primitive_type,
+      .visit_generic_type_decl = cb_visit_generic_type_decl,
       .visit_named_type_decl = cb_visit_named_type_decl,
       .visit_service_func = cb_visit_service_func,
       .visit_service_event = cb_visit_service_event,
@@ -198,6 +206,7 @@ int main() {
   printf("  array_type_decl: %d\n", count_array_type_decl);
   printf("  tuple_type_decl: %d\n", count_tuple_type_decl);
   printf("  named_type_decl: %d\n", count_named_type_decl);
+  printf("  generic_type_decl: %d\n", count_generic_type_decl);
   printf("  primitive_type: %d\n", count_primitive_type);
   printf("  service_func: %d\n", count_service_func);
   printf("  service_event: %d\n", count_service_event);
@@ -219,7 +228,8 @@ int main() {
   assert(count_slice_type_decl == 1);
   assert(count_array_type_decl == 1);
   assert(count_tuple_type_decl == 1);
-  assert(count_named_type_decl == 5);
+  assert(count_named_type_decl == 4);
+  assert(count_generic_type_decl == 1);
   assert(count_primitive_type == 22);
   assert(count_service_func == 3);
   assert(count_service_event == 3);
@@ -235,6 +245,7 @@ int main() {
                          count_array_type_decl +
                          count_tuple_type_decl +
                          count_named_type_decl +
+                         count_generic_type_decl +
                          count_primitive_type;
   assert(total_type_decls == 30);
 

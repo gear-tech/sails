@@ -12,6 +12,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  GEAR_NODE_VERSION: 1.10.0
+
 jobs:
   lint:
     runs-on: ubuntu-22.04
@@ -68,7 +71,7 @@ jobs:
 
       - name: "Prepare: download Gear node"
         run: |
-          wget -O ./gear https://github.com/gear-tech/gear/releases/download/build/gear
+          wget -O ./gear https://github.com/gear-tech/gear/releases/download/v${{ env.GEAR_NODE_VERSION }}/gear
           chmod +x gear
 
       - name: "Prepare: build demo contract"

@@ -10,17 +10,17 @@ beforeAll(async () => {
   await parser.init();
 });
 
-describe('partial service and entry-id', () => {
+describe('partial service and entry_id', () => {
   test('resolves entry_id from annotation for function headers', () => {
     const idl = `
       @partial
       service PartialService@0x1234567890abcdef {
         functions {
-          @entry-id: 0
+          @entry_id: 0
           AMethodDefaultId0() -> bool;
-          @entry-id: 5
+          @entry_id: 5
           BMethodWithId5() -> bool;
-          @entry-id: 2
+          @entry_id: 2
           CMethodDefaultId2() -> u32;
         }
       }
@@ -54,7 +54,7 @@ describe('partial service and entry-id', () => {
       @partial
       service PartialService@0x1234567890abcdef {
         events {
-          @entry-id: 10
+          @entry_id: 10
           EventWithId10(String);
         }
       }
@@ -90,7 +90,7 @@ describe('partial service and entry-id', () => {
         name: 'LegacyProgram',
         ctors: [
           { name: 'Default', params: [] },
-          { name: 'Create', params: [], annotations: [['entry-id', '7']] },
+          { name: 'Create', params: [], annotations: [['entry_id', '7']] },
         ],
         services: [
           {
@@ -112,12 +112,12 @@ describe('partial service and entry-id', () => {
               params: [],
               output: 'bool',
               kind: 'command',
-              annotations: [['entry-id', '5']],
+              annotations: [['entry_id', '5']],
             },
           ],
           events: [
             { name: 'DefaultEvent', fields: [] },
-            { name: 'AnnotatedEvent', fields: [], annotations: [['entry-id', '10']] },
+            { name: 'AnnotatedEvent', fields: [], annotations: [['entry_id', '10']] },
           ],
           types: [],
         },

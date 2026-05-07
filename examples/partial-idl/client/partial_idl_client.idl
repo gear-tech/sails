@@ -3,13 +3,13 @@
 @partial
 service PartialIdlService@0x6f9649495e041ebc {
     events {
-        @entry-id: 2
+        @entry_id: 2
         ThirdDone(String);
     }
     functions {
-        @entry-id: 1
+        @entry_id: 1
         Second(val: u32) -> u32;
-        @entry-id: 2
+        @entry_id: 2
         Third() -> String;
     }
 }

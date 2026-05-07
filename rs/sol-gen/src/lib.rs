@@ -2,7 +2,7 @@ use anyhow::{Result, anyhow};
 use convert_case::{Case, Casing};
 use handlebars::Handlebars;
 use sails_idl_parser_v2::{
-    ast::{IdlDoc, PrimitiveType, Type, TypeDecl},
+    ast::{IdlDoc, PrimitiveType, Type, TypeDecl, codec::has_ethabi_codec},
     parse_idl,
 };
 use serde::Serialize;
@@ -59,7 +59,7 @@ fn resolve_type_decl(decl: &TypeDecl, types: &[Type]) -> Result<String> {
         TypeDecl::Named { name, .. } => types
             .iter()
             .find(|ty| ty.name == *name)
-            .and_then(|ty| ty.annotations.iter().find(|(k, _)| k == "sol-type"))
+            .and_then(|ty| ty.annotations.iter().find(|(k, _)| k == "sol_type"))
             .and_then(|(_, v)| v.clone())
             .ok_or_else(|| anyhow!("type is not supported")),
         TypeDecl::Array { item, len } => {
@@ -122,6 +122,9 @@ fn functions_from_idl(doc: &IdlDoc) -> Result<Vec<FunctionData>> {
 
     for svc in &doc.services {
         for f in &svc.funcs {
+            if !has_ethabi_codec(&f.annotations) {
+                continue;
+            }
             let mut args = Vec::new();
             for p in &f.params {
                 let arg = ArgData {
@@ -156,7 +159,11 @@ fn events_from_idl(doc: &IdlDoc) -> Result<Vec<EventData>> {
     let mut events = Vec::new();
 
     for svc in &doc.services {
-        for e in &svc.events {
+        for e in svc
+            .events
+            .iter()
+            .filter(|e| has_ethabi_codec(&e.annotations))
+        {
             let mut args = Vec::new();
             for f in &e.def.fields {
                 let arg = EventArgData {

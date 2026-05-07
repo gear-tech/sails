@@ -159,6 +159,36 @@ pub fn export(args: TokenStream, impl_item_fn_tokens: TokenStream) -> TokenStrea
 /// This is intended to be used with the `#[sails_rs::event]` procedural macro, which automatically
 /// implements the trait for your enum-based event definitions.
 ///
+///
+/// # Arguments
+///
+/// - `scale` — implement only `SailsEvent` (SCALE/Gear transport). The Rust client generator
+///   and JS client generator will include this event; the Solidity generator will exclude it.
+/// - `ethabi` — implement only `EthEvent` (Ethereum ABI transport, requires `ethexe` feature).
+///   The Solidity generator will include this event; the Rust and JS client generators will exclude it.
+/// - `scale, ethabi` — implement both traits explicitly (same as the default when both flags are omitted).
+/// - `crate = <path>` — override the path to the `sails-rs` crate (defaults to `sails_rs`).
+///
+/// When only one transport flag is given, every variant in the IDL receives a `@codec: scale` or
+/// `@codec: ethabi` annotation so downstream generators can filter accordingly.
+///
+/// ## Ethabi-only events and `#[sails_type]`
+///
+/// `#[sails_type]` always derives `Encode`, `Decode`, `TypeInfo`, and `ReflectHash`. If your
+/// ethabi-only event enum contains fields that are ABI-compatible but not SCALE-compatible (e.g.
+/// `alloy_primitives::Address`), do **not** combine it with `#[sails_type]`. Instead, derive
+/// `TypeInfo` and `ReflectHash` manually:
+///
+/// ```rust,ignore
+/// #[sails_rs::event(ethabi)]
+/// #[derive(sails_rs::type_info::TypeInfo, sails_rs::ReflectHash)]
+/// #[type_info(crate = sails_rs::type_info)]
+/// #[reflect_hash(crate = sails_rs)]
+/// pub enum Events {
+///     Something(sails_rs::alloy_primitives::Address),
+/// }
+/// ```
+///
 /// # Examples
 ///
 /// Given an event definition:
