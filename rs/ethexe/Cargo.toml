@@ -16,10 +16,10 @@ sails-rs = { path = ".." }
 sails-macros-core = { path = "../macros/core" }
 
 # other
-insta = "1.46"
+insta = "1.47"
 prettyplease = "0.2"
 proc-macro2 = { version = "1", default-features = false }
 quote = "1.0"
 syn = "2.0"
-tokio = "1.50"
+tokio = "1.52"
 trybuild = "1"
