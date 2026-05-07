@@ -33,10 +33,10 @@ interface ISailsServiceFuncParams {
   readonly returnTypeDef: ISailsTypeDef;
   /** ### Encode payload to hex string */
   readonly encodePayload: (...args: any[]) => HexString;
-  /** ### Decode payload from hex string */
-  readonly decodePayload: <T = any>(bytes: HexString) => T;
+  /** ### Decode payload from hex string or raw bytes */
+  readonly decodePayload: <T = any>(bytes: Uint8Array | HexString) => T;
   /** ### Decode function result */
-  readonly decodeResult: <T = any>(result: HexString) => T;
+  readonly decodeResult: <T = any>(result: Uint8Array | HexString) => T;
   /** ### Docs from the IDL file */
   readonly docs?: string;
 }
@@ -53,7 +53,7 @@ interface SailsServiceEvent {
   /** ### Check if event is of this type */
   readonly is: (event: UserMessageSent) => boolean;
   /** ### Decode event payload */
-  readonly decode: (payload: HexString) => any;
+  readonly decode: (payload: Uint8Array | HexString) => any;
   /** ### Subscribe to event
    * @returns Promise with unsubscribe function
    */
@@ -67,8 +67,8 @@ interface ISailsCtorFuncParams {
   readonly args: ISailsFuncArg[];
   /** ### Encode payload to hex string */
   readonly encodePayload: (...args: any[]) => HexString;
-  /** ### Decode payload from hex string */
-  readonly decodePayload: <T = any>(bytes: HexString) => T;
+  /** ### Decode payload from hex string or raw bytes */
+  readonly decodePayload: <T = any>(bytes: Uint8Array | HexString) => T;
   /** ### Create transaction builder from code */
   readonly fromCode: (code: Uint8Array | Buffer, ...args: unknown[]) => TransactionBuilder<any>;
   /** ### Create transaction builder from code id */
@@ -77,24 +77,24 @@ interface ISailsCtorFuncParams {
   readonly docs?: string;
 }
 
-// Cap echoed names in error messages so attacker-controlled bytes can't flood logs
-// with unbounded strings or smuggle control characters (e.g., ANSI escape sequences).
+// Cap echoed names so attacker-controlled bytes can't flood logs or smuggle control
+// characters (e.g., ANSI escapes) when validation fails.
 const _MAX_ECHOED_NAME_LEN = 64;
 const _safeEchoedName = (name: string): string => {
   const truncated = name.length > _MAX_ECHOED_NAME_LEN ? `${name.slice(0, _MAX_ECHOED_NAME_LEN)}...` : name;
-  // Strip anything outside printable ASCII.
   return truncated.replaceAll(/[^ -~]/g, '?');
 };
 
-const _toHex = (bytes: Uint8Array | HexString | string): HexString =>
-  typeof bytes === 'string' ? (bytes as HexString) : u8aToHex(bytes);
+const _toHex = (bytes: Uint8Array | HexString): HexString =>
+  typeof bytes === 'string' ? bytes : u8aToHex(bytes);
 
 const _assertMatchingServicePrefix = (
   bytes: Uint8Array | HexString,
   expectedService: string,
   expectedFn: string,
-  target: string,
+  isResult = false,
 ) => {
+  const target = isResult ? `${expectedService}.${expectedFn} result` : `${expectedService}.${expectedFn}`;
   const hex = _toHex(bytes);
   let actualService: string;
   let actualFn: string;
@@ -111,7 +111,8 @@ const _assertMatchingServicePrefix = (
   }
 };
 
-const _assertMatchingCtorPrefix = (bytes: Uint8Array | string, expectedName: string, target: string) => {
+const _assertMatchingCtorPrefix = (bytes: Uint8Array | HexString, expectedName: string) => {
+  const target = `constructor "${expectedName}"`;
   let actual: string;
   try {
     actual = getCtorNamePrefix(_toHex(bytes));
@@ -285,8 +286,8 @@ export class Sails {
 
           return payload.toHex();
         },
-        decodePayload: <T = any>(bytes: HexString) => {
-          _assertMatchingServicePrefix(bytes, service.name, func.name, `${service.name}.${func.name}`);
+        decodePayload: <T = any>(bytes: Uint8Array | HexString) => {
+          _assertMatchingServicePrefix(bytes, service.name, func.name);
           const payload = this.registry.createType(`(String, String, ${params.map((p) => p.type).join(', ')})`, bytes);
           const result = {} as Record<string, any>;
           for (const [i, param] of params.entries()) {
@@ -294,8 +295,8 @@ export class Sails {
           }
           return result as T;
         },
-        decodeResult: <T = any>(result: HexString) => {
-          _assertMatchingServicePrefix(result, service.name, func.name, `${service.name}.${func.name} result`);
+        decodeResult: <T = any>(result: Uint8Array | HexString) => {
+          _assertMatchingServicePrefix(result, service.name, func.name, true);
           const payload = this.registry.createType(`(String, String, ${returnType})`, result);
           return payload[2].toJSON() as T;
         },
@@ -329,8 +330,8 @@ export class Sails {
 
           return true;
         },
-        decode: (payload: HexString) => {
-          _assertMatchingServicePrefix(payload, service.name, event.name, `${service.name}.${event.name}`);
+        decode: (payload: Uint8Array | HexString) => {
+          _assertMatchingServicePrefix(payload, service.name, event.name);
           const data = this.registry.createType(`(String, String, ${typeStr})`, payload);
           return data[2].toJSON();
         },
@@ -413,8 +414,8 @@ export class Sails {
 
           return payload.toHex();
         },
-        decodePayload: <T = any>(bytes: Uint8Array | string) => {
-          _assertMatchingCtorPrefix(bytes, func.name, `constructor "${func.name}"`);
+        decodePayload: <T = any>(bytes: Uint8Array | HexString) => {
+          _assertMatchingCtorPrefix(bytes, func.name);
           const payload = this.registry.createType(`(String, ${params.map((p) => p.type).join(', ')})`, bytes);
           const result = {} as Record<string, any>;
           for (const [i, param] of params.entries()) {

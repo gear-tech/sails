@@ -367,8 +367,6 @@ describe('v2 decodeResult header validation', () => {
   test('decodes result when header matches the expected method', () => {
     const program = new SailsProgram(parser.parse(idl));
     const add = program.services.Counter.functions.Add;
-    // Extract Add's valid 16-byte header from a request payload, then build a reply
-    // with the same header followed by a u32 return value.
     const addHeader = hexToU8a(add.encodePayload(42)).slice(0, 16);
     const reply = program.registry.createType('([u8; 16], u32)', [addHeader, 99]).toHex();
     expect(add.decodeResult(reply)).toBe(99);
@@ -377,7 +375,7 @@ describe('v2 decodeResult header validation', () => {
   test('throws when result bytes have no valid Sails header', () => {
     const program = new SailsProgram(parser.parse(idl));
     const add = program.services.Counter.functions.Add;
-    // 16 zero bytes (no magic "GM") + a u32 — should fail header assertion.
+    // No magic "GM" in the 16-byte prefix.
     const bogusResult = program.registry
       .createType('([u8; 16], u32)', [new Uint8Array(16), 99])
       .toHex();
@@ -388,11 +386,7 @@ describe('v2 decodeResult header validation', () => {
     const program = new SailsProgram(parser.parse(idl));
     const add = program.services.Counter.functions.Add;
     const sub = program.services.Counter.functions.Sub;
-    // Take Sub's (valid) 16-byte header from an encoded request payload.
-    // encodePayload(42) returns hex of ([u8; 16], u32); the first 16 bytes are Sub's header.
-    const subEncodedBytes = hexToU8a(sub.encodePayload(42));
-    const subHeader = subEncodedBytes.slice(0, 16);
-    // Use that header as the prefix for an "Add result" — interface_id matches but entry_id differs.
+    const subHeader = hexToU8a(sub.encodePayload(42)).slice(0, 16);
     const mismatchedResult = program.registry.createType('([u8; 16], u32)', [subHeader, 99]).toHex();
     expect(() => add.decodeResult(mismatchedResult)).toThrow(/Header mismatch/);
   });

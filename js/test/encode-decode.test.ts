@@ -79,13 +79,11 @@ describe('Encode/Decode', () => {
     expect(() => added.decode(mismatched)).toThrow(/Invalid prefix for Counter\.Added/);
   });
 
-  test('decodePayload accepts Uint8Array inputs (back-compat with as any callers)', () => {
+  test('decodePayload accepts Uint8Array inputs', () => {
     const walk = sails.services.Dog.functions.Walk;
-    // Round-trip via Uint8Array rather than HexString — this flow was valid before
-    // the prefix guards were added (registry.createType accepts Uint8Array).
     const walkHex = walk.encodePayload(10, 10);
     const walkBytes = Buffer.from(walkHex.slice(2), 'hex');
-    const decoded = walk.decodePayload(walkBytes as unknown as `0x${string}`);
+    const decoded = walk.decodePayload(walkBytes);
     expect(decoded).toEqual({ dx: 10, dy: 10 });
   });
 
