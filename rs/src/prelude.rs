@@ -11,10 +11,10 @@ pub use alloc::{
     vec::Vec,
 };
 pub use core::{
-    any, array, ascii, assert_eq, assert_ne, cell, char, clone, cmp, convert, debug_assert,
-    debug_assert_eq, debug_assert_ne, default, future, hash, hint, iter, marker, matches, mem, num,
-    ops, option, panic, pin, prelude::rust_2021::*, primitive, ptr, result, slice, task, time,
-    todo, unimplemented, unreachable, write, writeln,
+    any, array, ascii, assert_eq, assert_ne, cell, char, clone, cmp, convert, convert::Infallible,
+    debug_assert, debug_assert_eq, debug_assert_ne, default, future, hash, hint, iter, marker,
+    matches, mem, num, ops, option, panic, pin, prelude::rust_2024::*, primitive, ptr, result,
+    slice, task, time, todo, unimplemented, unreachable, write, writeln,
 };
 
 /// Collection types.
@@ -46,6 +46,7 @@ pub use crate::gstd::{
     CommandReply, EventEmitter, SailsEvent, Syscall, event, export, program, service,
     services::Exposure as _, services::ExposureWithEvents as _,
 };
+pub use crate::state::{State, StateMut};
 pub use crate::types::*;
 pub use gear_core_errors::{
     self as gear_core_errors, ErrorReplyReason, ReplyCode, SignalCode, SimpleExecutionError,

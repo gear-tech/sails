@@ -1,5 +1,7 @@
 fn main() {
+    // Build WASM
     if let Some((_, wasm_path)) = sails_rs::build_wasm() {
-        sails_rs::ClientBuilder::<::{{ app_crate_name }}::{{ program_struct_name }}>::from_wasm_path(wasm_path.with_extension("")).build_idl();
+        // Generate IDL and embed it into WASM
+        sails_rs::ClientBuilder::<::{{ app_crate_name }}::{{ program_struct_name }}>::from_wasm_path(wasm_path).build_idl();
     }
 }

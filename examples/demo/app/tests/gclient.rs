@@ -32,8 +32,7 @@ async fn counter_add_works() {
 
     let mut counter_client = demo_program.counter();
     // Listen to Counter events
-    let counter_listener = counter_client.listener();
-    let mut counter_events = counter_listener.listen().await.unwrap();
+    let mut counter_events = counter_client.listen().await.unwrap();
 
     // Act
 
@@ -75,8 +74,7 @@ async fn counter_sub_works() {
 
     let mut counter_client = demo_program.counter();
     // Listen to Counter events
-    let counter_listener = counter_client.listener();
-    let mut counter_events = counter_listener.listen().await.unwrap();
+    let mut counter_events = counter_client.listen().await.unwrap();
 
     // Act
 

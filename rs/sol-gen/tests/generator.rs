@@ -205,6 +205,19 @@ service CodecTest {
         @payable
         PayableEthabi(p1: u32) -> u32;
     }
+    events {
+        /// Both codecs
+        @entry_id: 0
+        BothEvent(u32),
+        /// SCALE only - should be excluded from Solidity
+        @entry_id: 1
+        @codec: scale
+        ScaleOnlyEvent(u32),
+        /// Ethabi only
+        @entry_id: 2
+        @codec: ethabi
+        EthabiOnlyEvent(u32),
+    }
 }
 "#;
 
@@ -227,6 +240,18 @@ service CodecTest {
     assert!(
         !generated.contains("function codecTestScaleOnly"),
         "expected codecTestScaleOnly to be filtered out, got:\n{generated}"
+    );
+    assert!(
+        generated.contains("event BothEvent"),
+        "expected BothEvent to be present"
+    );
+    assert!(
+        generated.contains("event EthabiOnlyEvent"),
+        "expected EthabiOnlyEvent to be present"
+    );
+    assert!(
+        !generated.contains("event ScaleOnlyEvent"),
+        "expected ScaleOnlyEvent to be filtered out, got:\n{generated}"
     );
 
     assert_snapshot!(generated);

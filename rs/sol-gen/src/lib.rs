@@ -159,7 +159,11 @@ fn events_from_idl(doc: &IdlDoc) -> Result<Vec<EventData>> {
     let mut events = Vec::new();
 
     for svc in &doc.services {
-        for e in &svc.events {
+        for e in svc
+            .events
+            .iter()
+            .filter(|e| has_ethabi_codec(&e.annotations))
+        {
             let mut args = Vec::new();
             for f in &e.def.fields {
                 let arg = EventArgData {

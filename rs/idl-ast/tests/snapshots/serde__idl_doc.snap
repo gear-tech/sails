@@ -157,7 +157,7 @@ expression: serialized
           "kind": "command",
           "entry_id": 1,
           "docs": [
-            "Substract a value from the counter"
+            "Subtract a value from the counter"
           ]
         },
         {

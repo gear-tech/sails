@@ -192,6 +192,24 @@ Use `program.services.ServiceName.functions.FunctionName.encodePayload` method o
 const payload = program.services.ServiceName.functions.FunctionName.encodePayload(arg1, arg2);
 ```
 
+### Subpath exports
+
+`sails-js` re-exports a few utility modules via subpath exports. This lets you import parser/type/utility symbols without depending on internal workspace packages directly:
+
+```javascript
+// v2 parser (equivalent to the internal `sails-js-parser-idl-v2` package)
+import { SailsIdlParser, SailsMessageHeader, InterfaceId, normalizeIdl } from 'sails-js/parser';
+
+// Shared TypeScript interfaces describing parsed IDL types
+// (e.g. ISailsTypeDef, ISailsPrimitiveDef, ISailsStructDef, ISailsEnumDef, ...)
+import type { ISailsTypeDef, ISailsPrimitiveDef } from 'sails-js/types';
+
+// Utility helpers (getScaleCodecDef, getPayloadMethod, ...)
+import { getScaleCodecDef } from 'sails-js/util';
+```
+
+The `sails-js/types` subpath is particularly useful for tooling that walks IDL type graphs (form renderers, custom decoders, IDE plugins) — the accessor interfaces (`isVec`/`asVec`, `isStruct`/`asStruct`, ...) are defined there and avoid the need for `any` casts on `TypeDef`/`PrimitiveDef` instances.
+
 
 ## Transaction builder
 

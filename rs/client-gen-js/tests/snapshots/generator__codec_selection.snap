@@ -3,8 +3,9 @@ source: rs/client-gen-js/tests/generator.rs
 expression: generated
 ---
 import {GearApi, HexString} from "@gear-js/api";
-import {QueryBuilderWithHeader, TransactionBuilderWithHeader, TypeResolver} from "sails-js";
+import {QueryBuilderWithHeader, TransactionBuilderWithHeader, TypeResolver, ZERO_ADDRESS} from "sails-js";
 import {InterfaceId, SailsMessageHeader} from "sails-js-parser-idl-v2";
+import {IStructField} from "sails-js-types";
 
 export class CodecProgram {
     private _typeResolver: TypeResolver;
@@ -42,7 +43,7 @@ export class CodecTest {
         return this._typeResolver.registry;
     }
     public get interfaceId(): InterfaceId {
-        return InterfaceId.from("0x577754119419635e");
+        return InterfaceId.from("0x3d3ab867eece8ee1");
     }
     /**
      * Available via both codecs (default)
@@ -89,5 +90,41 @@ export class CodecTest {
             this._typeResolver.getTypeDeclString("u32"),
             this._programId,
         );
+    }
+
+    /**
+     * Available through both codecs
+     */
+    public subscribeToBothEventEvent<T = number>(callback: (eventData: T) => void | Promise<void>): Promise<() => void> {
+        const interfaceIdu64 = this.interfaceId.asU64();
+        const eventFields = {"fields":[{"type":"u32"}]}.fields as IStructField[];
+        const typeStr = this._typeResolver.getStructDef(eventFields, {}, true);
+        return this._api.gearEvents.subscribeToGearEvent("UserMessageSent", ({ data: { message } }) => {
+            if (!message.source.eq(this._programId)) return;
+            if (!message.destination.eq(ZERO_ADDRESS)) return;
+
+            const { ok, header } = SailsMessageHeader.tryFromBytes(message.payload);
+            if (ok && header.interfaceId.asU64() === interfaceIdu64 && header.entryId === 0) {
+                callback(this.registry.createType(`([u8; 16], ${typeStr})`, message.payload)[1].toJSON() as T);
+            }
+        });
+    }
+
+    /**
+     * SCALE only
+     */
+    public subscribeToScaleOnlyEventEvent<T = number>(callback: (eventData: T) => void | Promise<void>): Promise<() => void> {
+        const interfaceIdu64 = this.interfaceId.asU64();
+        const eventFields = {"fields":[{"type":"u32"}]}.fields as IStructField[];
+        const typeStr = this._typeResolver.getStructDef(eventFields, {}, true);
+        return this._api.gearEvents.subscribeToGearEvent("UserMessageSent", ({ data: { message } }) => {
+            if (!message.source.eq(this._programId)) return;
+            if (!message.destination.eq(ZERO_ADDRESS)) return;
+
+            const { ok, header } = SailsMessageHeader.tryFromBytes(message.payload);
+            if (ok && header.interfaceId.asU64() === interfaceIdu64 && header.entryId === 1) {
+                callback(this.registry.createType(`([u8; 16], ${typeStr})`, message.payload)[1].toJSON() as T);
+            }
+        });
     }
 }

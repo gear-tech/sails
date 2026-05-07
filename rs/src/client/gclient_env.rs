@@ -230,7 +230,7 @@ impl Listener for GclientEnv {
     async fn listen<E, F: FnMut((ActorId, Vec<u8>)) -> Option<(ActorId, E)>>(
         &self,
         f: F,
-    ) -> Result<impl Stream<Item = (ActorId, E)> + Unpin, Self::Error> {
+    ) -> Result<impl Stream<Item = (ActorId, E)> + Unpin + use<E, F>, Self::Error> {
         let listener = self.api.subscribe().await?;
         let stream = stream::unfold(listener, |mut l| async move {
             let vec = get_events_from_block(&mut l).await.ok();

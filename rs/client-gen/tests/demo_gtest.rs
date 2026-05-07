@@ -75,8 +75,7 @@ async fn counter_add_works() {
         .unwrap();
 
     let mut counter_client = demo_program.counter();
-    let listener = counter_client.listener();
-    let mut events = listener.listen().await.unwrap();
+    let mut events = counter_client.listen().await.unwrap();
 
     let result = counter_client.add(10).await.unwrap();
 
@@ -119,8 +118,7 @@ async fn dog_barks() {
         .unwrap();
 
     let mut dog_client = demo_program.dog();
-    let listener = dog_client.listener();
-    let mut events = listener.listen().await.unwrap();
+    let mut events = dog_client.listen().await.unwrap();
 
     let result = dog_client.make_sound().await.unwrap();
 
@@ -144,8 +142,7 @@ async fn dog_walks() {
         .unwrap();
 
     let mut dog_client = demo_program.dog();
-    let listener = dog_client.listener();
-    let mut events = listener.listen().await.unwrap();
+    let mut events = dog_client.listen().await.unwrap();
 
     dog_client.walk(10, 20).await.unwrap();
 

@@ -108,6 +108,19 @@ fn codec_selection() {
         !generated.contains("ethabi_query"),
         "expected ethabi_query to be filtered out"
     );
+
+    assert!(
+        generated.contains("BothEvent"),
+        "expected BothEvent to be present"
+    );
+    assert!(
+        generated.contains("ScaleOnlyEvent"),
+        "expected ScaleOnlyEvent to be present"
+    );
+    assert!(
+        !generated.contains("EthabiOnlyEvent"),
+        "expected EthabiOnlyEvent to be filtered out"
+    );
     insta::assert_snapshot!(generated);
 }
 

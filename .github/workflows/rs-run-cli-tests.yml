@@ -44,6 +44,14 @@ jobs:
         run: |
           cargo test --workspace --manifest-path ~/tmp/my-demo/Cargo.toml
 
+      - name: Generate MyDemoEth via CLI
+        run: |
+          cargo run -p sails-cli -- sails new ~/tmp/my-demo-eth --name my-demo-eth --sails-path ./rs --eth
+
+      - name: Run Tests on MyDemoEth
+        run: |
+          cargo test --workspace --manifest-path ~/tmp/my-demo-eth/Cargo.toml
+
       - name: Generate IDL from MyDemo via CLI
         run: |
           cargo run -p sails-cli -- sails idl --manifest-path ~/tmp/my-demo/Cargo.toml --program-name MyDemoClient

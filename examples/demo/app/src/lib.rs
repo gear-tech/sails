@@ -29,6 +29,11 @@ fn dog_data() -> &'static RefCell<walker::WalkerData> {
     }
 }
 
+// `DemoProgram` is the on-chain program state. The `#[program]` macro emits a
+// hidden `wasm` submodule that holds it as `static mut PROGRAM: Option<DemoProgram> = None;`
+// and wires the WASM `init`/`handle` entry points to construct, then borrow it
+// for every incoming message. So fields declared here live as long as the
+// program is deployed on the network.
 pub struct DemoProgram {
     // Counter data has the same lifetime as the program itself, i.e. it will
     // live as long as the program is available on the network.
@@ -73,6 +78,7 @@ impl DemoProgram {
             ref_data: 42,
         })
     }
+
     #[export(unwrap_result)]
     pub fn new_with_error(value: u32) -> Result<Self, String> {
         if value == 0 {
@@ -96,7 +102,7 @@ impl DemoProgram {
     }
 
     // Exposing another service
-    pub fn counter(&self) -> counter::CounterService<'_> {
+    pub fn counter(&self) -> counter::CounterService<&RefCell<counter::CounterData>> {
         counter::CounterService::new(&self.counter_data)
     }
 
@@ -117,7 +123,7 @@ impl DemoProgram {
         value_fee::FeeService::new(10_000_000_000_000)
     }
 
-    pub fn validator(&self) -> validator::Validator<'_> {
+    pub fn validator(&self) -> validator::Validator<&RefCell<validator::ValidatorData>> {
         validator::Validator::new(&self.validator_data)
     }
 
