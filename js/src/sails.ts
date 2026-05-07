@@ -261,10 +261,9 @@ export class Sails {
     const events: Record<string, SailsServiceEvent> = {};
 
     for (const event of service.events) {
-      const t = event.def ? getScaleCodecDef(event.def) : 'Null';
       const typeStr = event.def ? getScaleCodecDef(event.def, true) : 'Null';
       events[event.name] = {
-        type: t,
+        type: typeStr,
         typeDef: event.def,
         docs: event.docs,
         is: ({ data: { message } }: UserMessageSent) => {

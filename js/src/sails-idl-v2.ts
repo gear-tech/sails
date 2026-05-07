@@ -110,12 +110,15 @@ const _assertMatchingHeader = (
 
   if (
     header.interfaceId.asU64() !== expected.interfaceId.asU64() ||
-    header.entryId !== expected.entryId
+    header.entryId !== expected.entryId ||
+    // route_idx 0 is the inference sentinel on either side — see docs/sails-header-v1-spec.md §13.6.
+    (expected.routeIdx !== 0 && header.routeIdx !== 0 && header.routeIdx !== expected.routeIdx)
   ) {
     throw new Error(
       `Header mismatch for ${target}: expected interface_id=${expected.interfaceId.toString()} ` +
-      `entry_id=${expected.entryId}, got interface_id=${header.interfaceId.toString()} ` +
-      `entry_id=${header.entryId}`,
+      `entry_id=${expected.entryId} route_idx=${expected.routeIdx}, ` +
+      `got interface_id=${header.interfaceId.toString()} ` +
+      `entry_id=${header.entryId} route_idx=${header.routeIdx}`,
     );
   }
 };
@@ -499,14 +502,17 @@ export class SailsService implements ISailsService {
   private _getEvents(service: IServiceUnit): Record<string, ISailsServiceEvent> {
     const events: Record<string, ISailsServiceEvent> = {};
     const interfaceIdu64: bigint = InterfaceId.from(service.interface_id).asU64();
+    const expectedRouteIdx = this.routeIdx;
+    // route_idx 0 is the inference sentinel on either side — see docs/sails-header-v1-spec.md §13.6.
+    const matchesRoute = (received: number) =>
+      expectedRouteIdx === 0 || received === 0 || received === expectedRouteIdx;
 
     for (const event of service.events) {
       const entryId = event.entry_id ?? 0;
       const header = SailsMessageHeader.v1(InterfaceId.from(service.interface_id), entryId, this.routeIdx);
-      const t = event.fields?.length ? this._typeResolver.getStructDef(event.fields) : 'Null';
       const typeStr = event.fields?.length ? this._typeResolver.getStructDef(event.fields, {}, true) : 'Null';
       events[event.name] = {
-        type: t,
+        type: typeStr,
         typeDef: event,
         docs: event.docs ? event.docs.join('\n') : undefined,
         is: ({ data: { message } }: UserMessageSent) => {
@@ -515,7 +521,12 @@ export class SailsService implements ISailsService {
           }
 
           const { ok, header } = SailsMessageHeader.tryFromBytes(message.payload);
-          if (ok && header.interfaceId.asU64() === interfaceIdu64 && header.entryId === entryId) {
+          if (
+            ok &&
+            header.interfaceId.asU64() === interfaceIdu64 &&
+            header.entryId === entryId &&
+            matchesRoute(header.routeIdx)
+          ) {
             return true;
           }
           return false;
@@ -539,7 +550,12 @@ export class SailsService implements ISailsService {
             if (!message.destination.eq(ZERO_ADDRESS)) return;
 
             const { ok, header } = SailsMessageHeader.tryFromBytes(message.payload);
-            if (ok && header.interfaceId.asU64() === interfaceIdu64 && header.entryId === entryId) {
+            if (
+              ok &&
+              header.interfaceId.asU64() === interfaceIdu64 &&
+              header.entryId === entryId &&
+              matchesRoute(header.routeIdx)
+            ) {
               cb(this.registry.createType(`([u8; 16], ${typeStr})`, message.payload)[1].toJSON() as T);
             }
           });
