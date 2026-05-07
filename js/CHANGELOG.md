@@ -22,7 +22,10 @@
 - Added: top-level `sails-js` entry now re-exports the v2 IDL AST typings
   (`Type`, `TypeDecl`, `ITypeStruct`, `ITypeEnum`, `ITypeAlias`, `IIdlDoc`,
   `IServiceUnit`, etc.) so consumers can `import type { Type } from 'sails-js'`
-  without reaching for the `sails-js/types` subpath.
+  without reaching for the `sails-js/types` subpath. The re-export resolves
+  to the bundled `lib/types.d.ts` (which already inlines `sails-js-types`
+  via the rollup `dts` step), so consumers do not need `sails-js-types` —
+  a private workspace package — installed.
 
 ## 0.5.1
 
