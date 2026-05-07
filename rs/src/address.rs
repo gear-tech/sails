@@ -4,9 +4,22 @@ use crate::{
 };
 
 #[derive(
-    Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Encode, Decode, Default, TypeInfo,
+    Clone,
+    Copy,
+    Debug,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Encode,
+    Decode,
+    Default,
+    TypeInfo,
+    ReflectHash,
 )]
 #[codec(crate = crate::scale_codec)]
+#[reflect_hash(crate = crate)]
 #[annotate(sol_type = "address")]
 pub struct Address(pub H160);
 
