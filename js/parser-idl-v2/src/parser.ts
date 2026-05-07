@@ -128,13 +128,20 @@ export class SailsIdlParser {
    * Intended for tooling that emits v2 IDL from another source (codegen,
    * schema-first generators, IDL linters) and needs ids up front without a
    * trial-and-error loop against the parser's mismatch error.
+   *
+   * The returned object has a null prototype so service names like
+   * `__proto__`, `constructor`, or `toString` (all valid IDL idents) cannot
+   * pollute downstream consumers that use the value as a dictionary.
    */
   public computeInterfaceIds(idl: string): Record<string, string> {
-    return this.invoke(
-      'compute_interface_ids_to_json',
-      idl,
-      (str) => JSON.parse(str) as Record<string, string>,
-    );
+    return this.invoke('compute_interface_ids_to_json', idl, (str) => {
+      const parsed = JSON.parse(str) as Record<string, string>;
+      const out: Record<string, string> = Object.create(null);
+      for (const [name, id] of Object.entries(parsed)) {
+        out[name] = id;
+      }
+      return out;
+    });
   }
 
   private invoke<T>(

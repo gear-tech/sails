@@ -16,14 +16,10 @@ pub struct ParseResult {
 /// Function [`free_parse_result`] should be called after this function
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn parse_idl_to_json(idl_utf8: *const u8, idl_len: i32) -> *mut ParseResult {
-    if idl_utf8.is_null() || idl_len <= 0 {
-        return create_parse_result(
-            ErrorCode::NullPtr,
-            "null pointer or incorrect len provided".to_string(),
-        );
-    }
-    let slice = unsafe { std::slice::from_raw_parts(idl_utf8, idl_len as usize) };
-    let idl_str = unsafe { String::from_utf8_unchecked(slice.to_vec()) };
+    let idl_str = match decode_idl_input(idl_utf8, idl_len) {
+        Ok(s) => s,
+        Err(result) => return result,
+    };
 
     let idl_doc = match sails_idl_parser_v2::parse_idl(&idl_str) {
         Ok(doc) => doc,
@@ -43,14 +39,10 @@ pub unsafe extern "C" fn compute_interface_ids_to_json(
     idl_utf8: *const u8,
     idl_len: i32,
 ) -> *mut ParseResult {
-    if idl_utf8.is_null() || idl_len <= 0 {
-        return create_parse_result(
-            ErrorCode::NullPtr,
-            "null pointer or incorrect len provided".to_string(),
-        );
-    }
-    let slice = unsafe { std::slice::from_raw_parts(idl_utf8, idl_len as usize) };
-    let idl_str = unsafe { String::from_utf8_unchecked(slice.to_vec()) };
+    let idl_str = match decode_idl_input(idl_utf8, idl_len) {
+        Ok(s) => s,
+        Err(result) => return result,
+    };
 
     let ids = match sails_idl_parser_v2::compute_interface_ids(&idl_str) {
         Ok(ids) => ids,
@@ -78,11 +70,49 @@ pub unsafe extern "C" fn compute_interface_ids_to_json(
 }
 
 fn create_parse_result(code: ErrorCode, str: String) -> *mut ParseResult {
-    let str = std::ffi::CString::new(str)
-        .expect("failed to create cstring")
-        .into_raw();
-    let result = ParseResult { code, str };
+    // CString rejects interior NUL bytes. Validation errors can include user
+    // input that legitimately contains '\0' (e.g. NUL inside an annotation
+    // value picked up by `StrToEol`), so sanitize before constructing the
+    // C string instead of panicking.
+    let sanitized = if str.bytes().any(|b| b == 0) {
+        str.replace('\0', "\\0")
+    } else {
+        str
+    };
+    let cstring =
+        std::ffi::CString::new(sanitized).expect("CString::new must succeed after NUL sanitization");
+    let result = ParseResult {
+        code,
+        str: cstring.into_raw(),
+    };
     Box::into_raw(Box::new(result))
+}
+
+/// Decode raw FFI input into a `String` without invoking undefined behavior.
+///
+/// Returns `Err` with a ready-to-return `*mut ParseResult` when the inputs are
+/// invalid — null pointer, negative length, or non-UTF-8 bytes. Zero-length
+/// input with a non-null pointer is accepted and returns an empty string so
+/// the FFI matches the safe-Rust API (`compute_interface_ids("")` returns an
+/// empty map).
+fn decode_idl_input(idl_utf8: *const u8, idl_len: i32) -> Result<String, *mut ParseResult> {
+    if idl_utf8.is_null() || idl_len < 0 {
+        return Err(create_parse_result(
+            ErrorCode::NullPtr,
+            "null pointer or incorrect len provided".to_string(),
+        ));
+    }
+    if idl_len == 0 {
+        return Ok(String::new());
+    }
+    let slice = unsafe { std::slice::from_raw_parts(idl_utf8, idl_len as usize) };
+    match std::str::from_utf8(slice) {
+        Ok(s) => Ok(s.to_string()),
+        Err(err) => Err(create_parse_result(
+            ErrorCode::ParseError,
+            format!("idl source is not valid UTF-8: {err}"),
+        )),
+    }
 }
 
 /// # Safety

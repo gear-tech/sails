@@ -99,14 +99,81 @@ describe('parser-v2 computeInterfaceIds', () => {
     ).toThrow(/@partial/);
   });
 
+  test('returns empty map for empty IDL', async () => {
+    const parser = new SailsIdlParser();
+    await parser.init();
+
+    const ids = parser.computeInterfaceIds('');
+    expect(ids).toEqual({});
+  });
+
   test('returns empty map for whitespace-only IDL', async () => {
     const parser = new SailsIdlParser();
     await parser.init();
 
-    // The WASM FFI rejects truly empty input (matches parse_idl_to_json behavior),
-    // so use whitespace as a no-services document.
     const ids = parser.computeInterfaceIds('   \n  ');
     expect(ids).toEqual({});
+  });
+
+  test('returned map has null prototype (no proto pollution)', async () => {
+    const parser = new SailsIdlParser();
+    await parser.init();
+
+    const ids = parser.computeInterfaceIds(`
+      service Counter {
+        functions { Add(value: u32) -> u32; }
+      }
+    `);
+
+    expect(Object.getPrototypeOf(ids)).toBeNull();
+  });
+
+  test('rejects self-extending services with a validation error', async () => {
+    const parser = new SailsIdlParser();
+    await parser.init();
+
+    expect(() =>
+      parser.computeInterfaceIds(`
+        service A {
+          extends { A }
+          functions { Ping() -> bool; }
+        }
+      `),
+    ).toThrow(/cyclic/);
+  });
+
+  test('rejects extends cycles with a validation error', async () => {
+    const parser = new SailsIdlParser();
+    await parser.init();
+
+    expect(() =>
+      parser.computeInterfaceIds(`
+        service A {
+          extends { B }
+          functions { Ping() -> bool; }
+        }
+        service B {
+          extends { A }
+          functions { Pong() -> bool; }
+        }
+      `),
+    ).toThrow(/cyclic/);
+  });
+
+  test('rejects duplicate service names with a validation error', async () => {
+    const parser = new SailsIdlParser();
+    await parser.init();
+
+    expect(() =>
+      parser.computeInterfaceIds(`
+        service S {
+          functions { A() -> bool; }
+        }
+        service S {
+          functions { B() -> bool; }
+        }
+      `),
+    ).toThrow(/duplicate/);
   });
 
   test('propagates parse errors', async () => {

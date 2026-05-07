@@ -1036,4 +1036,60 @@ mod tests {
         let ids = compute_interface_ids(SRC).expect("empty parses");
         assert!(ids.is_empty());
     }
+
+    #[test]
+    fn compute_interface_ids_rejects_self_extends() {
+        // `service A { extends { A } ... }` previously stack-overflowed.
+        const SRC: &str = r#"
+            service A {
+                extends { A }
+                functions { Ping() -> bool; }
+            }
+        "#;
+
+        let err = compute_interface_ids(SRC).expect_err("self-extends should fail");
+        assert!(matches!(err, Error::Validation(_)));
+        assert!(err.to_string().contains("cyclic"));
+    }
+
+    #[test]
+    fn compute_interface_ids_rejects_extends_cycle() {
+        // A → B → A previously stack-overflowed.
+        const SRC: &str = r#"
+            service A {
+                extends { B }
+                functions { Ping() -> bool; }
+            }
+            service B {
+                extends { A }
+                functions { Pong() -> bool; }
+            }
+        "#;
+
+        let err = compute_interface_ids(SRC).expect_err("cycle should fail");
+        assert!(matches!(err, Error::Validation(_)));
+        assert!(err.to_string().contains("cyclic"));
+    }
+
+    #[test]
+    fn compute_interface_ids_rejects_duplicate_service_names() {
+        // Duplicate names previously trapped at runtime via a BTreeMap collision
+        // followed by an `expect` in update_service_id.
+        const SRC: &str = r#"
+            service S {
+                functions { A() -> bool; }
+            }
+            service S {
+                functions { B() -> bool; }
+            }
+        "#;
+
+        let err = compute_interface_ids(SRC).expect_err("duplicate names should fail");
+        assert!(matches!(err, Error::Validation(_)));
+        assert!(err.to_string().contains("duplicate"));
+
+        // parse_idl must reject this too so behavior is consistent across the
+        // two entry points.
+        assert!(matches!(parse_idl(SRC), Err(Error::Validation(_))));
+    }
 }
