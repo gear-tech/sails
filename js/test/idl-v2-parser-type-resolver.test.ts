@@ -347,9 +347,9 @@ describe('v2 decodeResult header validation', () => {
   const idl = `
     service Counter {
       functions {
-        @entry-id: 0
+        @entry_id: 0
         Add(value: u32) -> u32;
-        @entry-id: 1
+        @entry_id: 1
         Sub(value: u32) -> u32;
       }
     }
