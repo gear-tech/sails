@@ -49,24 +49,19 @@ pub unsafe extern "C" fn compute_interface_ids_to_json(
         Err(err) => return create_parse_result(ErrorCode::ParseError, err.to_string()),
     };
 
-    // Emit `{ "ServiceName": "0xhex", ... }` without pulling in serde_json.
-    let mut json = String::with_capacity(2 + ids.len() * 32);
-    json.push('{');
-    let mut first = true;
-    for (name, id) in &ids {
-        if !first {
-            json.push(',');
-        }
-        first = false;
-        json.push('"');
-        // Service idents are ASCII per the IDL grammar; no escaping needed.
-        json.push_str(name);
-        json.push_str("\":\"");
-        json.push_str(&id.to_string());
-        json.push('"');
+    // Build a `{ "ServiceName": "0xhex", ... }` map. Service idents per the
+    // current Pest grammar are ASCII-safe and never need JSON escaping, but
+    // serde_json is already in this WASM blob (via sails-idl-ast's serde
+    // feature used by parse_idl_to_json) so we use it to stay correct if the
+    // grammar ever evolves.
+    let id_strings: std::collections::BTreeMap<&str, String> = ids
+        .iter()
+        .map(|(name, id)| (name.as_str(), id.to_string()))
+        .collect();
+    match serde_json::to_string(&id_strings) {
+        Ok(json) => create_parse_result(ErrorCode::Ok, json),
+        Err(err) => create_parse_result(ErrorCode::ParseError, err.to_string()),
     }
-    json.push('}');
-    create_parse_result(ErrorCode::Ok, json)
 }
 
 fn create_parse_result(code: ErrorCode, str: String) -> *mut ParseResult {

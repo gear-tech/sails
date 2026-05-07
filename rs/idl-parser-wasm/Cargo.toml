@@ -15,3 +15,4 @@ crate-type = ["cdylib"]
 [dependencies]
 sails-idl-ast = { workspace = true, features = ["serde"] }
 sails-idl-parser-v2.workspace = true
+serde-json = { workspace = true, features = ["alloc"] }

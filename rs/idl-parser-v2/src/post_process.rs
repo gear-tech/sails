@@ -250,10 +250,13 @@ impl<'a> ServiceInterfaceId<'a> {
     fn new(doc: &'a mut IdlDoc) -> Result<Self> {
         let mut service_index = BTreeMap::new();
         for (idx, s) in doc.services.iter().enumerate() {
-            let name = s.name.name.to_string();
-            if service_index.insert(name.clone(), idx).is_some() {
+            // BTreeMap::insert takes ownership of the key, so we still need
+            // one clone — but the previous code cloned a second time for the
+            // error message; format!("{}", &s.name.name) borrows instead.
+            if service_index.insert(s.name.name.clone(), idx).is_some() {
                 return Err(Error::Validation(format!(
-                    "duplicate service definition: service `{name}` is declared more than once"
+                    "duplicate service definition: service `{}` is declared more than once",
+                    s.name.name
                 )));
             }
         }
