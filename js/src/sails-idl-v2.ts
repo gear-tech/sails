@@ -23,6 +23,7 @@ interface ISailsService {
   readonly events: Record<string, ISailsServiceEvent>;
   readonly extends: Record<string, SailsService>;
   readonly routeIdx: number;
+  readonly types: ReadonlyMap<string, Type>;
 }
 
 interface ISailsFuncArg {
