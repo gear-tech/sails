@@ -74,8 +74,8 @@ fn create_parse_result(code: ErrorCode, str: String) -> *mut ParseResult {
     } else {
         str
     };
-    let cstring =
-        std::ffi::CString::new(sanitized).expect("CString::new must succeed after NUL sanitization");
+    let cstring = std::ffi::CString::new(sanitized)
+        .expect("CString::new must succeed after NUL sanitization");
     let result = ParseResult {
         code,
         str: cstring.into_raw(),
