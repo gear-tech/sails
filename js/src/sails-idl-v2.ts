@@ -2,6 +2,7 @@ import { GearApi, HexString, UserMessageSent } from '@gear-js/api';
 import { u8aToHex, u8aToU8a } from '@polkadot/util';
 
 import type {
+  Type,
   TypeDecl,
   IIdlDoc,
   IServiceExpo,
@@ -98,6 +99,46 @@ const _getArgsForTxBuilder = (args: any[], params: ISailsFuncArg[]) => {
   return args.slice(0, params.length);
 };
 
+/**
+ * Collect every `Type` in scope for a service per the self-sufficient service IDL
+ * contract: depth-first across the `extends` chain (with cycle detection), then the
+ * service's own `types` last so locals shadow base definitions on name collision.
+ *
+ * Throws on a cyclic `extends` graph (`A → B → A`), reporting the chain.
+ * Used by both `SailsService` (to seed its `TypeResolver`) and `SailsProgram`
+ * (to build `resolveInService`'s lazy index).
+ */
+const _collectServiceScopeTypes = (
+  service: IServiceUnit,
+  resolveServiceUnit?: (ident: IServiceIdent) => IServiceUnit | undefined,
+): Type[] => {
+  const out: Type[] = [];
+  const walk = (unit: IServiceUnit, visited: Set<string>) => {
+    if (visited.has(unit.name)) {
+      throw new Error(
+        `Cyclic service-extends chain detected at "${unit.name}" — chain: ` +
+          `${[...visited, unit.name].join(' → ')}`,
+      );
+    }
+    const nextVisited = new Set(visited);
+    nextVisited.add(unit.name);
+
+    if (resolveServiceUnit && unit.extends?.length) {
+      for (const ident of unit.extends as IServiceIdent[]) {
+        const baseUnit = resolveServiceUnit(ident);
+        if (!baseUnit) {
+          throw new Error(`Service definition for "${ident.name}" not found in IDL`);
+        }
+        walk(baseUnit, nextVisited);
+      }
+    }
+
+    for (const t of unit.types ?? []) out.push(t);
+  };
+  walk(service, new Set());
+  return out;
+};
+
 const _assertMatchingHeader = (
   payload: Uint8Array | HexString,
   expected: SailsMessageHeader,
@@ -129,6 +170,10 @@ export class SailsProgram {
   private _api?: GearApi;
   private _programId?: HexString;
   private _services: Map<bigint, IServiceUnit>;
+  // Lazy index for resolveInService: per-service `Map<typeName, Type>`, pre-merged
+  // with the service's transitive extends chain. Populated on first call; not
+  // invalidated because `_doc` is immutable after parse.
+  private _serviceTypeIndex?: Map<string, Map<string, Type>>;
   private _resolveServiceUnit = (ident: IServiceIdent): IServiceUnit | undefined => {
     if (!ident.interface_id) {
       throw new Error(`Service "${ident.name}" is missing interface_id in IDL`);
@@ -144,7 +189,7 @@ export class SailsProgram {
   constructor(doc: IIdlDoc) {
     this._doc = doc;
     if (this._doc.program) {
-      this._typeResolver = new TypeResolver(this._doc.program.types);
+      this._typeResolver = new TypeResolver(this._doc.program.types ?? []);
     }
     this._services = this._initServices();
   }
@@ -221,6 +266,44 @@ export class SailsProgram {
       );
     }
     return services;
+  }
+
+  /**
+   * Resolve a `TypeDecl` to its user-type definition in the scope of a named service.
+   *
+   * Per the self-sufficient service IDL contract (see `docs/idl-v2-spec.md`), scope is
+   * the service's own `types` plus the types of every service it extends, transitively.
+   * Service-local definitions shadow base-service definitions on name collision.
+   * Program-level `types` are NOT in scope — they belong to program/ctor declarations.
+   *
+   * Returns `undefined` when the service doesn't exist, the `TypeDecl` isn't a named
+   * user type, or the name is not declared in the service's transitive scope.
+   *
+   * Backed by a lazy `Map`-based index — O(1) per call after the first invocation.
+   * Safe to call in tight loops while walking large IDL trees.
+   */
+  resolveInService(serviceName: string, typeDecl: TypeDecl): Type | undefined {
+    if (typeof typeDecl === 'string' || typeDecl.kind !== 'named') return undefined;
+    if (!this._serviceTypeIndex) this._buildTypeIndex();
+    return this._serviceTypeIndex!.get(serviceName)?.get(typeDecl.name);
+  }
+
+  private _buildTypeIndex(): void {
+    const serviceIndex = new Map<string, Map<string, Type>>();
+    const unitByName = new Map<string, IServiceUnit>();
+    for (const unit of this._doc.services ?? []) unitByName.set(unit.name, unit);
+
+    const lookupBase = (ident: IServiceIdent): IServiceUnit | undefined => unitByName.get(ident.name);
+
+    for (const unit of this._doc.services ?? []) {
+      const merged = new Map<string, Type>();
+      // Locals come last so they win on Map.set last-write-wins.
+      for (const t of _collectServiceScopeTypes(unit, lookupBase)) {
+        merged.set(t.name, t);
+      }
+      serviceIndex.set(unit.name, merged);
+    }
+    this._serviceTypeIndex = serviceIndex;
   }
 
   /** #### Constructor functions with arguments from the parsed IDL */
@@ -349,7 +432,8 @@ export class SailsService implements ISailsService {
     this._api = api;
     this._programId = programId;
     this._resolveServiceUnit = resolveServiceUnit;
-    this._typeResolver = new TypeResolver(service.types);
+    // Self-contained scope: bases first so locals shadow on collision.
+    this._typeResolver = new TypeResolver(_collectServiceScopeTypes(service, resolveServiceUnit));
     this._routeIdx = routeIdx;
 
     this.events = this._getEvents(service);
