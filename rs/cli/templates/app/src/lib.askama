@@ -23,7 +23,6 @@ pub struct CallRecord {
 }
 
 /// State for the `{{ service_name }}` service.
-#[sails_rs::sails_type]
 #[derive(Default, Clone)]
 pub struct {{ service_name }}State {
     pub history: Vec<CallRecord>,
@@ -68,6 +67,10 @@ impl<S: StateMut<Item = {{ service_name }}State, Error = Infallible>> {{ service
     // Query returning a custom-DTO collection. Service methods hash every
     // parameter and return type via `ReflectHash`, so `CallRecord` must derive
     // it — which `#[sails_rs::sails_type]` handles for us.
+{%- if eth %}
+    // Expose this query only over SCALE because custom Rust DTOs
+    // do not automatically implement Ethereum ABI encoding.
+{%- endif %}
     #[export{% if eth %}(scale){% endif %}]
     pub fn get_history(&self) -> Vec<CallRecord> {
         self.state.get().history.clone()
