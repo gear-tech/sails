@@ -35,6 +35,48 @@ pub unsafe extern "C" fn parse_idl_to_json(idl_utf8: *const u8, idl_len: i32) ->
     }
 }
 
+/// # Safety
+///
+/// Function [`free_parse_result`] should be called after this function
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn compute_interface_ids_to_json(
+    idl_utf8: *const u8,
+    idl_len: i32,
+) -> *mut ParseResult {
+    if idl_utf8.is_null() || idl_len <= 0 {
+        return create_parse_result(
+            ErrorCode::NullPtr,
+            "null pointer or incorrect len provided".to_string(),
+        );
+    }
+    let slice = unsafe { std::slice::from_raw_parts(idl_utf8, idl_len as usize) };
+    let idl_str = unsafe { String::from_utf8_unchecked(slice.to_vec()) };
+
+    let ids = match sails_idl_parser_v2::compute_interface_ids(&idl_str) {
+        Ok(ids) => ids,
+        Err(err) => return create_parse_result(ErrorCode::ParseError, err.to_string()),
+    };
+
+    // Emit `{ "ServiceName": "0xhex", ... }` without pulling in serde_json.
+    let mut json = String::with_capacity(2 + ids.len() * 32);
+    json.push('{');
+    let mut first = true;
+    for (name, id) in &ids {
+        if !first {
+            json.push(',');
+        }
+        first = false;
+        json.push('"');
+        // Service idents are ASCII per the IDL grammar; no escaping needed.
+        json.push_str(name);
+        json.push_str("\":\"");
+        json.push_str(&id.to_string());
+        json.push('"');
+    }
+    json.push('}');
+    create_parse_result(ErrorCode::Ok, json)
+}
+
 fn create_parse_result(code: ErrorCode, str: String) -> *mut ParseResult {
     let str = std::ffi::CString::new(str)
         .expect("failed to create cstring")
