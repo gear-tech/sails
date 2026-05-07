@@ -220,6 +220,16 @@ service <ident> {
 }
 ```
 
+Service IDL is self-contained. Types referenced by service functions, events,
+and `throws` declarations are resolved from the service's own `types` block and
+from explicitly extended service interfaces. Program-level `types` are not an
+ambient scope for services, so a service can be distributed independently from a
+particular program definition.
+
+Program-level `types` are available to program constructors and other
+program-level declarations. A program may expose services through `services`,
+but that does not make program-local types visible inside those services.
+
 ### Service Events
 
 Service event is represented as an enum variant with an associated payload.
@@ -417,4 +427,5 @@ program DemoCanvas {
 > 1. `extends` merge `events`, `functions` and `types` with service declaration according to
 >    - `functions` override decalaration (TBD)
 > 2. Namespaces are not included in the specification
->    - reference to service type `<service_ident>::<type_ident>` (TBD)
+>    - reference to service type `<service_ident>::<type_ident>` from program/root scopes (TBD)
+>    - service declarations do not implicitly resolve names from `program.types`

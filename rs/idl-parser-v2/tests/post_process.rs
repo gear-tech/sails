@@ -33,6 +33,31 @@ fn validate_scoping_fails_on_sibling_service_type_usage() {
     let err = result.expect_err("Should have failed due to sibling service type usage");
     assert!(err.to_string().contains("Unknown type 'TypeX'"));
 }
+
+#[test]
+fn validate_named_types_fails_on_program_type_in_service() {
+    let src = r#"
+        program P {
+            types {
+                struct ProgramType { val: u32 }
+            }
+            services {
+                S: S,
+            }
+        }
+
+        service S {
+            functions {
+                UseProgramType(input: ProgramType);
+            }
+        }
+    "#;
+
+    let err =
+        parse_idl(src).expect_err("Should have failed due to program type used in service scope");
+    assert!(err.to_string().contains("Unknown type 'ProgramType'"));
+}
+
 #[test]
 fn validate_mixed_fields_fails() {
     let src = include_str!("idls/post_process_mixed_fields.idl");
