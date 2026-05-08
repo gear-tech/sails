@@ -18,7 +18,6 @@ pub mod ffi {
 use crate::error::{Error, Result};
 use alloc::{
     boxed::Box,
-    collections::BTreeMap,
     format,
     string::{String, ToString},
     vec::Vec,
@@ -65,46 +64,6 @@ pub fn parse_idl(src: &str) -> Result<IdlDoc> {
 pub fn parse_idl_with_loaders(path: &str, loaders: &[&dyn IdlLoader]) -> Result<IdlDoc> {
     let src = preprocess::preprocess(path, loaders)?;
     parse_idl(&src)
-}
-
-/// Computes deterministic `interface_id`s for every service in the IDL source.
-///
-/// Unlike [`parse_idl`], any explicit `@0x...` placeholder on a non-`@partial`
-/// service is ignored: ids are recomputed from the service signature so the
-/// caller can use `@0x0000000000000000` (or omit the suffix entirely) and still
-/// get back the canonical id. `@partial` services are passed through verbatim.
-///
-/// Intended for tooling that emits v2 IDL from another source (codegen,
-/// schema-first generators, IDL linters) and needs ids up front without a
-/// trial-and-error loop against the parser's mismatch error.
-pub fn compute_interface_ids(src: &str) -> Result<BTreeMap<String, InterfaceId>> {
-    let mut pairs = IdlParser::parse(Rule::Top, src)?;
-    let mut doc = build_idl(
-        pairs
-            .next()
-            .ok_or(Error::Rule("expected Top".to_string()))?,
-    )?;
-
-    // Drop any explicit ids on non-partial services so the full validation
-    // pipeline does not error on placeholder mismatches. `@partial` services
-    // keep their explicit id (or surface the same error as parse_idl when
-    // missing).
-    for service in &mut doc.services {
-        if !service.is_partial() {
-            service.name.interface_id = None;
-        }
-    }
-    post_process::validate_and_post_process(&mut doc)?;
-
-    let mut out = BTreeMap::new();
-    for service in &doc.services {
-        let id = service
-            .name
-            .interface_id
-            .expect("interface_id must be set after post_process");
-        out.insert(service.name.name.clone(), id);
-    }
-    Ok(out)
 }
 
 // ------------------------------- Builders ------------------------------------
@@ -887,159 +846,9 @@ mod tests {
     }
 
     #[test]
-    fn compute_interface_ids_basic() {
-        const SRC: &str = r#"
-            service Counter {
-                functions { Add(value: u32) -> u32; }
-            }
-        "#;
-
-        let ids = compute_interface_ids(SRC).expect("compute ids");
-        let id = ids.get("Counter").expect("Counter id");
-        // Should match the parser's auto-computed id for the same source.
-        let parsed = parse_idl(SRC).expect("parse idl");
-        let parsed_id = parsed.services[0]
-            .name
-            .interface_id
-            .expect("parser sets id");
-        assert_eq!(*id, parsed_id);
-        assert_eq!(ids.len(), 1);
-    }
-
-    #[test]
-    fn compute_interface_ids_ignores_placeholder_mismatch() {
-        const SRC: &str = r#"
-            service Counter@0x0000000000000000 {
-                functions { Add(value: u32) -> u32; }
-            }
-        "#;
-
-        // parse_idl rejects this because of the mismatch.
-        assert!(matches!(parse_idl(SRC), Err(Error::Validation(_))));
-
-        // compute_interface_ids ignores the placeholder.
-        let ids = compute_interface_ids(SRC).expect("compute ids");
-        let id = ids.get("Counter").expect("Counter id");
-        assert_ne!(id.as_u64(), 0);
-    }
-
-    #[test]
-    fn compute_interface_ids_accepts_correct_explicit_id() {
-        const SRC_NO_ID: &str = r#"
-            service Counter {
-                functions { Add(value: u32) -> u32; }
-            }
-        "#;
-
-        let baseline = compute_interface_ids(SRC_NO_ID).expect("compute baseline");
-        let counter_id = baseline.get("Counter").expect("baseline id");
-
-        // Inject the correct id back and re-run.
-        let src_with_id = format!(
-            r#"service Counter@{} {{ functions {{ Add(value: u32) -> u32; }} }}"#,
-            counter_id
-        );
-        let with_id = compute_interface_ids(&src_with_id).expect("compute with id");
-        assert_eq!(with_id.get("Counter").expect("id"), counter_id);
-    }
-
-    #[test]
-    fn compute_interface_ids_multiple_services_with_extends() {
-        const SRC: &str = r#"
-            service Base {
-                functions { Ping() -> bool; }
-            }
-            service Derived {
-                extends { Base }
-                functions { Pong() -> bool; }
-            }
-        "#;
-
-        let ids = compute_interface_ids(SRC).expect("compute ids");
-        assert_eq!(ids.len(), 2);
-        assert!(ids.contains_key("Base"));
-        assert!(ids.contains_key("Derived"));
-        // Derived id depends on Base id; both must be computable.
-        let parsed = parse_idl(SRC).expect("parse idl");
-        for s in &parsed.services {
-            assert_eq!(
-                ids.get(&s.name.name).expect("id"),
-                &s.name.interface_id.expect("parsed id"),
-            );
-        }
-    }
-
-    #[test]
-    fn compute_interface_ids_with_generics() {
-        const SRC: &str = r#"
-            service S {
-                types {
-                    struct Wrapper<T>(T);
-                }
-                functions { Wrap(value: u32) -> Wrapper<u32>; }
-            }
-        "#;
-
-        let ids = compute_interface_ids(SRC).expect("compute ids");
-        let parsed = parse_idl(SRC).expect("parse idl");
-        assert_eq!(
-            ids.get("S").expect("id"),
-            &parsed.services[0].name.interface_id.expect("parsed id"),
-        );
-    }
-
-    #[test]
-    fn compute_interface_ids_partial_with_explicit_id_passes_through() {
-        // A @partial service requires an explicit id; compute_interface_ids
-        // must return it verbatim.
-        const SRC: &str = r#"
-            @partial
-            service Ext@0x0123456789abcdef {
-                functions {
-                    @entry_id: 0
-                    Ping() -> bool;
-                }
-            }
-        "#;
-
-        let ids = compute_interface_ids(SRC).expect("compute ids");
-        let id = ids.get("Ext").expect("Ext id");
-        assert_eq!(id.to_string(), "0x0123456789abcdef");
-    }
-
-    #[test]
-    fn compute_interface_ids_partial_without_id_errors() {
-        const SRC: &str = r#"
-            @partial
-            service Ext {
-                functions {
-                    @entry_id: 0
-                    Ping() -> bool;
-                }
-            }
-        "#;
-
-        let err = compute_interface_ids(SRC).expect_err("partial without id should fail");
-        assert!(matches!(err, Error::Validation(_)));
-        assert!(err.to_string().contains("@partial"));
-    }
-
-    #[test]
-    fn compute_interface_ids_invalid_idl_propagates_parse_error() {
-        const SRC: &str = "service { not valid idl";
-        assert!(compute_interface_ids(SRC).is_err());
-    }
-
-    #[test]
-    fn compute_interface_ids_empty_idl_returns_empty_map() {
-        const SRC: &str = "";
-        let ids = compute_interface_ids(SRC).expect("empty parses");
-        assert!(ids.is_empty());
-    }
-
-    #[test]
-    fn compute_interface_ids_rejects_self_extends() {
-        // `service A { extends { A } ... }` previously stack-overflowed.
+    fn parse_idl_rejects_self_extends() {
+        // `service A { extends { A } ... }` previously stack-overflowed in
+        // post_process::compute_service_id.
         const SRC: &str = r#"
             service A {
                 extends { A }
@@ -1047,13 +856,13 @@ mod tests {
             }
         "#;
 
-        let err = compute_interface_ids(SRC).expect_err("self-extends should fail");
+        let err = parse_idl(SRC).expect_err("self-extends should fail");
         assert!(matches!(err, Error::Validation(_)));
         assert!(err.to_string().contains("cyclic"));
     }
 
     #[test]
-    fn compute_interface_ids_rejects_extends_cycle() {
+    fn parse_idl_rejects_extends_cycle() {
         // A → B → A previously stack-overflowed.
         const SRC: &str = r#"
             service A {
@@ -1066,13 +875,13 @@ mod tests {
             }
         "#;
 
-        let err = compute_interface_ids(SRC).expect_err("cycle should fail");
+        let err = parse_idl(SRC).expect_err("cycle should fail");
         assert!(matches!(err, Error::Validation(_)));
         assert!(err.to_string().contains("cyclic"));
     }
 
     #[test]
-    fn compute_interface_ids_rejects_duplicate_service_names() {
+    fn parse_idl_rejects_duplicate_service_names() {
         // Duplicate names previously trapped at runtime via a BTreeMap collision
         // followed by an `expect` in update_service_id.
         const SRC: &str = r#"
@@ -1084,12 +893,8 @@ mod tests {
             }
         "#;
 
-        let err = compute_interface_ids(SRC).expect_err("duplicate names should fail");
+        let err = parse_idl(SRC).expect_err("duplicate names should fail");
         assert!(matches!(err, Error::Validation(_)));
         assert!(err.to_string().contains("duplicate"));
-
-        // parse_idl must reject this too so behavior is consistent across the
-        // two entry points.
-        assert!(matches!(parse_idl(SRC), Err(Error::Validation(_))));
     }
 }

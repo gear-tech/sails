@@ -7,7 +7,6 @@ const WASM_PAGE_SIZE = 0x1_00_00;
 interface ParserInstance extends WebAssembly.Instance {
   exports: {
     parse_idl_to_json: (idl_utf8: number, idl_len: number) => number;
-    compute_interface_ids_to_json: (idl_utf8: number, idl_len: number) => number;
     free_parse_result: (ptr: number) => void;
   };
 }
@@ -111,60 +110,22 @@ export class SailsIdlParser {
   }
 
   public parse(idl: string): IIdlDoc {
-    return this.invoke('parse_idl_to_json', idl, (str) => normalizeIdl(JSON.parse(str) as IIdlDoc));
-  }
-
-  /**
-   * Returns the deterministic `interface_id` for every service in the IDL
-   * source as a `{ ServiceName: "0xHEX" }` map.
-   *
-   * Unlike {@link parse}, an explicit `@0x...` placeholder on a non-`@partial`
-   * service is ignored: ids are recomputed from the service signature so the
-   * caller can use `@0x0000000000000000` (or omit the suffix entirely) and
-   * still get back the canonical id. `@partial` services pass through verbatim
-   * — an explicit id is preserved, a missing id surfaces the same error as
-   * `parse`.
-   *
-   * Intended for tooling that emits v2 IDL from another source (codegen,
-   * schema-first generators, IDL linters) and needs ids up front without a
-   * trial-and-error loop against the parser's mismatch error.
-   *
-   * The returned object has a null prototype so service names like
-   * `__proto__`, `constructor`, or `toString` (all valid IDL idents) cannot
-   * pollute downstream consumers that use the value as a dictionary.
-   */
-  public computeInterfaceIds(idl: string): Record<string, string> {
-    return this.invoke('compute_interface_ids_to_json', idl, (str) => {
-      const parsed = JSON.parse(str) as Record<string, string>;
-      const out: Record<string, string> = Object.create(null);
-      for (const [name, id] of Object.entries(parsed)) {
-        out[name] = id;
-      }
-      return out;
-    });
-  }
-
-  private invoke<T>(
-    fn: 'parse_idl_to_json' | 'compute_interface_ids_to_json',
-    idl: string,
-    decode: (json: string) => T,
-  ): T {
     if (!this._instance || !this._memory) {
       throw new Error('SailsIdlParser is not initialized. Call init() first.');
     }
 
     this.fillMemory(idl);
 
-    const resultPtr = this._instance.exports[fn](this._idlPtr, this._idlLen);
+    const resultPtr = this._instance.exports.parse_idl_to_json(this._idlPtr, this._idlLen);
 
     if (!resultPtr) {
       this.clearMemory();
-      throw new Error(`WASM ${fn} returned a null pointer`);
+      throw new Error('WASM parse_idl_to_json returned a null pointer');
     }
 
     try {
       if (resultPtr < 0 || resultPtr + 8 > this._memory.buffer.byteLength) {
-        throw new Error(`Invalid pointer returned from WASM ${fn}`);
+        throw new Error('Invalid pointer returned from WASM parse_idl_to_json');
       }
 
       const view = new DataView(this._memory.buffer);
@@ -175,7 +136,7 @@ export class SailsIdlParser {
         throw new Error(`Error code: ${errorCode}, Error details: ${str}`);
       }
 
-      return decode(str);
+      return normalizeIdl(JSON.parse(str) as IIdlDoc);
     } finally {
       this._exports.free_parse_result(resultPtr);
       this.clearMemory();
