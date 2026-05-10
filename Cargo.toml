@@ -136,8 +136,8 @@ tempfile = "3.27"
 tokio = "1.52"
 tokio-stream = "0.1"
 trybuild = "1"
-wasm-encoder = "0.244"
-wasmparser = "0.244"
+wasm-encoder = "0.248"
+wasmparser = "0.248"
 
 # The profile that 'dist' will build with
 [profile.dist]
