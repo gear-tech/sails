@@ -1,5 +1,20 @@
 # IDL V2 Spec
 
+## Document Structure
+
+A Sails IDL document is a sequence of top-level items in any order:
+
+- Global annotations (`!@<ident>[: <value>]`), including `!@include` directives.
+- Zero or more `service <ident>[@<interface_id>] { ... }` declarations.
+- At most one `program <ident> { ... }` declaration.
+
+Whitespace and `//` line comments are ignored. The preprocessor expands `!@include` directives before grammar parsing (see [Include directive](#include-directive) below).
+
+Validation rules enforced by the parser:
+
+- Service `ident`s must be unique within the document.
+- Service `interface_id`s must be unique across all services in the document.
+
 ## Annotations
 
 ### Global
@@ -15,12 +30,13 @@ Examples
 - `!@git: ...` // source code
 - `!@version: 0.2.0` // protocol version
 
-### @include (TBD)
+### Include directive
 
-- Syntax: @include: <path_to_idl>
-- Possibly path can be a git-path (url)
-- First iteration impl can be the same as idl-v1 (just include the text, no include key-words).
-- Impl notes: when parsed `@include: <path_to_idl>`, then just include text to the file immediately
+The `!@include` global annotation splices another IDL document into the current one at parse time.
+
+- Syntax: `!@include: <path_to_idl>`
+- Path may be a local filesystem path (resolved by `FsLoader`) or a `git://` URL.
+- Included content is inlined at the directive site; the included file may itself contain further `!@include` directives.
 
 ### Local
 
@@ -48,7 +64,7 @@ Examples
 
 - `bool`
 - `char`
-- `String`
+- `string`, `String`
 
 ### Numerics
 
@@ -57,6 +73,17 @@ Examples
 - `u32`, `i32`
 - `u64`, `i64`
 - `u128`, `i128`
+- `u256`, `U256` — 256-bit unsigned integer (`struct U256([u64; 4])`)
+
+### Identifiers & Hashes
+
+Built-in primitive types backed by fixed-size byte arrays. Both the short lowercase form and the PascalCase form are accepted.
+
+- `actor`, `ActorId` — `struct ActorId([u8; 32])`
+- `code`, `CodeId` — `struct CodeId([u8; 32])`
+- `messageid`, `MessageId` — `struct MessageId([u8; 32])`
+- `h160`, `H160` — `struct H160([u8; 20])`
+- `h256`, `H256` — `struct H256([u8; 32])`
 
 ### Slice
 
@@ -75,8 +102,8 @@ Examples
 - `(T1, T2, ..)` Type tuple
   - `(u8, u16)`
   - `(u8, u16, u32)`
-- `()` - not used in the "return" part of the function's signature,
-  but used as an independent type
+- `()` — the unit type. Conventionally the `-> <output>` clause is omitted for functions with no return value rather than written as `-> ()`.
+  May appear anywhere a type is expected (parameters, fields, generic arguments).
 
 ### Structs
 
@@ -160,47 +187,25 @@ enum Type<T> {
 }
 ```
 
-### Type Aliases (TBD)
+### Type Aliases
 
-`alias <ident> = <ident>`
+`alias <ident> = <type>;`
 
-#### Generic support (TBD)
+#### Generic support
 
-- `alias NewType = Type<u8>`,
-- `alias NewType<T> = Type<T>`.
+- `alias NewType = Type<u8>;`
+- `alias NewType<T> = Type<T>;`
 
-#### Builtins (TBD)
+#### Convenience aliases (TBD)
 
-- void
-  - `alias void = ();`
-- list
-  - `alias list<T> = [T]`
-- map
-  - `Vec<(K, V)>`
-  - `alias map<K, V> = [(K, V)]`
-- set
-  - `alias set<T> = [T]`
-- byte
-  - `alias byte = u8`
-- bytes
-  - `alias bytes = [u8]`
-- string
-  - `alias string = [u8]`
-- actor
-  - `struct ActorId([u8; 32])`
-  - `alias actor = ActorId`
-- code
-  - `struct CodeId([u8; 32])`
-  - `alias code = CodeId`
-- u256
-  - `struct U256([u64; 4])`
-  - `alias u256 = U256`
-- h160
-  - `struct H160([u8; 20])`
-  - `alias h160 = H160`
-- h256
-  - `struct H256([u8; 32])`
-  - `alias h256 = H256`
+Short aliases for common patterns. Not yet built into the parser. Declare them in a `types` block if needed.
+
+- `alias void = ();`
+- `alias list<T> = [T];`
+- `alias map<K, V> = [(K, V)];`
+- `alias set<T> = [T];`
+- `alias byte = u8;`
+- `alias bytes = [u8];`
 
 ## Service
 
@@ -220,25 +225,17 @@ service <ident>[@<interface_id>] {
 }
 ```
 
+Each block is optional and may appear in any order; the listing above is conventional, not required.
+
 The optional `@<interface_id>` suffix pins the service's identifier to a
 specific 8-byte value, written as `@0x` followed by 16 lowercase hex digits.
 For non-`@partial` services it is **optional**: omit it and the parser
 auto-computes the canonical id from the service signature; supply it and the
 parser validates the canonical id matches and rejects the IDL on mismatch.
-For `@partial` services it is **required** (see [Partial Service Subset](#partial-service-subset)).
 
-Tooling that emits IDL from another source (codegen, schema-first generators,
-IDL linters) can read the canonical ids back from a parse result without the
-"submit placeholder, paste hex from validation error" loop:
-
-1. Generate or load the IDL.
-2. Strip explicit `@0x...` suffixes from non-`@partial` service declarations.
-3. Run it through `sails_idl_parser_v2::parse_idl` (Rust) or `SailsIdlParser.parse(idl)` (sails-js).
-4. Read each service's `interface_id` from the returned AST.
-5. Optionally re-render the IDL with the computed ids filled in.
-
-`@partial` services must keep their explicit id — the partial signature is a
-subset, so the parser cannot recompute the original service's id from it.
+For `@partial` services it is **required** - the partial signature is a
+subset, so the parser cannot recompute the original service's id from it
+(see [Partial Service Subset](#partial-service-subset)).
 
 Service IDL is self-contained. Types referenced by service functions, events,
 and `throws` declarations are resolved from the service's own `types` block and
@@ -249,6 +246,11 @@ particular program definition.
 Program-level `types` are available to program constructors and other
 program-level declarations. A program may expose services through `services`,
 but that does not make program-local types visible inside those services.
+
+Validation rules enforced by the parser:
+
+- `@entry_id` values must be unique among a service's functions.
+- `@entry_id` values must be unique among a service's events.
 
 ### Service Events
 
@@ -321,7 +323,7 @@ service Canvas {
             /// Amount of alive points.
             @indexed
             amount: u64,
-            bits: bitvec,
+            bits: [u8],
         },
         E1,
     }
@@ -408,11 +410,46 @@ service Pausable {
 
 ## Programs
 
-Service definition
+Program definition
 
 - `constructors` List of program constructors
 - `services` List of exported services
-- `types` Service types
+- `types` Program types
+
+Each block is optional and may appear in any order. At most one `program` declaration is permitted per IDL document.
+
+Validation rules enforced by the parser:
+
+- `@entry_id` values must be unique among program constructors.
+
+### Program constructors
+
+Constructor entry
+
+```js
+/// Some documentation
+<ident>([<param_1>[, <param_n>]*]) [throws <throws_type>];
+```
+
+- `params` is the ordered list of constructor parameters;
+- `throws` is an optional error type after the `throws` keyword;
+- constructors have no return type (they yield the program instance);
+- `@entry_id: <number>` allows overriding the automatic positional index (which starts from 0 for the first member);
+- may contain documentation comments and annotations.
+
+### Program services
+
+Service export entry
+
+```js
+/// Some documentation
+<service_ident>[: <route>];
+```
+
+- `service_ident` is the service identifier, optionally suffixed with `@<interface_id>` (see [Service](#service));
+- `route` is the optional routing name; when omitted, the service identifier is used as the route;
+- `route_idx` is assigned positionally starting from 1 in declaration order;
+- may contain documentation comments and annotations.
 
 ```js
 !@sails: 0.1.0
@@ -431,7 +468,7 @@ program DemoCanvas {
         Canvas: Canvas;
 
         /// Canvas service with route `DemoCanvas`.
-        DemoCanvas: Canvas;
+        Canvas: DemoCanvas;
     }
 
     types {
@@ -445,7 +482,8 @@ program DemoCanvas {
 > NOTE
 >
 > 1. `extends` merge `events`, `functions` and `types` with service declaration according to
->    - `functions` override decalaration (TBD)
+>    - `functions` override declaration
 > 2. Namespaces are not included in the specification
 >    - reference to service type `<service_ident>::<type_ident>` from program/root scopes (TBD)
 >    - service declarations do not implicitly resolve names from `program.types`
+> 3. Parsers expose the computed `interface_id` on each service in the AST, so tooling can recover canonical ids by parsing IDL with the suffix omitted.
