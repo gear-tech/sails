@@ -7076,6 +7076,7 @@ dependencies = [
  "paste",
  "pin-project-lite",
  "sails-client-gen",
+ "sails-idl-embed",
  "sails-idl-gen",
  "sails-idl-meta",
  "sails-macros",
