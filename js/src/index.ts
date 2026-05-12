@@ -9,3 +9,4 @@ export { TransactionBuilderWithHeader } from './transaction-builder-with-header.
 export { IMethodReturnType, TransactionBuilder } from './transaction-builder.js';
 export { TypeResolver } from './type-resolver-idl-v2.js';
 export { throwOnErrorReply } from './utils.js';
+export type * from './types.js';

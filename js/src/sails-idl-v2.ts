@@ -23,6 +23,7 @@ interface ISailsService {
   readonly events: Record<string, ISailsServiceEvent>;
   readonly extends: Record<string, SailsService>;
   readonly routeIdx: number;
+  readonly types: ReadonlyMap<string, Type>;
 }
 
 interface ISailsFuncArg {
@@ -170,6 +171,7 @@ export class SailsProgram {
   private _api?: GearApi;
   private _programId?: HexString;
   private _services: Map<bigint, IServiceUnit>;
+  private readonly _programTypes: ReadonlyMap<string, Type>;
   // Lazy index for resolveInService: per-service `Map<typeName, Type>`, pre-merged
   // with the service's transitive extends chain. Populated on first call; not
   // invalidated because `_doc` is immutable after parse.
@@ -191,6 +193,7 @@ export class SailsProgram {
     if (this._doc.program) {
       this._typeResolver = new TypeResolver(this._doc.program.types ?? []);
     }
+    this._programTypes = new Map((doc.program?.types ?? []).map((t) => [t.name, t]));
     this._services = this._initServices();
   }
 
@@ -241,6 +244,21 @@ export class SailsProgram {
     }
 
     return this._typeResolver;
+  }
+
+  /**
+   * Program-level user types declared in the IDL's `program {…}` block,
+   * keyed by type name.
+   *
+   * These are ambient: visible to every service and to constructors. Returns
+   * an empty `Map` when the IDL has no `program {…}` block (services-only
+   * IDL) or when the program block has no `types`.
+   *
+   * Treat as immutable. The `ReadonlyMap` type blocks `.set()` at the type
+   * level; runtime mutation is not enforced.
+   */
+  get programTypes(): ReadonlyMap<string, Type> {
+    return this._programTypes;
   }
 
   /** #### Services with functions and events from the parsed IDL */
@@ -418,6 +436,7 @@ export class SailsService implements ISailsService {
   private _typeResolver: TypeResolver;
   private _api?: GearApi;
   private _routeIdx: number;
+  private readonly _types: ReadonlyMap<string, Type>;
 
   private _resolveServiceUnit?: (ident: IServiceIdent) => IServiceUnit | undefined;
 
@@ -434,6 +453,7 @@ export class SailsService implements ISailsService {
     this._resolveServiceUnit = resolveServiceUnit;
     // Self-contained scope: bases first so locals shadow on collision.
     this._typeResolver = new TypeResolver(_collectServiceScopeTypes(service, resolveServiceUnit));
+    this._types = new Map((service.types ?? []).map((t) => [t.name, t]));
     this._routeIdx = routeIdx;
 
     this.events = this._getEvents(service);
@@ -481,6 +501,24 @@ export class SailsService implements ISailsService {
   /** #### TypeResolver with registered types from the ServiceUnit */
   get typeResolver() {
     return this._typeResolver;
+  }
+
+  /**
+   * User types declared in *this service's own* IDL `types {…}` block,
+   * keyed by type name.
+   *
+   * Declared-only: this map does not include types inherited from base
+   * services via `extends`. To enumerate the transitive scope, walk
+   * `.extends[base].types`; to resolve a single `TypeDecl` against the full
+   * scope, call `program.resolveInService(serviceName, decl)`.
+   *
+   * Returns an empty `Map` when the service has no `types {…}` block.
+   *
+   * Treat as immutable. The `ReadonlyMap` type blocks `.set()` at the type
+   * level; runtime mutation is not enforced.
+   */
+  get types(): ReadonlyMap<string, Type> {
+    return this._types;
   }
 
   private _getFunctions(service: IServiceUnit): {
