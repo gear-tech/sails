@@ -56,7 +56,7 @@ pub fn validate_and_post_process(doc: &mut IdlDoc) -> Result<()> {
     validate_entry_ids(doc)?;
 
     // Compute and assign `interface_id` for each service.
-    let mut service_ids = ServiceInterfaceId::new(doc);
+    let mut service_ids = ServiceInterfaceId::new(doc)?;
     service_ids.update_service_id()?;
 
     Ok(())
@@ -241,21 +241,31 @@ struct ServiceInterfaceId<'a> {
     doc: &'a mut IdlDoc,
     service_idx: BTreeMap<String, usize>,
     computed: BTreeMap<String, InterfaceId>,
+    // Stack of services currently being resolved. Used to detect `extends`
+    // cycles (e.g. `service A { extends { A } }` or longer cycles A→B→A).
+    visiting: alloc::collections::BTreeSet<String>,
 }
 
 impl<'a> ServiceInterfaceId<'a> {
-    fn new(doc: &'a mut IdlDoc) -> Self {
-        let service_index = doc
-            .services
-            .iter()
-            .enumerate()
-            .map(|(idx, s)| (s.name.name.to_string(), idx))
-            .collect();
-        Self {
+    fn new(doc: &'a mut IdlDoc) -> Result<Self> {
+        let mut service_index = BTreeMap::new();
+        for (idx, s) in doc.services.iter().enumerate() {
+            // BTreeMap::insert takes ownership of the key, so we still need
+            // one clone — but the previous code cloned a second time for the
+            // error message; format!("{}", &s.name.name) borrows instead.
+            if service_index.insert(s.name.name.clone(), idx).is_some() {
+                return Err(Error::Validation(format!(
+                    "duplicate service definition: service `{}` is declared more than once",
+                    s.name.name
+                )));
+            }
+        }
+        Ok(Self {
             doc,
             service_idx: service_index,
             computed: BTreeMap::new(),
-        }
+            visiting: alloc::collections::BTreeSet::new(),
+        })
     }
 
     fn update_service_id(&mut self) -> Result<()> {
@@ -297,6 +307,11 @@ impl<'a> ServiceInterfaceId<'a> {
     fn compute_service_id(&mut self, name: &str) -> Result<InterfaceId> {
         if let Some(id) = self.computed.get(name) {
             return Ok(*id);
+        }
+        if !self.visiting.insert(name.to_string()) {
+            return Err(Error::Validation(format!(
+                "cyclic `extends` graph: service `{name}` (transitively) extends itself"
+            )));
         }
         let &idx = self
             .service_idx
@@ -344,6 +359,7 @@ impl<'a> ServiceInterfaceId<'a> {
 
         service.name.interface_id = Some(id);
         self.computed.insert(name.to_string(), id);
+        self.visiting.remove(name);
         Ok(id)
     }
 }

@@ -28,4 +28,52 @@ describe('parser-v2 error handling', () => {
   = expected Top`,
     );
   });
+
+  test('rejects self-extending services with a validation error', async () => {
+    const parser = new SailsIdlParser();
+    await parser.init();
+
+    expect(() =>
+      parser.parse(`
+        service A {
+          extends { A }
+          functions { Ping() -> bool; }
+        }
+      `),
+    ).toThrow(/cyclic/);
+  });
+
+  test('rejects extends cycles with a validation error', async () => {
+    const parser = new SailsIdlParser();
+    await parser.init();
+
+    expect(() =>
+      parser.parse(`
+        service A {
+          extends { B }
+          functions { Ping() -> bool; }
+        }
+        service B {
+          extends { A }
+          functions { Pong() -> bool; }
+        }
+      `),
+    ).toThrow(/cyclic/);
+  });
+
+  test('rejects duplicate service names with a validation error', async () => {
+    const parser = new SailsIdlParser();
+    await parser.init();
+
+    expect(() =>
+      parser.parse(`
+        service S {
+          functions { A() -> bool; }
+        }
+        service S {
+          functions { B() -> bool; }
+        }
+      `),
+    ).toThrow(/duplicate/);
+  });
 });

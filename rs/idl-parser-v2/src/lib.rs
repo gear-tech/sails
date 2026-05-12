@@ -844,4 +844,57 @@ mod tests {
             },
         );
     }
+
+    #[test]
+    fn parse_idl_rejects_self_extends() {
+        // `service A { extends { A } ... }` previously stack-overflowed in
+        // post_process::compute_service_id.
+        const SRC: &str = r#"
+            service A {
+                extends { A }
+                functions { Ping() -> bool; }
+            }
+        "#;
+
+        let err = parse_idl(SRC).expect_err("self-extends should fail");
+        assert!(matches!(err, Error::Validation(_)));
+        assert!(err.to_string().contains("cyclic"));
+    }
+
+    #[test]
+    fn parse_idl_rejects_extends_cycle() {
+        // A → B → A previously stack-overflowed.
+        const SRC: &str = r#"
+            service A {
+                extends { B }
+                functions { Ping() -> bool; }
+            }
+            service B {
+                extends { A }
+                functions { Pong() -> bool; }
+            }
+        "#;
+
+        let err = parse_idl(SRC).expect_err("cycle should fail");
+        assert!(matches!(err, Error::Validation(_)));
+        assert!(err.to_string().contains("cyclic"));
+    }
+
+    #[test]
+    fn parse_idl_rejects_duplicate_service_names() {
+        // Duplicate names previously trapped at runtime via a BTreeMap collision
+        // followed by an `expect` in update_service_id.
+        const SRC: &str = r#"
+            service S {
+                functions { A() -> bool; }
+            }
+            service S {
+                functions { B() -> bool; }
+            }
+        "#;
+
+        let err = parse_idl(SRC).expect_err("duplicate names should fail");
+        assert!(matches!(err, Error::Validation(_)));
+        assert!(err.to_string().contains("duplicate"));
+    }
 }
