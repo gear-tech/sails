@@ -89,7 +89,7 @@ dependencies = [
 
 [[package]]
 name = "alloc-stress"
-version = "0.10.3"
+version = "0.10.4"
 dependencies = [
  "sails-rs",
 ]
@@ -746,7 +746,7 @@ checksum = "3a8241f3ebb85c056b509d4327ad0358fbbba6ffb340bf388f26350aeda225b1"
 
 [[package]]
 name = "benchmarks"
-version = "0.10.3"
+version = "0.10.4"
 dependencies = [
  "alloc-stress",
  "anyhow",
@@ -1393,7 +1393,7 @@ checksum = "2382f75942f4b3be3690fe4f86365e9c853c1587d6ee58212cebf6e2a9ccd101"
 
 [[package]]
 name = "compute-stress"
-version = "0.10.3"
+version = "0.10.4"
 dependencies = [
  "sails-rs",
 ]
@@ -1555,7 +1555,7 @@ dependencies = [
 
 [[package]]
 name = "counter-bench"
-version = "0.10.3"
+version = "0.10.4"
 dependencies = [
  "sails-rs",
 ]
@@ -5947,14 +5947,14 @@ checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 
 [[package]]
 name = "ping-pong-bench-app"
-version = "0.10.3"
+version = "0.10.4"
 dependencies = [
  "sails-rs",
 ]
 
 [[package]]
 name = "ping-pong-bench-client"
-version = "0.10.3"
+version = "0.10.4"
 dependencies = [
  "ping-pong-bench-app",
  "sails-client-gen",
@@ -6951,7 +6951,7 @@ dependencies = [
 
 [[package]]
 name = "sails-cli"
-version = "0.10.3"
+version = "0.10.4"
 dependencies = [
  "anyhow",
  "askama",
@@ -6969,7 +6969,7 @@ dependencies = [
 
 [[package]]
 name = "sails-client-gen"
-version = "0.10.3"
+version = "0.10.4"
 dependencies = [
  "anyhow",
  "convert_case",
@@ -6981,7 +6981,7 @@ dependencies = [
 
 [[package]]
 name = "sails-idl-embed"
-version = "0.10.3"
+version = "0.10.4"
 dependencies = [
  "flate2",
  "tempfile",
@@ -6992,7 +6992,7 @@ dependencies = [
 
 [[package]]
 name = "sails-idl-gen"
-version = "0.10.3"
+version = "0.10.4"
 dependencies = [
  "convert_case",
  "gprimitives",
@@ -7008,14 +7008,14 @@ dependencies = [
 
 [[package]]
 name = "sails-idl-meta"
-version = "0.10.3"
+version = "0.10.4"
 dependencies = [
  "scale-info",
 ]
 
 [[package]]
 name = "sails-idl-parser"
-version = "0.10.3"
+version = "0.10.4"
 dependencies = [
  "itertools 0.14.0",
  "lalrpop",
@@ -7026,7 +7026,7 @@ dependencies = [
 
 [[package]]
 name = "sails-macros"
-version = "0.10.3"
+version = "0.10.4"
 dependencies = [
  "parity-scale-codec",
  "proc-macro-error",
@@ -7039,7 +7039,7 @@ dependencies = [
 
 [[package]]
 name = "sails-macros-core"
-version = "0.10.3"
+version = "0.10.4"
 dependencies = [
  "convert_case",
  "insta",
@@ -7053,7 +7053,7 @@ dependencies = [
 
 [[package]]
 name = "sails-rs"
-version = "0.10.3"
+version = "0.10.4"
 dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
@@ -7089,7 +7089,7 @@ dependencies = [
 
 [[package]]
 name = "sails-sol-gen"
-version = "0.10.3"
+version = "0.10.4"
 dependencies = [
  "anyhow",
  "convert_case",
