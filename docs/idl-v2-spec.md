@@ -487,3 +487,10 @@ program DemoCanvas {
 >    - reference to service type `<service_ident>::<type_ident>` from program/root scopes (TBD)
 >    - service declarations do not implicitly resolve names from `program.types`
 > 3. Parsers expose the computed `interface_id` on each service in the AST, so tooling can recover canonical ids by parsing IDL with the suffix omitted.
+
+## Wire Codec Forward Compatibility
+
+IDL v2 currently assumes SCALE-encoded payload bytes after the Sails header.
+Programs built with alternative execution targets may require a different payload codec.
+A future global annotation such as `!@wire: scale|ethabi` may make the wire codec explicit.
+Until then, generic dispatcher tooling should treat non-SCALE programs as caller-risk and avoid silently claiming full decode support.

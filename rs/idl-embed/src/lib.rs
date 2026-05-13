@@ -223,6 +223,16 @@ mod tests {
     }
 
     #[test]
+    fn extracts_shared_js_snapshot_fixture() {
+        let wasm = include_bytes!("../../../js/test/fixtures/decoded/sails-idl-section.wasm");
+        let expected = include_str!("../../../js/test/fixtures/decoded/sails-idl-section.idl");
+
+        let extracted = extract_idl(wasm).unwrap();
+
+        assert_eq!(extracted, Some(expected.to_string()));
+    }
+
+    #[test]
     fn empty_idl_skips_embedding() {
         let wasm = minimal_wasm();
         let result = embed_idl(&wasm, "").unwrap();
