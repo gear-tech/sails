@@ -290,6 +290,7 @@ export class SailsProgram {
 
   private _initRoutes(): Map<string, RouteEntry> {
     const routes = new Map<string, RouteEntry>();
+    const resolvers = new Map<IServiceUnit, TypeResolver>();
     for (const expo of this._doc.program?.services ?? []) {
       const serviceUnit = this._resolveServiceUnit(expo);
       if (!serviceUnit) {
@@ -297,12 +298,14 @@ export class SailsProgram {
       }
 
       const interfaceId = InterfaceId.from(serviceUnit.interface_id);
+      const resolver = resolvers.get(serviceUnit) ?? this._resolverForService(serviceUnit);
+      resolvers.set(serviceUnit, resolver);
       routes.set(this._routeKey(interfaceId, expo.route_idx), {
         interfaceId,
         routeIdx: expo.route_idx,
         routeName: expo.route ?? expo.name,
         serviceUnit,
-        resolver: this._resolverForService(serviceUnit),
+        resolver,
       });
     }
     return routes;
