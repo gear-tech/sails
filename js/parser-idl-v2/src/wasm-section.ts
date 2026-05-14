@@ -38,10 +38,7 @@ type WasmInput = Uint8Array | ArrayBuffer | Blob;
 
 const equalBytes = (left: Uint8Array, right: Uint8Array, offset: number): boolean => {
   if (left.length - offset < right.length) return false;
-  for (let i = 0; i < right.length; i += 1) {
-    if (left[offset + i] !== right[i]) return false;
-  }
-  return true;
+  return right.every((byte, i) => left[offset + i] === byte);
 };
 
 const toOwnedU8a = async (input: WasmInput): Promise<Uint8Array> => {
@@ -74,7 +71,7 @@ const readUleb128 = (bytes: Uint8Array, offset: number): { value: number; offset
     result += (byte & 0x7F) * 2 ** shift;
 
     if ((byte & 0x80) === 0) {
-      if (result > 0xFFFFFFFF) throw new WasmParseError('ULEB128 overflow');
+      if (result > 0xFF_FF_FF_FF) throw new WasmParseError('ULEB128 overflow');
       return { value: result, offset };
     }
 
@@ -133,12 +130,12 @@ const inflateRaw = async (bytes: Uint8Array): Promise<Uint8Array> => {
   }
 
   try {
-    const blobPart = bytes.buffer instanceof ArrayBuffer ? (bytes as Uint8Array<ArrayBuffer>) : bytes.slice();
+    const blobPart = bytes.buffer instanceof ArrayBuffer ? (bytes as Uint8Array<ArrayBuffer>) : Uint8Array.from(bytes);
     const stream = new Blob([blobPart]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
     return await readStreamWithLimit(stream);
-  } catch (e) {
-    if (e instanceof EnvelopeSizeError) throw e;
-    throw new EnvelopeDecodeError(String(e));
+  } catch (error) {
+    if (error instanceof EnvelopeSizeError) throw error;
+    throw new EnvelopeDecodeError(String(error));
   }
 };
 
@@ -151,17 +148,17 @@ const decodeEnvelope = async (data: Uint8Array): Promise<string | null> => {
 
   const content = data.subarray(2);
   const idlBytes =
-    (flags & FLAG_COMPRESSED) !== 0
-      ? await inflateRaw(content)
-      : (() => {
+    (flags & FLAG_COMPRESSED) === 0
+      ? (() => {
           if (content.length > MAX_DECOMPRESSED_SIZE) throw new EnvelopeSizeError();
           return content;
-        })();
+        })()
+      : await inflateRaw(content);
 
   try {
     return decodeUtf8(idlBytes);
-  } catch (e) {
-    throw new EnvelopeUtf8Error(String(e));
+  } catch (error) {
+    throw new EnvelopeUtf8Error(String(error));
   }
 };
 

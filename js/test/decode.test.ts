@@ -176,7 +176,7 @@ describe('SailsProgram dispatcher API', () => {
     expect(decoder(program).decodeCall(badHlen)).toMatchObject({ kind: 'unknown', reason: 'bad-hlen' });
 
     expect(
-      decoder(program).decodeCall(payload(SailsMessageHeader.v1(InterfaceId.fromU64(0x1234n), 1, 1), body(program, 'u32', 7))),
+      decoder(program).decodeCall(payload(SailsMessageHeader.v1(InterfaceId.fromU64(4660n), 1, 1), body(program, 'u32', 7))),
     ).toMatchObject({ kind: 'unknown', reason: 'no-service' });
     expect(decoder(program).decodeCall(payload(eventHeader))).toMatchObject({ kind: 'unknown', reason: 'no-entry' });
     expect(decoder(program).decodeEvent(payload(addHeader, body(program, 'u32', 7)))).toMatchObject({

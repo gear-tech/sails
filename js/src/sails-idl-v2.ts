@@ -443,12 +443,12 @@ export class SailsProgram {
     try {
       const { header } = SailsMessageHeader.tryReadBytes(payload);
       return { header, payload };
-    } catch (e) {
-      if (e instanceof RangeError) {
-        const reason = _mapHeaderError(e.message);
-        if (reason) return { kind: 'unknown', reason, detail: e.message };
+    } catch (error) {
+      if (error instanceof RangeError) {
+        const reason = _mapHeaderError(error.message);
+        if (reason) return { kind: 'unknown', reason, detail: error.message };
       }
-      throw e;
+      throw error;
     }
   }
 
@@ -566,8 +566,8 @@ export class SailsProgram {
     try {
       const value = resolver.registry.createType<any>(typeName, bytes.subarray(offset));
       return { value: value.toJSON() as T, consumed: value.encodedLength };
-    } catch (e) {
-      return { kind: 'unknown', reason: 'decode-failed', detail: String(e) };
+    } catch (error) {
+      return { kind: 'unknown', reason: 'decode-failed', detail: String(error) };
     }
   }
 
