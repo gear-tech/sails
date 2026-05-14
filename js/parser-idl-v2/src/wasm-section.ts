@@ -50,13 +50,11 @@ const toOwnedU8a = async (input: WasmInput): Promise<Uint8Array> => {
   }
 
   if (input instanceof Uint8Array) {
-    const out = new Uint8Array(input.byteLength);
-    out.set(input);
-    return out;
+    return input;
   }
 
   if (input instanceof ArrayBuffer) {
-    return new Uint8Array(input.slice(0));
+    return new Uint8Array(input);
   }
 
   return new Uint8Array(await input.arrayBuffer());
@@ -73,10 +71,10 @@ const readUleb128 = (bytes: Uint8Array, offset: number): { value: number; offset
 
     const byte = bytes[offset];
     offset += 1;
-    result |= (byte & 0x7F) << shift;
+    result += (byte & 0x7F) * 2 ** shift;
 
     if ((byte & 0x80) === 0) {
-      if (result < 0) throw new WasmParseError('ULEB128 overflow');
+      if (result > 0xFFFFFFFF) throw new WasmParseError('ULEB128 overflow');
       return { value: result, offset };
     }
 
@@ -135,8 +133,8 @@ const inflateRaw = async (bytes: Uint8Array): Promise<Uint8Array> => {
   }
 
   try {
-    const owned = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
-    const stream = new Blob([owned]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+    const blobPart = bytes.buffer instanceof ArrayBuffer ? (bytes as Uint8Array<ArrayBuffer>) : bytes.slice();
+    const stream = new Blob([blobPart]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
     return await readStreamWithLimit(stream);
   } catch (e) {
     if (e instanceof EnvelopeSizeError) throw e;

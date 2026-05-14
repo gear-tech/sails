@@ -15,8 +15,8 @@ const minimalWasm = () => new Uint8Array([0x00, 0x61, 0x73, 0x6D, 0x01, 0x00, 0x
 const uleb = (value: number): number[] => {
   const out: number[] = [];
   do {
-    let byte = value & 0x7F;
-    value >>>= 7;
+    let byte = value % 0x80;
+    value = Math.floor(value / 0x80);
     if (value !== 0) byte |= 0x80;
     out.push(byte);
   } while (value !== 0);
@@ -111,5 +111,17 @@ describe('extractIdlFromWasm', () => {
     shared.set(wasm);
 
     await expect(extractIdlFromWasm(shared)).resolves.toBe('shared');
+  });
+
+  test('handles unsigned u32 ULEB128 section lengths', async () => {
+    const wasm = Uint8Array.from([...minimalWasm(), 0, ...uleb(0x80000000)]);
+
+    await expect(extractIdlFromWasm(wasm)).rejects.toThrow('truncated WASM section');
+  });
+
+  test('throws on oversized ULEB128 section lengths', async () => {
+    const wasm = Uint8Array.from([...minimalWasm(), 0, ...uleb(0x100000000)]);
+
+    await expect(extractIdlFromWasm(wasm)).rejects.toThrow('ULEB128 overflow');
   });
 });
