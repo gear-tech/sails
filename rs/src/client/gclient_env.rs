@@ -99,9 +99,13 @@ impl<T: ServiceCall> PendingCall<T, GclientEnv> {
 
     pub async fn send_for_reply(mut self) -> Result<Self, GclientError> {
         let (payload, params) = self.take_encoded_args_and_params();
-        // send for reply
-        let send_future = send_for_reply(self.env.api.clone(), self.destination, payload, params);
-        self.state = Some(Box::pin(send_future));
+        let (listener, message_id) =
+            send_for_reply_and_listen(&self.env.api, self.destination, payload, params).await?;
+        self.state = Some(Box::pin(wait_for_reply_owned(
+            listener,
+            message_id,
+            self.destination,
+        )));
         Ok(self)
     }
 
@@ -264,16 +268,11 @@ async fn create_program(
     #[cfg(feature = "ethexe")]
     let gas_limit = 0;
 
-    let mut listener = api.subscribe().await?;
+    let listener = api.subscribe().await?;
     let (message_id, program_id, ..) = api
         .create_program_bytes(code_id, salt, payload, gas_limit, value)
         .await?;
-    let (_, reply_code, payload, _) = wait_for_reply(&mut listener, message_id).await?;
-    match reply_code {
-        ReplyCode::Success(_) => Ok((program_id, payload)),
-        ReplyCode::Error(reason) => Err(GclientError::ReplyHasError(reason, payload)),
-        ReplyCode::Unsupported => Err(GclientError::ReplyIsMissing),
-    }
+    wait_for_reply_owned(listener, message_id, program_id).await
 }
 
 async fn send_for_reply(
@@ -282,16 +281,27 @@ async fn send_for_reply(
     payload: Vec<u8>,
     params: GclientParams,
 ) -> Result<(ActorId, Vec<u8>), GclientError> {
+    let (listener, message_id) =
+        send_for_reply_and_listen(&api, program_id, payload, params).await?;
+    wait_for_reply_owned(listener, message_id, program_id).await
+}
+
+// Subscribes before dispatching so the reply event can't fire before the listener exists.
+async fn send_for_reply_and_listen(
+    api: &GearApi,
+    program_id: ActorId,
+    payload: Vec<u8>,
+    params: GclientParams,
+) -> Result<(EventListener, MessageId), GclientError> {
     let value = params.value.unwrap_or(0);
     #[cfg(not(feature = "ethexe"))]
-    let gas_limit =
-        calculate_gas_limit(&api, program_id, &payload, params.gas_limit, value).await?;
+    let gas_limit = calculate_gas_limit(api, program_id, &payload, params.gas_limit, value).await?;
     #[cfg(feature = "ethexe")]
     let gas_limit = 0;
 
-    let mut listener = api.subscribe().await?;
+    let listener = api.subscribe().await?;
     let message_id = send_message_with_voucher_if_some(
-        &api,
+        api,
         program_id,
         payload,
         gas_limit,
@@ -299,6 +309,14 @@ async fn send_for_reply(
         params.voucher,
     )
     .await?;
+    Ok((listener, message_id))
+}
+
+async fn wait_for_reply_owned(
+    mut listener: EventListener,
+    message_id: MessageId,
+    program_id: ActorId,
+) -> Result<(ActorId, Vec<u8>), GclientError> {
     let (_, reply_code, payload, _) = wait_for_reply(&mut listener, message_id).await?;
     match reply_code {
         ReplyCode::Success(_) => Ok((program_id, payload)),

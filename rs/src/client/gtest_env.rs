@@ -1,7 +1,7 @@
 use super::*;
 pub use ::gtest::constants::{
     DEFAULT_USER_ALICE, DEFAULT_USER_BOB, DEFAULT_USER_CHARLIE, DEFAULT_USER_EVE,
-    DEFAULT_USERS_INITIAL_BALANCE, MAX_USER_GAS_LIMIT,
+    DEFAULT_USERS_INITIAL_BALANCE, EPOCH_DURATION_IN_BLOCKS, MAX_USER_GAS_LIMIT,
 };
 use ::gtest::{BlockRunResult, System, TestError};
 use core::{cell::RefCell, task::ready};
@@ -31,13 +31,15 @@ pub enum GtestError {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum BlockRunMode {
-    /// Run blocks automatically until all pending replies are received.
+    /// Run blocks until all pending replies are received, capped at
+    /// `EPOCH_DURATION_IN_BLOCKS`. Remaining waiters resolve with
+    /// `GtestError::ReplyIsMissing`.
     Auto,
-    /// Run only next block and exract events and replies from it.
-    /// If there is no reply in this block then `RtlError::ReplyIsMissing` error will be returned.
+    /// Run only the next block. Any reply not produced in that block
+    /// resolves with `GtestError::ReplyIsMissing`.
     Next,
-    /// Sending messages does not cause blocks to run.
-    /// Use `GTestRemoting::run_next_block` method to run the next block and extract events and replies.
+    /// Sending messages does not advance the chain.
+    /// Use `GtestEnv::run_next_block` to advance manually.
     Manual,
 }
 
@@ -119,9 +121,7 @@ impl GtestEnv {
         );
         let mut event_senders = self.event_senders.borrow_mut();
         let mut reply_senders = self.block_reply_senders.borrow_mut();
-        // remove closed event senders
         event_senders.retain(|c| !c.is_closed());
-        // iterate over log
         for entry in run_result.log().iter() {
             if entry.destination() == ActorId::zero() {
                 log::debug!("Extract event from entry {entry:?}");
@@ -143,11 +143,10 @@ impl GtestEnv {
             {
                 log::debug!("Extract reply from entry {entry:?}");
                 let reply: result::Result<Vec<u8>, _> = match entry.reply_code() {
-                    None => Err(GtestError::ReplyIsMissing),
+                    Some(ReplyCode::Success(_)) => Ok(entry.payload().to_vec()),
                     Some(ReplyCode::Error(reason)) => {
                         Err(GtestError::ReplyHasError(reason, entry.payload().to_vec()))
                     }
-                    Some(ReplyCode::Success(_)) => Ok(entry.payload().to_vec()),
                     _ => Err(GtestError::ReplyIsMissing),
                 };
                 _ = sender.send(reply);
@@ -267,18 +266,45 @@ impl GtestEnv {
     }
 
     fn run_until_extract_replies(&self) {
-        while !self.block_reply_senders.borrow().is_empty() {
+        // Bound the wait so a program that never replies (post-wait panic, gas exhaustion
+        // that doesn't surface as a reply, etc.) cannot loop the host forever.
+        for _ in 0..EPOCH_DURATION_IN_BLOCKS {
+            if self.block_reply_senders.borrow().is_empty() {
+                return;
+            }
             self.run_next_block_and_extract();
         }
+        self.drain_reply_senders();
     }
 
     fn drain_reply_senders(&self) {
         let mut reply_senders = self.block_reply_senders.borrow_mut();
-        // drain reply senders that not founded in block
         for (message_id, sender) in reply_senders.drain() {
             log::debug!("Reply is missing in block for message {message_id}");
             _ = sender.send(Err(GtestError::ReplyIsMissing));
         }
+    }
+}
+
+fn decode_reply_or_throw<T: ServiceCall>(
+    route: &T::Route,
+    reply: Result<Vec<u8>, GtestError>,
+) -> Result<T::Output, GtestError> {
+    match reply {
+        Ok(payload) => T::decode_reply(route, payload)
+            .map_err(|err| TestError::ScaleCodecError(err).into()),
+        Err(GtestError::ReplyHasError(reason, payload)) => {
+            if matches!(
+                reason,
+                ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic)
+            ) && let Ok(reply) = T::decode_error(route, &payload)
+            {
+                Ok(reply)
+            } else {
+                Err(GtestError::ReplyHasError(reason, payload))
+            }
+        }
+        Err(err) => Err(err),
     }
 }
 
@@ -294,7 +320,6 @@ impl<T: ServiceCall> PendingCall<T, GtestEnv> {
             panic!("{PENDING_CALL_INVALID_STATE}");
         }
         let (payload, params) = self.take_encoded_args_and_params();
-        // Send message
         let message_id = self.env.send_one_way(self.destination, payload, params)?;
         log::debug!("PendingCall: send message {message_id:?}");
         Ok(message_id)
@@ -308,26 +333,8 @@ impl<T: ServiceCall> PendingCall<T, GtestEnv> {
 
     pub fn query(mut self) -> Result<T::Output, GtestError> {
         let (payload, params) = self.take_encoded_args_and_params();
-        // Calculate reply
-        let reply_bytes = match self.env.query(self.destination, payload, params) {
-            Ok(bytes) => bytes,
-            Err(GtestError::ReplyHasError(reason, payload))
-                if matches!(
-                    reason,
-                    ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic)
-                ) =>
-            {
-                if let Ok(reply) = T::decode_error(&self.route, &payload) {
-                    return Ok(reply);
-                }
-                return Err(GtestError::ReplyHasError(reason, payload));
-            }
-            Err(err) => return Err(err),
-        };
-
-        // Decode reply
-        T::decode_reply(&self.route, reply_bytes)
-            .map_err(|err| TestError::ScaleCodecError(err).into())
+        let reply = self.env.query(self.destination, payload, params);
+        decode_reply_or_throw::<T>(&self.route, reply)
     }
 }
 
@@ -337,7 +344,6 @@ impl<T: ServiceCall> Future for PendingCall<T, GtestEnv> {
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         if self.state.is_none() {
             let (payload, params) = self.take_encoded_args_and_params();
-            // Send message
             let send_res = self.env.send_one_way(self.destination, payload, params);
             match send_res {
                 Ok(message_id) => {
@@ -355,26 +361,9 @@ impl<T: ServiceCall> Future for PendingCall<T, GtestEnv> {
             .state
             .as_pin_mut()
             .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
-        // Poll reply receiver
         match ready!(reply_receiver.poll(cx)) {
-            Ok(res) => match res {
-                Ok(payload) => match T::decode_reply(&self.route, payload) {
-                    Ok(reply) => Poll::Ready(Ok(reply)),
-                    Err(err) => Poll::Ready(Err(TestError::ScaleCodecError(err).into())),
-                },
-                Err(GtestError::ReplyHasError(reason, payload)) => {
-                    if matches!(
-                        reason,
-                        ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic)
-                    ) && let Ok(reply) = T::decode_error(&self.route, &payload)
-                    {
-                        return Poll::Ready(Ok(reply));
-                    }
-                    Poll::Ready(Err(GtestError::ReplyHasError(reason, payload)))
-                }
-                Err(err) => Poll::Ready(Err(err)),
-            },
-            Err(_err) => Poll::Ready(Err(GtestError::ReplyIsMissing)),
+            Ok(res) => Poll::Ready(decode_reply_or_throw::<T>(&self.route, res)),
+            Err(_) => Poll::Ready(Err(GtestError::ReplyIsMissing)),
         }
     }
 }
@@ -384,7 +373,6 @@ impl<A, T: ServiceCall> PendingCtor<A, T, GtestEnv> {
         if self.state.is_some() {
             panic!("{PENDING_CTOR_INVALID_STATE}");
         }
-        // Send message
         let args = self
             .args
             .take()
@@ -420,7 +408,6 @@ where
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         if self.state.is_none() {
-            // Send message
             let args = self
                 .args
                 .take()
@@ -449,32 +436,24 @@ where
             .state
             .as_pin_mut()
             .unwrap_or_else(|| panic!("{PENDING_CTOR_INVALID_STATE}"));
-        // Poll reply receiver
         match ready!(reply_receiver.poll(cx)) {
-            Ok(res) => match res {
-                Ok(payload) => {
-                    let program_id = this
-                        .program_id
-                        .take()
-                        .unwrap_or_else(|| panic!("{PENDING_CTOR_INVALID_STATE}"));
-                    let reply = T::decode_reply(&route, payload)
-                        .map_err(|err| GtestError::Env(TestError::ScaleCodecError(err)))?;
-                    Poll::Ready(Ok(reply.map_result(this.env.clone(), program_id)))
-                }
-                Err(GtestError::ReplyHasError(reason, payload)) => {
-                    if matches!(
-                        reason,
-                        ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic)
-                    ) && let Ok(reply) = T::decode_error(&route, &payload)
-                    {
-                        Poll::Ready(Ok(reply.map_result(this.env.clone(), ActorId::zero())))
-                    } else {
-                        Poll::Ready(Err(GtestError::ReplyHasError(reason, payload)))
+            Ok(res) => {
+                let was_success = res.is_ok();
+                match decode_reply_or_throw::<T>(&route, res) {
+                    Ok(output) => {
+                        let program_id = if was_success {
+                            this.program_id
+                                .take()
+                                .unwrap_or_else(|| panic!("{PENDING_CTOR_INVALID_STATE}"))
+                        } else {
+                            ActorId::zero()
+                        };
+                        Poll::Ready(Ok(output.map_result(this.env.clone(), program_id)))
                     }
+                    Err(err) => Poll::Ready(Err(err)),
                 }
-                Err(err) => Poll::Ready(Err(err)),
-            },
-            Err(_err) => Poll::Ready(Err(GtestError::ReplyIsMissing)),
+            }
+            Err(_) => Poll::Ready(Err(GtestError::ReplyIsMissing)),
         }
     }
 }

@@ -449,8 +449,9 @@ const _: () = {
         fn poll(mut self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {
             match self.state.take() {
                 Some(ready) => {
-                    let res = ready.into_inner();
-                    let output = res.map(|v| T::Output::decode(&mut v.as_ref()).unwrap());
+                    let output = ready
+                        .into_inner()
+                        .and_then(|v| T::Output::decode(&mut v.as_ref()).map_err(Error::Decode));
                     Poll::Ready(output)
                 }
                 None => panic!("{PENDING_CALL_INVALID_STATE}"),
