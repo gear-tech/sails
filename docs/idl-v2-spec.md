@@ -487,3 +487,16 @@ program DemoCanvas {
 >    - reference to service type `<service_ident>::<type_ident>` from program/root scopes (TBD)
 >    - service declarations do not implicitly resolve names from `program.types`
 > 3. Parsers expose the computed `interface_id` on each service in the AST, so tooling can recover canonical ids by parsing IDL with the suffix omitted.
+
+## Codec Annotations
+
+IDL items may carry `@codec` annotations to declare which codec-specific surfaces they participate in.
+
+Current codec tokens are `scale` and `ethabi`.
+
+- No `@codec` annotation means all supported codecs are available.
+- `@codec: scale` means SCALE-capable tooling may expose the item.
+- `@codec: ethabi` means Solidity ABI tooling may expose the item.
+- `@codec: scale,ethabi` means both paths are available.
+
+The annotation is declarative metadata for generators and tooling; it does not define a runtime dispatch protocol by itself.

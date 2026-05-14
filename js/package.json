@@ -47,6 +47,8 @@
     "build:bun": "bun run build.ts",
     "test:bun": "bun x pnpm@10.30.2 --filter sails-js --filter sails-js-parser --filter sails-js-parser-idl-v2 --filter sails-js-types --filter sails-js-util -r build:bun && bun run test/setup.ts && bun test --timeout 15000",
     "test": "pnpm jest --runInBand",
+    "test:decode": "pnpm jest --runInBand --config test/jest.decode.config.ts",
+    "test:bench": "pnpm jest --runInBand --config test/jest.bench.config.ts",
     "pack-build": "pnpm pack --out sails-js.tgz"
   },
   "peerDependencies": {

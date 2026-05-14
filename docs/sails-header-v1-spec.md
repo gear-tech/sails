@@ -92,7 +92,7 @@ struct Extension {
 
 Parsing rules:
 
-1. Continue reading extensions until `header length` bytes are consumed. If no extension bytes are present, `header length` equals 0x10.
+1. For v1, `header length` MUST equal `0x10`. Extension-sized headers are reserved for future versions.
 2. Each extension MUST fit entirely within `header length`; otherwise the header is invalid.
 3. Unknown `type_id`s MUST be skipped using the declared `length`, ensuring forward compatibility.
 4. `type_id = 0` is reserved and MUST NOT appear on the wire.
@@ -105,8 +105,14 @@ Parsing rules:
   1. Fill the 16-byte base header.
   2. Append any extensions (optional).
   3. Append the SCALE-encoded payload immediately after `header length`.
-- Receivers MUST examine the magic + version to interpret the header. They MAY reject messages with unknown versions or with a header shorter than `0x10`.
+- Receivers MUST examine the magic + version to interpret the header. They MAY reject messages with unknown versions or with a v1 header length different from `0x10`.
 - Off-chain tools (explorers, RPC gateways) can read the same header to classify messages without executing WASM.
+
+### Reply Correlation
+
+The Sails header identifies the interface, entry, and route of the payload on both calls and replies.
+It does not link a reply to its originating request. Gear's message graph, including `MessageId` and reply metadata, carries request/reply correlation.
+Indexers should use the runtime message relationship for correlation and the Sails header for payload classification.
 
 ## Determinism Checklist
 
@@ -122,7 +128,7 @@ A receiver that detects a potential header SHOULD apply at least the following c
 
 1. **Magic:** The first two bytes are `0x47 0x4D`; otherwise treat the payload as legacy/unheadered.
 2. **Version:** `version == 0x01`. Unknown versions may be rejected or parsed according to future specs.
-3. **Header length:** `hlen >= 0x10` and `hlen <= payload_length`. Reject if the length is smaller than the base header or extends beyond the payload.
+3. **Header length:** For v1, `hlen == 0x10`. Reject smaller, larger, or payload-extending values.
 4. **Reserved byte:** For v1 the byte at offset 15 MUST be zero. Non-zero values indicate incompatible behavior unless a future version redefines it.
 5. **Extensions:** If `hlen > 0x10`, ensure each TLV record fits within the declared header length; malformed TLVs invalidate the header.
 6. **Route inference (`route_idx == 0x00`):** Resolve only if exactly one matching `interface_id` instance exists. If none or many exist, reject as invalid/ambiguous.

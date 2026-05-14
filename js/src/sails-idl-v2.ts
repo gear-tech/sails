@@ -10,6 +10,14 @@ import type {
   IServiceUnit,
   IFuncParam,
   IServiceEvent,
+  DecodedCall,
+  DecodedCtor,
+  DecodedError,
+  DecodedEvent,
+  DecodedReply,
+  DecodedUnknown,
+  DecodeReason,
+  ResolvedEntry,
 } from './types.js';
 import { TransactionBuilderWithHeader } from './transaction-builder-with-header.js';
 import { QueryBuilderWithHeader } from './query-builder-with-header.js';
@@ -88,11 +96,57 @@ interface ISailsCtorFuncParams {
   readonly docs?: string;
 }
 
+type RouteEntry = {
+  interfaceId: InterfaceId;
+  routeIdx: number;
+  routeName: string;
+  serviceUnit: IServiceUnit;
+  resolver: TypeResolver;
+};
+
+type InternalFunctionEntry = {
+  entry: ResolvedEntry & { kind: 'command' | 'query' };
+  resolver: TypeResolver;
+  params: ISailsFuncArg[];
+  returnType: string;
+  throwsType?: string;
+};
+
+type InternalEventEntry = {
+  entry: ResolvedEntry & { kind: 'event' };
+  resolver: TypeResolver;
+  type: string;
+};
+
+type InternalCtorEntry = {
+  entry: ResolvedEntry & { kind: 'ctor' };
+  params: ISailsFuncArg[];
+};
+
+type InternalEntry = InternalFunctionEntry | InternalEventEntry | InternalCtorEntry;
+type ByteInput = Uint8Array<ArrayBufferLike> | HexString;
+
 const _getParamsForTxBuilder = (params: ISailsFuncArg[]) => {
   if (params.length === 0) return null;
   if (params.length === 1) return params[0].type;
   return `(${params.map((p) => p.type).join(', ')})`;
 };
+
+const _mapHeaderError = (message: string): DecodeReason | null => {
+  if (message.includes('magic')) return 'no-magic';
+  if (message.includes('Unsupported Sails version')) return 'bad-version';
+  if (message.includes('v1 header must be exactly 16 bytes')) return 'bad-hlen';
+  if (message.includes('Header length is less than minimal')) return 'bad-hlen';
+  if (message.includes('Reserved byte must be zero in version 1')) return 'bad-reserved';
+  if (message.includes('Insufficient bytes for')) return 'too-short';
+  return null;
+};
+
+const _isDecodedUnknown = (value: unknown): value is DecodedUnknown =>
+  typeof value === 'object' && value !== null && (value as DecodedUnknown).kind === 'unknown';
+
+const _isFunctionEntry = (value: InternalEntry): value is InternalFunctionEntry =>
+  value.entry.kind === 'command' || value.entry.kind === 'query';
 
 const _getArgsForTxBuilder = (args: any[], params: ISailsFuncArg[]) => {
   if (params.length === 0) return null;
@@ -171,6 +225,9 @@ export class SailsProgram {
   private _api?: GearApi;
   private _programId?: HexString;
   private _services: Map<bigint, IServiceUnit>;
+  private _routes: Map<string, RouteEntry>;
+  private _entryCache: Map<string, InternalFunctionEntry | InternalEventEntry>;
+  private _ctorsByEntryId: Map<number, InternalCtorEntry>;
   private readonly _programTypes: ReadonlyMap<string, Type>;
   // Lazy index for resolveInService: per-service `Map<typeName, Type>`, pre-merged
   // with the service's transitive extends chain. Populated on first call; not
@@ -195,6 +252,9 @@ export class SailsProgram {
     }
     this._programTypes = new Map((doc.program?.types ?? []).map((t) => [t.name, t]));
     this._services = this._initServices();
+    this._routes = this._initRoutes();
+    this._entryCache = new Map();
+    this._ctorsByEntryId = this._initCtors();
   }
 
   /** ### Set api to use for transactions */
@@ -226,6 +286,63 @@ export class SailsProgram {
     }
 
     return services;
+  }
+
+  private _initRoutes(): Map<string, RouteEntry> {
+    const routes = new Map<string, RouteEntry>();
+    const resolvers = new Map<IServiceUnit, TypeResolver>();
+    for (const expo of this._doc.program?.services ?? []) {
+      const serviceUnit = this._resolveServiceUnit(expo);
+      if (!serviceUnit) {
+        throw new Error(`Service definition for "${expo.name}" not found in IDL`);
+      }
+
+      const interfaceId = InterfaceId.from(serviceUnit.interface_id);
+      const resolver = resolvers.get(serviceUnit) ?? this._resolverForService(serviceUnit);
+      resolvers.set(serviceUnit, resolver);
+      routes.set(this._routeKey(interfaceId, expo.route_idx), {
+        interfaceId,
+        routeIdx: expo.route_idx,
+        routeName: expo.route ?? expo.name,
+        serviceUnit,
+        resolver,
+      });
+    }
+    return routes;
+  }
+
+  private _initCtors(): Map<number, InternalCtorEntry> {
+    const ctors = new Map<number, InternalCtorEntry>();
+    for (const ctor of this._doc.program?.ctors ?? []) {
+      const entryId = ctor.entry_id ?? 0;
+      ctors.set(entryId, {
+        entry: {
+          kind: 'ctor',
+          ctor: ctor.name,
+          interfaceId: InterfaceId.zero(),
+          entryId,
+          routeIdx: 0,
+        },
+        params: this._paramsForProgram(ctor.params ?? []),
+      });
+    }
+    return ctors;
+  }
+
+  private _routeKey(interfaceId: InterfaceId, routeIdx: number): string {
+    return `${interfaceId.asU64()}:${routeIdx}`;
+  }
+
+  private _paramsForProgram(params: IFuncParam[]): ISailsFuncArg[] {
+    return params.map((p) => ({
+      name: p.name,
+      type: this._typeResolver.getTypeDeclString(p.type),
+      typeDef: p.type,
+    }));
+  }
+
+  private _resolverForService(service: IServiceUnit): TypeResolver {
+    return new TypeResolver(_collectServiceScopeTypes(service, this._resolveServiceUnit));
   }
 
   /** #### Registry with registered types from the parsed IDL */
@@ -322,6 +439,312 @@ export class SailsProgram {
       serviceIndex.set(unit.name, merged);
     }
     this._serviceTypeIndex = serviceIndex;
+  }
+
+  private _parseHeader(bytes: ByteInput): { header: SailsMessageHeader; payload: Uint8Array } | DecodedUnknown {
+    const payload = u8aToU8a(bytes);
+    try {
+      const { header } = SailsMessageHeader.tryReadBytes(payload);
+      return { header, payload };
+    } catch (error) {
+      if (error instanceof RangeError) {
+        const reason = _mapHeaderError(error.message);
+        if (reason) return { kind: 'unknown', reason, detail: error.message };
+      }
+      throw error;
+    }
+  }
+
+  private _lookupEntryInRoute(route: RouteEntry, entryId: number): InternalFunctionEntry | InternalEventEntry | undefined {
+    const cacheKey = `${this._routeKey(route.interfaceId, route.routeIdx)}:${entryId}`;
+    const cached = this._entryCache.get(cacheKey);
+    if (cached) return cached;
+
+    const resolver = route.resolver;
+    const serviceName = route.serviceUnit.name;
+    const routeName = route.routeName;
+    const interfaceId = route.interfaceId;
+
+    for (const func of route.serviceUnit.funcs ?? []) {
+      const fnEntryId = func.entry_id ?? 0;
+      if (fnEntryId !== entryId) continue;
+
+      const entry: InternalFunctionEntry = {
+        entry: {
+          kind: func.kind,
+          service: serviceName,
+          fn: func.name,
+          route: routeName,
+          interfaceId,
+          entryId,
+          routeIdx: route.routeIdx,
+        },
+        resolver,
+        params: this._paramsForService(resolver, func.params ?? []),
+        returnType: resolver.getTypeDeclString(func.output),
+        throwsType: func.throws ? resolver.getTypeDeclString(func.throws) : undefined,
+      };
+      this._entryCache.set(cacheKey, entry);
+      return entry;
+    }
+
+    for (const event of route.serviceUnit.events ?? []) {
+      const eventEntryId = event.entry_id ?? 0;
+      if (eventEntryId !== entryId) continue;
+      const entry: InternalEventEntry = {
+        entry: {
+          kind: 'event',
+          service: serviceName,
+          event: event.name,
+          route: routeName,
+          interfaceId,
+          entryId,
+          routeIdx: route.routeIdx,
+        },
+        resolver,
+        type: event.fields?.length ? (resolver.getStructDef(event.fields, {}, true) as string) : 'Null',
+      };
+      this._entryCache.set(cacheKey, entry);
+      return entry;
+    }
+
+    return undefined;
+  }
+
+  private _paramsForService(resolver: TypeResolver, params: IFuncParam[]): ISailsFuncArg[] {
+    return params.map((p) => ({
+      name: p.name,
+      type: resolver.getTypeDeclString(p.type),
+      typeDef: p.type,
+    }));
+  }
+
+  private _routeToEntry(header: SailsMessageHeader): InternalFunctionEntry | InternalEventEntry | DecodedUnknown {
+    let route: RouteEntry | undefined;
+    if (header.routeIdx === 0) {
+      const interfaceId = header.interfaceId.asU64();
+      const matches = [...this._routes.values()].filter((r) => r.interfaceId.asU64() === interfaceId);
+      if (matches.length === 0) return { kind: 'unknown', reason: 'no-service' };
+      if (matches.length > 1) return { kind: 'unknown', reason: 'ambiguous-route' };
+      route = matches[0];
+    } else {
+      route = this._routes.get(this._routeKey(header.interfaceId, header.routeIdx));
+      if (!route) return { kind: 'unknown', reason: 'no-service' };
+    }
+
+    return this._lookupEntryInRoute(route, header.entryId) ?? { kind: 'unknown', reason: 'no-entry' };
+  }
+
+  private _ctorToEntry(header: SailsMessageHeader): InternalCtorEntry | DecodedUnknown {
+    if (header.interfaceId.asU64() !== 0n || header.routeIdx !== 0) {
+      return { kind: 'unknown', reason: 'entry-mismatch' };
+    }
+    return this._ctorsByEntryId.get(header.entryId) ?? { kind: 'unknown', reason: 'no-entry' };
+  }
+
+  private _verifyExpected(header: SailsMessageHeader, expected: ResolvedEntry): boolean {
+    // routeIdx 0 is the inference sentinel. Accept it on either side so callers
+    // can validate inferred-route payloads against a concrete decoded entry.
+    return (
+      header.interfaceId.asU64() === InterfaceId.from(expected.interfaceId).asU64() &&
+      header.entryId === expected.entryId &&
+      (header.routeIdx === 0 || expected.routeIdx === 0 || header.routeIdx === expected.routeIdx)
+    );
+  }
+
+  private _resolveForDecode(
+    header: SailsMessageHeader,
+    expected?: ResolvedEntry,
+  ): InternalFunctionEntry | InternalEventEntry | DecodedUnknown {
+    if (expected && !this._verifyExpected(header, expected)) {
+      return { kind: 'unknown', reason: 'entry-mismatch' };
+    }
+    return this._routeToEntry(header);
+  }
+
+  private _decodeWithConsumed<T>(
+    resolver: TypeResolver,
+    typeName: string,
+    bytes: Uint8Array,
+    offset: number,
+  ): { value: T; consumed: number } | DecodedUnknown {
+    try {
+      const value = resolver.registry.createType<any>(typeName, bytes.subarray(offset));
+      return { value: value.toJSON() as T, consumed: value.encodedLength };
+    } catch (error) {
+      return { kind: 'unknown', reason: 'decode-failed', detail: String(error) };
+    }
+  }
+
+  private _checkTrailing(bytes: Uint8Array, offset: number, consumed: number): DecodedUnknown | undefined {
+    if (offset + consumed !== bytes.length) {
+      return { kind: 'unknown', reason: 'trailing-bytes', consumedLen: consumed };
+    }
+    return undefined;
+  }
+
+  private _decodeArgs(
+    resolver: TypeResolver,
+    params: ISailsFuncArg[],
+    payload: Uint8Array,
+    offset: number,
+  ): { args: Record<string, unknown>; consumed: number } | DecodedUnknown {
+    if (params.length === 0) return { args: {}, consumed: 0 };
+
+    const typeName = params.length === 1 ? params[0].type : `(${params.map((p) => p.type).join(', ')})`;
+    const decoded = this._decodeWithConsumed<unknown>(resolver, typeName, payload, offset);
+    if (_isDecodedUnknown(decoded)) return decoded;
+
+    const args: Record<string, unknown> = {};
+    if (params.length === 1) {
+      args[params[0].name] = decoded.value;
+    } else {
+      const values = decoded.value as unknown[];
+      for (const [i, param] of params.entries()) args[param.name] = values[i];
+    }
+    return { args, consumed: decoded.consumed };
+  }
+
+  /** Resolve a Sails header to an IDL entry without decoding the body. */
+  resolveEntry(header: SailsMessageHeader): ResolvedEntry | DecodedUnknown {
+    if (header.interfaceId.asU64() === 0n) {
+      const ctor = this._ctorToEntry(header);
+      return _isDecodedUnknown(ctor) ? ctor : ctor.entry;
+    }
+
+    const entry = this._routeToEntry(header);
+    return _isDecodedUnknown(entry) ? entry : entry.entry;
+  }
+
+  /** Return all entries mounted under every route matching an interface id. */
+  resolveEntryCandidates(interfaceId: InterfaceId): ResolvedEntry[] {
+    const iid = interfaceId.asU64();
+    const entries: ResolvedEntry[] = [];
+    for (const route of this._routes.values()) {
+      if (route.interfaceId.asU64() !== iid) continue;
+      for (const func of route.serviceUnit.funcs ?? []) {
+        const resolved = this._lookupEntryInRoute(route, func.entry_id ?? 0);
+        if (resolved) entries.push(resolved.entry);
+      }
+      for (const event of route.serviceUnit.events ?? []) {
+        const resolved = this._lookupEntryInRoute(route, event.entry_id ?? 0);
+        if (resolved) entries.push(resolved.entry);
+      }
+    }
+    return entries;
+  }
+
+  /**
+   * Decode an untrusted Sails call payload. Construct `SailsProgram` once per CodeId and reuse it.
+   * Decoded data is untrusted; do not pass it directly into security-sensitive operations.
+   */
+  decodeCall(bytes: ByteInput, expectedEntry?: ResolvedEntry): DecodedCall | DecodedUnknown {
+    const parsed = this._parseHeader(bytes);
+    if (_isDecodedUnknown(parsed)) return parsed;
+
+    const resolved = this._resolveForDecode(parsed.header, expectedEntry);
+    if (_isDecodedUnknown(resolved)) return resolved;
+    if (!_isFunctionEntry(resolved)) {
+      return { kind: 'unknown', reason: 'entry-mismatch' };
+    }
+
+    const decoded = this._decodeArgs(resolved.resolver, resolved.params, parsed.payload, parsed.header.hlen);
+    if (_isDecodedUnknown(decoded)) return decoded;
+    const trailing = this._checkTrailing(parsed.payload, parsed.header.hlen, decoded.consumed);
+    if (trailing) return trailing;
+    return { kind: 'call', entry: resolved.entry, args: decoded.args };
+  }
+
+  /**
+   * Decode success reply bytes. The caller must route based on Gear ReplyCode; this method does not
+   * infer success or error from SCALE bytes.
+   */
+  decodeReply(bytes: ByteInput, expectedEntry?: ResolvedEntry): DecodedReply | DecodedUnknown {
+    const parsed = this._parseHeader(bytes);
+    if (_isDecodedUnknown(parsed)) return parsed;
+
+    const resolved = this._resolveForDecode(parsed.header, expectedEntry);
+    if (_isDecodedUnknown(resolved)) return resolved;
+    if (!_isFunctionEntry(resolved)) {
+      return { kind: 'unknown', reason: 'entry-mismatch' };
+    }
+
+    const decoded = this._decodeWithConsumed<unknown>(
+      resolved.resolver,
+      resolved.returnType,
+      parsed.payload,
+      parsed.header.hlen,
+    );
+    if (_isDecodedUnknown(decoded)) return decoded;
+    const trailing = this._checkTrailing(parsed.payload, parsed.header.hlen, decoded.consumed);
+    if (trailing) return trailing;
+    return { kind: 'reply', entry: resolved.entry, result: decoded.value };
+  }
+
+  /**
+   * Decode error reply bytes for functions declaring `throws`. The caller must route based on Gear
+   * ReplyCode; calling this for a success reply will decode the wrong type.
+   */
+  decodeError(bytes: ByteInput, expectedEntry?: ResolvedEntry): DecodedError | DecodedUnknown {
+    const parsed = this._parseHeader(bytes);
+    if (_isDecodedUnknown(parsed)) return parsed;
+
+    const resolved = this._resolveForDecode(parsed.header, expectedEntry);
+    if (_isDecodedUnknown(resolved)) return resolved;
+    if (!_isFunctionEntry(resolved)) {
+      return { kind: 'unknown', reason: 'entry-mismatch' };
+    }
+    if (!resolved.throwsType) return { kind: 'unknown', reason: 'no-throws-type' };
+
+    const decoded = this._decodeWithConsumed<unknown>(
+      resolved.resolver,
+      resolved.throwsType,
+      parsed.payload,
+      parsed.header.hlen,
+    );
+    if (_isDecodedUnknown(decoded)) return decoded;
+    const trailing = this._checkTrailing(parsed.payload, parsed.header.hlen, decoded.consumed);
+    if (trailing) return trailing;
+    return { kind: 'error', entry: resolved.entry, error: decoded.value };
+  }
+
+  /** Decode an untrusted Sails event payload. */
+  decodeEvent(bytes: ByteInput): DecodedEvent | DecodedUnknown {
+    const parsed = this._parseHeader(bytes);
+    if (_isDecodedUnknown(parsed)) return parsed;
+
+    const resolved = this._routeToEntry(parsed.header);
+    if (_isDecodedUnknown(resolved)) return resolved;
+    if (resolved.entry.kind !== 'event') return { kind: 'unknown', reason: 'entry-mismatch' };
+
+    const eventEntry = resolved as InternalEventEntry;
+    const decoded = this._decodeWithConsumed<unknown>(
+      eventEntry.resolver,
+      eventEntry.type,
+      parsed.payload,
+      parsed.header.hlen,
+    );
+    if (_isDecodedUnknown(decoded)) return decoded;
+    const trailing = this._checkTrailing(parsed.payload, parsed.header.hlen, decoded.consumed);
+    if (trailing) return trailing;
+    return { kind: 'event', entry: eventEntry.entry, data: decoded.value };
+  }
+
+  /** Decode an untrusted constructor payload. */
+  decodeCtor(bytes: ByteInput, expectedEntry?: ResolvedEntry): DecodedCtor | DecodedUnknown {
+    const parsed = this._parseHeader(bytes);
+    if (_isDecodedUnknown(parsed)) return parsed;
+    if (expectedEntry && !this._verifyExpected(parsed.header, expectedEntry)) {
+      return { kind: 'unknown', reason: 'entry-mismatch' };
+    }
+
+    const resolved = this._ctorToEntry(parsed.header);
+    if (_isDecodedUnknown(resolved)) return resolved;
+    const decoded = this._decodeArgs(this._typeResolver, resolved.params, parsed.payload, parsed.header.hlen);
+    if (_isDecodedUnknown(decoded)) return decoded;
+    const trailing = this._checkTrailing(parsed.payload, parsed.header.hlen, decoded.consumed);
+    if (trailing) return trailing;
+    return { kind: 'ctor-call', entry: resolved.entry, args: decoded.args };
   }
 
   /** #### Constructor functions with arguments from the parsed IDL */

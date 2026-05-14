@@ -23,9 +23,12 @@ const ensureVersion = (version: number): number => {
   return version;
 };
 
-const ensureHeaderLength = (hlen: number): number => {
+const ensureHeaderLength = (version: number, hlen: number): number => {
   if (hlen < MINIMAL_HLEN) {
     throw new RangeError('Header length is less than minimal Sails header length');
+  }
+  if (version === 1 && hlen !== MINIMAL_HLEN) {
+    throw new RangeError('v1 header must be exactly 16 bytes');
   }
   return hlen;
 };
@@ -50,7 +53,7 @@ export class SailsMessageHeader {
 
   private constructor(version: number, hlen: number, interfaceId: InterfaceId, routeIdx: number, entryId: number) {
     this.version = ensureVersion(version);
-    this.hlen = ensureHeaderLength(hlen);
+    this.hlen = ensureHeaderLength(this.version, hlen);
     this.interfaceId = interfaceId;
     this.routeIdx = routeIdx;
     this.entryId = entryId;
@@ -110,7 +113,7 @@ export class SailsMessageHeader {
     if (bytes.length - offset < 1) {
       throw new RangeError('Insufficient bytes for header length');
     }
-    const hlen = ensureHeaderLength(bytes[offset]);
+    const hlen = ensureHeaderLength(version, bytes[offset]);
     offset += 1;
 
     const interfaceResult = InterfaceId.tryReadBytes(bytes, offset);
