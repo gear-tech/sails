@@ -488,9 +488,19 @@ program DemoCanvas {
 >    - service declarations do not implicitly resolve names from `program.types`
 > 3. Parsers expose the computed `interface_id` on each service in the AST, so tooling can recover canonical ids by parsing IDL with the suffix omitted.
 
-## Wire Codec Forward Compatibility
+## Codec Annotations and Dispatch Paths
 
-IDL v2 currently assumes SCALE-encoded payload bytes after the Sails header.
-Programs built with alternative execution targets may require a different payload codec.
-A future global annotation such as `!@wire: scale|ethabi` may make the wire codec explicit.
-Until then, generic dispatcher tooling should treat non-SCALE programs as caller-risk and avoid silently claiming full decode support.
+The Sails header dispatch path uses SCALE-encoded payload bytes after the header.
+Generic header-first tooling should decode this path as SCALE.
+
+IDL v2 may also carry local `@codec` annotations on exported methods and events.
+Current codec tokens are `scale` and `ethabi`.
+The annotation describes which generated dispatch paths expose the item:
+
+- No `@codec` annotation means both dispatch paths are available where the target supports them.
+- `@codec: scale` means the item is available through SCALE/Gear dispatch.
+- `@codec: ethabi` means the item is available through Solidity ABI dispatch.
+- `@codec: scale,ethabi` means both paths are available.
+
+Solidity ABI dispatch is a separate ethexe/Solidity-facing path and is not implied by the Sails header alone.
+Tools that only implement the header-first Sails dispatcher must not silently decode `ethabi`-only entries as SCALE.
