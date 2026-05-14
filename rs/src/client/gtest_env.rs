@@ -286,25 +286,19 @@ impl GtestEnv {
     }
 }
 
-fn decode_reply_or_throw<T: ServiceCall>(
-    route: &T::Route,
-    reply: Result<Vec<u8>, GtestError>,
-) -> Result<T::Output, GtestError> {
-    match reply {
-        Ok(payload) => T::decode_reply(route, payload)
-            .map_err(|err| TestError::ScaleCodecError(err).into()),
-        Err(GtestError::ReplyHasError(reason, payload)) => {
-            if matches!(
-                reason,
-                ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic)
-            ) && let Ok(reply) = T::decode_error(route, &payload)
-            {
-                Ok(reply)
-            } else {
-                Err(GtestError::ReplyHasError(reason, payload))
-            }
+impl ReplyError for GtestError {
+    fn decode(err: parity_scale_codec::Error) -> Self {
+        TestError::ScaleCodecError(err).into()
+    }
+
+    fn userspace_panic_payload(&self) -> Option<&[u8]> {
+        match self {
+            GtestError::ReplyHasError(
+                ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic),
+                payload,
+            ) => Some(payload),
+            _ => None,
         }
-        Err(err) => Err(err),
     }
 }
 
@@ -334,7 +328,7 @@ impl<T: ServiceCall> PendingCall<T, GtestEnv> {
     pub fn query(mut self) -> Result<T::Output, GtestError> {
         let (payload, params) = self.take_encoded_args_and_params();
         let reply = self.env.query(self.destination, payload, params);
-        decode_reply_or_throw::<T>(&self.route, reply)
+        decode_reply_or_throw::<T, _>(&self.route, reply)
     }
 }
 
@@ -362,7 +356,7 @@ impl<T: ServiceCall> Future for PendingCall<T, GtestEnv> {
             .as_pin_mut()
             .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
         match ready!(reply_receiver.poll(cx)) {
-            Ok(res) => Poll::Ready(decode_reply_or_throw::<T>(&self.route, res)),
+            Ok(res) => Poll::Ready(decode_reply_or_throw::<T, _>(&self.route, res)),
             Err(_) => Poll::Ready(Err(GtestError::ReplyIsMissing)),
         }
     }
@@ -439,7 +433,7 @@ where
         match ready!(reply_receiver.poll(cx)) {
             Ok(res) => {
                 let was_success = res.is_ok();
-                match decode_reply_or_throw::<T>(&route, res) {
+                match decode_reply_or_throw::<T, _>(&route, res) {
                     Ok(output) => {
                         let program_id = if was_success {
                             this.program_id

@@ -75,6 +75,22 @@ impl GearEnv for GstdEnv {
     type MessageState = core::future::Ready<Result<Vec<u8>, Self::Error>>;
 }
 
+impl ReplyError for Error {
+    fn decode(err: parity_scale_codec::Error) -> Self {
+        Error::Decode(err)
+    }
+
+    fn userspace_panic_payload(&self) -> Option<&[u8]> {
+        match self {
+            Error::ErrorReply(
+                payload,
+                ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic),
+            ) => Some(payload.0.as_ref()),
+            _ => None,
+        }
+    }
+}
+
 impl GstdEnv {
     pub fn send_one_way(
         &self,
@@ -209,7 +225,7 @@ const _: () = {
                     .args
                     .as_ref()
                     .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
-                let payload = T::encode_call(&self.route, &args);
+                let payload = T::encode_call(&self.route, args);
                 let destination = self.destination;
                 let params = self.params.get_or_insert_default();
                 // Send message
@@ -229,22 +245,6 @@ const _: () = {
                 _ => panic!("{PENDING_CALL_INVALID_STATE}"),
             };
             match output {
-                // ok reply
-                Ok(payload) => {
-                    let res = T::decode_reply(&route, payload).map_err(Error::Decode)?;
-                    Poll::Ready(Ok(res))
-                }
-                // error reply
-                Err(gstd::errors::Error::ErrorReply(
-                    error_payload,
-                    ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic),
-                )) => match T::decode_error(&route, &error_payload.0) {
-                    Ok(reply) => Poll::Ready(Ok(reply)),
-                    Err(_) => Poll::Ready(Err(gstd::errors::Error::ErrorReply(
-                        error_payload,
-                        ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic),
-                    ))),
-                },
                 // reply with ProgramExited
                 Err(gstd::errors::Error::ErrorReply(
                     error_payload,
@@ -284,12 +284,10 @@ const _: () = {
                             ErrorReplyReason::UnavailableActor(
                                 SimpleUnavailableActorError::ProgramExited,
                             ),
-                        )
-                        .into()))
+                        )))
                     }
                 }
-                // error reply
-                Err(err) => Poll::Ready(Err(err)),
+                output => Poll::Ready(decode_reply_or_throw::<T, _>(route, output)),
             }
         }
     }
@@ -353,25 +351,13 @@ const _: () = {
             // SAFETY: checked in the code above.
             let state = unsafe { this.state.as_pin_mut().unwrap_unchecked() };
             if let Projection::CreateProgram { future } = state.project() {
-                // Poll create program future
-                match ready!(future.poll(cx)) {
-                    Ok((program_id, payload)) => {
-                        let reply = T::decode_reply(&route, payload).map_err(Error::Decode)?;
-                        Poll::Ready(Ok(reply.map_result(this.env.clone(), program_id)))
-                    }
-                    Err(gstd::errors::Error::ErrorReply(
-                        error_payload,
-                        ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic),
-                    )) => match T::decode_error(&route, &error_payload.0) {
-                        Ok(reply) => {
-                            Poll::Ready(Ok(reply.map_result(this.env.clone(), ActorId::zero())))
-                        }
-                        Err(_) => Poll::Ready(Err(gstd::errors::Error::ErrorReply(
-                            error_payload,
-                            ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic),
-                        ))),
-                    },
-                    Err(err) => Poll::Ready(Err(err.into())),
+                let (reply, program_id) = match ready!(future.poll(cx)) {
+                    Ok((program_id, payload)) => (Ok(payload), program_id),
+                    Err(err) => (Err(err), ActorId::zero()),
+                };
+                match decode_reply_or_throw::<T, _>(route, reply) {
+                    Ok(output) => Poll::Ready(Ok(output.map_result(this.env.clone(), program_id))),
+                    Err(err) => Poll::Ready(Err(err)),
                 }
             } else {
                 panic!("{PENDING_CTOR_INVALID_STATE}");

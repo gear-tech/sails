@@ -15,6 +15,22 @@ pub enum GclientError {
     ReplyIsMissing,
 }
 
+impl ReplyError for GclientError {
+    fn decode(err: parity_scale_codec::Error) -> Self {
+        gclient::Error::Codec(err).into()
+    }
+
+    fn userspace_panic_payload(&self) -> Option<&[u8]> {
+        match self {
+            GclientError::ReplyHasError(
+                ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic),
+                payload,
+            ) => Some(payload),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct GclientEnv {
     api: GearApi,
@@ -111,26 +127,8 @@ impl<T: ServiceCall> PendingCall<T, GclientEnv> {
 
     pub async fn query(mut self) -> Result<T::Output, GclientError> {
         let (payload, params) = self.take_encoded_args_and_params();
-
-        // Calculate reply
-        match query_calculate_reply(&self.env.api, self.destination, payload, params).await {
-            Ok(reply_bytes) => match T::decode_reply(&self.route, reply_bytes) {
-                Ok(reply) => Ok(reply),
-                Err(err) => Err(gclient::Error::Codec(err).into()),
-            },
-            Err(GclientError::ReplyHasError(reason, payload)) => {
-                if matches!(
-                    reason,
-                    ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic)
-                ) && let Ok(reply) = T::decode_error(&self.route, &payload)
-                {
-                    Ok(reply)
-                } else {
-                    Err(GclientError::ReplyHasError(reason, payload))
-                }
-            }
-            Err(err) => Err(err),
-        }
+        let reply = query_calculate_reply(&self.env.api, self.destination, payload, params).await;
+        decode_reply_or_throw::<T, _>(&self.route, reply)
     }
 }
 
@@ -151,25 +149,8 @@ impl<T: ServiceCall> Future for PendingCall<T, GclientEnv> {
             .state
             .as_pin_mut()
             .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
-        // Poll message future
-        match ready!(message_future.poll(cx)) {
-            Ok((_, payload)) => match T::decode_reply(&self.route, payload) {
-                Ok(decoded) => Poll::Ready(Ok(decoded)),
-                Err(err) => Poll::Ready(Err(gclient::Error::Codec(err).into())),
-            },
-            Err(GclientError::ReplyHasError(reason, payload)) => {
-                if matches!(
-                    reason,
-                    ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic)
-                ) && let Ok(reply) = T::decode_error(&self.route, &payload)
-                {
-                    Poll::Ready(Ok(reply))
-                } else {
-                    Poll::Ready(Err(GclientError::ReplyHasError(reason, payload)))
-                }
-            }
-            Err(err) => Poll::Ready(Err(err)),
-        }
+        let reply = ready!(message_future.poll(cx)).map(|(_, payload)| payload);
+        Poll::Ready(decode_reply_or_throw::<T, _>(&self.route, reply))
     }
 }
 
@@ -205,24 +186,12 @@ where
             .state
             .as_pin_mut()
             .unwrap_or_else(|| panic!("{PENDING_CTOR_INVALID_STATE}"));
-        // Poll message future
-        match ready!(message_future.poll(cx)) {
-            Ok((program_id, payload)) => {
-                let reply = T::decode_reply(route, payload)
-                    .map_err(|err| GclientError::Env(gclient::Error::Codec(err)))?;
-                Poll::Ready(Ok(reply.map_result(this.env.clone(), program_id)))
-            }
-            Err(GclientError::ReplyHasError(reason, payload)) => {
-                if matches!(
-                    reason,
-                    ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic)
-                ) && let Ok(reply) = T::decode_error(route, &payload)
-                {
-                    Poll::Ready(Ok(reply.map_result(this.env.clone(), ActorId::zero())))
-                } else {
-                    Poll::Ready(Err(GclientError::ReplyHasError(reason, payload)))
-                }
-            }
+        let (reply, program_id) = match ready!(message_future.poll(cx)) {
+            Ok((program_id, payload)) => (Ok(payload), program_id),
+            Err(err) => (Err(err), ActorId::zero()),
+        };
+        match decode_reply_or_throw::<T, _>(route, reply) {
+            Ok(output) => Poll::Ready(Ok(output.map_result(this.env.clone(), program_id))),
             Err(err) => Poll::Ready(Err(err)),
         }
     }
