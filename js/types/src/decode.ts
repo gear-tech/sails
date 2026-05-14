@@ -8,7 +8,7 @@ export type ResolvedEntry =
       route: string;
       interfaceId: IInterfaceId;
       entryId: number;
-      route_idx: number;
+      routeIdx: number;
     }
   | {
       kind: 'event';
@@ -17,14 +17,14 @@ export type ResolvedEntry =
       route: string;
       interfaceId: IInterfaceId;
       entryId: number;
-      route_idx: number;
+      routeIdx: number;
     }
   | {
       kind: 'ctor';
       ctor: string;
       interfaceId: IInterfaceId;
       entryId: number;
-      route_idx: number;
+      routeIdx: number;
     };
 
 export type DecodeReason =

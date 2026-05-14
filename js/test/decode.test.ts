@@ -97,14 +97,14 @@ describe('SailsProgram dispatcher API', () => {
       fn: 'Add',
       route: 'Secondary',
       entryId: 1,
-      route_idx: 2,
+      routeIdx: 2,
     });
 
     expect(program.resolveEntry(SailsMessageHeader.v1(iid, 1, 0))).toMatchObject({
       kind: 'unknown',
       reason: 'ambiguous-route',
     });
-    expect(program.resolveEntryCandidates(iid).map((entry) => entry.route_idx)).toEqual([
+    expect(program.resolveEntryCandidates(iid).map((entry) => entry.routeIdx)).toEqual([
       1, 1, 1, 1, 2, 2, 2, 2,
     ]);
   });
@@ -126,7 +126,7 @@ describe('SailsProgram dispatcher API', () => {
       expect(
         decoder(program).decodeReply(payload(addHeader, body(program, 'u32', 12)), {
           ...call.entry,
-          route_idx: 0,
+          routeIdx: 0,
         }),
       ).toMatchObject({
         kind: 'reply',
@@ -195,7 +195,7 @@ describe('SailsProgram dispatcher API', () => {
         route: 'Counter',
         interfaceId: iid,
         entryId: 1,
-        route_idx: 99,
+        routeIdx: 99,
       }),
     ).toMatchObject({ kind: 'unknown', reason: 'entry-mismatch' });
     expect(decoder(program).decodeError(payload(getHeader, body(program, 'u32', 7)))).toMatchObject({

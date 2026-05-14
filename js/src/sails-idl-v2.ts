@@ -318,7 +318,7 @@ export class SailsProgram {
           ctor: ctor.name,
           interfaceId: InterfaceId.zero(),
           entryId,
-          route_idx: 0,
+          routeIdx: 0,
         },
         params: this._paramsForProgram(ctor.params ?? []),
       });
@@ -474,7 +474,7 @@ export class SailsProgram {
           route: routeName,
           interfaceId,
           entryId,
-          route_idx: route.routeIdx,
+          routeIdx: route.routeIdx,
         },
         resolver,
         params: this._paramsForService(resolver, func.params ?? []),
@@ -496,7 +496,7 @@ export class SailsProgram {
           route: routeName,
           interfaceId,
           entryId,
-          route_idx: route.routeIdx,
+          routeIdx: route.routeIdx,
         },
         resolver,
         type: event.fields?.length ? (resolver.getStructDef(event.fields, {}, true) as string) : 'Null',
@@ -543,7 +543,7 @@ export class SailsProgram {
     return (
       header.interfaceId.asU64() === InterfaceId.from(expected.interfaceId).asU64() &&
       header.entryId === expected.entryId &&
-      (header.routeIdx === 0 || expected.route_idx === 0 || header.routeIdx === expected.route_idx)
+      (header.routeIdx === 0 || expected.routeIdx === 0 || header.routeIdx === expected.routeIdx)
     );
   }
 
