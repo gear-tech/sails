@@ -543,6 +543,8 @@ export class SailsProgram {
   }
 
   private _verifyExpected(header: SailsMessageHeader, expected: ResolvedEntry): boolean {
+    // routeIdx 0 is the inference sentinel. Accept it on either side so callers
+    // can validate inferred-route payloads against a concrete decoded entry.
     return (
       header.interfaceId.asU64() === InterfaceId.from(expected.interfaceId).asU64() &&
       header.entryId === expected.entryId &&

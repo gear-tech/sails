@@ -1,5 +1,12 @@
 import type { IInterfaceId } from './idl-v2-types';
 
+/**
+ * Resolved dispatcher metadata for a decoded Sails header.
+ *
+ * IDL AST objects mirror the Rust/serde schema and keep fields such as
+ * `route_idx` in snake_case. This consumer-facing JS decode API uses
+ * TypeScript-style camelCase (`interfaceId`, `entryId`, `routeIdx`).
+ */
 export type ResolvedEntry =
   | {
       kind: 'command' | 'query';
