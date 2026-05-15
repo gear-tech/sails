@@ -31,10 +31,11 @@ pub enum GtestError {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum BlockRunMode {
-    /// Run blocks until all pending replies are received, capped at
-    /// `EPOCH_DURATION_IN_BLOCKS`. Remaining waiters resolve with
-    /// `GtestError::ReplyIsMissing`.
+    /// Run blocks until all pending replies are received.
     Auto,
+    /// Run up to the given number of blocks. Any pending reply not produced
+    /// within that limit resolves with `GtestError::ReplyIsMissing`.
+    UpTo(BlockCount),
     /// Run only the next block. Any reply not produced in that block
     /// resolves with `GtestError::ReplyIsMissing`.
     Next,
@@ -64,14 +65,14 @@ crate::params_struct_impl!(
 
 impl GtestEnv {
     /// Create new `GtestEnv` instance from `gtest::System` with specified `actor_id`
-    /// and `Auto` block run mode
+    /// and `UpTo(EPOCH_DURATION_IN_BLOCKS)` block run mode.
     pub fn new(system: System, actor_id: ActorId) -> Self {
         let system = Rc::new(system);
         Self {
             system,
             actor_id,
             event_senders: Default::default(),
-            block_run_mode: BlockRunMode::Auto,
+            block_run_mode: BlockRunMode::UpTo(EPOCH_DURATION_IN_BLOCKS),
             block_reply_senders: Default::default(),
         }
     }
@@ -222,6 +223,9 @@ impl GtestEnv {
             BlockRunMode::Auto => {
                 self.run_until_extract_replies();
             }
+            BlockRunMode::UpTo(block_limit) => {
+                self.run_until_extract_replies_up_to(block_limit);
+            }
             BlockRunMode::Next => {
                 self.run_next_block_and_extract();
                 self.drain_reply_senders();
@@ -266,9 +270,13 @@ impl GtestEnv {
     }
 
     fn run_until_extract_replies(&self) {
-        // Bound the wait so a program that never replies (post-wait panic, gas exhaustion
-        // that doesn't surface as a reply, etc.) cannot loop the host forever.
-        for _ in 0..EPOCH_DURATION_IN_BLOCKS {
+        while !self.block_reply_senders.borrow().is_empty() {
+            self.run_next_block_and_extract();
+        }
+    }
+
+    fn run_until_extract_replies_up_to(&self, block_limit: BlockCount) {
+        for _ in 0..block_limit {
             if self.block_reply_senders.borrow().is_empty() {
                 return;
             }
