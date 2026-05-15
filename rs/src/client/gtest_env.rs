@@ -439,22 +439,13 @@ where
             .as_pin_mut()
             .unwrap_or_else(|| panic!("{PENDING_CTOR_INVALID_STATE}"));
         match ready!(reply_receiver.poll(cx)) {
-            Ok(res) => {
-                let was_success = res.is_ok();
-                match decode_reply_or_throw::<T, _>(&route, res) {
-                    Ok(output) => {
-                        let program_id = if was_success {
-                            this.program_id
-                                .take()
-                                .unwrap_or_else(|| panic!("{PENDING_CTOR_INVALID_STATE}"))
-                        } else {
-                            ActorId::zero()
-                        };
-                        Poll::Ready(Ok(output.map_result(this.env.clone(), program_id)))
-                    }
-                    Err(err) => Poll::Ready(Err(err)),
+            Ok(res) => match decode_reply_or_throw::<T, _>(&route, res) {
+                Ok(output) => {
+                    let program_id = this.program_id.take().unwrap_or_default();
+                    Poll::Ready(Ok(output.map_result(this.env.clone(), program_id)))
                 }
-            }
+                Err(err) => Poll::Ready(Err(err)),
+            },
             Err(_) => Poll::Ready(Err(GtestError::ReplyIsMissing)),
         }
     }
