@@ -436,7 +436,7 @@ where
 /// application-level `throws` value from a userspace-panic reply.
 pub trait ReplyError: Sized {
     /// Wrap a SCALE decode failure of a reply payload.
-    fn decode(err: parity_scale_codec::Error) -> Self;
+    fn from_codec_error(err: parity_scale_codec::Error) -> Self;
 
     /// If this error is a userspace panic carrying a reply payload, return that payload.
     fn userspace_panic_payload(&self) -> Option<&[u8]>;
@@ -452,7 +452,7 @@ pub fn decode_reply_or_throw<T: ServiceCall, E: ReplyError>(
     reply: Result<Vec<u8>, E>,
 ) -> Result<T::Output, E> {
     match reply {
-        Ok(payload) => T::decode_reply(route, payload).map_err(E::decode),
+        Ok(payload) => T::decode_reply(route, payload).map_err(E::from_codec_error),
         Err(err) => {
             if let Some(payload) = err.userspace_panic_payload()
                 && let Ok(reply) = T::decode_error(route, payload)

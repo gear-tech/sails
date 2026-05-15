@@ -76,7 +76,7 @@ impl GearEnv for GstdEnv {
 }
 
 impl ReplyError for Error {
-    fn decode(err: parity_scale_codec::Error) -> Self {
+    fn from_codec_error(err: parity_scale_codec::Error) -> Self {
         Error::Decode(err)
     }
 
@@ -234,7 +234,6 @@ const _: () = {
                 // No need to poll the future
                 return Poll::Pending;
             }
-            let route = &self.route.clone();
             let this = self.as_mut().project();
             // SAFETY: checked in the code above.
             let mut state = unsafe { this.state.as_pin_mut().unwrap_unchecked() };
@@ -287,7 +286,7 @@ const _: () = {
                         )))
                     }
                 }
-                output => Poll::Ready(decode_reply_or_throw::<T, _>(route, output)),
+                output => Poll::Ready(decode_reply_or_throw::<T, _>(this.route, output)),
             }
         }
     }
@@ -346,7 +345,6 @@ const _: () = {
                 // No need to poll the future
                 return Poll::Pending;
             }
-            let route = &self.route.clone();
             let this = self.as_mut().project();
             // SAFETY: checked in the code above.
             let state = unsafe { this.state.as_pin_mut().unwrap_unchecked() };
@@ -355,7 +353,7 @@ const _: () = {
                     Ok((program_id, payload)) => (Ok(payload), program_id),
                     Err(err) => (Err(err), ActorId::zero()),
                 };
-                match decode_reply_or_throw::<T, _>(route, reply) {
+                match decode_reply_or_throw::<T, _>(this.route, reply) {
                     Ok(output) => Poll::Ready(Ok(output.map_result(this.env.clone(), program_id))),
                     Err(err) => Poll::Ready(Err(err)),
                 }

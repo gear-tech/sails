@@ -295,7 +295,7 @@ impl GtestEnv {
 }
 
 impl ReplyError for GtestError {
-    fn decode(err: parity_scale_codec::Error) -> Self {
+    fn from_codec_error(err: parity_scale_codec::Error) -> Self {
         TestError::ScaleCodecError(err).into()
     }
 
@@ -364,7 +364,7 @@ impl<T: ServiceCall> Future for PendingCall<T, GtestEnv> {
             .as_pin_mut()
             .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
         match ready!(reply_receiver.poll(cx)) {
-            Ok(res) => Poll::Ready(decode_reply_or_throw::<T, _>(&self.route, res)),
+            Ok(res) => Poll::Ready(decode_reply_or_throw::<T, _>(this.route, res)),
             Err(_) => Poll::Ready(Err(GtestError::ReplyIsMissing)),
         }
     }
@@ -441,7 +441,10 @@ where
         match ready!(reply_receiver.poll(cx)) {
             Ok(res) => match decode_reply_or_throw::<T, _>(&route, res) {
                 Ok(output) => {
-                    let program_id = this.program_id.take().unwrap_or_default();
+                    let program_id = this
+                        .program_id
+                        .take()
+                        .unwrap_or_else(|| panic!("{PENDING_CTOR_INVALID_STATE}"));
                     Poll::Ready(Ok(output.map_result(this.env.clone(), program_id)))
                 }
                 Err(err) => Poll::Ready(Err(err)),

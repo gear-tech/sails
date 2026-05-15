@@ -16,7 +16,7 @@ pub enum GclientError {
 }
 
 impl ReplyError for GclientError {
-    fn decode(err: parity_scale_codec::Error) -> Self {
+    fn from_codec_error(err: parity_scale_codec::Error) -> Self {
         gclient::Error::Codec(err).into()
     }
 
@@ -150,7 +150,7 @@ impl<T: ServiceCall> Future for PendingCall<T, GclientEnv> {
             .as_pin_mut()
             .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
         let reply = ready!(message_future.poll(cx)).map(|(_, payload)| payload);
-        Poll::Ready(decode_reply_or_throw::<T, _>(&self.route, reply))
+        Poll::Ready(decode_reply_or_throw::<T, _>(this.route, reply))
     }
 }
 
@@ -180,7 +180,6 @@ where
             self.state = Some(Box::pin(create_program_future));
         }
 
-        let route = &self.route.clone();
         let this = self.as_mut().project();
         let message_future = this
             .state
@@ -190,7 +189,7 @@ where
             Ok((program_id, payload)) => (Ok(payload), program_id),
             Err(err) => (Err(err), ActorId::zero()),
         };
-        match decode_reply_or_throw::<T, _>(route, reply) {
+        match decode_reply_or_throw::<T, _>(this.route, reply) {
             Ok(output) => Poll::Ready(Ok(output.map_result(this.env.clone(), program_id))),
             Err(err) => Poll::Ready(Err(err)),
         }
