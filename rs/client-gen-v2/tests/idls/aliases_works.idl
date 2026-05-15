@@ -1,0 +1,12 @@
+service Aliases {
+    types {
+        struct MyStruct { f: u32 }
+        alias MyU32 = u32;
+        alias MyStructAlias = MyStruct;
+        alias MyGeneric<T> = Result<T, String>;
+    }
+    functions {
+        DoSomething(p: MyU32) -> MyStructAlias;
+        Gen() -> MyGeneric<u32>;
+    }
+}

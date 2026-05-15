@@ -3,9 +3,8 @@
 use sails_rs::{gstd, prelude::*};
 
 #[event]
-#[derive(Clone, Debug, PartialEq, Encode, TypeInfo)]
-#[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
+#[sails_type]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Events {
     Start,
     End,
@@ -59,3 +58,5 @@ pub use code::WASM_BINARY_OPT as WASM_BINARY;
 mod code {
     include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 }
+
+pub const INTERFACE_ID: InterfaceId = <Service as Identifiable>::INTERFACE_ID;

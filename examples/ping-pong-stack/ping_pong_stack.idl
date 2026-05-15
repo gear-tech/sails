@@ -1,9 +1,16 @@
-constructor {
-  CreatePing : (code_id: code_id);
-  CreatePong : ();
-};
+program PingPongStack {
+    constructors {
+        CreatePing(code_id: CodeId);
+        CreatePong();
+    }
+    services {
+        PingPongStack,
+    }
+}
 
 service PingPongStack {
-  Start : (limit: u32) -> null;
-  Ping : (countdown: u32) -> null;
-};
+    functions {
+        Start(limit: u32) -> ();
+        Ping(countdown: u32) -> ();
+    }
+}

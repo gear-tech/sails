@@ -1,0 +1,466 @@
+use crate::{
+    error::{Error, Result},
+    visitor::{self, Visitor},
+};
+use alloc::{
+    collections::BTreeMap,
+    format,
+    string::{String, ToString},
+    vec,
+    vec::Vec,
+};
+use core::str::FromStr;
+use sails_idl_ast::*;
+
+const ALLOWED_TYPES: &[&str] = &[
+    "Option",
+    "Result",
+    "NonZeroU8",
+    "NonZeroU16",
+    "NonZeroU32",
+    "NonZeroU64",
+    "NonZeroU128",
+    "NonZeroU256",
+];
+
+pub fn validate_and_post_process(doc: &mut IdlDoc) -> Result<()> {
+    normalize_generics(doc);
+
+    let mut errors = Vec::new();
+
+    // Program types are scoped to the program unit. Service IDL stays
+    // self-contained and is validated with its own named type scope.
+    if let Some(program) = &doc.program {
+        let mut validator = Validator::new();
+        for ty in &program.types {
+            validator.add_named_type(&ty.name);
+        }
+        validator.visit_program_unit(program);
+        errors.extend(validator.errors);
+    }
+
+    // Validate each service unit (funcs, events, types, field consistency).
+    for service in &doc.services {
+        let mut validator = Validator::new();
+        validator.visit_service_unit(service);
+        errors.extend(validator.errors);
+    }
+
+    // Collect and return any validation errors found above.
+    if !errors.is_empty() {
+        let error_messages: Vec<String> = errors.into_iter().map(|e| e.to_string()).collect();
+        return Err(Error::Validation(error_messages.join("\n")));
+    }
+
+    // Validate entry_ids: check uniqueness and that @partial services have explicit @entry_id.
+    validate_entry_ids(doc)?;
+
+    // Compute and assign `interface_id` for each service.
+    let mut service_ids = ServiceInterfaceId::new(doc)?;
+    service_ids.update_service_id()?;
+
+    Ok(())
+}
+
+struct Validator<'a> {
+    named_scopes: Vec<Vec<&'a str>>,
+    generic_scopes: Vec<Vec<&'a str>>,
+    errors: Vec<Error>,
+}
+
+impl<'a> Validator<'a> {
+    fn new() -> Self {
+        Self {
+            named_scopes: vec![vec![]],
+            generic_scopes: vec![vec![]],
+            errors: Vec::new(),
+        }
+    }
+
+    fn push_named_scope(&mut self) {
+        self.named_scopes.push(Vec::new());
+    }
+
+    fn pop_named_scope(&mut self) {
+        self.named_scopes.pop();
+    }
+
+    fn push_generic_scope(&mut self) {
+        self.generic_scopes.push(Vec::new());
+    }
+
+    fn pop_generic_scope(&mut self) {
+        self.generic_scopes.pop();
+    }
+
+    fn add_named_type(&mut self, name: &'a str) {
+        self.named_scopes.last_mut().unwrap().push(name);
+    }
+
+    fn add_generic_type(&mut self, name: &'a str) {
+        self.generic_scopes.last_mut().unwrap().push(name);
+    }
+
+    fn is_named_type_known(&self, name: &str) -> bool {
+        ALLOWED_TYPES.contains(&name) || self.named_scopes.iter().any(|s| s.contains(&name))
+    }
+
+    fn is_generic_type_known(&self, name: &str) -> bool {
+        self.generic_scopes.iter().any(|s| s.contains(&name))
+    }
+}
+
+impl<'a> visitor::Visitor<'a> for Validator<'a> {
+    fn visit_service_unit(&mut self, service: &'a ServiceUnit) {
+        self.push_named_scope();
+        for ty in &service.types {
+            self.add_named_type(&ty.name);
+        }
+        visitor::accept_service_unit(service, self);
+        self.pop_named_scope();
+    }
+
+    fn visit_type(&mut self, ty: &'a Type) {
+        self.push_generic_scope();
+        for param in &ty.type_params {
+            self.add_generic_type(&param.name);
+        }
+        visitor::accept_type(ty, self);
+        self.pop_generic_scope();
+    }
+
+    fn visit_named_type_decl(&mut self, name: &'a str, generics: &'a [TypeDecl]) {
+        if PrimitiveType::from_str(name).is_err() && !self.is_named_type_known(name) {
+            self.errors
+                .push(Error::Validation(format!("Unknown type '{name}'")));
+        }
+
+        for generic in generics {
+            visitor::accept_type_decl(generic, self);
+        }
+    }
+
+    fn visit_generic_type_decl(&mut self, name: &'a str) {
+        if !self.is_generic_type_known(name) {
+            self.errors.push(Error::Validation(format!(
+                "Unknown generic type parameter '{name}'"
+            )));
+        }
+    }
+
+    fn visit_struct_def(&mut self, struct_def: &'a StructDef) {
+        if !struct_def.fields.is_empty() {
+            let first_field_is_named = struct_def.fields[0].name.is_some();
+            if !struct_def
+                .fields
+                .iter()
+                .all(|f| f.name.is_some() == first_field_is_named)
+            {
+                self.errors.push(Error::Validation(
+                    "Mixing named and unnamed fields in a struct or enum variant is not allowed."
+                        .to_string(),
+                ));
+            }
+        }
+
+        visitor::accept_struct_def(struct_def, self);
+    }
+}
+
+fn normalize_generics(doc: &mut IdlDoc) {
+    if let Some(program) = &mut doc.program {
+        for ty in &mut program.types {
+            normalize_type_generics(ty);
+        }
+    }
+
+    for service in &mut doc.services {
+        for ty in &mut service.types {
+            normalize_type_generics(ty);
+        }
+    }
+}
+
+pub(crate) fn normalize_type_generics(ty: &mut Type) {
+    let generics = ty
+        .type_params
+        .iter()
+        .map(|param| param.name.clone())
+        .collect::<Vec<_>>();
+
+    for param in &mut ty.type_params {
+        if let Some(default) = &mut param.ty {
+            normalize_type_decl_generics(default, &generics);
+        }
+    }
+
+    match &mut ty.def {
+        TypeDef::Struct(def) => normalize_struct_def_generics(def, &generics),
+        TypeDef::Enum(def) => {
+            for variant in &mut def.variants {
+                normalize_struct_def_generics(&mut variant.def, &generics);
+            }
+        }
+        TypeDef::Alias(def) => normalize_type_decl_generics(&mut def.target, &generics),
+    }
+}
+
+fn normalize_struct_def_generics(def: &mut StructDef, generics: &[String]) {
+    for field in &mut def.fields {
+        normalize_type_decl_generics(&mut field.type_decl, generics);
+    }
+}
+
+fn normalize_type_decl_generics(type_decl: &mut TypeDecl, generics: &[String]) {
+    match type_decl {
+        TypeDecl::Slice { item } | TypeDecl::Array { item, .. } => {
+            normalize_type_decl_generics(item, generics);
+        }
+        TypeDecl::Tuple { types } => {
+            for ty in types {
+                normalize_type_decl_generics(ty, generics);
+            }
+        }
+        TypeDecl::Named {
+            name,
+            generics: args,
+        } => {
+            if args.is_empty() && generics.iter().any(|param| param == name) {
+                *type_decl = TypeDecl::Generic { name: name.clone() };
+            } else {
+                for arg in args {
+                    normalize_type_decl_generics(arg, generics);
+                }
+            }
+        }
+        TypeDecl::Generic { .. } | TypeDecl::Primitive(_) => {}
+    }
+}
+
+struct ServiceInterfaceId<'a> {
+    doc: &'a mut IdlDoc,
+    service_idx: BTreeMap<String, usize>,
+    computed: BTreeMap<String, InterfaceId>,
+    // Stack of services currently being resolved. Used to detect `extends`
+    // cycles (e.g. `service A { extends { A } }` or longer cycles A→B→A).
+    visiting: alloc::collections::BTreeSet<String>,
+}
+
+impl<'a> ServiceInterfaceId<'a> {
+    fn new(doc: &'a mut IdlDoc) -> Result<Self> {
+        let mut service_index = BTreeMap::new();
+        for (idx, s) in doc.services.iter().enumerate() {
+            // BTreeMap::insert takes ownership of the key, so we still need
+            // one clone — but the previous code cloned a second time for the
+            // error message; format!("{}", &s.name.name) borrows instead.
+            if service_index.insert(s.name.name.clone(), idx).is_some() {
+                return Err(Error::Validation(format!(
+                    "duplicate service definition: service `{}` is declared more than once",
+                    s.name.name
+                )));
+            }
+        }
+        Ok(Self {
+            doc,
+            service_idx: service_index,
+            computed: BTreeMap::new(),
+            visiting: alloc::collections::BTreeSet::new(),
+        })
+    }
+
+    fn update_service_id(&mut self) -> Result<()> {
+        let names: Vec<_> = self
+            .doc
+            .services
+            .iter()
+            .map(|s| s.name.name.to_string())
+            .collect();
+        for name in names {
+            _ = self.compute_service_id(name.as_str())?;
+        }
+
+        let mut seen_ids = BTreeMap::new();
+        for service in &self.doc.services {
+            let id = service.name.interface_id.expect("interface_id must be set");
+            if let Some(other_name) = seen_ids.insert(id.as_u64(), &service.name.name) {
+                return Err(Error::Validation(format!(
+                    "duplicate interface_id {id} found for services `{}` and `{}`",
+                    other_name, service.name.name
+                )));
+            }
+        }
+
+        if let Some(program) = &mut self.doc.program {
+            for expo in &mut program.services {
+                let id = self.computed.get(&expo.name.name).ok_or_else(|| {
+                    Error::Validation(format!(
+                        "service `{}`: `interface_id` is not computed",
+                        expo.name.name
+                    ))
+                })?;
+                expo.name.interface_id = Some(*id);
+            }
+        }
+        Ok(())
+    }
+
+    fn compute_service_id(&mut self, name: &str) -> Result<InterfaceId> {
+        if let Some(id) = self.computed.get(name) {
+            return Ok(*id);
+        }
+        if !self.visiting.insert(name.to_string()) {
+            return Err(Error::Validation(format!(
+                "cyclic `extends` graph: service `{name}` (transitively) extends itself"
+            )));
+        }
+        let &idx = self
+            .service_idx
+            .get(name)
+            .ok_or_else(|| Error::Validation(format!("service `{name}` not found in IDL")))?;
+
+        let base_names: Vec<String> = self.doc.services[idx]
+            .extends
+            .iter()
+            .map(|base| base.name.clone())
+            .collect();
+
+        for base in base_names {
+            _ = self.compute_service_id(&base)?;
+        }
+
+        let service = &mut self.doc.services[idx];
+        for ext in &mut service.extends {
+            let id = self.computed.get(&ext.name).ok_or_else(|| {
+                Error::Validation(format!(
+                    "service `{}`: `interface_id` is not computed",
+                    ext.name
+                ))
+            })?;
+            ext.interface_id = Some(*id);
+        }
+
+        let id = if service.is_partial() {
+            service.name.interface_id.ok_or_else(|| {
+                Error::Validation(format!(
+                    "service `{name}` is marked as `@partial` but does not have an explicit `interface_id` (e.g. `service {name}@0x...`)"
+                ))
+            })?
+        } else {
+            let id = service.interface_id().map_err(Error::Validation)?;
+            if let Some(current_id) = service.name.interface_id
+                && current_id != id
+            {
+                return Err(Error::Validation(format!(
+                    "service `{name}` computed interface_id {id} is not equal to {current_id} in IDL"
+                )));
+            }
+            id
+        };
+
+        service.name.interface_id = Some(id);
+        self.computed.insert(name.to_string(), id);
+        self.visiting.remove(name);
+        Ok(id)
+    }
+}
+
+fn validate_entry_ids(doc: &IdlDoc) -> Result<()> {
+    for service in &doc.services {
+        let is_partial = service.is_partial();
+
+        for func in &service.funcs {
+            validate_entry_id_annotation(
+                "service",
+                &service.name.name,
+                "function",
+                &func.name,
+                &func.annotations,
+                is_partial,
+            )?;
+        }
+        for event in &service.events {
+            validate_entry_id_annotation(
+                "service",
+                &service.name.name,
+                "event",
+                &event.name,
+                &event.annotations,
+                is_partial,
+            )?;
+        }
+
+        // entry_ids must be unique within funcs and within events
+        let mut seen = alloc::collections::BTreeSet::new();
+        for func in &service.funcs {
+            if !seen.insert(func.entry_id) {
+                return Err(Error::Validation(format!(
+                    "service `{}`: duplicate entry_id {} among functions",
+                    service.name.name, func.entry_id
+                )));
+            }
+        }
+        seen.clear();
+        for event in &service.events {
+            if !seen.insert(event.entry_id) {
+                return Err(Error::Validation(format!(
+                    "service `{}`: duplicate entry_id {} among events",
+                    service.name.name, event.entry_id
+                )));
+            }
+        }
+    }
+
+    if let Some(program) = &doc.program {
+        let mut seen = alloc::collections::BTreeSet::new();
+        for ctor in &program.ctors {
+            validate_entry_id_annotation(
+                "program",
+                &program.name,
+                "constructor",
+                &ctor.name,
+                &ctor.annotations,
+                false,
+            )?;
+            if !seen.insert(ctor.entry_id) {
+                return Err(Error::Validation(format!(
+                    "program `{}`: duplicate entry_id {} among constructors",
+                    program.name, ctor.entry_id
+                )));
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn validate_entry_id_annotation(
+    owner_kind: &str,
+    owner_name: &str,
+    item_kind: &str,
+    item_name: &str,
+    annotations: &[(String, Option<String>)],
+    required: bool,
+) -> Result<()> {
+    let Some((_, value)) = annotations.iter().find(|(k, _)| k == "entry_id") else {
+        if required {
+            return Err(Error::Validation(format!(
+                "{owner_kind} `{owner_name}`: {item_kind} `{item_name}` is missing `@entry_id` annotation (required for @partial services)"
+            )));
+        }
+        return Ok(());
+    };
+
+    let Some(value) = value.as_deref() else {
+        return Err(Error::Validation(format!(
+            "{owner_kind} `{owner_name}`: {item_kind} `{item_name}` has invalid `@entry_id` value (expected a u16)"
+        )));
+    };
+
+    value.parse::<u16>().map_err(|_| {
+        Error::Validation(format!(
+            "{owner_kind} `{owner_name}`: {item_kind} `{item_name}` has invalid `@entry_id` value `{value}` (expected a u16)"
+        ))
+    })?;
+
+    Ok(())
+}

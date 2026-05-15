@@ -3,7 +3,7 @@ name: "[js] CI"
 on:
   pull_request:
     types: [opened, synchronize, reopened, labeled]
-    branches: [master]
+    branches: [master, master-idl-v2]
     paths:
       - "js/**"
       - "package.json"
@@ -12,25 +12,28 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  GEAR_NODE_VERSION: 1.10.0
+
 jobs:
   lint:
     runs-on: ubuntu-22.04
     steps:
       - name: Cancel previous workflow runs
-        uses: styfle/cancel-workflow-action@0.12.1
+        uses: styfle/cancel-workflow-action@0.13.1
         with:
           access_token: ${{ github.token }}
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: "Install: NodeJS 20.x"
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 20.x
 
       - name: "Install: pnpm"
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
 
       - name: "Install: dependencies"
         run: pnpm install
@@ -41,21 +44,24 @@ jobs:
   test:
     runs-on: ubuntu-22.04
     steps:
-      - name: Cancel previous workflow runs
-        uses: styfle/cancel-workflow-action@0.12.1
-        with:
-          access_token: ${{ github.token }}
-
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+
+      - name: Install wasm-opt
+        uses: ./.github/actions/install-wasm-utils
+
+      - name: Build IDL v2 Parser for WASM
+        run: |
+          cargo build -p sails-idl-parser-wasm --target wasm32-unknown-unknown --release
+          wasm-opt -O4 -o ./target/wasm32-unknown-unknown/release/sails_idl_v2_parser.wasm ./target/wasm32-unknown-unknown/release/sails_idl_parser_wasm.wasm
 
       - name: "Install: NodeJS 20.x"
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 20.x
 
       - name: "Install: pnpm"
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
 
       - name: "Install: dependencies"
         run: pnpm install
@@ -63,12 +69,9 @@ jobs:
       - name: "Build"
         run: pnpm build
 
-      - name: Install wasm-opt
-        uses: ./.github/actions/install-wasm-utils
-
       - name: "Prepare: download Gear node"
         run: |
-          wget -O ./gear https://github.com/gear-tech/gear/releases/download/build/gear
+          wget -O ./gear https://github.com/gear-tech/gear/releases/download/v${{ env.GEAR_NODE_VERSION }}/gear
           chmod +x gear
 
       - name: "Prepare: build demo contract"

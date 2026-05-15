@@ -3,9 +3,8 @@ use demo_walker::WalkerService;
 use sails_rs::prelude::*;
 
 #[event]
-#[derive(Clone, Debug, PartialEq, Encode, TypeInfo)]
-#[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
+#[sails_type]
+#[derive(Clone, Debug, PartialEq)]
 pub enum DogEvents {
     Barked,
 }
@@ -25,9 +24,15 @@ impl DogService {
 }
 
 // Implementing `From` for each of the extended services
-impl From<DogService> for (MammalService, WalkerService) {
+impl From<DogService> for WalkerService {
     fn from(value: DogService) -> Self {
-        (value.mammal, value.walker)
+        value.walker
+    }
+}
+
+impl From<DogService> for MammalService {
+    fn from(value: DogService) -> Self {
+        value.mammal
     }
 }
 
@@ -40,7 +45,7 @@ impl From<DogService> for (MammalService, WalkerService) {
 // - Barked (from DogEvents)
 // - Walked (from WalkerEvents)
 // See [IDL](/examples/demo/wasm/demo.idl)
-#[service(extends = [MammalService, WalkerService], events = DogEvents)]
+#[service(extends = [WalkerService, MammalService], events = DogEvents)]
 impl DogService {
     #[export]
     pub fn make_sound(&mut self) -> &'static str {

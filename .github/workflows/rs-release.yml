@@ -21,11 +21,20 @@ env:
   GITHUB_USER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
   # crates in order of dependency (topological order), first the ones that are not dependent on any other
   SAILS_CRATES: |
+    sails-reflect-hash-derive
+    sails-reflect-hash
+    sails-idl-ast
+    sails-type-registry-derive
+    sails-type-registry
     sails-idl-meta
     sails-idl-parser
+    sails-idl-parser-v2
+    sails-idl-embed
     sails-idl-gen
     sails-sol-gen
     sails-client-gen
+    sails-client-gen-v2
+    sails-client-gen-js
     sails-macros-core
     sails-macros
     sails-rs
@@ -47,7 +56,7 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -77,14 +86,20 @@ jobs:
 
       - name: Set Workspace Version & Update Its Dependencies
         run: |
-          sed -i "s/^version = \".*\"/version = \"${{ steps.release_info.outputs.version }}\"/" Cargo.toml
-          cargo update sails-rs
-          cargo update sails-rs --manifest-path ./rs/ethexe/Cargo.toml
-          git add Cargo.toml
-          git add Cargo.lock
-          git add ./rs/ethexe/Cargo.lock
-          git commit -m "build(rs): update version to v${{ steps.release_info.outputs.version }}"
-          git push origin "${{ steps.rc_branch.outputs.branch }}"
+          VERSION=${{ steps.release_info.outputs.version }}
+          # Update workspace package version
+          sed -i "s/^version = \".*\"/version = \"${VERSION}\"/" Cargo.toml
+          sed -i "s/^version = \".*\"/version = \"${VERSION}\"/" ./rs/ethexe/Cargo.toml
+          cargo check --workspace
+          cargo check --workspace --manifest-path ./rs/ethexe/Cargo.toml
+
+          git add -- Cargo.toml Cargo.lock ./rs/ethexe/Cargo.toml ./rs/ethexe/Cargo.lock '*.idl'
+          if ! git diff --cached --quiet; then
+            git commit -m "build(rs): update version to v${VERSION}"
+            git push origin "${{ steps.rc_branch.outputs.branch }}"
+          fi
+
+          # Clean up the trigger pin-tag
           git push origin --delete "${{ steps.release_info.outputs.pin_tag }}"
 
   ws_tests:
@@ -111,13 +126,15 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - prepare
+      # - ws_tests
+      # - cli_tests
     defaults:
       run:
         shell: bash
 
     steps:
       - name: Checkout Code from Release Branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ needs.prepare.outputs.rc_branch }}
 
@@ -129,6 +146,12 @@ jobs:
           cargo build -p sails-idl-parser --target wasm32-unknown-unknown --release
           mkdir -p ./assets/sails_idl_parser
           wasm-opt -O4 -o ./assets/sails_idl_parser/sails_idl_parser.wasm ./target/wasm32-unknown-unknown/release/sails_idl_parser.wasm
+
+      - name: Build IDL v2 Parser for WASM
+        run: |
+          cargo build -p sails-idl-parser-wasm --target wasm32-unknown-unknown --release
+          mkdir -p ./assets/sails_idl_parser
+          wasm-opt -O4 -o ./assets/sails_idl_parser/sails_idl_v2_parser.wasm ./target/wasm32-unknown-unknown/release/sails_idl_parser_wasm.wasm
 
       - name: Build Demo
         run: |
@@ -145,7 +168,7 @@ jobs:
           cp ./examples/no-svcs-prog/wasm/no_svcs_prog.idl ./assets/no_svcs_prog/no_svcs_prog.idl
 
       - name: Upload Assets
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sails-assets
           path: ./assets/
@@ -160,35 +183,48 @@ jobs:
     defaults:
       run:
         shell: bash
+    env:
+      CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_TOKEN }}
 
     steps:
       - name: Checkout Code from Release Branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ needs.prepare.outputs.rc_branch }}
+
+      - name: Cargo publish config
+        run: |
+          mkdir -p ~/.cargo
+          cat <<EOF >> ~/.cargo/config.toml
+          [registries.crates-io]
+          protocol = "sparse"
+          EOF
 
       - name: Publish Crates
         run: |
           VERSION=${{ needs.prepare.outputs.r_version }}
-          for SAILS_CRATE in $SAILS_CRATES; do
-            sed -i "/^\s*${SAILS_CRATE} = {.*}/ s/}/, version = \"=${VERSION}\" }/" Cargo.toml
+          # Update internal dependencies
+          for CRATE in $SAILS_CRATES; do
+            sed -i "/^\s*${CRATE} = {.*}/ s/}/, version = \"=${VERSION}\" }/" Cargo.toml
           done
-          cargo login ${{ secrets.CRATES_IO_TOKEN }}
-          for SAILS_CRATE in $SAILS_CRATES; do
-            cargo publish -p $SAILS_CRATE --allow-dirty
+
+          cargo fetch --locked
+
+          for CRATE in $SAILS_CRATES; do
+            echo "Publishing $CRATE..."
+            if ! OUT=$(cargo publish -p "$CRATE" --locked --allow-dirty 2>&1); then
+              echo "$OUT"
+              if echo "$OUT" | grep -Eqi "already exists on crates\.io|already uploaded"; then
+                echo "Skipping $CRATE (already published on crates.io)"
+              else
+                echo "Publish failed for $CRATE"
+                exit 1
+              fi
+            fi
+            sleep 5
           done
           # Revert temporary changes to Cargo.toml
           git checkout -- .
-
-      - name: Update Contract Template
-        run: |
-          VERSION=${{ needs.prepare.outputs.r_version }}
-          sed -i -E "s/(variable::set\(\"sails-rs-version\", \")([^\"]+)(\"\);)/\1$VERSION\3/" templates/set-vars.rhai
-          git config --global user.name "$GITHUB_USER_NAME"
-          git config --global user.email "$GITHUB_USER_EMAIL"
-          git add templates/set-vars.rhai
-          git commit -m "build(tmpl): update version to v${{ needs.prepare.outputs.r_version }} in contract template"
-          git push origin "${{ needs.prepare.outputs.rc_branch }}"
 
   cli_tests_after_publish:
     if: false
@@ -214,18 +250,20 @@ jobs:
     defaults:
       run:
         shell: bash
+    outputs:
+      r_tag: ${{ needs.prepare.outputs.r_tag }}
     env:
       R_NAME: Sails-RS v${{ needs.prepare.outputs.r_version }}
 
     steps:
       - name: Checkout Code from Release Branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ needs.prepare.outputs.rc_branch }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download Assets
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: sails-assets
           path: ./assets
@@ -253,7 +291,7 @@ jobs:
           echo "url=$PR_URL" >> $GITHUB_OUTPUT
 
       - name: Create Draft Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: ${{ env.R_NAME }}
           tag_name: ${{ needs.prepare.outputs.r_tag }}
@@ -265,8 +303,17 @@ jobs:
           fail_on_unmatched_files: true
           files: |
             ./assets/sails_idl_parser/sails_idl_parser.wasm
+            ./assets/sails_idl_parser/sails_idl_v2_parser.wasm
             ./assets/demo/demo.wasm
             ./assets/demo/demo.idl
             ./assets/no_svcs_prog/no_svcs_prog.wasm
             ./assets/no_svcs_prog/no_svcs_prog.idl
           token: ${{ secrets.GITHUB_TOKEN }}
+
+  binaries:
+    name: Build Binaries
+    needs: release
+    uses: ./.github/workflows/bin-release.yml
+    with:
+      tag: ${{ needs.release.outputs.r_tag }}
+    secrets: inherit

@@ -1,0 +1,58 @@
+---
+source: rs/type-registry/derive/src/lib.rs
+expression: formatted
+---
+#[automatically_derived]
+impl<T: ::sails_type_registry::TypeInfo> ::sails_type_registry::TypeInfo for Basic<T> {
+    type Identity = Self;
+    fn module_path() -> &'static str {
+        ::core::module_path!()
+    }
+    fn type_decl(
+        registry: &mut ::sails_type_registry::Registry,
+    ) -> ::sails_type_registry::ast::TypeDecl {
+        let base_name = ::sails_type_registry::alloc::string::String::from("Basic");
+        let generics = ::sails_type_registry::alloc::vec![
+            <T as ::sails_type_registry::TypeInfo>::type_decl(registry),
+        ];
+        registry
+            .register_named_type_with_dependencies(
+                <Self as ::sails_type_registry::TypeInfo>::META,
+                base_name,
+                generics,
+                |registry| {
+                    let _ = <u32 as ::sails_type_registry::TypeInfo>::type_decl(
+                        registry,
+                    );
+                    let _ = <T as ::sails_type_registry::TypeInfo>::type_decl(registry);
+                },
+            )
+    }
+    fn type_def(
+        _registry: &mut ::sails_type_registry::Registry,
+    ) -> ::core::option::Option<::sails_type_registry::ast::Type> {
+        let base_name = ::sails_type_registry::alloc::string::String::from("Basic");
+        ::core::option::Option::Some({
+            let __builder = ::sails_type_registry::builder::TypeBuilder::new()
+                .name(base_name)
+                .doc("Basic struct with docs")
+                .doc("Second line of documentation")
+                .param("T");
+            let composite = __builder.composite();
+            composite
+                .field("a")
+                .doc("Simple field")
+                .annotate("name")
+                .value("custom")
+                .ty(
+                    ::sails_type_registry::ast::TypeDecl::Primitive(
+                        ::sails_type_registry::ast::PrimitiveType::U32,
+                    ),
+                )
+                .field("b")
+                .doc("Direct parameter")
+                .ty(::sails_type_registry::ast::TypeDecl::generic("T"))
+                .build()
+        })
+    }
+}

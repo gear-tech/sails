@@ -1,0 +1,5 @@
+service Leaf {
+    functions {
+        DoLeaf();
+    }
+}

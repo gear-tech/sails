@@ -6,10 +6,13 @@ use sails_rs::{cell::RefCell, prelude::*};
 mod chaos;
 mod counter;
 mod dog;
+mod inheritance;
 mod mammal;
+mod override_generics;
 mod ping;
 mod references;
 mod this_that;
+mod validator;
 mod value_fee;
 
 // Dog data is stored as a global variable. However, it has exactly the same lifetime
@@ -26,10 +29,16 @@ fn dog_data() -> &'static RefCell<walker::WalkerData> {
     }
 }
 
+// `DemoProgram` is the on-chain program state. The `#[program]` macro emits a
+// hidden `wasm` submodule that holds it as `static mut PROGRAM: Option<DemoProgram> = None;`
+// and wires the WASM `init`/`handle` entry points to construct, then borrow it
+// for every incoming message. So fields declared here live as long as the
+// program is deployed on the network.
 pub struct DemoProgram {
     // Counter data has the same lifetime as the program itself, i.e. it will
     // live as long as the program is available on the network.
     counter_data: RefCell<counter::CounterData>,
+    validator_data: RefCell<validator::ValidatorData>,
     ref_data: u8,
 }
 
@@ -44,8 +53,10 @@ impl DemoProgram {
                 Default::default(),
             )));
         }
+        override_generics::init_generic_data(Default::default());
         Self {
             counter_data: RefCell::new(counter::CounterData::new(Default::default())),
+            validator_data: RefCell::new(validator::ValidatorData::new()),
             ref_data: 42,
         }
     }
@@ -60,8 +71,26 @@ impl DemoProgram {
                 dog_position.1,
             )));
         }
+        override_generics::init_generic_data(Default::default());
         Ok(Self {
             counter_data: RefCell::new(counter::CounterData::new(counter.unwrap_or_default())),
+            validator_data: RefCell::new(validator::ValidatorData::new()),
+            ref_data: 42,
+        })
+    }
+
+    #[export(unwrap_result)]
+    pub fn new_with_error(value: u32) -> Result<Self, String> {
+        if value == 0 {
+            return Err("Constructor failed".to_string());
+        }
+        unsafe {
+            DOG_DATA = Some(RefCell::new(walker::WalkerData::new(0, 0)));
+        }
+        override_generics::init_generic_data(Default::default());
+        Ok(Self {
+            counter_data: RefCell::new(counter::CounterData::new(value)),
+            validator_data: RefCell::new(validator::ValidatorData::new()),
             ref_data: 42,
         })
     }
@@ -73,7 +102,7 @@ impl DemoProgram {
     }
 
     // Exposing another service
-    pub fn counter(&self) -> counter::CounterService<'_> {
+    pub fn counter(&self) -> counter::CounterService<&RefCell<counter::CounterData>> {
         counter::CounterService::new(&self.counter_data)
     }
 
@@ -94,8 +123,20 @@ impl DemoProgram {
         value_fee::FeeService::new(10_000_000_000_000)
     }
 
+    pub fn validator(&self) -> validator::Validator<&RefCell<validator::ValidatorData>> {
+        validator::Validator::new(&self.validator_data)
+    }
+
     pub fn chaos(&self) -> chaos::ChaosService {
         chaos::ChaosService
+    }
+
+    pub fn chain(&self) -> inheritance::ChainService {
+        inheritance::ChainService::new(dog::DogService::new(walker::WalkerService::new(dog_data())))
+    }
+
+    pub fn override_generics(&self) -> override_generics::ChildService<u8> {
+        override_generics::ChildService::new()
     }
 }
 
@@ -117,11 +158,13 @@ mod tests {
         Syscall::with_message_id(MessageId::from(1));
 
         let mut service_exposure = program.value_fee();
-        let (data, value) = service_exposure.do_something_and_take_fee().to_tuple();
+        let (_, value) = service_exposure
+            .do_something_and_take_fee()
+            .unwrap()
+            .to_tuple();
 
         // Assert
-        assert_eq!("ValueFee".encode().as_slice(), service_exposure.route());
-        assert!(data);
+        assert_eq!(6, service_exposure.route_idx());
         assert_eq!(value, message_value - 10_000_000_000_000);
 
         // Next call
@@ -133,7 +176,7 @@ mod tests {
         let data = service_exposure.add(10);
 
         // Assert
-        assert_eq!("Counter".encode().as_slice(), service_exposure.route());
+        assert_eq!(2, service_exposure.route_idx());
         assert_eq!(52, data);
         let events = emitter.take_events();
         assert_eq!(events.len(), 1);

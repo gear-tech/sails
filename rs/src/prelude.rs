@@ -11,10 +11,10 @@ pub use alloc::{
     vec::Vec,
 };
 pub use core::{
-    any, array, ascii, assert_eq, assert_ne, cell, char, clone, cmp, convert, debug_assert,
-    debug_assert_eq, debug_assert_ne, default, future, hash, hint, iter, marker, matches, mem, num,
-    ops, option, panic, pin, prelude::rust_2021::*, primitive, ptr, result, slice, task, time,
-    todo, unimplemented, unreachable, write, writeln,
+    any, array, ascii, assert_eq, assert_ne, cell, char, clone, cmp, convert, convert::Infallible,
+    debug_assert, debug_assert_eq, debug_assert_ne, default, future, hash, hint, iter, marker,
+    matches, mem, num, ops, option, panic, pin, prelude::rust_2024::*, primitive, ptr, result,
+    slice, task, time, todo, unimplemented, unreachable, write, writeln,
 };
 
 /// Collection types.
@@ -46,15 +46,21 @@ pub use crate::gstd::{
     CommandReply, EventEmitter, SailsEvent, Syscall, event, export, program, service,
     services::Exposure as _, services::ExposureWithEvents as _,
 };
+pub use crate::state::{State, StateMut};
 pub use crate::types::*;
 pub use gear_core_errors::{
     self as gear_core_errors, ErrorReplyReason, ReplyCode, SignalCode, SimpleExecutionError,
     SimpleUnavailableActorError, SuccessReplyReason,
 };
+pub use sails_macros::sails_type;
 
 pub use parity_scale_codec::{self as scale_codec, Decode, Encode, EncodeLike, Output};
-pub use scale_info::{self as scale_info, TypeInfo};
+pub use sails_idl_meta::{Identifiable, InterfaceId, MethodMeta};
+pub use sails_reflect_hash::{self as sails_reflect_hash, ReflectHash};
+pub use sails_type_registry::{self as type_info, TypeInfo};
 
+#[cfg(feature = "ethexe")]
+pub use crate::address::Address;
 #[cfg(all(feature = "gstd", feature = "ethexe"))]
 pub use crate::gstd::EthEvent;
 #[cfg(feature = "ethexe")]
@@ -63,7 +69,6 @@ pub use crate::solidity;
 pub use alloy_primitives;
 #[cfg(feature = "ethexe")]
 pub use alloy_sol_types;
-#[cfg(feature = "ethexe")]
 pub use keccak_const;
 
 /// Channels, Streams and Futures extensions types

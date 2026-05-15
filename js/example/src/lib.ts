@@ -192,7 +192,7 @@ export class Counter {
   }
 
   /**
-   * Substract a value from the counter
+   * Subtract a value from the counter
    */
   public sub(value: number): TransactionBuilder<number> {
     if (!this._program.programId) throw new Error('Program ID is not set');

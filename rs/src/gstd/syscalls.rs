@@ -19,79 +19,74 @@ pub struct Syscall;
 
 #[cfg(target_arch = "wasm32")]
 impl Syscall {
-    #[inline(always)]
     pub fn message_id() -> MessageId {
         ::gcore::msg::id()
     }
 
-    #[inline(always)]
     pub fn message_size() -> usize {
         ::gcore::msg::size()
     }
 
-    #[inline(always)]
     pub fn message_source() -> ActorId {
         ::gcore::msg::source()
     }
 
-    #[inline(always)]
-    pub fn message_value() -> u128 {
+    pub fn message_value() -> ValueUnit {
         ::gcore::msg::value()
     }
 
-    #[inline(always)]
     pub fn reply_to() -> Result<MessageId, gcore::errors::Error> {
         ::gcore::msg::reply_to()
     }
 
-    #[inline(always)]
     pub fn reply_code() -> Result<ReplyCode, gcore::errors::Error> {
         ::gcore::msg::reply_code()
     }
 
     #[cfg(not(feature = "ethexe"))]
-    #[inline(always)]
+
     pub fn signal_from() -> Result<MessageId, gcore::errors::Error> {
         ::gcore::msg::signal_from()
     }
 
     #[cfg(not(feature = "ethexe"))]
-    #[inline(always)]
+
     pub fn signal_code() -> Result<Option<SignalCode>, gcore::errors::Error> {
         ::gcore::msg::signal_code()
     }
 
-    #[inline(always)]
     pub fn program_id() -> ActorId {
         ::gcore::exec::program_id()
     }
 
-    #[inline(always)]
     pub fn block_height() -> u32 {
         ::gcore::exec::block_height()
     }
 
-    #[inline(always)]
     pub fn block_timestamp() -> u64 {
         ::gcore::exec::block_timestamp()
     }
 
-    #[inline(always)]
-    pub fn value_available() -> u128 {
+    pub fn value_available() -> ValueUnit {
         ::gcore::exec::value_available()
     }
 
-    #[inline(always)]
+    pub fn gas_available() -> GasUnit {
+        ::gcore::exec::gas_available()
+    }
+
     pub fn env_vars() -> ::gcore::EnvVars {
         ::gcore::exec::env_vars()
     }
 
-    #[inline(always)]
     pub fn exit(inheritor_id: ActorId) -> ! {
         ::gcore::exec::exit(inheritor_id)
     }
 
-    #[inline(always)]
+    pub fn panic(data: &[u8]) -> ! {
+        ::gcore::ext::panic(data)
+    }
+
     pub fn read_bytes() -> Result<Vec<u8>, ::gcore::errors::Error> {
         let mut result = vec![0u8; ::gcore::msg::size()];
         ::gcore::msg::read(result.as_mut())?;
@@ -99,7 +94,7 @@ impl Syscall {
     }
 
     #[cfg(not(feature = "ethexe"))]
-    #[inline(always)]
+
     pub fn system_reserve_gas(amount: GasUnit) -> Result<(), ::gcore::errors::Error> {
         ::gcore::exec::system_reserve_gas(amount)
     }
@@ -129,7 +124,7 @@ syscall_unimplemented!(
     message_id() -> MessageId,
     message_size() -> usize,
     message_source() -> ActorId,
-    message_value() -> u128,
+    message_value() -> ValueUnit,
     reply_to() -> Result<MessageId, gcore::errors::Error>,
     reply_code() -> Result<ReplyCode, gcore::errors::Error>,
     signal_from() -> Result<MessageId, gcore::errors::Error>,
@@ -137,9 +132,11 @@ syscall_unimplemented!(
     program_id() -> ActorId,
     block_height() -> u32,
     block_timestamp() -> u64,
-    value_available() -> u128,
+    value_available() -> ValueUnit,
+    gas_available() -> GasUnit,
     env_vars() -> ::gcore::EnvVars,
     exit(_inheritor_id: ActorId) -> !,
+    panic(_data: &[u8]) -> !,
     read_bytes() -> Result<Vec<u8>, gcore::errors::Error>,
     system_reserve_gas(_amount: GasUnit) -> Result<(), ::gcore::errors::Error>,
 );
@@ -188,7 +185,7 @@ const _: () = {
         message_id() -> MessageId,
         message_size() -> usize,
         message_source() -> ActorId,
-        message_value() -> u128,
+        message_value() -> ValueUnit,
         reply_to() -> Result<MessageId, gcore::errors::Error>,
         reply_code() -> Result<ReplyCode, gcore::errors::Error>,
         signal_from() -> Result<MessageId, gcore::errors::Error>,
@@ -196,7 +193,8 @@ const _: () = {
         program_id() -> ActorId,
         block_height() -> u32,
         block_timestamp() -> u64,
-        value_available() -> u128,
+        value_available() -> ValueUnit,
+        gas_available() -> GasUnit,
         read_bytes() -> Result<Vec<u8>, gcore::errors::Error>,
     );
 
@@ -217,6 +215,7 @@ const _: () = {
                 block_height: 0,
                 block_timestamp: 0,
                 value_available: 0,
+                gas_available: 0,
                 read_bytes: Err(::gcore::errors::Error::SyscallUsage),
             }
         }
@@ -225,15 +224,25 @@ const _: () = {
     impl Syscall {
         pub fn env_vars() -> ::gcore::EnvVars {
             ::gcore::EnvVars {
-                performance_multiplier: gstd::Percent::new(100),
+                performance_multiplier: ::gcore::Percent::new(100),
                 existential_deposit: 1_000_000_000_000,
                 mailbox_threshold: 3000,
-                gas_multiplier: gstd::GasMultiplier::from_value_per_gas(100),
+                gas_multiplier: ::gcore::GasMultiplier::from_value_per_gas(100),
             }
         }
 
         pub fn exit(inheritor_id: ActorId) -> ! {
             panic!("Program exited with inheritor id: {}", inheritor_id);
+        }
+
+        pub fn panic(data: &[u8]) -> ! {
+            if data.starts_with(b"GM") && data.len() >= 16 {
+                let mut payload = &data[16..];
+                if let Ok(s) = <String as parity_scale_codec::Decode>::decode(&mut payload) {
+                    panic!("{}", s);
+                }
+            }
+            panic!("{:?}", data);
         }
 
         #[cfg(not(feature = "ethexe"))]

@@ -2,6 +2,7 @@ import { rmSync } from 'node:fs';
 import commonjs from '@rollup/plugin-commonjs';
 import nodeResolve from '@rollup/plugin-node-resolve';
 import typescript from 'rollup-plugin-typescript2';
+import dts from 'rollup-plugin-dts';
 
 function cleanOldBuild() {
   return {
@@ -14,7 +15,7 @@ function cleanOldBuild() {
 
 export default [
   {
-    input: ['src/index.ts'],
+    input: ['src/index.ts', 'src/parser.ts', 'src/util.ts'],
     output: [
       {
         dir: 'lib',
@@ -30,16 +31,12 @@ export default [
       }),
       nodeResolve({
         preferBuiltins: true,
-        resolveOnly: (module) =>
-          !module.includes('polkadot') &&
-          !module.includes('gear-js/api') &&
-          !module.includes('commander') &&
-          !module.includes('sails-js-parser'),
+        resolveOnly: (module) => !module.includes('polkadot') && !module.includes('gear-js/api'),
       }),
     ],
   },
   {
-    input: 'src/index.ts',
+    input: ['src/index.ts', 'src/parser.ts', 'src/util.ts'],
     output: [
       {
         dir: 'lib/cjs',
@@ -57,10 +54,27 @@ export default [
       }),
       nodeResolve({
         preferBuiltins: true,
-        resolveOnly: (module) =>
-          !module.includes('polkadot') && !module.includes('gear-js/api') && !module.includes('commander'),
+        resolveOnly: (module) => !module.includes('polkadot') && !module.includes('gear-js/api'),
       }),
       commonjs(),
     ],
+  },
+  // --- /parser (types) ---
+  {
+    input: 'node_modules/sails-js-parser-idl-v2/lib/index.d.ts',
+    output: [{ file: 'lib/parser.d.ts', format: 'es' }],
+    plugins: [nodeResolve({ extensions: ['.d.ts', '.ts'] }), dts()],
+  },
+  // --- /types (types) ---
+  {
+    input: 'node_modules/sails-js-types/lib/index.d.ts',
+    output: [{ file: 'lib/types.d.ts', format: 'es' }],
+    plugins: [nodeResolve({ extensions: ['.d.ts', '.ts'] }), dts()],
+  },
+  // --- /util (types) ---
+  {
+    input: 'node_modules/sails-js-util/lib/index.d.ts',
+    output: [{ file: 'lib/util.d.ts', format: 'es' }],
+    plugins: [nodeResolve({ extensions: ['.d.ts', '.ts'] }), dts()],
   },
 ];

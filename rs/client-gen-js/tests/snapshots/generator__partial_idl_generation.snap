@@ -1,0 +1,72 @@
+---
+source: rs/client-gen-js/tests/generator.rs
+expression: generated
+---
+import {GearApi, HexString} from "@gear-js/api";
+import {TransactionBuilderWithHeader, TypeResolver} from "sails-js";
+import {InterfaceId, SailsMessageHeader} from "sails-js-parser-idl-v2";
+
+export class PartialProgram {
+    private _typeResolver: TypeResolver;
+    constructor(
+        public api: GearApi,
+        private _programId?: `0x${string}`,
+    ) {
+        this._typeResolver = new TypeResolver([]);
+    }
+
+    private get registry() {
+        return this._typeResolver.registry;
+    }
+
+    public get programId(): HexString {
+        if (!this._programId) throw new Error("Program ID is not set");
+        return this._programId;
+    }
+
+    public get partialService(): PartialService {
+        return new PartialService(this.api, this.programId, 1);
+    }
+}
+
+export class PartialService {
+    private _typeResolver: TypeResolver;
+    constructor(
+        private _api: GearApi,
+        private _programId: HexString,
+        private _routeIdx: number = 0,
+    ) {
+        this._typeResolver = new TypeResolver([]);
+    }
+    private get registry() {
+        return this._typeResolver.registry;
+    }
+    public get interfaceId(): InterfaceId {
+        return InterfaceId.from("0x1234567890abcdef");
+    }
+    public first(): TransactionBuilderWithHeader<boolean> {
+        return new TransactionBuilderWithHeader<boolean>(
+            this._api,
+            this.registry,
+            "send_message",
+            SailsMessageHeader.v1(this.interfaceId, 5, this._routeIdx),
+            null,
+            null,
+            this._typeResolver.getTypeDeclString("bool"),
+            this._programId,
+        );
+    }
+
+    public second(): TransactionBuilderWithHeader<number> {
+        return new TransactionBuilderWithHeader<number>(
+            this._api,
+            this.registry,
+            "send_message",
+            SailsMessageHeader.v1(this.interfaceId, 0, this._routeIdx),
+            null,
+            null,
+            this._typeResolver.getTypeDeclString("u32"),
+            this._programId,
+        );
+    }
+}

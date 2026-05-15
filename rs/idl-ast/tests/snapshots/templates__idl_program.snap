@@ -1,0 +1,34 @@
+---
+source: rs/idl-meta/tests/templates.rs
+expression: idl
+---
+
+!@sails: 0.1.0
+!@include: ownable.idl
+!@include: git://github.com/some_repo/tippable.idl
+
+/// Demo Program
+program Demo {
+    constructors {
+        /// Program constructor (called once at the very beginning of the program lifetime)
+        Create(counter: Option<u32>, dog_position: Option<(i32, i32)>);
+        /// Another program constructor
+        /// (called once at the very beginning of the program lifetime)
+        Default();
+    }
+    services {
+        Ping,
+        Counter@0x579d6daba41b7d82,
+        /// Another Counter service
+        Counter@0x579d6daba41b7d82: Counter2,
+    }
+    types {
+        struct DoThatParam {
+            p1: u32,
+            p2: ActorId,
+            p3: ManyVariants,
+        }
+        struct TupleStruct(u32);
+        struct UnitStruct;
+    }
+}

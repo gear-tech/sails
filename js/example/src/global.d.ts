@@ -9,7 +9,7 @@ declare global {
     p3: ManyVariants;
   }
 
-  export type ManyVariants = 
+  export type ManyVariants =
     | { One: null }
     | { Two: number }
     | { Three: number | string | bigint | null }
@@ -17,7 +17,7 @@ declare global {
     | { Five: [string, H256] }
     | { Six: [number] };
 
-  export type ManyVariantsReply = "One" | "Two" | "Three" | "Four" | "Five" | "Six";
+  export type ManyVariantsReply = 'One' | 'Two' | 'Three' | 'Four' | 'Five' | 'Six';
 
   export type TupleStruct = [boolean];
-};
+}

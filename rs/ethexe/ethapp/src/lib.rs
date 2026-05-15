@@ -10,6 +10,11 @@ impl MyProgram {
         MyProgram
     }
 
+    #[export(payable)]
+    pub fn create_payable() -> Self {
+        MyProgram
+    }
+
     pub fn svc1(&self) -> SomeService {
         SomeService
     }
@@ -24,8 +29,13 @@ impl SomeService {
         p1
     }
 
+    #[export(payable)]
+    pub fn do_this_payable(&mut self, p1: u32) -> u32 {
+        p1
+    }
+
     #[export]
-    pub fn this(&self, p1: bool) -> bool {
+    pub fn this(&self, p1: ActorId) -> ActorId {
         p1
     }
 }

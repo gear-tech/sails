@@ -112,9 +112,16 @@ fn test_multiple_services() {
 
 #[test]
 fn test_rmrk_works() {
-    let idl = include_str!("../../../examples/rmrk/catalog/wasm/rmrk-catalog.idl");
+    let idl = include_str!("idls/rmrk-catalog.idl");
 
     insta::assert_snapshot!(gen_client(idl, "RmrkCatalog"));
+}
+
+#[test]
+fn test_demo_works() {
+    let idl = include_str!("idls/demo.idl");
+
+    insta::assert_snapshot!(gen_client(idl, "Demo"));
 }
 
 #[test]
@@ -199,7 +206,7 @@ fn full_with_sails_path() {
         service Counter {
             /// Add a value to the counter
             Add : (value: u32) -> u32;
-            /// Substract a value from the counter
+            /// Subtract a value from the counter
             Sub : (value: u32) -> u32;
             /// Get the current value
             query Value : () -> u32;

@@ -1,0 +1,97 @@
+!@sails_version: "2.0"
+
+/// 1. Program
+@program_ann
+program CoverageProgram {
+    constructors {
+        /// 1. Ctor
+        @ctor_ann
+        New();
+    }
+    services {
+        /// 1. Program Service Item
+        @item_ann
+        CoverageService: Impl, // 2. Program Service Item
+        OtherService
+    }
+    types {
+    }
+}
+
+/// 1. Service
+@service_ann
+service CoverageService {
+    extends { OtherService } // 1. Extends
+
+    events {
+        /// 1. Event (Unit)
+        @event_ann
+        UnitEvent,
+        /// 2. Event (Tuple)
+        TupleEvent(u32),
+        /// 3. Event (Struct)
+        StructEvent { f: bool }
+    }
+
+    functions {
+        /// 1. Function
+        @func_ann
+        DoWork(p1: u8) -> bool throws string;
+
+        /// 2. Function (Query)
+        @query
+        GetValue() -> u32;
+    }
+
+    types {
+        /// 1. Struct (Named fields)
+        @struct_ann
+        struct CoverageStruct {
+            /// 1. Field
+            @field_ann
+            field1: u8,
+            field2: bool
+        }
+
+        /// 2. Struct (Tuple)
+        struct CoverageTupleStruct(u16);
+
+        /// 3. Struct (Unit)
+        struct CoverageUnitStruct;
+
+        /// 1. Enum
+        @enum_ann
+        enum CoverageEnum {
+            /// 1. Variant (Unit)
+            @variant_ann
+            UnitVariant,
+            /// 2. Variant (Tuple)
+            TupleVariant(u32),
+            /// 3. Variant (Struct)
+            StructVariant { f: bool }
+        }
+
+        /// 4. Struct (Generic)
+        struct GenericStruct<T> { // 1. Type Parameter
+            field: T
+        }
+
+        // 5. Struct (for testing all TypeDecls)
+        struct TypeDeclContainer {
+            f_slice: [u8],
+            f_array: [u16; 4],
+            f_tuple: (u32, string),
+            f_option: Option<u64>,
+            f_result: Result<u128, string>,
+            f_primitive: i8,
+            f_path: CoverageStruct,
+            f_path_generic: GenericStruct<i16>,
+            f_void: ()
+        }
+    }
+}
+
+// 2. Service (for extends)
+service OtherService {
+    functions { Pause(); }
+}

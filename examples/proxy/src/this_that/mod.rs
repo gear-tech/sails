@@ -1,7 +1,11 @@
-use demo_client::{this_that::ThisThat, *};
+use demo_client::{
+    this_that::*,
+    this_that::{ThisThat, ThisThatImpl},
+};
 use sails_rename::{client::*, gstd::Syscall, prelude::*};
+
 #[derive(Clone)]
-pub struct ThisThatCaller<ThisThatClient> {
+pub struct ThisThatCaller<ThisThatClient = Service<ThisThatImpl, GstdEnv>> {
     this_that: ThisThatClient,
 }
 impl<ThisThatClient> ThisThatCaller<ThisThatClient>
@@ -47,7 +51,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use demo_client::mockall::MockThisThat;
+    use demo_client::this_that::mockall::MockThisThat;
     use sails_rename::{client::PendingCall, gstd::services::Service};
 
     #[tokio::test]
@@ -62,7 +66,7 @@ mod tests {
             .returning(|| PendingCall::from_output(42));
 
         // act
-        let this_that_caller = ThisThatCaller::new(mock_this_that).expose(&[]);
+        let this_that_caller = ThisThatCaller::new(mock_this_that).expose(1);
         let resp = this_that_caller.query_this(ACTOR_ID.into()).await;
 
         // assert
@@ -81,7 +85,7 @@ mod tests {
             .returning(move |p1, p2, _p3, _p4| PendingCall::from_output((p2.clone(), p1)));
 
         // act
-        let mut this_that_caller = ThisThatCaller::new(mock_this_that).expose(&[]);
+        let mut this_that_caller = ThisThatCaller::new(mock_this_that).expose(1);
         let resp = this_that_caller
             .call_do_this(
                 42,
@@ -106,7 +110,7 @@ mod tests {
         let mock_this_that = MockThisThat::new();
 
         // act
-        let mut this_that_caller = ThisThatCaller::new(mock_this_that).expose(&[]);
+        let mut this_that_caller = ThisThatCaller::new(mock_this_that).expose(1);
         _ = this_that_caller
             .call_do_this(
                 42,

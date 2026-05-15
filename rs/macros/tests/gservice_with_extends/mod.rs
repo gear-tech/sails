@@ -14,12 +14,12 @@ pub(super) mod base {
     impl Base {
         #[export]
         pub fn base_name(&self) -> String {
-            "base-name".to_string()
+            BASE_NAME_RESULT.to_string()
         }
 
         #[export]
         pub fn name(&self) -> String {
-            "base".to_string()
+            NAME_RESULT.to_string()
         }
     }
 }
@@ -44,12 +44,12 @@ pub(super) mod extended {
     impl Extended {
         #[export]
         pub fn extended_name(&self) -> String {
-            "extended-name".to_string()
+            EXTENDED_NAME_RESULT.to_string()
         }
 
         #[export]
         pub fn name(&self) -> String {
-            "extended".to_string()
+            NAME_RESULT.to_string()
         }
     }
 
@@ -79,6 +79,49 @@ pub(super) mod extended_pure {
     impl From<ExtendedPure> for base::Base {
         fn from(value: ExtendedPure) -> Self {
             value.base
+        }
+    }
+}
+
+pub(super) mod extended_renamed {
+    use super::{base::Base as RenamedBase, *};
+
+    pub struct ExtendedRenamed {
+        base: (RenamedBase, other_base::Base),
+    }
+
+    impl ExtendedRenamed {
+        pub fn new(base: (RenamedBase, other_base::Base)) -> Self {
+            Self { base }
+        }
+    }
+
+    #[service(extends = [RenamedBase, other_base::Base])]
+    impl ExtendedRenamed {}
+
+    impl From<ExtendedRenamed> for RenamedBase {
+        fn from(value: ExtendedRenamed) -> Self {
+            value.base.0
+        }
+    }
+
+    impl From<ExtendedRenamed> for other_base::Base {
+        fn from(value: ExtendedRenamed) -> Self {
+            value.base.1
+        }
+    }
+}
+
+pub(super) mod other_base {
+    use super::*;
+
+    pub struct Base;
+
+    #[service]
+    impl Base {
+        #[export]
+        pub fn other_base_name(&self) -> String {
+            "other-base-name".to_string()
         }
     }
 }

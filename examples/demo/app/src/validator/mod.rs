@@ -1,0 +1,75 @@
+use sails_rs::{cell::RefCell, prelude::*};
+
+#[derive(Default)]
+pub struct ValidatorData {
+    pub total_errors: u32,
+}
+
+impl ValidatorData {
+    pub fn new() -> Self {
+        Self { total_errors: 0 }
+    }
+}
+
+pub struct Validator<S: StateMut<Item = ValidatorData, Error = Infallible> = RefCell<ValidatorData>>
+{
+    data: S,
+}
+
+impl<S: StateMut<Item = ValidatorData, Error = Infallible>> Validator<S> {
+    pub fn new(data: S) -> Self {
+        Self { data }
+    }
+}
+
+#[sails_type]
+#[derive(Debug)]
+pub enum ValidationError {
+    TooSmall,
+    TooBig,
+}
+
+#[service]
+impl<S: StateMut<Item = ValidatorData, Error = Infallible>> Validator<S> {
+    #[export(unwrap_result)]
+    pub fn validate_range(
+        &mut self,
+        value: u32,
+        min: u32,
+        max: u32,
+    ) -> Result<u32, ValidationError> {
+        if value < min {
+            self.data.get_mut().total_errors += 1;
+            Err(ValidationError::TooSmall)
+        } else if value > max {
+            self.data.get_mut().total_errors += 1;
+            Err(ValidationError::TooBig)
+        } else {
+            Ok(value)
+        }
+    }
+
+    #[export(unwrap_result)]
+    pub fn validate_nonzero(&mut self, value: u32) -> Result<(), String> {
+        if value == 0 {
+            self.data.get_mut().total_errors += 1;
+            Err("Value is zero".to_string())
+        } else {
+            Ok(())
+        }
+    }
+
+    #[export(unwrap_result)]
+    pub fn validate_even(&self, value: u32) -> Result<u32, ()> {
+        if !value.is_multiple_of(2) {
+            Err(())
+        } else {
+            Ok(value)
+        }
+    }
+
+    #[export]
+    pub fn total_errors(&self) -> u32 {
+        self.data.get().total_errors
+    }
+}

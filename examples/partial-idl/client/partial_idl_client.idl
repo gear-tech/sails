@@ -1,0 +1,24 @@
+!@sails: 1.0.0-beta.1
+
+@partial
+service PartialIdlService@0x6f9649495e041ebc {
+    events {
+        @entry_id: 2
+        ThirdDone(String);
+    }
+    functions {
+        @entry_id: 1
+        Second(val: u32) -> u32;
+        @entry_id: 2
+        Third() -> String;
+    }
+}
+
+program PartialIdlClient {
+    constructors {
+        New();
+    }
+    services {
+        PartialIdlService@0x6f9649495e041ebc,
+    }
+}

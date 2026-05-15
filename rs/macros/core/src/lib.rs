@@ -21,11 +21,13 @@
 pub use event::{derive_sails_event, event};
 pub use export::export;
 pub use program::{__gprogram_internal, gprogram};
+pub use sails_type::sails_type;
 pub use service::{__gservice_internal, gservice};
 
 mod event;
 mod export;
 mod program;
 mod sails_paths;
+mod sails_type;
 mod service;
 mod shared;

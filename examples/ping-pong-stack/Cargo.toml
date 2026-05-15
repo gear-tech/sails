@@ -10,5 +10,5 @@ sails-rs.workspace = true
 sails-rs = { workspace = true, features = ["build"] }
 
 [dev-dependencies]
-sails-rs = { workspace = true, features = ["gtest"] }
+sails-rs = { workspace = true, features = ["gtest", "debug"] }
 tokio = { workspace = true, features = ["rt", "macros"] }

@@ -7,7 +7,7 @@ use crate::events_generator::EventsModuleGenerator;
 use crate::helpers::*;
 use crate::type_generators::generate_type_decl_with_path;
 
-/// Generates a trait with service methods
+/// Generates a trait with service methods (top-level program trait).
 pub(crate) struct ServiceCtorGenerator<'a> {
     service_name: &'a str,
     sails_path: &'a str,
@@ -34,17 +34,17 @@ impl<'ast> Visitor<'ast> for ServiceCtorGenerator<'_> {
     fn visit_service(&mut self, _service: &'ast Service) {
         let service_name_snake = &self.service_name.to_case(Case::Snake);
         quote_in!(self.trait_tokens =>
-            fn $service_name_snake(&self) -> $(self.sails_path)::client::Service<$service_name_snake::$(self.service_name)Impl, Self::Env>;
+            fn $service_name_snake(&self) -> $(self.sails_path)::client::Service<$service_name_snake::$(self.service_name)Impl, Self::Env, $(self.sails_path)::client::RouteName>;
         );
         quote_in!(self.impl_tokens =>
-            fn $service_name_snake(&self) -> $(self.sails_path)::client::Service<$service_name_snake::$(self.service_name)Impl, Self::Env> {
-                self.service(stringify!($(self.service_name)))
+            fn $service_name_snake(&self) -> $(self.sails_path)::client::Service<$service_name_snake::$(self.service_name)Impl, Self::Env, $(self.sails_path)::client::RouteName> {
+                self.service_v1(stringify!($(self.service_name)))
             }
         );
     }
 }
 
-/// Generates a service module with trait and struct implementation
+/// Generates a service module with trait and struct implementation.
 pub(crate) struct ServiceGenerator<'a> {
     service_name: &'a str,
     sails_path: &'a str,
@@ -80,7 +80,7 @@ impl<'a> ServiceGenerator<'a> {
 
                 pub struct $(self.service_name)Impl;
 
-                impl<E: $(self.sails_path)::client::GearEnv> $(self.service_name) for $(self.sails_path)::client::Service<$(self.service_name)Impl, E> {
+                impl<E: $(self.sails_path)::client::GearEnv> $(self.service_name) for $(self.sails_path)::client::Service<$(self.service_name)Impl, E, $(self.sails_path)::client::RouteName> {
                     type Env = E;
                     $(self.impl_tokens)
                 }
@@ -97,7 +97,6 @@ impl<'a> ServiceGenerator<'a> {
     }
 }
 
-// using quote_in instead of tokens.append
 impl<'ast> Visitor<'ast> for ServiceGenerator<'_> {
     fn visit_service(&mut self, service: &'ast Service) {
         visitor::accept_service(service, self);
@@ -123,11 +122,13 @@ impl<'ast> Visitor<'ast> for ServiceGenerator<'_> {
             };
         }
         quote_in! { self.trait_tokens =>
-            $['\r'] fn $fn_name_snake (&$mutability self, $params_with_types) -> $(self.sails_path)::client::PendingCall<io::$fn_name, Self::Env>;
+            $['\r'] fn $fn_name_snake (&$mutability self, $params_with_types)
+                -> $(self.sails_path)::client::PendingCall<io::$fn_name, Self::Env>;
         };
 
-        quote_in! {self.impl_tokens =>
-            $['\r'] fn $fn_name_snake (&$mutability self, $params_with_types) -> $(self.sails_path)::client::PendingCall<io::$fn_name, Self::Env> {
+        quote_in! { self.impl_tokens =>
+            $['\r'] fn $fn_name_snake (&$mutability self, $params_with_types)
+                -> $(self.sails_path)::client::PendingCall<io::$fn_name, Self::Env> {
                 self.pending_call($args)
             }
         };
@@ -135,7 +136,7 @@ impl<'ast> Visitor<'ast> for ServiceGenerator<'_> {
         let output_type_decl_code = generate_type_decl_with_path(func.output(), "super".to_owned());
         let params_with_types_super = &fn_args_with_types_path(func.params(), "super");
         quote_in! { self.io_tokens =>
-            $(self.sails_path)::io_struct_impl!($fn_name ($params_with_types_super) -> $output_type_decl_code);
+            $(self.sails_path)::io_struct_impl_v1!($fn_name ($params_with_types_super) -> $output_type_decl_code);
         };
     }
 }

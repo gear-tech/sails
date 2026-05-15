@@ -1,0 +1,5 @@
+error: `export` attribute cannot be parsed: `payable` requires `ethabi` transport; write `#[export(ethabi, payable)]` or `#[export(scale, ethabi, payable)]`
+ --> tests/ui/validation_gservice_fails_export_payable_without_ethabi.rs:7:21
+  |
+7 |     #[export(scale, payable)]
+  |                     ^^^^^^^

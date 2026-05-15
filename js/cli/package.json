@@ -12,7 +12,7 @@
   "homepage": "https://github.com/gear-tech/sails/tree/master/js#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://githib.com/gear-tech/sails.git",
+    "url": "git+https://github.com/gear-tech/sails.git",
     "directory": "js/cli"
   },
   "keywords": [
@@ -23,11 +23,11 @@
     "sails-js": "./build/app.js"
   },
   "devDependencies": {
-    "@inquirer/prompts": "^7.8.4",
-    "@types/node": "^24.7.2",
-    "commander": "^14.0.0",
-    "inquirer": "^12.9.4",
-    "jest": "^30.2.0",
+    "@inquirer/prompts": "^8.4.1",
+    "@types/node": "^25.6.0",
+    "commander": "^14.0.3",
+    "inquirer": "^13.4.1",
+    "jest": "^30.3.0",
     "sails-js": "workspace:*",
     "sails-js-parser": "workspace:*",
     "sails-js-util": "workspace:*"

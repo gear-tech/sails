@@ -4,9 +4,9 @@ expression: result
 ---
 pub enum Events {
     MyEvent1 {
-        /// #[indexed]
+        #[annotate(indexed)]
         sender: u128,
-        /// #[indexed]
+        #[annotate(indexed)]
         amount: u128,
         note: String,
     },
@@ -25,6 +25,13 @@ impl sails_rename::SailsEvent for Events {
             Events::MyEvent3 => {
                 &[32u8, 77u8, 121u8, 69u8, 118u8, 101u8, 110u8, 116u8, 51u8]
             }
+        }
+    }
+    fn entry_id(&self) -> u16 {
+        match self {
+            Events::MyEvent1 { .. } => 0u16,
+            Events::MyEvent2(..) => 1u16,
+            Events::MyEvent3 => 2u16,
         }
     }
     fn skip_bytes() -> usize {
@@ -83,7 +90,7 @@ impl sails_rename::EthEvent for Events {
                 .finalize(),
         ),
     ];
-    #[allow(unused_variables)]
+    #[allow(unused)]
     fn topics(&self) -> sails_rename::Vec<sails_rename::alloy_primitives::B256> {
         match self {
             Events::MyEvent1 { sender, amount, note } => {
@@ -108,7 +115,7 @@ impl sails_rename::EthEvent for Events {
             }
         }
     }
-    #[allow(unused_variables)]
+    #[allow(unused)]
     fn data(&self) -> sails_rename::Vec<u8> {
         match self {
             Events::MyEvent1 { sender, amount, note } => Self::encode_sequence(&(note,)),

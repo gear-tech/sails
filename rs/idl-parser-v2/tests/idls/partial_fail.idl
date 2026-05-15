@@ -1,0 +1,7 @@
+@partial
+service Canvas {
+  functions {
+    @entry_id: 0
+    PointStatus() -> bool;
+  }
+}

@@ -97,7 +97,6 @@ impl<'t> ReferenceService<'t> {
     }
 }
 
-#[derive(Debug, Encode, Decode, TypeInfo)]
-#[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
+#[sails_type]
+#[derive(Debug)]
 pub struct ReferenceCount(u32);

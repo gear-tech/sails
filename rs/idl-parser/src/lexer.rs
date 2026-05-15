@@ -90,10 +90,10 @@ pub(crate) enum Token {
     Id(String),
     #[regex(r"[0-9]+", |lex| lex.slice().parse().ok())]
     Num(u32),
-    #[regex(r"///[^\n]*", |lex| lex.slice().trim_start_matches('/').trim().to_string())]
+    #[regex(r"///[^\n]*", |lex| lex.slice().trim_start_matches('/').trim().to_string(), allow_greedy = true)]
     Doc(String),
     // Skip the rest of the line after //
-    #[regex(r"//[^\n]*", logos::skip)]
+    #[regex(r"//[^\n]*", logos::skip, allow_greedy = true)]
     Comment,
 }
 

@@ -7,9 +7,6 @@ This directory contains libraries for interacting with programs built using the 
 
 [`sails-js-parser`](./parser/README.md) - Parser library for IDL files, used to generate AST (utilized by the other two libraries).
 
-[`sails-js-types`](./types/README.md) - Library with types used across libraries.
-
-[`sails-js-util`](./util/README.md) - Utility functions used across libraries.
 
 # Installation
 
@@ -19,6 +16,10 @@ To install sails-js, run the following command:
 ```bash
 npm install sails-js
 ```
+
+# IDL v2
+
+Sails IDL v2 is now the recommended format for new projects. The legacy IDL format and the `sails-js-parser` package are deprecated and will be removed in a future release. For new projects, use `sails-js` and follow the IDL v2 usage guide: [IDL v2 usage](./READMEV2.md).
 
 # Usage
 
@@ -57,7 +58,7 @@ The key of the object is the name of the constructor and the value is an object 
   args: Array<{name: string, type: string}>, // array of arguments with their names and scale codec types
   encodePayload: (...args: any): HexString, // function to encode the payload
   decodePayload: (bytes: HexString): any, // function to decode the payload
-  fromCode: (code: Uint8Array | Buffer, ...args: unkonwn[]): TransactionBuilder, // function to create a transaction builder to deploy the program using code bytes
+  fromCode: (code: Uint8Array | Buffer, ...args: unknown[]): TransactionBuilder, // function to create a transaction builder to deploy the program using code bytes
   fromCodeId: (codeId: string, ...args: unknown[]): TransactionBuilder // function to create a transaction builder to deploy the program using code id
 }
 ```
@@ -207,6 +208,26 @@ Use `sails.services.ServiceName.functions.FunctionName.encodePayload` method of 
 ```javascript
 const payload = sails.services.ServiceName.functions.FunctionName.encodePayload(arg1, arg2);
 ```
+
+### Subpath exports
+
+In addition to the root `sails-js` entry, the package exposes a few subpath exports:
+
+```javascript
+// Shared TypeScript interfaces for parsed IDL types
+// (e.g. ISailsTypeDef, ISailsPrimitiveDef, ISailsStructDef, ISailsEnumDef, ...)
+import type { ISailsTypeDef, ISailsPrimitiveDef } from 'sails-js/types';
+
+// Utility helpers (getScaleCodecDef, getPayloadMethod, ...)
+import { getScaleCodecDef } from 'sails-js/util';
+
+// IDL v2 parser (only relevant if you're using `SailsProgram` / IDL v2 —
+// see READMEV2.md). For v1 IDLs, use the standalone `sails-js-parser`
+// package imported at the top of this README.
+import { SailsIdlParser } from 'sails-js/parser';
+```
+
+The `sails-js/types` subpath is useful for tooling that walks IDL type graphs (form renderers, custom decoders, IDE plugins) — the accessor interfaces (`isVec`/`asVec`, `isStruct`/`asStruct`, ...) are defined there and avoid the need for `any` casts on `TypeDef`/`PrimitiveDef` instances from `sails-js-parser`.
 
 
 ## Transaction builder

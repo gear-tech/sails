@@ -1,27 +1,27 @@
-name: '[rs] CI'
+name: "[rs] CI"
 
 on:
   push:
     branches: [master]
     paths:
-      - '.cargo/**'
-      - '.github/workflows/rs-*.yml' # No biggie to trigger this on changes in rs-release.yml
-      - 'examples/**'
-      - 'rs/**'
-      - 'templates/**'
-      - 'Cargo.lock'
-      - 'Cargo.toml'
-      - 'rust-toolchain.toml'
+      - ".cargo/**"
+      - ".github/workflows/rs-*.yml" # No biggie to trigger this on changes in rs-release.yml
+      - "examples/**"
+      - "rs/**"
+      - "templates/**"
+      - "Cargo.lock"
+      - "Cargo.toml"
+      - "rust-toolchain.toml"
   pull_request:
     paths:
-      - '.cargo/**'
-      - '.github/workflows/rs-*.yml' # No biggie to trigger this on changes in rs-release.yml
-      - 'examples/**'
-      - 'rs/**'
-      - 'templates/**'
-      - 'Cargo.lock'
-      - 'Cargo.toml'
-      - 'rust-toolchain.toml'
+      - ".cargo/**"
+      - ".github/workflows/rs-*.yml" # No biggie to trigger this on changes in rs-release.yml
+      - "examples/**"
+      - "rs/**"
+      - "templates/**"
+      - "Cargo.lock"
+      - "Cargo.toml"
+      - "rust-toolchain.toml"
   workflow_dispatch:
 
 concurrency:
@@ -39,7 +39,7 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Free Disk Space
         uses: ./.github/actions/free-disk-space
@@ -66,7 +66,7 @@ jobs:
     name: Run Workflow Tests
     uses: ./.github/workflows/rs-run-ws-tests.yml
     with:
-      gear_node_version: 1.9.0
+      gear_node_version: 1.10.0
 
   test-cli:
     name: Run CLI Tests

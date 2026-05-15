@@ -1,5 +1,32 @@
 # CHANGELOG
 
+## Unreleased
+
+- Fixed: every decode entry point on `Sails` (v1) and `SailsProgram` (v2) now
+  validates the reply prefix. In v2 `decodeResult` now calls `_assertMatchingHeader`
+  like the other decode methods. In v1 — where `decodePayload` (function and
+  constructor), `decodeResult`, and `event.decode` all previously skipped the
+  prefix check — each now verifies the `(service, function)` / `(service, event)` /
+  constructor name prefix against the method's identity, and surfaces a single
+  consistent `Invalid prefix for …` error on both mismatched and truncated bytes.
+- Documented the `sails-js/types`, `sails-js/parser`, and `sails-js/util` subpath
+  exports in the README, which re-export types from the internal `sails-js-types`,
+  `sails-js-parser-idl-v2`, and `sails-js-util` packages.
+- Added: `SailsProgram.programTypes` and `SailsService.types` — public
+  `ReadonlyMap<string, Type>` accessors for the user types declared in the v2
+  IDL's `program {…}` block and in each service's own `types {…}` block.
+  `SailsService.types` is declared-only; for the merged extends-chain scope use
+  `program.resolveInService` or walk `service.extends`. Both maps are empty
+  when the corresponding IDL block is absent. Treat as immutable: the type
+  blocks `.set()` at compile time, runtime is not enforced.
+- Added: top-level `sails-js` entry now re-exports the v2 IDL AST typings
+  (`Type`, `TypeDecl`, `ITypeStruct`, `ITypeEnum`, `ITypeAlias`, `IIdlDoc`,
+  `IServiceUnit`, etc.) so consumers can `import type { Type } from 'sails-js'`
+  without reaching for the `sails-js/types` subpath. The re-export resolves
+  to the bundled `lib/types.d.ts` (which already inlines `sails-js-types`
+  via the rollup `dts` step), so consumers do not need `sails-js-types` —
+  a private workspace package — installed.
+
 ## 0.5.1
 
 - Fixed: generation correct TransactionBuilder constructor calls (https://github.com/gear-tech/sails/pull/1070).

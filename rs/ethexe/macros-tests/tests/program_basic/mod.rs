@@ -7,6 +7,7 @@ pub(super) struct MyProgram {
 
 #[program]
 impl MyProgram {
+    #[export(route = "create")]
     pub fn new(counter: i32) -> Self {
         Self { counter }
     }

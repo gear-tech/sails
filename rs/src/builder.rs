@@ -1,13 +1,12 @@
 use convert_case::{Case, Casing};
 use core::marker::PhantomData;
-pub use sails_client_gen::{ClientGenerator, IdlPath};
+pub use sails_client_gen_v2::{ClientGenerator, IdlPath};
 use sails_idl_meta::ProgramMeta;
 use std::{
     env,
     ffi::OsStr,
     path::{Path, PathBuf},
     string::{String, ToString},
-    vec::Vec,
 };
 
 /// Shorthand function to be used in `build.rs`.
@@ -15,7 +14,7 @@ use std::{
 /// See [Builder::build()].
 ///
 /// Code
-/// ```rust
+/// ```rust,ignore
 /// use std::{env, path::PathBuf};
 ///
 /// let out_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
@@ -45,11 +44,12 @@ pub fn build_client_as_lib<P: ProgramMeta>() -> (Option<PathBuf>, Option<PathBuf
 /// Program IDL and client builder.
 ///
 /// This struct uses `sails-idl-gen` package to generate IDL,
-/// and `sails-client-gen` package to generate Rust client code.
+/// and `sails-client-gen-v2` package to generate Rust client code.
 #[derive(Debug, Clone)]
 pub struct ClientBuilder<P> {
     idl_path: Option<PathBuf>,
     client_path: Option<PathBuf>,
+    wasm_path: Option<PathBuf>,
     program_name: String,
     no_std: bool,
     _marker: PhantomData<P>,
@@ -81,6 +81,7 @@ impl<P: ProgramMeta> ClientBuilder<P> {
                     .join(&program_name)
                     .with_extension("rs"),
             ),
+            wasm_path: None,
             program_name,
             no_std: false,
             _marker: Default::default(),
@@ -93,11 +94,15 @@ impl<P: ProgramMeta> ClientBuilder<P> {
             .file_name()
             .expect("Invalid path to wasm")
             .to_string_lossy()
+            .split('.')
+            .next()
+            .expect("path file_name must have at least one segment before a dot")
             .to_string();
 
         Self {
-            idl_path: Some(path.with_extension("idl")),
-            client_path: Some(path.with_extension("rs")),
+            idl_path: Some(path.with_file_name(&program_name).with_extension("idl")),
+            client_path: Some(path.with_file_name(&program_name).with_extension("rs")),
+            wasm_path: Some(path.to_path_buf()),
             program_name,
             no_std: false,
             _marker: Default::default(),
@@ -108,6 +113,7 @@ impl<P: ProgramMeta> ClientBuilder<P> {
         Self {
             idl_path: None,
             client_path: None,
+            wasm_path: None,
             program_name,
             no_std: false,
             _marker: Default::default(),
@@ -146,7 +152,7 @@ impl<P: ProgramMeta> ClientBuilder<P> {
 
     pub fn with_program_name(self, program_name: &str) -> Self {
         Self {
-            program_name: program_name.to_string(),
+            program_name: program_name.to_case(Case::Snake),
             ..self
         }
     }
@@ -163,27 +169,44 @@ impl<P: ProgramMeta> ClientBuilder<P> {
 
     /// Build the program IDL.
     ///
+    /// If a WASM path is set (via [`from_wasm_path`]), also embeds the IDL
+    /// into the WASM binary as a `sails:idl` custom section.
+    /// Set `SAILS_NO_EMBED_IDL=1` to disable embedding.
+    ///
     /// Returns client code generator.
     pub fn build_idl<'a>(&'a self) -> ClientGenerator<'a, IdlPath<'a>> {
+        let program_name = self.program_name.to_case(Case::Pascal);
         let idl_path = self.idl_path.as_ref().expect("idl path not set");
         let client_path = self.client_path.as_ref().expect("client path not set");
         // Generate IDL file for the program
-        sails_idl_gen::generate_idl_to_file::<P>(idl_path.as_path())
+        sails_idl_gen::generate_idl_to_file::<P>(Some(program_name.as_str()), idl_path.as_path())
             .expect("Error generating IDL from program");
+
+        self.try_embed_idl(idl_path);
 
         ClientGenerator::from_idl_path(idl_path.as_path()).with_client_path(client_path.as_path())
     }
 
     /// Build the program IDL and generate client code.
     ///
+    /// If a WASM path is set (via [`from_wasm_path`]), also embeds the IDL
+    /// into the WASM binary as a `sails:idl` custom section.
+    /// Set `SAILS_NO_EMBED_IDL=1` to disable embedding.
+    ///
     /// Returns `(Option<PathBuf>, Option<PathBuf>)` where
     /// - first `Option<PathBuf>` is path to the IDL file if generated.
     /// - second `Option<PathBuf>` is path to the client file if generated.
     pub fn build(self) -> (Option<PathBuf>, Option<PathBuf>) {
+        let program_name = self.program_name.to_case(Case::Pascal);
         if let Some(idl_path) = self.idl_path.as_ref() {
             // Generate IDL file for the program
-            sails_idl_gen::generate_idl_to_file::<P>(idl_path.as_path())
-                .expect("Error generating IDL from program");
+            sails_idl_gen::generate_idl_to_file::<P>(
+                Some(program_name.as_str()),
+                idl_path.as_path(),
+            )
+            .expect("Error generating IDL from program");
+
+            self.try_embed_idl(idl_path);
 
             if let Some(client_path) = self.client_path.as_ref() {
                 // Generate client code from IDL file
@@ -194,39 +217,71 @@ impl<P: ProgramMeta> ClientBuilder<P> {
             }
         } else if let Some(client_path) = self.client_path.as_ref() {
             // Generate IDL string for the program
-            let mut idl = Vec::new();
-            sails_idl_gen::generate_idl::<P>(&mut idl).expect("Error generating IDL from program");
-            let idl = String::from_utf8(idl).unwrap();
+            let mut idl = String::new();
+            sails_idl_gen::generate_idl::<P>(Some(program_name.as_str()), &mut idl)
+                .expect("Error generating IDL from program");
 
             // Generate client code from IDL string
             ClientGenerator::from_idl(&idl)
                 .with_no_std(self.no_std)
-                .generate_to(
-                    self.program_name.to_case(Case::Pascal).as_str(),
-                    client_path.as_path(),
-                )
+                .generate_to(client_path.as_path())
                 .expect("Error generating client from IDL");
         }
 
         (self.idl_path, self.client_path)
     }
+
+    /// Try to embed IDL into the WASM binary. Warns on failure but does not
+    /// abort the build.
+    #[cfg(feature = "idl-embed")]
+    fn try_embed_idl(&self, idl_path: &Path) {
+        if env::var("SAILS_NO_EMBED_IDL")
+            .ok()
+            .is_some_and(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+        {
+            return;
+        }
+        let Some(wasm_path) = self.wasm_path.as_ref() else {
+            return;
+        };
+        let idl = match std::fs::read_to_string(idl_path) {
+            Ok(idl) => idl,
+            Err(e) => {
+                std::eprintln!("cargo::warning=Failed to read IDL for embedding: {e}");
+                return;
+            }
+        };
+        match sails_idl_embed::embed_idl_to_file(wasm_path, &idl) {
+            Ok(()) => {
+                let raw_size = idl.len();
+                let wasm_size = std::fs::metadata(wasm_path).map(|m| m.len()).unwrap_or(0);
+                std::eprintln!(
+                    "Embedded IDL in WASM ({raw_size} bytes IDL, {wasm_size} bytes WASM total)"
+                );
+            }
+            Err(e) => {
+                std::eprintln!("cargo::warning=Failed to embed IDL in WASM: {e}");
+            }
+        }
+    }
+
+    #[cfg(not(feature = "idl-embed"))]
+    fn try_embed_idl(&self, _idl_path: &Path) {}
 }
 
 #[cfg(test)]
 mod tests {
-    use gstd::TypeInfo;
-
     use super::*;
 
     struct P;
 
-    #[derive(TypeInfo)]
-    #[scale_info(crate = crate::scale_info)]
+    #[derive(crate::TypeInfo)]
+    #[type_info(crate = crate::type_info)]
     struct Meta;
 
     impl ProgramMeta for P {
         type ConstructorsMeta = Meta;
-        const SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] = &[];
+        const SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMeta)] = &[];
         const ASYNC: bool = false;
     }
 
@@ -244,5 +299,18 @@ mod tests {
         assert!(idl_path.is_some());
         assert!(client_path.unwrap().ends_with("src/sails_rs.rs"));
         assert!(idl_path.unwrap().ends_with("sails_rs.idl"));
+    }
+
+    #[test]
+    fn from_wasm_path_strips_extensions() {
+        let path = "target/release/foo.opt.wasm";
+        let builder = ClientBuilder::<P>::from_wasm_path(path);
+
+        // Program name must be clean - no .wasm / .opt suffixes
+        assert_eq!("foo", builder.program_name);
+
+        assert!(builder.idl_path.unwrap().ends_with("foo.idl"));
+        assert!(builder.client_path.unwrap().ends_with("foo.rs"));
+        assert!(builder.wasm_path.unwrap().ends_with("foo.opt.wasm"));
     }
 }

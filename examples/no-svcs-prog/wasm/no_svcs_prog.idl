@@ -1,4 +1,8 @@
-constructor {
-  Create : ();
-};
 
+!@sails: 1.0.0-beta.5
+
+program NoSvcsProg {
+    constructors {
+        Create();
+    }
+}

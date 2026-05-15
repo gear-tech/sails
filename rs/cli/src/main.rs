@@ -1,9 +1,18 @@
 use clap::{Parser, Subcommand};
-use sails_cli::{
-    idlgen::CrateIdlGenerator, program::ProgramGenerator, program_new, solgen::SolidityGenerator,
+use convert_case::{Case, Casing};
+use sails_cli::{idlgen::CrateIdlGenerator, program_new, solgen::SolidityGenerator};
+use sails_client_gen::ClientGenerator as ClientGeneratorV1;
+use sails_client_gen_js::JsClientGenerator;
+use sails_client_gen_v2::ClientGenerator as ClientGeneratorV2;
+use sails_idl_parser_v2::parse_tokens;
+use std::{
+    error::Error,
+    path::{Path, PathBuf},
 };
-use sails_client_gen::ClientGenerator;
-use std::{error::Error, path::PathBuf};
+
+const SAILBOAT: &str = "\u{26F5}";
+const ICON_CONFIG: &str = "📋";
+const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[derive(Parser)]
 #[command(bin_name = "cargo")]
@@ -14,24 +23,6 @@ enum CliCommand {
 
 #[derive(Subcommand)]
 enum SailsCommands {
-    /// Create a new program from template
-    #[command(name = "program")]
-    NewProgram {
-        #[arg(help = "Path to the new program")]
-        path: String,
-        #[arg(short, long, help = "Name of the new program")]
-        name: Option<String>,
-        #[arg(
-            long,
-            help = "Disable generation of client package alongside the program. Implies '--no-gtest'"
-        )]
-        no_client: bool,
-        #[arg(long, help = "Disable generation of program tests using 'gtest'")]
-        no_gtest: bool,
-        #[arg(long, help = "Use 'sails-rs' crate of the specified version")]
-        sails_version: Option<String>,
-    },
-
     /// Create a new Sails program
     #[command(name = "new")]
     New {
@@ -41,18 +32,24 @@ enum SailsCommands {
         /// Set the resulting package name, defaults to the directory name
         #[arg(long)]
         name: Option<String>,
+        /// Set the package author, defaults to "Gear Technologies"
+        #[arg(long)]
+        author: Option<String>,
+        /// Set the GitHub username for the package repository URL, defaults to "gear-tech"
+        #[arg(long)]
+        username: Option<String>,
         /// Local path to `sails-rs` crate
         #[arg(long, value_hint = clap::ValueHint::DirPath)]
         sails_path: Option<PathBuf>,
-        /// Generate application package only
-        #[arg(long)]
-        app: bool,
         /// Run without accessing the network
         #[arg(long)]
         offline: bool,
+        /// Generate contracts compatible with Ethereum (for Vara.ETH).
+        #[arg(long)]
+        eth: bool,
     },
 
-    /// Generate client code from IDL
+    /// Generate Rust client code from IDL
     #[command(name = "client-rs")]
     ClientRs {
         /// Path to the IDL file
@@ -70,9 +67,23 @@ enum SailsCommands {
         /// Map type from IDL to crate path, separated by `=`, example `-T Part=crate::parts::Part`
         #[arg(long, short = 'T', value_parser = parse_key_val::<String, String>)]
         external_types: Vec<(String, String)>,
-        /// Derive only necessary [`parity_scale_codec::Encode`], [`parity_scale_codec::Decode`] and [`scale_info::TypeInfo`] traits for the generated types
+        /// Derive only necessary [`parity_scale_codec::Encode`], [`parity_scale_codec::Decode`] and [`type_info::TypeInfo`] traits for the generated types
         #[arg(long)]
         no_derive_traits: bool,
+        /// Generate client from IDL v1
+        #[arg(long)]
+        v1: bool,
+    },
+
+    /// Generate JS client code from IDL
+    #[command(name = "client-js")]
+    ClientJs {
+        /// Path to the IDL file
+        #[arg(value_hint = clap::ValueHint::FilePath)]
+        idl_path: PathBuf,
+        /// Path to the output JS client file
+        #[arg(value_hint = clap::ValueHint::FilePath)]
+        out_path: Option<PathBuf>,
     },
 
     /// Generate IDL from Cargo manifest
@@ -87,8 +98,34 @@ enum SailsCommands {
         /// Level of dependencies to look for program implementation. Default: 1
         #[arg(long)]
         deps_level: Option<usize>,
+        /// Name of the program in IDL
+        #[arg(long, short = 'n')]
+        program_name: Option<String>,
     },
 
+    /// Embed IDL into a WASM binary as a custom section
+    #[command(name = "idl-embed")]
+    IdlEmbed {
+        /// Path to the WASM file
+        #[arg(long, value_hint = clap::ValueHint::FilePath)]
+        wasm: PathBuf,
+        /// Path to the IDL file
+        #[arg(long, value_hint = clap::ValueHint::FilePath)]
+        idl: PathBuf,
+    },
+
+    /// Extract IDL from a WASM binary's custom section
+    #[command(name = "idl-extract")]
+    IdlExtract {
+        /// Path to the WASM file
+        #[arg(long, value_hint = clap::ValueHint::FilePath)]
+        wasm: PathBuf,
+        /// Path to write extracted IDL (stdout if not specified)
+        #[arg(long, short, value_hint = clap::ValueHint::FilePath)]
+        output: Option<PathBuf>,
+    },
+
+    /// Generate Solidity ABI-contracts from IDL
     #[command(name = "sol")]
     SolGen {
         /// Path to the IDL file
@@ -117,31 +154,60 @@ where
     Ok((s[..pos].parse()?, s[pos + 1..].parse()?))
 }
 
+fn should_print_banner(command: &SailsCommands) -> bool {
+    !matches!(command, SailsCommands::IdlExtract { output: None, .. })
+}
+
+fn format_client_rs_config(
+    idl_path: &Path,
+    out_path: &Path,
+    is_v1: bool,
+    sails_crate: Option<&str>,
+    external_types: &[(String, String)],
+) -> String {
+    let version = if is_v1 { "v1" } else { "v2" };
+    let sails_crate = sails_crate.unwrap_or("-");
+    let external_types = if external_types.is_empty() {
+        "-".to_string()
+    } else {
+        external_types
+            .iter()
+            .map(|(name, path)| format!("{name}={path}"))
+            .collect::<Vec<_>>()
+            .join(", ")
+    };
+
+    format!(
+        "{ICON_CONFIG} Rust client:\n   {source:<10} {}\n   {output:<10} {}\n   {version_label:<10} {version}\n   {sails_label:<10} {sails_crate}\n   {ext_label:<10} {external_types}\n",
+        idl_path.display(),
+        out_path.display(),
+        source = "source:",
+        output = "output:",
+        version_label = "version:",
+        sails_label = "sails-rs:",
+        ext_label = "ext types:",
+    )
+}
+
 fn main() -> Result<(), i32> {
     let CliCommand::Sails(command) = CliCommand::parse();
+    if should_print_banner(&command) {
+        println!("{SAILBOAT} Sails CLI {VERSION}");
+    }
 
     let result = match command {
-        SailsCommands::NewProgram {
-            path,
-            name,
-            no_client,
-            no_gtest,
-            sails_version,
-        } => {
-            let program_generator = ProgramGenerator::new(path)
-                .with_name(name)
-                .with_client(!no_client)
-                .with_gtest(!no_gtest)
-                .with_sails_version(sails_version);
-            program_generator.generate()
-        }
         SailsCommands::New {
             path,
             name,
+            author,
+            username,
             sails_path,
-            app,
             offline,
-        } => program_new::ProgramGenerator::new(path, name, sails_path, app, offline).generate(),
+            eth,
+        } => program_new::ProgramGenerator::new(
+            path, name, author, username, sails_path, offline, eth,
+        )
+        .generate(),
         SailsCommands::ClientRs {
             idl_path,
             out_path,
@@ -149,28 +215,107 @@ fn main() -> Result<(), i32> {
             sails_crate,
             external_types,
             no_derive_traits,
+            v1,
         } => {
-            let mut client_gen = ClientGenerator::from_idl_path(idl_path.as_ref());
-            if let Some(mocks) = mocks.as_ref() {
-                client_gen = client_gen.with_mocks(mocks);
-            }
-            if let Some(sails_crate) = sails_crate.as_ref() {
-                client_gen = client_gen.with_sails_crate(sails_crate);
-            }
-            for (name, path) in external_types.iter() {
-                client_gen = client_gen.with_external_type(name, path);
-            }
-            if no_derive_traits {
-                client_gen = client_gen.with_no_derive_traits();
-            }
             let out_path = out_path.unwrap_or_else(|| idl_path.with_extension("rs"));
+
+            let Ok(idl) = std::fs::read_to_string(&idl_path) else {
+                eprintln!("Error: failed to read {:?}", idl_path);
+                return Err(-1);
+            };
+            // Detect IDL version: try v2 parse (without include resolution) first.
+            let is_v1 = v1 || parse_tokens(&idl).is_err();
+            print!(
+                "{}",
+                format_client_rs_config(
+                    &idl_path,
+                    &out_path,
+                    is_v1,
+                    sails_crate.as_deref(),
+                    &external_types,
+                )
+            );
+
+            if is_v1 {
+                let mut client_gen = ClientGeneratorV1::from_idl_path(idl_path.as_ref());
+                if let Some(mocks) = mocks.as_ref() {
+                    client_gen = client_gen.with_mocks(mocks);
+                }
+                if let Some(sails_crate) = sails_crate.as_ref() {
+                    client_gen = client_gen.with_sails_crate(sails_crate);
+                }
+                for (name, path) in external_types.iter() {
+                    client_gen = client_gen.with_external_type(name, path);
+                }
+                if no_derive_traits {
+                    client_gen = client_gen.with_no_derive_traits();
+                }
+                client_gen.generate_to(out_path)
+            } else {
+                let mut client_gen = ClientGeneratorV2::from_idl_path(idl_path.as_ref());
+                if let Some(mocks) = mocks.as_ref() {
+                    client_gen = client_gen.with_mocks(mocks);
+                }
+                if let Some(sails_crate) = sails_crate.as_ref() {
+                    client_gen = client_gen.with_sails_crate(sails_crate);
+                }
+                for (name, path) in external_types.iter() {
+                    client_gen = client_gen.with_external_type(name, path);
+                }
+                if no_derive_traits {
+                    client_gen = client_gen.with_no_derive_traits();
+                }
+                client_gen.generate_to(out_path)
+            }
+        }
+        SailsCommands::ClientJs { idl_path, out_path } => {
+            let client_gen = JsClientGenerator::from_idl_path(idl_path.as_ref());
+            let out_path = out_path.unwrap_or_else(|| idl_path.with_extension("ts"));
             client_gen.generate_to(out_path)
         }
         SailsCommands::IdlGen {
             manifest_path,
             target_dir,
             deps_level,
-        } => CrateIdlGenerator::new(manifest_path, target_dir, deps_level).generate(),
+            program_name,
+        } => CrateIdlGenerator::new(
+            manifest_path,
+            target_dir,
+            deps_level,
+            program_name.map(|s| s.to_case(Case::Pascal)),
+        )
+        .generate(),
+        SailsCommands::IdlEmbed { wasm, idl } => (|| -> anyhow::Result<()> {
+            let idl_text = std::fs::read_to_string(&idl)?;
+            sails_idl_embed::embed_idl_to_file(&wasm, &idl_text)?;
+            println!(
+                "Embedded IDL ({} bytes) into {}",
+                idl_text.len(),
+                wasm.display()
+            );
+            Ok(())
+        })(),
+        SailsCommands::IdlExtract { wasm, output } => (|| -> anyhow::Result<()> {
+            let idl = sails_idl_embed::extract_idl_from_file(&wasm)?;
+            match idl {
+                Some(text) => {
+                    if let Some(out_path) = output {
+                        std::fs::write(&out_path, &text)?;
+                        println!(
+                            "Extracted IDL ({} bytes) to {}",
+                            text.len(),
+                            out_path.display()
+                        );
+                    } else {
+                        print!("{text}");
+                    }
+                }
+                None => {
+                    eprintln!("No sails:idl section found in {}", wasm.display());
+                }
+            }
+            Ok(())
+        })(),
         SailsCommands::SolGen {
             idl_path,
             target_dir,

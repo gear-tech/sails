@@ -1,8 +1,7 @@
 #![cfg_attr(not(doctest), doc = include_str!("../README.md"))]
 #![no_std]
 
-#[cfg(feature = "std")]
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(feature = "std", not(target_arch = "wasm32")))]
 extern crate std;
 
 #[cfg(feature = "client-builder")]
@@ -10,30 +9,40 @@ pub use builder::{ClientBuilder, ClientGenerator, IdlPath, build_client, build_c
 #[cfg(feature = "wasm-builder")]
 pub use gwasm_builder::build as build_wasm;
 pub use hex;
+#[doc(hidden)]
+pub use paste;
 pub use prelude::*;
-#[cfg(feature = "idl-gen")]
-#[cfg(not(target_arch = "wasm32"))]
-pub use sails_idl_gen::{generate_idl, generate_idl_to_file};
+#[cfg(feature = "idl-embed")]
+pub use sails_idl_embed::{embed_idl, embed_idl_to_file, extract_idl, extract_idl_from_file};
+#[cfg(all(feature = "idl-gen", not(target_arch = "wasm32")))]
+pub use sails_idl_gen::generate_idl;
+#[cfg(all(feature = "idl-gen", feature = "std", not(target_arch = "wasm32")))]
+pub use sails_idl_gen::generate_idl_to_file;
 pub use sails_idl_meta::{self as meta};
 pub use spin;
 
 #[cfg(feature = "client-builder")]
 mod builder;
+#[cfg(any(
+    feature = "gstd",
+    all(feature = "gtest", not(target_arch = "wasm32")),
+    all(feature = "gclient", not(target_arch = "wasm32"))
+))]
 pub mod client;
 pub mod errors;
-#[cfg(feature = "gclient")]
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(feature = "gclient", not(target_arch = "wasm32")))]
 pub use gclient;
 #[cfg(feature = "gstd")]
 pub mod gstd;
-#[cfg(feature = "gtest")]
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(feature = "gtest", not(target_arch = "wasm32")))]
 pub use gtest;
-#[cfg(feature = "mockall")]
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(feature = "mockall", not(target_arch = "wasm32")))]
 pub use mockall;
+#[cfg(feature = "ethexe")]
+mod address;
 pub mod prelude;
 #[cfg(feature = "ethexe")]
 pub mod solidity;
+pub mod state;
 mod types;
 mod utils;

@@ -27,7 +27,9 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await api.disconnect();
+  if (api) {
+    await api.disconnect();
+  }
   await new Promise((resolve) => {
     setTimeout(resolve, 2000);
   });

@@ -23,9 +23,11 @@ use proc_macro_error::proc_macro_error;
 ///
 /// ```rust
 /// mod my_service {
-///     use sails_rs::{export, service};
+///     use sails_rs::{export, service, prelude::*};
 ///
-///     #[derive(parity_scale_codec::Encode, scale_info::TypeInfo)]
+///     #[event]
+///     #[derive(parity_scale_codec::Encode, type_info::TypeInfo, ReflectHash)]
+///     #[reflect_hash(crate = sails_rs)]
 ///     pub enum MyServiceEvents {
 ///         SomethingDone,
 ///     }
@@ -157,6 +159,36 @@ pub fn export(args: TokenStream, impl_item_fn_tokens: TokenStream) -> TokenStrea
 /// This is intended to be used with the `#[sails_rs::event]` procedural macro, which automatically
 /// implements the trait for your enum-based event definitions.
 ///
+///
+/// # Arguments
+///
+/// - `scale` — implement only `SailsEvent` (SCALE/Gear transport). The Rust client generator
+///   and JS client generator will include this event; the Solidity generator will exclude it.
+/// - `ethabi` — implement only `EthEvent` (Ethereum ABI transport, requires `ethexe` feature).
+///   The Solidity generator will include this event; the Rust and JS client generators will exclude it.
+/// - `scale, ethabi` — implement both traits explicitly (same as the default when both flags are omitted).
+/// - `crate = <path>` — override the path to the `sails-rs` crate (defaults to `sails_rs`).
+///
+/// When only one transport flag is given, every variant in the IDL receives a `@codec: scale` or
+/// `@codec: ethabi` annotation so downstream generators can filter accordingly.
+///
+/// ## Ethabi-only events and `#[sails_type]`
+///
+/// `#[sails_type]` always derives `Encode`, `Decode`, `TypeInfo`, and `ReflectHash`. If your
+/// ethabi-only event enum contains fields that are ABI-compatible but not SCALE-compatible (e.g.
+/// `alloy_primitives::Address`), do **not** combine it with `#[sails_type]`. Instead, derive
+/// `TypeInfo` and `ReflectHash` manually:
+///
+/// ```rust,ignore
+/// #[sails_rs::event(ethabi)]
+/// #[derive(sails_rs::type_info::TypeInfo, sails_rs::ReflectHash)]
+/// #[type_info(crate = sails_rs::type_info)]
+/// #[reflect_hash(crate = sails_rs)]
+/// pub enum Events {
+///     Something(sails_rs::alloy_primitives::Address),
+/// }
+/// ```
+///
 /// # Examples
 ///
 /// Given an event definition:
@@ -165,7 +197,7 @@ pub fn export(args: TokenStream, impl_item_fn_tokens: TokenStream) -> TokenStrea
 /// #[sails_rs::event]
 /// #[derive(sails_rs::Encode, sails_rs::TypeInfo)]
 /// #[codec(crate = sails_rs::scale_codec)]
-/// #[scale_info(crate = sails_rs::scale_info)]
+/// #[type_info(crate = sails_rs::type_info)]
 /// pub enum Events {
 ///     MyEvent {
 ///         #[indexed]
@@ -200,4 +232,42 @@ pub fn export(args: TokenStream, impl_item_fn_tokens: TokenStream) -> TokenStrea
 #[proc_macro_attribute]
 pub fn event(args: TokenStream, input: TokenStream) -> TokenStream {
     sails_macros_core::event(args.into(), input.into()).into()
+}
+
+/// Derives the canonical Sails type bundle: `Encode`, `Decode`, `TypeInfo`,
+/// and `ReflectHash`, together with their `crate =` helper attributes routed
+/// to the `sails_rs` re-exports.
+///
+/// # Arguments
+///
+/// - `crate = <path>` — override the path to the `sails-rs` crate (defaults to
+///   `sails_rs`). Useful when `sails-rs` is re-exported from a parent crate.
+/// - `no_reflect_hash` — omit `ReflectHash` from the derive list and drop the
+///   `reflect_hash` helper attribute. Exists specifically for the IDL v1
+///   client generator, which predates `ReflectHash`.
+///
+/// # Examples
+///
+/// ```rust,ignore
+/// use sails_rs::sails_type;
+///
+/// #[sails_type]
+/// #[derive(PartialEq, Clone, Debug)]
+/// pub struct MyType {
+///     pub a: u32,
+///     pub b: String,
+/// }
+///
+/// #[sails_type(crate = my_alias)]
+/// pub enum MyEnum { A, B }
+///
+/// #[sails_type(no_reflect_hash)]
+/// pub struct LegacyType { pub a: u32 }
+/// ```
+///
+/// Composes with `#[event]` in any order — the two macros are orthogonal.
+#[proc_macro_error]
+#[proc_macro_attribute]
+pub fn sails_type(args: TokenStream, item: TokenStream) -> TokenStream {
+    sails_macros_core::sails_type(args.into(), item.into()).into()
 }

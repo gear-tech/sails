@@ -1,10 +1,15 @@
 use super::*;
+pub use ::gtest::constants::{
+    DEFAULT_USER_ALICE, DEFAULT_USER_BOB, DEFAULT_USER_CHARLIE, DEFAULT_USER_EVE,
+    DEFAULT_USERS_INITIAL_BALANCE, MAX_USER_GAS_LIMIT,
+};
 use ::gtest::{BlockRunResult, System, TestError};
 use core::{cell::RefCell, task::ready};
 use futures::{
     Stream,
     channel::{mpsc, oneshot},
 };
+pub use gear_core_errors::{ErrorReplyReason, SimpleExecutionError};
 use hashbrown::HashMap;
 use std::rc::Rc;
 use tokio_stream::StreamExt;
@@ -56,7 +61,7 @@ crate::params_struct_impl!(
 );
 
 impl GtestEnv {
-    /// Create new `GTestRemoting` instance from `gtest::System` with specified `actor_id`
+    /// Create new `GtestEnv` instance from `gtest::System` with specified `actor_id`
     /// and `Auto` block run mode
     pub fn new(system: System, actor_id: ActorId) -> Self {
         let system = Rc::new(system);
@@ -67,6 +72,15 @@ impl GtestEnv {
             block_run_mode: BlockRunMode::Auto,
             block_reply_senders: Default::default(),
         }
+    }
+
+    /// Create `GtestEnv` instance with new `System` and `DEFAULT_USER_ALICE` actor
+    pub fn system_default() -> Self {
+        let system = System::new();
+        system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails_rs=debug");
+        system.mint_to(DEFAULT_USER_ALICE, DEFAULT_USERS_INITIAL_BALANCE);
+
+        GtestEnv::new(system, DEFAULT_USER_ALICE.into())
     }
 
     /// Avoid calling methods of `System` related to block execution.
@@ -124,19 +138,19 @@ impl GtestEnv {
                 }
                 continue;
             }
-            if let Some(message_id) = entry.reply_to() {
-                if let Some(sender) = reply_senders.remove(&message_id) {
-                    log::debug!("Extract reply from entry {entry:?}");
-                    let reply: result::Result<Vec<u8>, _> = match entry.reply_code() {
-                        None => Err(GtestError::ReplyIsMissing),
-                        Some(ReplyCode::Error(reason)) => {
-                            Err(GtestError::ReplyHasError(reason, entry.payload().to_vec()))
-                        }
-                        Some(ReplyCode::Success(_)) => Ok(entry.payload().to_vec()),
-                        _ => Err(GtestError::ReplyIsMissing),
-                    };
-                    _ = sender.send(reply);
-                }
+            if let Some(message_id) = entry.reply_to()
+                && let Some(sender) = reply_senders.remove(&message_id)
+            {
+                log::debug!("Extract reply from entry {entry:?}");
+                let reply: result::Result<Vec<u8>, _> = match entry.reply_code() {
+                    None => Err(GtestError::ReplyIsMissing),
+                    Some(ReplyCode::Error(reason)) => {
+                        Err(GtestError::ReplyHasError(reason, entry.payload().to_vec()))
+                    }
+                    Some(ReplyCode::Success(_)) => Ok(entry.payload().to_vec()),
+                    _ => Err(GtestError::ReplyIsMissing),
+                };
+                _ = sender.send(reply);
             }
         }
     }
@@ -274,7 +288,7 @@ impl GearEnv for GtestEnv {
     type MessageState = ReplyReceiver;
 }
 
-impl<T: CallCodec> PendingCall<T, GtestEnv> {
+impl<T: ServiceCall> PendingCall<T, GtestEnv> {
     pub fn send_one_way(&mut self) -> Result<MessageId, GtestError> {
         if self.state.is_some() {
             panic!("{PENDING_CALL_INVALID_STATE}");
@@ -292,19 +306,33 @@ impl<T: CallCodec> PendingCall<T, GtestEnv> {
         Ok(self)
     }
 
-    pub fn query(mut self) -> Result<T::Reply, GtestError> {
+    pub fn query(mut self) -> Result<T::Output, GtestError> {
         let (payload, params) = self.take_encoded_args_and_params();
         // Calculate reply
-        let reply_bytes = self.env.query(self.destination, payload, params)?;
+        let reply_bytes = match self.env.query(self.destination, payload, params) {
+            Ok(bytes) => bytes,
+            Err(GtestError::ReplyHasError(reason, payload))
+                if matches!(
+                    reason,
+                    ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic)
+                ) =>
+            {
+                if let Ok(reply) = T::decode_error(&self.route, &payload) {
+                    return Ok(reply);
+                }
+                return Err(GtestError::ReplyHasError(reason, payload));
+            }
+            Err(err) => return Err(err),
+        };
 
         // Decode reply
-        T::decode_reply_with_prefix(self.route, reply_bytes)
+        T::decode_reply(&self.route, reply_bytes)
             .map_err(|err| TestError::ScaleCodecError(err).into())
     }
 }
 
-impl<T: CallCodec> Future for PendingCall<T, GtestEnv> {
-    type Output = Result<T::Reply, <GtestEnv as GearEnv>::Error>;
+impl<T: ServiceCall> Future for PendingCall<T, GtestEnv> {
+    type Output = Result<T::Output, <GtestEnv as GearEnv>::Error>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         if self.state.is_none() {
@@ -330,10 +358,20 @@ impl<T: CallCodec> Future for PendingCall<T, GtestEnv> {
         // Poll reply receiver
         match ready!(reply_receiver.poll(cx)) {
             Ok(res) => match res {
-                Ok(payload) => match T::decode_reply_with_prefix(self.route, payload) {
+                Ok(payload) => match T::decode_reply(&self.route, payload) {
                     Ok(reply) => Poll::Ready(Ok(reply)),
                     Err(err) => Poll::Ready(Err(TestError::ScaleCodecError(err).into())),
                 },
+                Err(GtestError::ReplyHasError(reason, payload)) => {
+                    if matches!(
+                        reason,
+                        ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic)
+                    ) && let Ok(reply) = T::decode_error(&self.route, &payload)
+                    {
+                        return Poll::Ready(Ok(reply));
+                    }
+                    Poll::Ready(Err(GtestError::ReplyHasError(reason, payload)))
+                }
                 Err(err) => Poll::Ready(Err(err)),
             },
             Err(_err) => Poll::Ready(Err(GtestError::ReplyIsMissing)),
@@ -341,7 +379,7 @@ impl<T: CallCodec> Future for PendingCall<T, GtestEnv> {
     }
 }
 
-impl<A, T: CallCodec> PendingCtor<A, T, GtestEnv> {
+impl<A, T: ServiceCall> PendingCtor<A, T, GtestEnv> {
     pub fn create_program(mut self) -> Result<Self, GtestError> {
         if self.state.is_some() {
             panic!("{PENDING_CTOR_INVALID_STATE}");
@@ -351,7 +389,7 @@ impl<A, T: CallCodec> PendingCtor<A, T, GtestEnv> {
             .args
             .take()
             .unwrap_or_else(|| panic!("{PENDING_CTOR_INVALID_STATE}"));
-        let payload = T::encode_params(&args);
+        let payload = T::encode_call(&self.route, &args);
         let params = self.params.take().unwrap_or_default();
         let salt = self.salt.take().unwrap_or_default();
         let send_res = self
@@ -372,8 +410,13 @@ impl<A, T: CallCodec> PendingCtor<A, T, GtestEnv> {
     }
 }
 
-impl<A, T: CallCodec> Future for PendingCtor<A, T, GtestEnv> {
-    type Output = Result<Actor<A, GtestEnv>, <GtestEnv as GearEnv>::Error>;
+impl<A, T> Future for PendingCtor<A, T, GtestEnv>
+where
+    T: ServiceCall,
+    T::Output: PendingCtorOutput<A, GtestEnv>,
+{
+    type Output =
+        Result<<T::Output as PendingCtorOutput<A, GtestEnv>>::Output, <GtestEnv as GearEnv>::Error>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         if self.state.is_none() {
@@ -382,7 +425,7 @@ impl<A, T: CallCodec> Future for PendingCtor<A, T, GtestEnv> {
                 .args
                 .take()
                 .unwrap_or_else(|| panic!("{PENDING_CTOR_INVALID_STATE}"));
-            let payload = T::encode_params(&args);
+            let payload = T::encode_call(&self.route, &args);
             let params = self.params.take().unwrap_or_default();
             let salt = self.salt.take().unwrap_or_default();
             let send_res = self
@@ -400,6 +443,7 @@ impl<A, T: CallCodec> Future for PendingCtor<A, T, GtestEnv> {
                 }
             }
         }
+        let route = self.route.clone();
         let this = self.as_mut().project();
         let reply_receiver = this
             .state
@@ -408,13 +452,25 @@ impl<A, T: CallCodec> Future for PendingCtor<A, T, GtestEnv> {
         // Poll reply receiver
         match ready!(reply_receiver.poll(cx)) {
             Ok(res) => match res {
-                Ok(_) => {
-                    // Do not decode payload here
+                Ok(payload) => {
                     let program_id = this
                         .program_id
                         .take()
                         .unwrap_or_else(|| panic!("{PENDING_CTOR_INVALID_STATE}"));
-                    Poll::Ready(Ok(Actor::new(this.env.clone(), program_id)))
+                    let reply = T::decode_reply(&route, payload)
+                        .map_err(|err| GtestError::Env(TestError::ScaleCodecError(err)))?;
+                    Poll::Ready(Ok(reply.map_result(this.env.clone(), program_id)))
+                }
+                Err(GtestError::ReplyHasError(reason, payload)) => {
+                    if matches!(
+                        reason,
+                        ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic)
+                    ) && let Ok(reply) = T::decode_error(&route, &payload)
+                    {
+                        Poll::Ready(Ok(reply.map_result(this.env.clone(), ActorId::zero())))
+                    } else {
+                        Poll::Ready(Err(GtestError::ReplyHasError(reason, payload)))
+                    }
                 }
                 Err(err) => Poll::Ready(Err(err)),
             },
@@ -429,7 +485,7 @@ impl Listener for GtestEnv {
     async fn listen<E, F: FnMut((ActorId, Vec<u8>)) -> Option<(ActorId, E)>>(
         &self,
         f: F,
-    ) -> Result<impl Stream<Item = (ActorId, E)> + Unpin, Self::Error> {
+    ) -> Result<impl Stream<Item = (ActorId, E)> + Unpin + use<E, F>, Self::Error> {
         let (tx, rx) = mpsc::unbounded::<(ActorId, Vec<u8>)>();
         self.event_senders.borrow_mut().push(tx);
         Ok(rx.filter_map(f))

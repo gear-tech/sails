@@ -64,7 +64,7 @@ pub type EthEventExpo = (
 /// #[sails_rs::event]
 /// #[derive(sails_rs::Encode, sails_rs::TypeInfo)]
 /// #[codec(crate = sails_rs::scale_codec)]
-/// #[scale_info(crate = sails_rs::scale_info)]
+/// #[type_info(crate = sails_rs::type_info)]
 /// pub enum Events {
 ///     MyEvent {
 ///         #[indexed]
@@ -154,6 +154,8 @@ pub trait EthEvent {
 
 #[cfg(test)]
 mod tests {
+    #![allow(unused_assignments)]
+
     use super::*;
     use crate::{self as sails_rs, Encode, String, TypeInfo, event};
 

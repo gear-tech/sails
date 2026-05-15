@@ -1,12 +1,21 @@
-type AllocStressResult = struct {
-  inner: vec u8,
-};
-
-constructor {
-  NewForBench : ();
-};
+!@sails: 0.9.2
 
 service AllocStress {
-  AllocStress : (n: u32) -> AllocStressResult;
-};
+    functions {
+        AllocStress(n: u32) -> AllocStressResult;
+    }
+    types {
+        struct AllocStressResult {
+            inner: [u8],
+        }
+    }
+}
 
+program AllocStress {
+    constructors {
+        NewForBench();
+    }
+    services {
+        AllocStress,
+    }
+}

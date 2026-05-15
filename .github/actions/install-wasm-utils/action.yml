@@ -4,7 +4,7 @@ inputs:
   binaryen_version:
     description: "Binaryen Version"
     required: false
-    default: "123"
+    default: "125"
 
 runs:
   using: composite

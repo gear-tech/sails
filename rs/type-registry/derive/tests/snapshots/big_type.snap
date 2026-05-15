@@ -1,0 +1,156 @@
+---
+source: rs/type-registry/derive/src/lib.rs
+expression: formatted
+---
+#[automatically_derived]
+impl<
+    T: sails_rs::type_info::TypeInfo,
+    U: sails_rs::type_info::TypeInfo,
+    const SIZE: usize,
+> sails_rs::type_info::TypeInfo for Container<T, U, SIZE>
+where
+    T: Clone,
+{
+    type Identity = Self;
+    fn module_path() -> &'static str {
+        ::core::module_path!()
+    }
+    fn type_decl(
+        registry: &mut sails_rs::type_info::Registry,
+    ) -> sails_rs::type_info::ast::TypeDecl {
+        let base_name = sails_rs::type_info::const_suffixed_name(
+            "Container",
+            sails_rs::type_info::alloc::vec![
+                (
+                    sails_rs::type_info::alloc::string::String::from("SIZE"),
+                    sails_rs::type_info::alloc::format!("{}", SIZE),
+                ),
+            ],
+        );
+        let generics = sails_rs::type_info::alloc::vec![
+            <T as sails_rs::type_info::TypeInfo>::type_decl(registry),
+            <U as sails_rs::type_info::TypeInfo>::type_decl(registry),
+        ];
+        registry
+            .register_named_type_with_dependencies(
+                <Self as sails_rs::type_info::TypeInfo>::META,
+                base_name,
+                generics,
+                |registry| {
+                    let _ = <Option<
+                        Box<Container<T, U, SIZE>>,
+                    > as sails_rs::type_info::TypeInfo>::type_decl(registry);
+                    let _ = <[T; SIZE] as sails_rs::type_info::TypeInfo>::type_decl(
+                        registry,
+                    );
+                    let _ = <BTreeMap<
+                        String,
+                        U,
+                    > as sails_rs::type_info::TypeInfo>::type_decl(registry);
+                    let _ = <(
+                        u32,
+                        bool,
+                        String,
+                    ) as sails_rs::type_info::TypeInfo>::type_decl(registry);
+                },
+            )
+    }
+    fn type_def(
+        registry: &mut sails_rs::type_info::Registry,
+    ) -> ::core::option::Option<sails_rs::type_info::ast::Type> {
+        let base_name = sails_rs::type_info::const_suffixed_name(
+            "Container",
+            sails_rs::type_info::alloc::vec![
+                (
+                    sails_rs::type_info::alloc::string::String::from("SIZE"),
+                    sails_rs::type_info::alloc::format!("{}", SIZE),
+                ),
+            ],
+        );
+        ::core::option::Option::Some({
+            let __builder = sails_rs::type_info::builder::TypeBuilder::new()
+                .name(base_name)
+                .doc("The Container Type")
+                .annotate("attr1")
+                .value("val1")
+                .annotate("attr2")
+                .param("T")
+                .param("U");
+            let composite = __builder.composite();
+            composite
+                .field("next")
+                .doc("Recursive field")
+                .ty(
+                    sails_rs::type_info::ast::TypeDecl::named_with_generics(
+                        "Option",
+                        sails_rs::type_info::alloc::vec![
+                            {
+                                if let ::core::option::Option::Some(__registered) = registry
+                                    .get_registered::<Container<T, U, SIZE>>()
+                                {
+                                    let __name = registry
+                                        .get_type(__registered.type_ref)
+                                        .expect("registry entry exists")
+                                        .name
+                                        .clone();
+                                    sails_rs::type_info::ast::TypeDecl::named_with_generics(
+                                        __name,
+                                        sails_rs::type_info::alloc::vec![
+                                            sails_rs::type_info::ast::TypeDecl::generic("T"),
+                                            sails_rs::type_info::ast::TypeDecl::generic("U"),
+                                        ],
+                                    )
+                                } else {
+                                    <Container<
+                                        T,
+                                        U,
+                                        SIZE,
+                                    > as sails_rs::type_info::TypeInfo>::type_decl(registry)
+                                }
+                            },
+                        ],
+                    ),
+                )
+                .field("data")
+                .doc("Field with many annotations")
+                .annotate("indexed")
+                .annotate("secret")
+                .value("true")
+                .annotate("range")
+                .value("0..100")
+                .ty(sails_rs::type_info::ast::TypeDecl::Array {
+                    item: sails_rs::type_info::alloc::boxed::Box::new(
+                        sails_rs::type_info::ast::TypeDecl::generic("T"),
+                    ),
+                    len: (SIZE) as u32,
+                })
+                .field("mapped")
+                .ty(sails_rs::type_info::ast::TypeDecl::Slice {
+                    item: sails_rs::type_info::alloc::boxed::Box::new(sails_rs::type_info::ast::TypeDecl::Tuple {
+                        types: sails_rs::type_info::alloc::vec![
+                            sails_rs::type_info::ast::TypeDecl::Primitive(
+                                sails_rs::type_info::ast::PrimitiveType::String,
+                            ),
+                            sails_rs::type_info::ast::TypeDecl::generic("U"),
+                        ],
+                    }),
+                })
+                .field("meta")
+                .doc("Tuple field")
+                .ty(sails_rs::type_info::ast::TypeDecl::Tuple {
+                    types: sails_rs::type_info::alloc::vec![
+                        sails_rs::type_info::ast::TypeDecl::Primitive(
+                            sails_rs::type_info::ast::PrimitiveType::U32,
+                        ),
+                        sails_rs::type_info::ast::TypeDecl::Primitive(
+                            sails_rs::type_info::ast::PrimitiveType::Bool,
+                        ),
+                        sails_rs::type_info::ast::TypeDecl::Primitive(
+                            sails_rs::type_info::ast::PrimitiveType::String,
+                        ),
+                    ],
+                })
+                .build()
+        })
+    }
+}

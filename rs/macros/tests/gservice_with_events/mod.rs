@@ -4,7 +4,8 @@ use sails_rs::prelude::*;
 pub struct MyServiceWithEvents(pub u8);
 
 #[event]
-#[derive(TypeInfo, Encode, Clone, Debug, PartialEq)]
+#[derive(TypeInfo, Encode, Clone, Debug, PartialEq, ReflectHash)]
+#[reflect_hash(crate = sails_rs)]
 pub enum MyEvents {
     Event1,
 }

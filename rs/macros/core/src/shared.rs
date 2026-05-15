@@ -1,6 +1,5 @@
 use crate::export;
 use convert_case::{Case, Casing};
-use parity_scale_codec::Encode;
 use proc_macro_error::abort;
 use proc_macro2::Span;
 use quote::ToTokens;
@@ -57,46 +56,87 @@ pub(crate) fn result_type(handler_signature: &Signature) -> Type {
     }
 }
 
-pub(crate) fn unwrap_result_type(handler_signature: &Signature, unwrap_result: bool) -> Type {
-    let result_type = result_type(handler_signature);
-    // process result type if set unwrap result
+pub(crate) fn unwrap_result_type(
+    signature: &Signature,
+    unwrap_result: bool,
+) -> (Type, Option<Type>) {
+    let result_type = result_type(signature);
     if unwrap_result {
+        if let Type::Path(tp) = &result_type
+            && let Some((ok, err)) = extract_result_types(tp)
         {
-            extract_result_type_from_path(&result_type)
-                .unwrap_or_else(|| {
-                    abort!(
-                        result_type.span(),
-                        "`unwrap_result` can be applied to methods returns result only"
-                    )
-                })
-                .clone()
+            (ok.clone(), Some(err.clone()))
+        } else {
+            abort!(
+                result_type.span(),
+                "`unwrap_result` can be applied to methods returns result only"
+            )
         }
     } else {
-        result_type
+        (result_type, None)
     }
 }
 
-pub(crate) fn invocation_export(fn_impl: &ImplItemFn) -> Option<(Span, String, bool, bool)> {
+pub(crate) struct InvocationExport {
+    pub span: Span,
+    pub route: String,
+    pub unwrap_result: bool,
+    pub export: bool,
+    #[cfg(feature = "ethexe")]
+    pub payable: bool,
+    pub overrides: Option<Path>,
+    pub entry_id: Option<u16>,
+    pub scale: bool,
+    #[cfg(feature = "ethexe")]
+    pub ethabi: bool,
+}
+
+pub(crate) fn invocation_export(fn_impl: &ImplItemFn) -> Option<InvocationExport> {
     export::parse_export_args(&fn_impl.attrs).map(|(args, span)| {
         let ident = &fn_impl.sig.ident;
         let unwrap_result = args.unwrap_result();
+        let scale = args.scale();
+        #[cfg(feature = "ethexe")]
+        let payable = args.payable();
+        #[cfg(feature = "ethexe")]
+        let ethabi = args.ethabi();
+
         let route = args.route().map_or_else(
             || ident.to_string().to_case(Case::Pascal),
             |route| route.to_case(Case::Pascal),
         );
-        (span, route, unwrap_result, true)
+        InvocationExport {
+            span,
+            route,
+            unwrap_result,
+            export: true,
+            #[cfg(feature = "ethexe")]
+            payable,
+            overrides: args.overrides().cloned(),
+            entry_id: args.entry_id(),
+            scale,
+            #[cfg(feature = "ethexe")]
+            ethabi,
+        }
     })
 }
 
-pub(crate) fn invocation_export_or_default(fn_impl: &ImplItemFn) -> (Span, String, bool, bool) {
+pub(crate) fn invocation_export_or_default(fn_impl: &ImplItemFn) -> InvocationExport {
     invocation_export(fn_impl).unwrap_or_else(|| {
         let ident = &fn_impl.sig.ident;
-        (
-            ident.span(),
-            ident.to_string().to_case(Case::Pascal),
-            false,
-            false,
-        )
+        InvocationExport {
+            span: ident.span(),
+            route: ident.to_string().to_case(Case::Pascal),
+            unwrap_result: false,
+            export: false,
+            #[cfg(feature = "ethexe")]
+            payable: false,
+            overrides: None,
+            entry_id: None,
+            scale: true,
+            #[cfg(feature = "ethexe")]
+            ethabi: true,
+        }
     })
 }
 
@@ -106,30 +146,34 @@ pub(crate) fn discover_invocation_targets<'a>(
     sails_path: &'a Path,
 ) -> Vec<FnBuilder<'a>> {
     let mut routes = BTreeMap::<String, String>::new();
-    let mut vec: Vec<FnBuilder<'a>> = item_impl
+    let vec: Vec<FnBuilder<'a>> = item_impl
         .items
         .iter()
         .filter_map(|item| {
             if let ImplItem::Fn(fn_item) = item
                 && filter(fn_item)
             {
-                let (span, route, unwrap_result, export) = invocation_export_or_default(fn_item);
-
-                if let Some(duplicate) = routes.insert(route.clone(), fn_item.sig.ident.to_string())
+                let ie = invocation_export_or_default(fn_item);
+                // `entry_id` in order of appearance
+                let entry_id = routes.len() as u16;
+                // If this is an override, it doesn't conflict with own service routes
+                // because it belongs to a different Interface ID.
+                if ie.overrides.is_none()
+                    && let Some(duplicate) =
+                        routes.insert(ie.route.clone(), fn_item.sig.ident.to_string())
                 {
                     abort!(
-                        span,
+                        ie.span,
                         "`export` attribute conflicts with one already assigned to '{}'",
                         duplicate
                     );
                 }
-                let fn_builder = FnBuilder::from(route, export, fn_item, unwrap_result, sails_path);
+                let fn_builder = FnBuilder::new(ie, entry_id, fn_item, sails_path);
                 return Some(fn_builder);
             }
             None
         })
         .collect();
-    vec.sort_by(|a, b| a.route.cmp(&b.route));
     vec
 }
 
@@ -241,25 +285,18 @@ fn extract_reply_result_type_from_impl_into(tit: &TypeImplTrait) -> Option<&Type
     None
 }
 
-/// Check if type is `Result<T, E>` and extract inner type `T`
-pub(crate) fn extract_result_type_from_path(ty: &Type) -> Option<&Type> {
-    match ty {
-        Type::Path(tp) if tp.qself.is_none() => extract_result_type(tp),
-        _ => None,
-    }
-}
-
-/// Extract `T` type from `Result<T, E>`
-pub(crate) fn extract_result_type(tp: &TypePath) -> Option<&Type> {
+/// Extract both `T` and `E` types from `Result<T, E>`
+pub(crate) fn extract_result_types(tp: &TypePath) -> Option<(&Type, &Type)> {
     if let Some(last) = tp.path.segments.last() {
         if last.ident != "Result" {
             return None;
         }
         if let PathArguments::AngleBracketed(args) = &last.arguments
             && args.args.len() == 2
-            && let Some(GenericArgument::Type(ty)) = args.args.first()
+            && let Some(GenericArgument::Type(ok_ty)) = args.args.first()
+            && let Some(GenericArgument::Type(err_ty)) = args.args.last()
         {
-            return Some(ty);
+            return Some((ok_ty, err_ty));
         }
     }
     None
@@ -269,45 +306,76 @@ pub(crate) fn extract_result_type(tp: &TypePath) -> Option<&Type> {
 #[derive(Clone)]
 pub(crate) struct FnBuilder<'a> {
     pub route: String,
+    pub entry_id: u16,
     pub export: bool,
-    pub encoded_route: Vec<u8>,
+    #[cfg(feature = "ethexe")]
+    pub payable: bool,
+    pub overrides: Option<Path>,
+    pub override_entry_id: Option<u16>,
     pub impl_fn: &'a ImplItemFn,
     pub ident: &'a Ident,
     pub params_struct_ident: Ident,
     params_idents: Vec<&'a Ident>,
     params_types: Vec<&'a Type>,
     pub result_type: Type,
-    pub unwrap_result: bool,
+    pub error_type: Option<Type>,
     pub sails_path: &'a Path,
+    pub scale: bool,
+    #[cfg(feature = "ethexe")]
+    pub ethabi: bool,
 }
 
 impl<'a> FnBuilder<'a> {
-    pub(crate) fn from(
-        route: String,
-        export: bool,
+    pub(crate) fn new(
+        ie: InvocationExport,
+        entry_id: u16,
         impl_fn: &'a ImplItemFn,
-        unwrap_result: bool,
         sails_path: &'a Path,
     ) -> Self {
-        let encoded_route = route.encode();
+        let InvocationExport {
+            route,
+            unwrap_result,
+            export,
+            #[cfg(feature = "ethexe")]
+            payable,
+            overrides,
+            entry_id: override_entry_id,
+            scale,
+            #[cfg(feature = "ethexe")]
+            ethabi,
+            ..
+        } = ie;
         let signature = &impl_fn.sig;
         let ident = &signature.ident;
-        let params_struct_ident = Ident::new(&format!("__{route}Params"), Span::call_site());
+        let params_struct_ident = if overrides.is_some() {
+            let ident_pascal = ident.to_string().to_case(Case::Pascal);
+            Ident::new(&format!("__{ident_pascal}Params"), Span::call_site())
+        } else {
+            Ident::new(&format!("__{route}Params"), Span::call_site())
+        };
         let (params_idents, params_types): (Vec<_>, Vec<_>) = extract_params(signature).unzip();
-        let result_type = unwrap_result_type(signature, unwrap_result);
+
+        let (result_type, error_type) = unwrap_result_type(signature, unwrap_result);
 
         Self {
             route,
+            entry_id,
             export,
-            encoded_route,
+            #[cfg(feature = "ethexe")]
+            payable,
+            overrides,
+            override_entry_id,
             impl_fn,
             ident,
             params_struct_ident,
             params_idents,
             params_types,
             result_type,
-            unwrap_result,
+            error_type,
             sails_path,
+            scale,
+            #[cfg(feature = "ethexe")]
+            ethabi,
         }
     }
 
@@ -320,6 +388,21 @@ impl<'a> FnBuilder<'a> {
             .sig
             .receiver()
             .is_none_or(|r| r.mutability.is_none())
+    }
+
+    pub(crate) fn has_scale_codec(&self) -> bool {
+        self.scale
+    }
+
+    #[cfg(feature = "ethexe")]
+    pub(crate) fn has_ethabi_codec(&self) -> bool {
+        self.ethabi
+    }
+
+    #[cfg(not(feature = "ethexe"))]
+    #[allow(dead_code)]
+    pub(crate) fn has_ethabi_codec(&self) -> bool {
+        false
     }
 
     pub(crate) fn result_type_with_value(&self) -> (&Type, bool) {
@@ -344,7 +427,6 @@ impl<'a> FnBuilder<'a> {
         self.params_idents.as_slice()
     }
 
-    #[cfg(feature = "ethexe")]
     pub(crate) fn params_types(&self) -> &[&Type] {
         self.params_types.as_slice()
     }
@@ -354,7 +436,252 @@ impl<'a> FnBuilder<'a> {
         use convert_case::{Boundary, Case, Casing};
 
         self.route
-            .with_boundaries(&[Boundary::UNDERSCORE, Boundary::LOWER_UPPER])
+            .set_boundaries(&[Boundary::Underscore, Boundary::LowerUpper])
             .to_case(Case::Camel)
+    }
+
+    #[cfg(feature = "ethexe")]
+    pub(crate) fn payable_check(&self) -> proc_macro2::TokenStream {
+        if !self.payable {
+            let sails_path = self.sails_path;
+            let msg = format!("'{}' accepts no value", self.ident);
+            quote::quote! {
+                #[cfg(target_arch = "wasm32")]
+                if #sails_path::gstd::msg::value() > 0 {
+                    core::panic!(#msg);
+                }
+            }
+        } else {
+            quote::quote!()
+        }
+    }
+}
+
+#[cfg(feature = "ethexe")]
+pub mod validation {
+    use proc_macro_error::abort;
+    use proc_macro2::Span;
+
+    // Source: https://github.com/argotorg/solidity/blob/develop/liblangutil/Token.h
+    // docs:
+    // https://docs.soliditylang.org/en/latest/types.html
+    // https://docs.soliditylang.org/en/latest/units-and-global-variables.html#reserved-keywords
+    const SOL_KEYWORDS: &[&str] = &[
+        "abi",
+        "abstract",
+        "addmod",
+        "address",
+        "after",
+        "alias",
+        "anonymous",
+        "apply",
+        "as",
+        "assembly",
+        "assert",
+        "auto",
+        "block",
+        "blockhash",
+        "bool",
+        "break",
+        "byte",
+        "bytes",
+        "calldata",
+        "case",
+        "catch",
+        "constant",
+        "constructor",
+        "continue",
+        "contract",
+        "copyof",
+        "days",
+        "default",
+        "define",
+        "delete",
+        "do",
+        "ecrecover",
+        "else",
+        "emit",
+        "enum",
+        "ether",
+        "event",
+        "external",
+        "false",
+        "final",
+        "fixed",
+        "for",
+        "function",
+        "gasleft",
+        "gwei",
+        "hex",
+        "hours",
+        "if",
+        "immutable",
+        "implements",
+        "import",
+        "in",
+        "indexed",
+        "inline",
+        "int",
+        "interface",
+        "internal",
+        "is",
+        "keccak256",
+        "let",
+        "library",
+        "macro",
+        "mapping",
+        "match",
+        "memory",
+        "minutes",
+        "modifier",
+        "msg",
+        "mulmod",
+        "mutable",
+        "new",
+        "null",
+        "of",
+        "override",
+        "partial",
+        "payable",
+        "pragma",
+        "private",
+        "promise",
+        "public",
+        "pure",
+        "reference",
+        "relocatable",
+        "require",
+        "return",
+        "returns",
+        "revert",
+        "ripemd160",
+        "sealed",
+        "seconds",
+        "selfdestruct",
+        "sha256",
+        "sizeof",
+        "static",
+        "storage",
+        "string",
+        "struct",
+        "super",
+        "supports",
+        "switch",
+        "this",
+        "throw",
+        "true",
+        "try",
+        "tx",
+        "type",
+        "typedef",
+        "typeof",
+        "ufixed",
+        "uint",
+        "unchecked",
+        "unicode",
+        "using",
+        "var",
+        "view",
+        "virtual",
+        "weeks",
+        "wei",
+        "while",
+        "years",
+    ];
+
+    fn is_reserved(s: &str) -> bool {
+        let s = s.to_ascii_lowercase();
+
+        if SOL_KEYWORDS.binary_search(&s.as_str()).is_ok() {
+            return true;
+        }
+
+        // bytes<N>
+        if let Some(num) = s.strip_prefix("bytes").and_then(|x| x.parse::<u8>().ok()) {
+            return (1..=32).contains(&num);
+        }
+
+        // uint<N> | int<N>
+        if let Some(rest) = s.strip_prefix("uint").or_else(|| s.strip_prefix("int"))
+            && let Ok(n) = rest.parse::<u16>()
+        {
+            return n == 8 || (16..=256).contains(&n) && n % 8 == 0;
+        }
+
+        // ufixed<M>x<N> | fixed<M>x<N>
+        if let Some(rest) = s.strip_prefix("ufixed").or_else(|| s.strip_prefix("fixed"))
+            && let Some((m_str, n_str)) = rest.split_once('x')
+            && let (Ok(m), Ok(n)) = (m_str.parse::<u16>(), n_str.parse::<u8>())
+            && (8..=256).contains(&m)
+            && m % 8 == 0
+            && n <= 80
+        {
+            return true;
+        }
+
+        false
+    }
+
+    pub fn validate_identifier(name: &str, span: Span, type_of_ident: &str) {
+        if is_reserved(name) {
+            abort!(
+                span,
+                "The name '{}' cannot be used for a {} because it is a reserved keyword in Solidity.",
+                name,
+                type_of_ident;
+                help = "Please rename this item to avoid compilation errors in the generated Solidity contract."
+            );
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn is_reserved_works() {
+            // Keywords
+            assert!(is_reserved("address"));
+            assert!(is_reserved("contract"));
+            assert!(is_reserved("function"));
+            assert!(!is_reserved("myfunction"));
+
+            // bytes<N>
+            assert!(is_reserved("bytes1"));
+            assert!(is_reserved("bytes16"));
+            assert!(is_reserved("bytes32"));
+            assert!(!is_reserved("bytes0"));
+            assert!(!is_reserved("bytes33"));
+            assert!(!is_reserved("sbytes1"));
+
+            // uint<N> | int<N>
+            assert!(is_reserved("uint8"));
+            assert!(is_reserved("int8"));
+            assert!(is_reserved("uint16"));
+            assert!(is_reserved("int24"));
+            assert!(is_reserved("uint256"));
+            assert!(is_reserved("int"));
+            assert!(is_reserved("uint"));
+            // ok
+            assert!(!is_reserved("uint9"));
+            assert!(!is_reserved("int17"));
+            assert!(!is_reserved("uint257"));
+            assert!(!is_reserved("uint249"));
+
+            // ufixed<M>x<N> | fixed<M>x<N>
+            assert!(is_reserved("fixed128x18"));
+            assert!(is_reserved("ufixed256x80"));
+            assert!(is_reserved("fixed8x1"));
+            assert!(is_reserved("ufixed256x0"));
+            assert!(is_reserved("fixed"));
+            assert!(is_reserved("ufixed"));
+            // ok
+            assert!(!is_reserved("fixed128x81")); // N > 80
+            assert!(!is_reserved("fixed264x18")); // M > 256
+            assert!(!is_reserved("fixed129x18")); // M not divisible by 8
+            assert!(!is_reserved("fixed4x1")); // M < 8
+            assert!(!is_reserved("fixed128"));
+            assert!(!is_reserved("fixed128xN"));
+        }
     }
 }

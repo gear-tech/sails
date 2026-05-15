@@ -11,7 +11,7 @@
   "homepage": "https://github.com/gear-tech/sails/tree/master/js#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://githib.com/gear-tech/sails.git",
+    "url": "git+https://github.com/gear-tech/sails.git",
     "directory": "js"
   },
   "keywords": [
@@ -25,36 +25,56 @@
     ".": {
       "import": "./lib/index.js",
       "require": "./lib/cjs/index.cjs",
-      "types": "./index.d.ts"
+      "types": "./lib/index.d.ts"
+    },
+    "./parser": {
+      "import": "./lib/parser.js",
+      "require": "./lib/cjs/parser.cjs",
+      "types": "./lib/parser.d.ts"
+    },
+    "./types": {
+      "types": "./lib/types.d.ts"
+    },
+    "./util": {
+      "import": "./lib/util.js",
+      "require": "./lib/cjs/util.cjs",
+      "types": "./lib/util.d.ts"
     }
   },
   "scripts": {
     "prebuild": "rm -rf lib",
     "build": "rollup --config rollup.config.js",
+    "build:bun": "bun run build.ts",
+    "test:bun": "bun x pnpm@10.30.2 --filter sails-js --filter sails-js-parser --filter sails-js-parser-idl-v2 --filter sails-js-types --filter sails-js-util -r build:bun && bun run test/setup.ts && bun test --timeout 15000",
     "test": "pnpm jest --runInBand",
+    "test:decode": "pnpm jest --runInBand --config test/jest.decode.config.ts",
+    "test:bench": "pnpm jest --runInBand --config test/jest.bench.config.ts",
     "pack-build": "pnpm pack --out sails-js.tgz"
   },
   "peerDependencies": {
-    "@gear-js/api": "^0.44.1",
-    "@polkadot/api": "^16.4.1",
-    "@polkadot/util": "^13.5.1"
-  },
-  "optionalDependencies": {
-    "sails-js-types": "workspace:*"
-  },
-  "dependencies": {
-    "sails-js-util": "workspace:*"
+    "@gear-js/api": "^0.45.0",
+    "@polkadot/api": "^16.5.1",
+    "@polkadot/util": "^14.0.1"
   },
   "devDependencies": {
-    "@gear-js/api": "0.44.2",
-    "@polkadot/api": "16.4.6",
-    "@polkadot/keyring": "^13.5.6",
-    "@polkadot/types": "16.4.6",
-    "@polkadot/util": "13.5.6",
-    "@polkadot/wasm-crypto": "^7.5.1",
-    "jest": "^30.2.0",
+    "@gear-js/api": "0.45.0",
+    "@polkadot/api": "16.5.6",
+    "@polkadot/keyring": "^14.0.3",
+    "@polkadot/types": "16.5.6",
+    "@polkadot/util": "14.0.3",
+    "@polkadot/wasm-crypto": "^7.5.4",
+    "@rollup/plugin-commonjs": "^29.0.2",
+    "@rollup/plugin-node-resolve": "^16.0.3",
+    "@types/node": "^25.6.0",
+    "jest": "^30.3.0",
+    "rollup-plugin-dts": "^6.4.1",
+    "rollup-plugin-typescript2": "^0.37.0",
+    "sails-js-parser": "workspace:*",
+    "sails-js-parser-idl-v2": "workspace:*",
     "sails-js-types": "workspace:*",
-    "sails-js-parser": "workspace:*"
+    "sails-js-util": "workspace:*",
+    "ts-jest": "^29.4.9",
+    "tslib": "^2.8.1"
   },
   "files": [
     "lib"

@@ -1,0 +1,8 @@
+struct ResultData {
+    value: u32,
+}
+
+enum Error {
+    NotFound,
+    InternalError,
+}

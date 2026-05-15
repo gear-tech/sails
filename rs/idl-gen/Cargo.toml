@@ -10,15 +10,19 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+askama = { workspace = true, features = ["alloc", "derive"] }
 convert_case.workspace = true
 gprimitives.workspace = true
-handlebars.workspace = true
+sails-idl-ast = { workspace = true, features = ["templates"] }
 sails-idl-meta.workspace = true
-scale-info = { workspace = true, features = ["derive", "docs", "serde"] }
-serde = { workspace = true, features = ["derive"] }
-serde-json.workspace = true
+sails-type-registry = { workspace = true, features = ["derive", "gprimitives"] }
 thiserror.workspace = true
+syn = { workspace = true, features = ["parsing", "full", "fold"] }
+quote.workspace = true
+
+[features]
+std = []
 
 [dev-dependencies]
 insta.workspace = true
-sails-idl-parser.workspace = true
+sails-idl-parser-v2.workspace = true

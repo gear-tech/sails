@@ -1,0 +1,17 @@
+{%- if is_unit() -%}
+{%- else if is_inline() -%} (
+    {%- for field in fields -%}
+    {%- if loop.first %}{{ field.type_decl }}{% else %}, {{ field.type_decl }}{% endif -%}
+    {%- endfor -%}
+)
+{%- else if is_tuple() %} (
+    {%- for field in fields -%}
+    {{ field | indent(4) }},
+    {%- endfor %}
+)
+{%- else %} {
+    {%- for field in fields -%}
+    {{ field | indent(4) }},
+    {%- endfor %}
+}
+{%- endif -%}
