@@ -27,6 +27,9 @@ impl BenchData {
         for (key, value) in data.message_stack.0 {
             map.insert(BenchCategory::MessageStack(key), value);
         }
+        for (key, value) in data.storage.0 {
+            map.insert(BenchCategory::Storage(key), value);
+        }
 
         Ok(Self(map))
     }
@@ -65,6 +68,21 @@ impl BenchData {
         self.0.insert(BenchCategory::MessageStack(limit), value);
     }
 
+    /// Update storage benchmark category value.
+    pub fn update_storage_bench(&mut self, key: String, value: u64) {
+        self.0.insert(BenchCategory::Storage(key), value);
+    }
+
+    /// Replace all storage benchmark values.
+    pub fn replace_storage_benches(&mut self, values: BTreeMap<String, u64>) {
+        self.0
+            .retain(|key, _| !matches!(key, BenchCategory::Storage(_)));
+
+        for (key, value) in values {
+            self.update_storage_bench(key, value);
+        }
+    }
+
     /// Convert the benchmark data into a JSON string.
     pub fn into_json_string(self) -> Result<String> {
         let mut bench_data = BenchDataSerde::default();
@@ -81,6 +99,9 @@ impl BenchData {
                 BenchCategory::Redirect => bench_data.redirect.median = value,
                 BenchCategory::MessageStack(limit) => {
                     bench_data.message_stack.0.insert(limit, value);
+                }
+                BenchCategory::Storage(key) => {
+                    bench_data.storage.0.insert(key, value);
                 }
             }
         }
@@ -116,6 +137,8 @@ pub struct BenchDataSerde {
     pub redirect: RedirectBenchDataSerde,
     #[serde(default)]
     pub message_stack: MessageStackDataSerde,
+    #[serde(default)]
+    pub storage: StorageStressDataSerde,
 }
 
 /// Compute benchmark data stored in the benchmarks file.
@@ -153,6 +176,10 @@ pub struct CounterBenchDataSerde {
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct MessageStackDataSerde(pub BTreeMap<u32, u64>);
 
+/// Storage benchmark data stored in the benchmarks file.
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub struct StorageStressDataSerde(pub BTreeMap<String, u64>);
+
 /// Benchmark category that can be read (written) from (to) the benchmarks file.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum BenchCategory {
@@ -163,6 +190,7 @@ pub enum BenchCategory {
     CrossProgram,
     Redirect,
     MessageStack(u32),
+    Storage(String),
 }
 
 impl Display for BenchCategory {
@@ -175,6 +203,7 @@ impl Display for BenchCategory {
             BenchCategory::CrossProgram => write!(f, "cross_program"),
             BenchCategory::Redirect => write!(f, "redirect"),
             BenchCategory::MessageStack(limit) => write!(f, "stack_{limit}"),
+            BenchCategory::Storage(key) => write!(f, "storage_{key}"),
         }
     }
 }

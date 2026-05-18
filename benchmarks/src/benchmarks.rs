@@ -8,6 +8,7 @@
 //! - **Compute performance benchmarks** - Tests CPU-intensive operations like Fibonacci calculations (`compute_stress_bench` test)
 //! - **Cross-program performance** - Tests performance of cross-program communication (`cross_program_bench` test)
 //! - **Redirect performance** - Tests performance of redirecting calls to another program (`redirect_bench` test)
+//! - **Storage benchmarks** - Compares allocator-backed maps with fixed open-addressed maps (`storage_stress_bench` test)
 //!
 //! All benchmarks use the `gtest` framework to simulate on-chain execution and measure
 //! gas consumption. Results are stored to the shared benchmark data file for analysis.
@@ -26,6 +27,9 @@ use crate::clients::{
     },
     counter_bench_client::{
         CounterBench as _, CounterBenchCtors, CounterBenchProgram, counter_bench::*,
+    },
+    storage_stress_client::{
+        StorageStress as _, StorageStressCtors, StorageStressProgram, storage_stress::*,
     },
 };
 use gtest::{System, constants::DEFAULT_USER_ALICE};
@@ -272,6 +276,54 @@ async fn message_stack_bench() {
     }
 }
 
+#[tokio::test]
+async fn storage_stress_bench() {
+    let mut benches: BTreeMap<String, Vec<u64>> = Default::default();
+    let loads = [0, 16, 256, 1024];
+    let wasm_path = "../target/wasm32-gear/release/storage_stress.opt.wasm";
+    assert_storage_stress_wasm_static_memory_layout(wasm_path);
+
+    for sample in 0..10 {
+        for backend in [
+            StorageBackend::HashMap,
+            StorageBackend::Fixed,
+            StorageBackend::RawStatic,
+            StorageBackend::SailsFixed,
+            StorageBackend::SailsStatic,
+        ] {
+            for map in [StorageMap::Balance, StorageMap::Allowance] {
+                for &load in loads.iter() {
+                    let run = storage_stress_test(backend.clone(), map.clone(), load, sample).await;
+
+                    for gas in run.prepare {
+                        benches
+                            .entry(storage_prepare_key(&backend, &map, load))
+                            .or_default()
+                            .push(gas);
+                    }
+
+                    for (op, gas) in run.operations {
+                        benches
+                            .entry(storage_bench_key(&backend, &map, &op, load))
+                            .or_default()
+                            .push(gas);
+                    }
+                }
+            }
+        }
+    }
+
+    let medians = benches
+        .into_iter()
+        .map(|(key, gas_benches)| (key, median(gas_benches)))
+        .collect();
+
+    crate::store_bench_data(|bench_data| {
+        bench_data.replace_storage_benches(medians);
+    })
+    .unwrap();
+}
+
 async fn alloc_stress_test(n: u32) -> (usize, u64) {
     // Path taken from the .binpath file
     let wasm_path = "../target/wasm32-gear/release/alloc_stress.opt.wasm";
@@ -317,6 +369,222 @@ async fn message_stack_test(limit: u32) -> u64 {
 
     let gas = block_res.gas_burned.values().sum();
     gas
+}
+
+struct StorageStressRun {
+    prepare: Vec<u64>,
+    operations: Vec<(StorageOp, u64)>,
+}
+
+async fn storage_stress_test(
+    backend: StorageBackend,
+    map: StorageMap,
+    load: u32,
+    sample: u32,
+) -> StorageStressRun {
+    let wasm_path = "../target/wasm32-gear/release/storage_stress.opt.wasm";
+    let env = create_env();
+    let program = deploy_for_bench(&env, wasm_path, |d| StorageStressCtors::new_for_bench(d)).await;
+    let mut service = program.storage_stress();
+
+    let ops = storage_ops_for_load(load);
+    let mut prepare = Vec::with_capacity(ops.len());
+    let mut operations = Vec::with_capacity(ops.len());
+
+    for op in ops {
+        let message_id = service
+            .prepare(backend.clone(), map.clone(), load)
+            .send_one_way()
+            .unwrap();
+        let (payload, gas) = extract_reply_and_gas(env.system(), message_id);
+        prepare.push(gas);
+        let prep =
+            crate::clients::storage_stress_client::storage_stress::io::Prepare::decode_reply(
+                StorageStressProgram::ROUTE_ID_STORAGE_STRESS,
+                payload.as_slice(),
+            )
+            .unwrap();
+        assert_eq!(prep.len, load);
+
+        let seed = storage_seed_for_op(&op, load, sample);
+        let message_id = service
+            .bench(backend.clone(), map.clone(), op.clone(), seed)
+            .send_one_way()
+            .unwrap();
+        let (payload, gas) = extract_reply_and_gas(env.system(), message_id);
+        let result =
+            crate::clients::storage_stress_client::storage_stress::io::Bench::decode_reply(
+                StorageStressProgram::ROUTE_ID_STORAGE_STRESS,
+                payload.as_slice(),
+            )
+            .unwrap();
+
+        assert_storage_result(&op, load, seed, &result);
+        operations.push((op, gas));
+    }
+
+    StorageStressRun {
+        prepare,
+        operations,
+    }
+}
+
+fn storage_ops_for_load(load: u32) -> Vec<StorageOp> {
+    if load == 0 {
+        vec![StorageOp::InsertFresh, StorageOp::ReadMissing]
+    } else {
+        vec![
+            StorageOp::InsertFresh,
+            StorageOp::UpdateExisting,
+            StorageOp::ReadExisting,
+            StorageOp::ReadMissing,
+            StorageOp::Remove,
+        ]
+    }
+}
+
+fn storage_seed_for_op(op: &StorageOp, load: u32, sample: u32) -> u32 {
+    match op {
+        StorageOp::InsertFresh | StorageOp::ReadMissing => 10_000 + load + sample,
+        StorageOp::UpdateExisting | StorageOp::ReadExisting | StorageOp::Remove => {
+            1 + (sample % load)
+        }
+    }
+}
+
+fn assert_storage_result(op: &StorageOp, load: u32, seed: u32, result: &StorageBenchResult) {
+    match op {
+        StorageOp::InsertFresh => {
+            assert_eq!(result.value, storage_value_for_seed(seed));
+            assert_eq!(result.len, load + 1);
+            assert!(!result.existed);
+        }
+        StorageOp::UpdateExisting => {
+            assert_eq!(result.value, storage_updated_value_for_seed(seed));
+            assert_eq!(result.len, load);
+            assert!(result.existed);
+        }
+        StorageOp::ReadExisting => {
+            assert_eq!(result.value, storage_value_for_seed(seed));
+            assert_eq!(result.len, load);
+            assert!(result.existed);
+        }
+        StorageOp::ReadMissing => {
+            assert_eq!(result.value, U256::zero());
+            assert_eq!(result.len, load);
+            assert!(!result.existed);
+        }
+        StorageOp::Remove => {
+            assert_eq!(result.value, storage_value_for_seed(seed));
+            assert_eq!(result.len, load - 1);
+            assert!(result.existed);
+        }
+    }
+}
+
+fn storage_value_for_seed(seed: u32) -> U256 {
+    U256::from(seed as u64 + 1)
+}
+
+fn storage_updated_value_for_seed(seed: u32) -> U256 {
+    U256::from(seed as u64 + 1_000_001)
+}
+
+fn storage_bench_key(
+    backend: &StorageBackend,
+    map: &StorageMap,
+    op: &StorageOp,
+    load: u32,
+) -> String {
+    format!(
+        "{}_{}_{}_{}",
+        storage_backend_name(backend),
+        storage_map_name(map),
+        storage_op_name(op),
+        load
+    )
+}
+
+fn storage_prepare_key(backend: &StorageBackend, map: &StorageMap, load: u32) -> String {
+    format!(
+        "{}_{}_prepare_{}",
+        storage_backend_name(backend),
+        storage_map_name(map),
+        load
+    )
+}
+
+fn storage_backend_name(backend: &StorageBackend) -> &'static str {
+    match backend {
+        StorageBackend::HashMap => "hashmap",
+        StorageBackend::Fixed => "fixed",
+        StorageBackend::RawStatic => "raw_static",
+        StorageBackend::SailsFixed => "sails_fixed",
+        StorageBackend::SailsStatic => "sails_static",
+    }
+}
+
+fn storage_map_name(map: &StorageMap) -> &'static str {
+    match map {
+        StorageMap::Balance => "balance",
+        StorageMap::Allowance => "allowance",
+    }
+}
+
+fn storage_op_name(op: &StorageOp) -> &'static str {
+    match op {
+        StorageOp::InsertFresh => "insert_fresh",
+        StorageOp::UpdateExisting => "update_existing",
+        StorageOp::ReadExisting => "read_existing",
+        StorageOp::ReadMissing => "read_missing",
+        StorageOp::Remove => "remove",
+    }
+}
+
+fn assert_storage_stress_wasm_static_memory_layout(wasm_path: &str) {
+    let wasm = std::fs::read(wasm_path).expect("storage-stress optimized WASM exists");
+    let mut imported_memory_pages = None;
+
+    'payloads: for payload in wasmparser::Parser::new(0).parse_all(&wasm) {
+        let wasmparser::Payload::ImportSection(imports) =
+            payload.expect("storage-stress optimized WASM parses")
+        else {
+            continue;
+        };
+
+        for imports in imports {
+            match imports.expect("storage-stress import parses") {
+                wasmparser::Imports::Single(_, import) => {
+                    if let wasmparser::TypeRef::Memory(memory) = import.ty {
+                        imported_memory_pages = Some(memory.initial);
+                        break 'payloads;
+                    }
+                }
+                wasmparser::Imports::Compact1 { items, .. } => {
+                    for item in items {
+                        let item = item.expect("storage-stress compact import parses");
+                        if let wasmparser::TypeRef::Memory(memory) = item.ty {
+                            imported_memory_pages = Some(memory.initial);
+                            break 'payloads;
+                        }
+                    }
+                }
+                wasmparser::Imports::Compact2 { ty, .. } => {
+                    if let wasmparser::TypeRef::Memory(memory) = ty {
+                        imported_memory_pages = Some(memory.initial);
+                        break 'payloads;
+                    }
+                }
+            }
+        }
+    }
+
+    let imported_memory_pages = imported_memory_pages.expect("storage-stress imports memory");
+    assert!(
+        imported_memory_pages >= u64::from(::storage_stress::STATIC_MEMORY_END_PAGE),
+        "storage-stress imported memory has {imported_memory_pages} pages, expected at least {}",
+        ::storage_stress::STATIC_MEMORY_END_PAGE
+    );
 }
 
 fn create_env() -> GtestEnv {

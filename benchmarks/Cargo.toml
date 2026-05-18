@@ -24,6 +24,7 @@ sails-rs = { workspace = true, features = ["build"] }
 alloc-stress = { path = "alloc-stress" }
 compute-stress = { path = "compute-stress" }
 counter-bench = { path = "counter-bench" }
+storage-stress = { path = "storage-stress" }
 convert_case.workspace = true
 sails-client-gen-v2.workspace = true
 
@@ -33,6 +34,7 @@ sails-rs = { workspace = true, features = ["gtest"] }
 alloc-stress = { path = "alloc-stress" }
 compute-stress = { path = "compute-stress" }
 counter-bench = { path = "counter-bench" }
+storage-stress = { path = "storage-stress" }
 ping-pong-bench-app = { path = "ping-pong/app" }
 ping-pong-stack = { path = "../examples/ping-pong-stack" }
 redirect-app = { path = "../examples/redirect/app" }
@@ -41,3 +43,4 @@ redirect-proxy = { path = "../examples/redirect/proxy" }
 redirect-proxy-client = { path = "../examples/redirect/proxy-client" }
 tokio = { workspace = true, features = ["rt", "macros"] }
 tempfile.workspace = true
+wasmparser.workspace = true

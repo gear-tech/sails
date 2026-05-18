@@ -37,6 +37,7 @@ env:
     sails-client-gen-js
     sails-macros-core
     sails-macros
+    sails-storage
     sails-rs
     sails-cli
 

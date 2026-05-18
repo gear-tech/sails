@@ -740,8 +740,10 @@ dependencies = [
  "sails-rs",
  "serde",
  "serde_json",
+ "storage-stress",
  "tempfile",
  "tokio",
+ "wasmparser 0.244.0",
 ]
 
 [[package]]
@@ -6595,11 +6597,15 @@ dependencies = [
  "sails-idl-meta",
  "sails-macros",
  "sails-reflect-hash",
+ "sails-storage",
  "sails-type-registry",
  "spin 0.10.0",
+ "tempfile",
  "thiserror 2.0.18",
  "tokio",
  "tokio-stream",
+ "wasm-encoder 0.244.0",
+ "wasmparser 0.244.0",
 ]
 
 [[package]]
@@ -6612,6 +6618,13 @@ dependencies = [
  "insta",
  "sails-idl-parser-v2",
  "serde",
+]
+
+[[package]]
+name = "sails-storage"
+version = "1.0.0-beta.5"
+dependencies = [
+ "gprimitives",
 ]
 
 [[package]]
@@ -7875,6 +7888,14 @@ name = "static_assertions"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
+
+[[package]]
+name = "storage-stress"
+version = "1.0.0-beta.5"
+dependencies = [
+ "sails-rs",
+ "sails-storage",
+]
 
 [[package]]
 name = "str-buf"

@@ -17,7 +17,7 @@ use anyhow::{Context, Result};
 pub use entities::{
     AllocBenchDataSerde, BenchCategory, BenchCategoryComparison, BenchCategoryComparisonReport,
     BenchData, BenchDataSerde, ComputeBenchDataSerde, CounterBenchDataSerde,
-    CrossProgramBenchDataSerde, RedirectBenchDataSerde,
+    CrossProgramBenchDataSerde, RedirectBenchDataSerde, StorageStressDataSerde,
 };
 pub use file::BenchDataFile;
 use std::{
@@ -59,9 +59,10 @@ mod tests {
     use super::*;
     use crate::entities::{
         BenchDataSerde, ComputeBenchDataSerde, CounterBenchDataSerde, CrossProgramBenchDataSerde,
-        RedirectBenchDataSerde,
+        RedirectBenchDataSerde, StorageStressDataSerde,
     };
     use std::{
+        collections::BTreeMap,
         io::{Read, Seek, SeekFrom, Write},
         thread,
     };
@@ -80,6 +81,10 @@ mod tests {
             cross_program: CrossProgramBenchDataSerde { median: 42 },
             redirect: RedirectBenchDataSerde { median: 4242 },
             message_stack: Default::default(),
+            storage: StorageStressDataSerde(BTreeMap::from([(
+                "sails_static_balance_prepare_1024".to_owned(),
+                777,
+            )])),
         };
 
         // Create a temporary file.
@@ -142,6 +147,10 @@ mod tests {
                 cross_program: CrossProgramBenchDataSerde { median: 0 },
                 redirect: RedirectBenchDataSerde { median: 4343 },
                 message_stack: Default::default(),
+                storage: StorageStressDataSerde(BTreeMap::from([(
+                    "sails_static_balance_prepare_1024".to_owned(),
+                    777,
+                )])),
             },
         )
     }

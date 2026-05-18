@@ -23,4 +23,5 @@ fn main() {
     generate_client("alloc_stress_program", &clients_path, &idls_path);
     generate_client("compute_stress_program", &clients_path, &idls_path);
     generate_client("counter_bench_program", &clients_path, &idls_path);
+    generate_client("storage_stress_program", &clients_path, &idls_path);
 }

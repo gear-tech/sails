@@ -12,3 +12,8 @@ pub(crate) mod counter_bench_client {
     #![allow(unused)]
     include!("counter_bench_program.rs");
 }
+
+pub(crate) mod storage_stress_client {
+    #![allow(unused)]
+    include!("storage_stress_program.rs");
+}
