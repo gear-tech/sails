@@ -29,6 +29,13 @@ pub mod wasm {
     #[unsafe(no_mangle)]
     extern "C" fn init() {
         let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
+        if input.is_empty() {
+            sails_rename::program_ctor!(
+                PROGRAM = MyProgram::create(), params_struct =
+                meta_in_program::__CreateParams
+            );
+            return;
+        }
         if let Ok(header) = <sails_rename::meta::SailsMessageHeader as sails_rename::Decode>::decode(
             &mut input,
         ) {

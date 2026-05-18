@@ -73,18 +73,20 @@ struct ProgramBuilder {
     program_impl: ItemImpl,
     program_args: ProgramArgs,
     type_constraints: Option<WhereClause>,
+    has_default_ctor_only: bool,
 }
 
 impl ProgramBuilder {
     fn new(program_impl: ItemImpl, program_args: ProgramArgs) -> Self {
         let mut program_impl = program_impl;
         let type_constraints = program_impl.generics.where_clause.take();
-        ensure_default_program_ctor(&mut program_impl);
+        let has_default_ctor_only = ensure_default_program_ctor(&mut program_impl);
 
         Self {
             program_impl,
             program_args,
             type_constraints,
+            has_default_ctor_only,
         }
     }
 
@@ -401,7 +403,7 @@ impl ProgramBuilder {
         let mut ctor_params_structs = Vec::with_capacity(program_ctors.len());
         let mut ctor_meta_variants = Vec::with_capacity(program_ctors.len());
 
-        for fn_builder in program_ctors {
+        for fn_builder in &program_ctors {
             ctor_dispatches.push(fn_builder.ctor_branch_impl(
                 program_type_path,
                 &input_ident,
@@ -425,10 +427,34 @@ impl ProgramBuilder {
             }
         };
 
+        // For programs with no user-defined constructors, also accept an empty payload.
+        // The default create() takes no arguments and is idempotent, so an empty slice is
+        // unambiguous: it cannot be confused with any real constructor message.
+        let empty_input_guard = if self.has_default_ctor_only {
+            let fn_builder = program_ctors
+                .first()
+                .expect("default ctor must exist when has_default_ctor_only is true");
+            let ctor_ident = fn_builder.ident;
+            let params_struct_ident = &fn_builder.params_struct_ident;
+            quote! {
+                if #input_ident.is_empty() {
+                    #sails_path::program_ctor!(
+                        #program_ident = #program_type_path :: #ctor_ident (),
+                        params_struct = meta_in_program::#params_struct_ident
+                    );
+                    return;
+                }
+            }
+        } else {
+            quote!()
+        };
+
         let init_fn = quote! {
             #[unsafe(no_mangle)]
             extern "C" fn init() {
                 let mut #input_ident: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
+
+                #empty_input_guard
 
                 #solidity_init
 
@@ -542,7 +568,7 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
     )
 }
 
-fn ensure_default_program_ctor(program_impl: &mut ItemImpl) {
+fn ensure_default_program_ctor(program_impl: &mut ItemImpl) -> bool {
     let sails_path = &sails_paths::sails_path_or_default(None);
     if discover_program_ctors(program_impl, sails_path).is_empty() {
         program_impl.items.push(ImplItem::Fn(parse_quote!(
@@ -550,7 +576,9 @@ fn ensure_default_program_ctor(program_impl: &mut ItemImpl) {
                 Default::default()
             }
         )));
+        return true;
     }
+    false
 }
 
 fn discover_program_ctors<'a>(

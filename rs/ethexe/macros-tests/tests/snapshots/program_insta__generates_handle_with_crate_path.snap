@@ -65,6 +65,13 @@ pub mod wasm {
     #[unsafe(no_mangle)]
     extern "C" fn init() {
         let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
+        if input.is_empty() {
+            sails_rename::program_ctor!(
+                PROGRAM = MyProgram::create(), params_struct =
+                meta_in_program::__CreateParams
+            );
+            return;
+        }
         if let Ok(sig) = TryInto::<[u8; 4]>::try_into(&input[..4]) {
             if let Some(idx) = __CTOR_SIGS.iter().position(|s| s == &sig) {
                 let (_, entry_id, ..) = <MyProgram as sails_rename::solidity::ProgramSignature>::CTORS[idx];
