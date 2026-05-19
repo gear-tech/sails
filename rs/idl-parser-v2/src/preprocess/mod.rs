@@ -6,6 +6,8 @@ use alloc::string::{String, ToString};
 pub mod fs;
 #[cfg(feature = "std")]
 pub mod git;
+#[cfg(feature = "std")]
+mod path_utils;
 
 /// The result of loading an IDL source — content and a unique id used for deduplication.
 #[derive(Debug)]
