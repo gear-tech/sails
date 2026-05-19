@@ -31,18 +31,24 @@ impl ProgramBuilder {
         let program_ctors = self.program_ctors();
         let program_ctor_sigs = program_ctors
             .iter()
+            .filter(|fn_builder| fn_builder.has_ethabi_codec())
             .map(|fn_builder| fn_builder.sol_handler_signature(None));
 
         let service_ctors = self.service_ctors();
         let service_ctor_sigs = service_ctors
             .iter()
+            .filter(|fn_builder| fn_builder.has_ethabi_codec())
             .map(|fn_builder| fn_builder.sol_service_signature());
 
-        let methods_len_iter = service_ctors.iter().map(|fn_builder| {
+        let ethabi_service_ctors = service_ctors
+            .iter()
+            .filter(|fn_builder| fn_builder.has_ethabi_codec())
+            .collect::<Vec<_>>();
+        let methods_len_iter = ethabi_service_ctors.iter().map(|fn_builder| {
             let service_type = &fn_builder.result_type;
             quote!(<#service_type as #sails_path::solidity::ServiceSignature>::METHODS.len())
         });
-        let methods_len = if service_ctors.is_empty() {
+        let methods_len = if ethabi_service_ctors.is_empty() {
             quote! {0}
         } else {
             quote! {#(#methods_len_iter) + *}
@@ -84,6 +90,7 @@ impl ProgramBuilder {
         let program_ctors = self.program_ctors();
         let ctor_branches = program_ctors
             .iter()
+            .filter(|fn_builder| fn_builder.has_ethabi_codec())
             .map(|fn_builder| fn_builder.sol_ctor_branch_impl(program_type_path, program_ident));
 
         quote! {

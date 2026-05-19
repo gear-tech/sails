@@ -1,0 +1,277 @@
+---
+source: macros-tests/tests/program_insta.rs
+assertion_line: 199
+expression: result
+---
+impl MyProgram {
+    #[export(scale)]
+    pub fn scale_ctor() -> Self {
+        Self
+    }
+    #[export(ethabi)]
+    pub fn ethabi_ctor() -> Self {
+        Self
+    }
+    fn __ethabi_service(&self) -> EthabiService {
+        EthabiService
+    }
+    fn __scale_service(&self) -> ScaleService {
+        ScaleService
+    }
+    pub fn ethabi_service(
+        &self,
+    ) -> <EthabiService as sails_rs::gstd::services::Service>::Exposure {
+        let service = self.__ethabi_service();
+        let exposure = <EthabiService as sails_rs::gstd::services::Service>::expose(
+            service,
+            1u8,
+        );
+        exposure
+    }
+    pub fn scale_service(
+        &self,
+    ) -> <ScaleService as sails_rs::gstd::services::Service>::Exposure {
+        let service = self.__scale_service();
+        let exposure = <ScaleService as sails_rs::gstd::services::Service>::expose(
+            service,
+            2u8,
+        );
+        exposure
+    }
+}
+impl sails_rs::meta::ProgramMeta for MyProgram {
+    type ConstructorsMeta = meta_in_program::ConstructorsMeta;
+    const SERVICES: &'static [(&'static str, sails_rs::meta::AnyServiceMeta)] = &[
+        ("EthabiService", <EthabiService as sails_rs::meta::ServiceMeta>::META),
+        ("ScaleService", <ScaleService as sails_rs::meta::ServiceMeta>::META),
+    ];
+    const ASYNC: bool = <EthabiService as sails_rs::meta::ServiceMeta>::ASYNC
+        || <ScaleService as sails_rs::meta::ServiceMeta>::ASYNC;
+}
+mod meta_in_program {
+    use super::*;
+    sails_rs::invocation_io!(
+        pub struct __EthabiCtorParams {}, entry_id = 0u16, decode = false,
+    );
+    sails_rs::invocation_io!(pub struct __ScaleCtorParams {}, entry_id = 1u16,);
+    #[derive(sails_rs::TypeInfo)]
+    #[type_info(crate = sails_rs::type_info)]
+    pub enum ConstructorsMeta {
+        #[annotate(codec = "ethabi")]
+        EthabiCtor(__EthabiCtorParams),
+        #[annotate(codec = "scale")]
+        ScaleCtor(__ScaleCtorParams),
+    }
+}
+impl sails_rs::solidity::ProgramSignature for MyProgram {
+    const CTORS: &'static [sails_rs::solidity::MethodExpo] = &[
+        (
+            sails_rs::meta::InterfaceId::zero(),
+            0u16,
+            "ethabiCtor",
+            <<(
+                bool,
+            ) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
+            <<(
+                sails_rs::alloy_primitives::B256,
+            ) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
+        ),
+    ];
+    const SERVICES: &'static [sails_rs::solidity::ServiceExpo] = &[
+        (
+            "ethabiService",
+            1u8,
+            <EthabiService as sails_rs::solidity::ServiceSignature>::METHODS,
+        ),
+    ];
+    const METHODS_LEN: usize = <EthabiService as sails_rs::solidity::ServiceSignature>::METHODS
+        .len();
+}
+const __CTOR_SIGS: [[u8; 4]; <MyProgram as sails_rs::solidity::ProgramSignature>::CTORS
+    .len()] = sails_rs::solidity::ConstProgramMeta::<MyProgram>::ctor_sigs();
+const __CTOR_CALLBACK_SIGS: [[u8; 4]; <MyProgram as sails_rs::solidity::ProgramSignature>::CTORS
+    .len()] = sails_rs::solidity::ConstProgramMeta::<MyProgram>::ctor_callback_sigs();
+const __METHOD_SIGS: [[u8; 4]; <MyProgram as sails_rs::solidity::ProgramSignature>::METHODS_LEN] = sails_rs::solidity::ConstProgramMeta::<
+    MyProgram,
+>::method_sigs();
+const __METHOD_ROUTES: [(
+    sails_rs::meta::InterfaceId,
+    u16,
+    u8,
+); <MyProgram as sails_rs::solidity::ProgramSignature>::METHODS_LEN] = sails_rs::solidity::ConstProgramMeta::<
+    MyProgram,
+>::method_routes();
+const __CALLBACK_SIGS: [[u8; 4]; <MyProgram as sails_rs::solidity::ProgramSignature>::METHODS_LEN] = sails_rs::solidity::ConstProgramMeta::<
+    MyProgram,
+>::callback_sigs();
+#[cfg(target_arch = "wasm32")]
+pub mod wasm {
+    use super::*;
+    use sails_rs::{gstd, hex, prelude::*};
+    static mut PROGRAM: Option<MyProgram> = None;
+    #[unsafe(no_mangle)]
+    extern "C" fn init() {
+        let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
+        if let Ok(sig) = TryInto::<[u8; 4]>::try_into(&input[..4]) {
+            if let Some(idx) = __CTOR_SIGS.iter().position(|s| s == &sig) {
+                let (_, entry_id, ..) = <MyProgram as sails_rs::solidity::ProgramSignature>::CTORS[idx];
+                if let Some(encode_reply) = match_ctor_solidity(entry_id, &input[4..]) {
+                    if encode_reply {
+                        let output = [
+                            __CTOR_CALLBACK_SIGS[idx].as_slice(),
+                            gstd::msg::id().into_bytes().as_slice(),
+                        ]
+                            .concat();
+                        gstd::msg::reply_bytes(output, 0)
+                            .expect("Failed to send output");
+                    }
+                    return;
+                }
+            }
+        }
+        if let Ok(header) = <sails_rs::meta::SailsMessageHeader as sails_rs::Decode>::decode(
+            &mut input,
+        ) {
+            if header.interface_id() != sails_rs::meta::InterfaceId::zero() {
+                sails_rs::gstd::unknown_input_panic(
+                    "Non zero ctor interface_id",
+                    header.to_bytes().as_slice(),
+                );
+            }
+            match header.entry_id() {
+                1u16 => {
+                    let (): () = sails_rs::Decode::decode(&mut input)
+                        .unwrap_or_else(|_| sails_rs::gstd::unknown_input_panic(
+                            "Unknown request",
+                            input,
+                        ));
+                    #[cfg(target_arch = "wasm32")]
+                    if sails_rs::gstd::msg::value() > 0 {
+                        core::panic!("'scale_ctor' accepts no value");
+                    }
+                    sails_rs::program_ctor!(
+                        PROGRAM = MyProgram::scale_ctor(), params_struct =
+                        meta_in_program::__ScaleCtorParams
+                    )
+                }
+                _ => {
+                    sails_rs::gstd::unknown_input_panic(
+                        "Unexpected ctor entry_id",
+                        input,
+                    )
+                }
+            }
+        }
+    }
+    fn match_ctor_solidity(entry_id: u16, input: &[u8]) -> Option<bool> {
+        match entry_id {
+            0u16 => {
+                let (__encode_reply,): (bool,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
+                        input,
+                    )
+                    .expect("Failed to decode request");
+                #[cfg(target_arch = "wasm32")]
+                if sails_rs::gstd::msg::value() > 0 {
+                    core::panic!("'ethabi_ctor' accepts no value");
+                }
+                let program = MyProgram::ethabi_ctor();
+                unsafe { PROGRAM = Some(program) };
+                Some(__encode_reply)
+            }
+            _ => None,
+        }
+    }
+    const SERVICES_COUNT: usize = 2usize
+        + sails_rs::meta::count_base_services::<EthabiService>()
+        + sails_rs::meta::count_base_services::<ScaleService>();
+    const INTERFACE_IDS: &'static [(sails_rs::meta::InterfaceId, u8)] = &sails_rs::meta::interface_ids::<
+        SERVICES_COUNT,
+    >(
+        &[
+            sails_rs::meta::BaseServiceMeta::new::<EthabiService>(""),
+            sails_rs::meta::BaseServiceMeta::new::<ScaleService>(""),
+        ],
+    );
+    #[unsafe(no_mangle)]
+    extern "C" fn handle() {
+        let mut input = gstd::msg::load_bytes().expect("Failed to read input");
+        let program_ref = unsafe { PROGRAM.as_mut() }.expect("Program not initialized");
+        if let Ok(sig) = TryInto::<[u8; 4]>::try_into(&input[..4]) {
+            if let Some(idx) = __METHOD_SIGS.iter().position(|s| s == &sig) {
+                let (interface_id, entry_id, route_idx) = __METHOD_ROUTES[idx];
+                if route_idx == 1u8 {
+                    let mut service = program_ref.ethabi_service();
+                    let Some(is_async) = <EthabiService as sails_rs::gstd::services::Service>::Exposure::check_asyncness(
+                        interface_id,
+                        entry_id,
+                    ) else {
+                        gstd::unknown_input_panic("Unknown service method", &input);
+                    };
+                    if is_async {
+                        gstd::message_loop(async move {
+                            let (output, value, encode_reply) = service
+                                .try_handle_solidity_async(
+                                    interface_id,
+                                    entry_id,
+                                    &input[4..],
+                                )
+                                .await
+                                .unwrap_or_else(|| {
+                                    gstd::unknown_input_panic("Unknown request", &input)
+                                });
+                            let output = if encode_reply {
+                                let selector = __CALLBACK_SIGS[idx];
+                                [selector.as_slice(), output.as_slice()].concat()
+                            } else {
+                                output
+                            };
+                            gstd::msg::reply_bytes(output, value)
+                                .expect("Failed to send output");
+                        });
+                    } else {
+                        let (output, value, encode_reply) = service
+                            .try_handle_solidity(interface_id, entry_id, &input[4..])
+                            .unwrap_or_else(|| {
+                                gstd::unknown_input_panic("Unknown request", &input)
+                            });
+                        let output = if encode_reply {
+                            let selector = __CALLBACK_SIGS[idx];
+                            [selector.as_slice(), output.as_slice()].concat()
+                        } else {
+                            output
+                        };
+                        gstd::msg::reply_bytes(output, value)
+                            .expect("Failed to send output");
+                    }
+                    return;
+                }
+            }
+        }
+        if let Ok(header) = <sails_rs::meta::SailsMessageHeader as sails_rs::Decode>::decode(
+            &mut input.as_slice(),
+        ) {
+            let header_len = header.hlen().inner() as usize;
+            let (interface_id, route_id, entry_id) = header
+                .try_match_interfaces(INTERFACE_IDS)
+                .expect("Failed to find matching service")
+                .into_inner();
+            match route_id {
+                2u8 => {
+                    let svc = program_ref.scale_service();
+                    sails_rs::service_route_dispatch!(
+                        svc : ScaleService, interface_id = interface_id, entry_id =
+                        entry_id, input = & input[header_len..],
+                    );
+                }
+                _ => gstd::unknown_input_panic("Unknown route_id", &[route_id]),
+            }
+        }
+    }
+    #[unsafe(no_mangle)]
+    extern "C" fn handle_reply() {
+        use sails_rs::meta::ProgramMeta;
+        if MyProgram::ASYNC {
+            gstd::handle_reply_with_hook();
+        }
+    }
+}

@@ -210,7 +210,9 @@ impl ProgramBuilder {
                 }
 
                 #[cfg(feature = "ethexe")]
-                solidity_dispatchers.push(fn_builder.sol_service_invocation());
+                if fn_builder.has_ethabi_codec() {
+                    solidity_dispatchers.push(fn_builder.sol_service_invocation());
+                }
 
                 // Extract data needed later (not the fn_builder itself)
                 let service_type = fn_builder.result_type.clone();
@@ -218,7 +220,13 @@ impl ProgramBuilder {
 
                 services_count_data.push(service_type.clone());
                 services_ids_data.push(service_type.clone());
-                route_dispatch_data.push((service_ctor_ident, service_type));
+                if fn_builder.has_scale_codec() {
+                    route_dispatch_data.push((
+                        (fn_builder.entry_id + 1) as u8,
+                        service_ctor_ident,
+                        service_type,
+                    ));
+                }
 
                 modifications.push((idx, original_service_ctor_fn, wrapping_service_ctor_fn));
             }
@@ -299,10 +307,7 @@ impl ProgramBuilder {
         // Generate route_id match arms using extracted data
         let route_dispatches = route_dispatch_data
             .iter()
-            .enumerate()
-            .map(|(idx, (service_ctor_ident, service_type))| {
-                let route_idx = (idx + 1) as u8;
-
+            .map(|(route_idx, service_ctor_ident, service_type)| {
                 quote! {
                     #route_idx => {
                         let svc = program_ref.#service_ctor_ident();
@@ -404,11 +409,13 @@ impl ProgramBuilder {
         let mut ctor_meta_variants = Vec::with_capacity(program_ctors.len());
 
         for fn_builder in &program_ctors {
-            ctor_dispatches.push(fn_builder.ctor_branch_impl(
-                program_type_path,
-                &input_ident,
-                program_ident,
-            ));
+            if fn_builder.has_scale_codec() {
+                ctor_dispatches.push(fn_builder.ctor_branch_impl(
+                    program_type_path,
+                    &input_ident,
+                    program_ident,
+                ));
+            }
             ctor_params_structs.push(fn_builder.ctor_params_struct());
             ctor_meta_variants.push(fn_builder.ctor_meta_variant());
         }
@@ -769,6 +776,7 @@ impl FnBuilder<'_> {
         let params_struct_ident = &self.params_struct_ident;
         let params_struct_members = self.params().map(|(ident, ty)| quote!(#ident: #ty));
         let entry_id = &self.entry_id;
+        let decode_disabled = (!self.has_scale_codec()).then(|| quote!(decode = false,));
 
         quote! {
             #sails_path::invocation_io!(
@@ -776,6 +784,7 @@ impl FnBuilder<'_> {
                     #(pub(super) #params_struct_members,)*
                 },
                 entry_id = #entry_id,
+                #decode_disabled
             );
         }
     }
@@ -794,17 +803,29 @@ impl FnBuilder<'_> {
         #[cfg(not(feature = "ethexe"))]
         let payable_ann: Option<TokenStream2> = None;
 
+        #[cfg(feature = "ethexe")]
+        let codec_ann: Option<TokenStream2> =
+            match (self.has_scale_codec(), self.has_ethabi_codec()) {
+                (true, false) => Some(quote!(#[annotate(codec = "scale")])),
+                (false, true) => Some(quote!(#[annotate(codec = "ethabi")])),
+                _ => None,
+            };
+        #[cfg(not(feature = "ethexe"))]
+        let codec_ann: Option<TokenStream2> = None;
+
         if let Some(err_ty) = &self.error_type {
             let err_ty = shared::replace_any_lifetime_with_static(err_ty.clone());
             quote! {
                 #( #ctor_docs_attrs )*
                 #payable_ann
+                #codec_ann
                 #ctor_route(#params_struct_ident, #err_ty)
             }
         } else {
             quote! {
                 #( #ctor_docs_attrs )*
                 #payable_ann
+                #codec_ann
                 #ctor_route(#params_struct_ident)
             }
         }
