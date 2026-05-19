@@ -1,8 +1,5 @@
 use crate::Output;
-use core::{
-    cell::Cell,
-    mem::{self, MaybeUninit},
-};
+use core::{cell::Cell, mem::MaybeUninit};
 
 /// A writer that writes to a buffer of `MaybeUninit<u8>` bytes
 /// safely using the `parity-scale-codec::Output` impl.
@@ -43,12 +40,8 @@ impl<'a> MaybeUninitBufferWriter<'a> {
         }
     }
 
-    /// Sets the number of bytes to be skipped on next write.
-    ///
-    /// This value will be reset to 0 after the next write.
-    ///
-    /// SAFETY: Calling `write` after this method is safe as long as the `skip` value
-    /// is less than or equal to the length of the bytes slice to be written.
+    /// Sets the number of bytes to be skipped from the start of the slice
+    /// passed to the next `write` call. Reset to 0 after that write.
     pub(crate) fn skip_next(&mut self, skip: usize) {
         self.skip = skip;
     }
@@ -57,21 +50,25 @@ impl<'a> MaybeUninitBufferWriter<'a> {
 // use `parity_scale_codec::Output` trait to not add a custom trait
 impl Output for MaybeUninitBufferWriter<'_> {
     fn write(&mut self, bytes: &[u8]) {
-        // SAFETY:
-        //
-        // Same as `MaybeUninit::write_slice(&mut self.buffer[self.offset..end_offset], bytes)`.
-        // This code transmutes `bytes: &[T]` to `bytes: &[MaybeUninit<T>]`. These types
-        // can be safely transmuted since they have the same layout. Then `bytes:
-        // &[MaybeUninit<T>]` is written to uninitialized memory via `copy_from_slice`.
         debug_assert!(
             self.skip <= bytes.len(),
             "Skip value must be less than or equal to the length of the bytes slice"
         );
-        let end_offset = self.offset + bytes.len() - self.skip;
-        let this = unsafe { self.buffer.get_unchecked_mut(self.offset..end_offset) };
-        this.copy_from_slice(unsafe {
-            mem::transmute::<&[u8], &[MaybeUninit<u8>]>(&bytes[self.skip..])
-        });
+        let write_len = bytes
+            .len()
+            .checked_sub(self.skip)
+            .expect("skip exceeds bytes length");
+        let end_offset = self
+            .offset
+            .checked_add(write_len)
+            .expect("buffer write offset overflow");
+        // `Encode::encoded_size()` is a safe trait method — an incorrect implementation
+        // must not produce UB here, so bounds-check rather than `get_unchecked_mut`.
+        let this = self
+            .buffer
+            .get_mut(self.offset..end_offset)
+            .expect("buffer too small for encoded bytes");
+        this.write_copy_of_slice(&bytes[self.skip..]);
         self.offset = end_offset;
         self.skip = 0;
     }
