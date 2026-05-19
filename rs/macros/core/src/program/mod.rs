@@ -222,7 +222,7 @@ impl ProgramBuilder {
                 services_ids_data.push(service_type.clone());
                 if fn_builder.has_scale_codec() {
                     route_dispatch_data.push((
-                        (fn_builder.entry_id + 1) as u8,
+                        fn_builder.service_route_idx(),
                         service_ctor_ident,
                         service_type,
                     ));
@@ -675,6 +675,13 @@ fn handle_reply_predicate(fn_item: &ImplItemFn) -> bool {
 }
 
 impl FnBuilder<'_> {
+    fn service_route_idx(&self) -> u8 {
+        if self.entry_id >= u8::MAX as u16 {
+            abort!(self.ident, "too many services; maximum is 255");
+        }
+        (self.entry_id + 1) as u8
+    }
+
     fn service_meta(&self) -> TokenStream2 {
         let sails_path = self.sails_path;
         let route = &self.route;
@@ -705,7 +712,7 @@ impl FnBuilder<'_> {
     fn wrapping_service_ctor_fn(&self, original_service_ctor_fn_ident: &Ident) -> ImplItemFn {
         let sails_path = self.sails_path;
         let service_type = &self.result_type;
-        let route_idx = (self.entry_id + 1) as u8;
+        let route_idx = self.service_route_idx();
         let unwrap_token = self.error_type.is_some().then(|| quote!(.unwrap()));
 
         let mut wrapping_service_ctor_fn = self.impl_fn.clone();

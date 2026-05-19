@@ -1,5 +1,6 @@
 ---
 source: macros-tests/tests/program_insta.rs
+assertion_line: 146
 expression: result
 ---
 impl MyProgram {
@@ -91,22 +92,23 @@ pub mod wasm {
     #[unsafe(no_mangle)]
     extern "C" fn init() {
         let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
-        if let Ok(sig) = TryInto::<[u8; 4]>::try_into(&input[..4]) {
-            if let Some(idx) = __CTOR_SIGS.iter().position(|s| s == &sig) {
-                let (_, entry_id, ..) = <MyProgram as sails_rs::solidity::ProgramSignature>::CTORS[idx];
-                if let Some(encode_reply) = match_ctor_solidity(entry_id, &input[4..]) {
-                    if encode_reply {
-                        let output = [
-                            __CTOR_CALLBACK_SIGS[idx].as_slice(),
-                            gstd::msg::id().into_bytes().as_slice(),
-                        ]
-                            .concat();
-                        gstd::msg::reply_bytes(output, 0)
-                            .expect("Failed to send output");
-                    }
-                    return;
-                }
+        if let Some(input_sig) = input.get(..4)
+            && let Ok(sig) = <[u8; 4]>::try_from(input_sig)
+            && let Some(idx) = __CTOR_SIGS.iter().position(|s| s == &sig)
+            && let Some(encode_reply) = match_ctor_solidity(
+                <MyProgram as sails_rs::solidity::ProgramSignature>::CTORS[idx].1,
+                &input[4..],
+            )
+        {
+            if encode_reply {
+                let output = [
+                    __CTOR_CALLBACK_SIGS[idx].as_slice(),
+                    gstd::msg::id().into_bytes().as_slice(),
+                ]
+                    .concat();
+                gstd::msg::reply_bytes(output, 0).expect("Failed to send output");
             }
+            return;
         }
         if let Ok(header) = <sails_rs::meta::SailsMessageHeader as sails_rs::Decode>::decode(
             &mut input,
@@ -210,10 +212,11 @@ pub mod wasm {
     extern "C" fn handle() {
         let mut input = gstd::msg::load_bytes().expect("Failed to read input");
         let program_ref = unsafe { PROGRAM.as_mut() }.expect("Program not initialized");
-        if let Ok(sig) = TryInto::<[u8; 4]>::try_into(&input[..4]) {
-            if let Some(idx) = __METHOD_SIGS.iter().position(|s| s == &sig) {
-                let (interface_id, entry_id, route_idx) = __METHOD_ROUTES[idx];
-            }
+        if let Some(input_sig) = input.get(..4)
+            && let Ok(sig) = <[u8; 4]>::try_from(input_sig)
+            && let Some(idx) = __METHOD_SIGS.iter().position(|s| s == &sig)
+        {
+            let (interface_id, entry_id, route_idx) = __METHOD_ROUTES[idx];
         }
         if let Ok(header) = <sails_rs::meta::SailsMessageHeader as sails_rs::Decode>::decode(
             &mut input.as_slice(),

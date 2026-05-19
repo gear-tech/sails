@@ -108,29 +108,32 @@ impl ProgramBuilder {
         let (program_type_path, ..) = self.impl_type();
 
         quote! {
-            if let Ok(sig) = TryInto::<[u8; 4]>::try_into(&#input_ident[..4]) {
-                if let Some(idx) = __CTOR_SIGS.iter().position(|s| s == &sig) {
-                    let (_, entry_id, ..) = <#program_type_path as #sails_path::solidity::ProgramSignature>::CTORS[idx];
-                    if let Some(encode_reply) = match_ctor_solidity(entry_id, &#input_ident[4..]) {
-                        // add callbak selector if `encode_reply` is set
-                        if encode_reply {
-                            let output = [__CTOR_CALLBACK_SIGS[idx].as_slice(), gstd::msg::id().into_bytes().as_slice()].concat();
-                            gstd::msg::reply_bytes(output, 0).expect("Failed to send output");
-                        }
-                        return;
-                    }
+            if let Some(input_sig) = #input_ident.get(..4)
+                && let Ok(sig) = <[u8; 4]>::try_from(input_sig)
+                && let Some(idx) = __CTOR_SIGS.iter().position(|s| s == &sig)
+                && let Some(encode_reply) = match_ctor_solidity(
+                    <#program_type_path as #sails_path::solidity::ProgramSignature>::CTORS[idx].1,
+                    &#input_ident[4..],
+                )
+            {
+                // add callback selector if `encode_reply` is set
+                if encode_reply {
+                    let output = [__CTOR_CALLBACK_SIGS[idx].as_slice(), gstd::msg::id().into_bytes().as_slice()].concat();
+                    gstd::msg::reply_bytes(output, 0).expect("Failed to send output");
                 }
+                return;
             }
         }
     }
 
     pub fn sol_main(&self, solidity_dispatchers: &[TokenStream]) -> TokenStream {
         quote! {
-            if let Ok(sig) = TryInto::<[u8; 4]>::try_into(&input[..4]) {
-                if let Some(idx) = __METHOD_SIGS.iter().position(|s| s == &sig) {
-                    let (interface_id, entry_id, route_idx) = __METHOD_ROUTES[idx];
-                    #(#solidity_dispatchers)*
-                }
+            if let Some(input_sig) = input.get(..4)
+                && let Ok(sig) = <[u8; 4]>::try_from(input_sig)
+                && let Some(idx) = __METHOD_SIGS.iter().position(|s| s == &sig)
+            {
+                let (interface_id, entry_id, route_idx) = __METHOD_ROUTES[idx];
+                #(#solidity_dispatchers)*
             }
         }
     }
@@ -139,7 +142,7 @@ impl ProgramBuilder {
 impl FnBuilder<'_> {
     fn sol_service_signature(&self) -> TokenStream {
         let sails_path = self.sails_path;
-        let route_idx = (self.entry_id + 1) as u8;
+        let route_idx = self.service_route_idx();
         let service_name = self.route_camel_case();
         let service_type = &self.result_type;
 
@@ -247,7 +250,7 @@ impl FnBuilder<'_> {
 
     pub(crate) fn sol_service_invocation(&self) -> TokenStream2 {
         let sails_path = self.sails_path;
-        let route_idx = (self.entry_id + 1) as u8;
+        let route_idx = self.service_route_idx();
         let service_ctor_ident = self.ident;
         let service_type = &self.result_type;
 
@@ -265,7 +268,7 @@ impl FnBuilder<'_> {
                             .unwrap_or_else(|| {
                                 gstd::unknown_input_panic("Unknown request", &input)
                             });
-                        // add callbak selector if `encode_reply` is set
+                        // add callback selector if `encode_reply` is set
                         let output = if encode_reply {
                             let selector = __CALLBACK_SIGS[idx];
                             [selector.as_slice(), output.as_slice()].concat()
@@ -280,7 +283,7 @@ impl FnBuilder<'_> {
                         .unwrap_or_else(|| {
                             gstd::unknown_input_panic("Unknown request", &input)
                         });
-                    // add callbak selector if `encode_reply` is set
+                    // add callback selector if `encode_reply` is set
                     let output = if encode_reply {
                         let selector = __CALLBACK_SIGS[idx];
                         [selector.as_slice(), output.as_slice()].concat()
