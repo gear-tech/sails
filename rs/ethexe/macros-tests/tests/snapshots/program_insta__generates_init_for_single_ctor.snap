@@ -1,6 +1,5 @@
 ---
 source: macros-tests/tests/program_insta.rs
-assertion_line: 18
 expression: result
 ---
 impl MyProgram {
@@ -46,11 +45,13 @@ impl sails_rs::solidity::ProgramSignature for MyProgram {
 }
 const __CTOR_SIGS: [[u8; 4]; <MyProgram as sails_rs::solidity::ProgramSignature>::CTORS
     .len()] = sails_rs::solidity::ConstProgramMeta::<MyProgram>::ctor_sigs();
+const _: () = sails_rs::solidity::assert_unique_selectors(&__CTOR_SIGS);
 const __CTOR_CALLBACK_SIGS: [[u8; 4]; <MyProgram as sails_rs::solidity::ProgramSignature>::CTORS
     .len()] = sails_rs::solidity::ConstProgramMeta::<MyProgram>::ctor_callback_sigs();
 const __METHOD_SIGS: [[u8; 4]; <MyProgram as sails_rs::solidity::ProgramSignature>::METHODS_LEN] = sails_rs::solidity::ConstProgramMeta::<
     MyProgram,
 >::method_sigs();
+const _: () = sails_rs::solidity::assert_unique_selectors(&__METHOD_SIGS);
 const __METHOD_ROUTES: [(
     sails_rs::meta::InterfaceId,
     u16,

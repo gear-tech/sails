@@ -74,10 +74,12 @@ impl ProgramBuilder {
         quote! {
             const __CTOR_SIGS: [[u8; 4]; <#program_type_path as #sails_path::solidity::ProgramSignature>::CTORS.len()]
                 = #sails_path::solidity::ConstProgramMeta::<#program_type_path>::ctor_sigs();
+            const _: () = #sails_path::solidity::assert_unique_selectors(&__CTOR_SIGS);
             const __CTOR_CALLBACK_SIGS: [[u8; 4]; <#program_type_path as #sails_path::solidity::ProgramSignature>::CTORS.len()]
                 = #sails_path::solidity::ConstProgramMeta::<#program_type_path>::ctor_callback_sigs();
             const __METHOD_SIGS: [[u8; 4]; <#program_type_path as #sails_path::solidity::ProgramSignature>::METHODS_LEN]
                 = #sails_path::solidity::ConstProgramMeta::<#program_type_path>::method_sigs();
+            const _: () = #sails_path::solidity::assert_unique_selectors(&__METHOD_SIGS);
             const __METHOD_ROUTES: [(#sails_path::meta::InterfaceId, u16, u8); <#program_type_path as #sails_path::solidity::ProgramSignature>::METHODS_LEN]
                 = #sails_path::solidity::ConstProgramMeta::<#program_type_path>::method_routes();
             const __CALLBACK_SIGS: [[u8; 4]; <#program_type_path as #sails_path::solidity::ProgramSignature>::METHODS_LEN]

@@ -95,6 +95,31 @@ macro_rules! const_concat_slices {
     }};
 }
 
+/// Compile-time check that all 4-byte Solidity selectors in `sigs` are unique.
+///
+/// Selectors are derived from the first 4 bytes of Keccak-256 of the method
+/// signature. Because dispatch uses `.position(..)` (first-match), a collision
+/// would silently route messages for a later method to the first matching
+/// entry. Enforce uniqueness at macro-expansion time so an offending program
+/// fails to compile rather than mis-dispatches at runtime.
+pub const fn assert_unique_selectors(sigs: &[[u8; 4]]) {
+    let mut i = 0;
+    while i < sigs.len() {
+        let mut j = i + 1;
+        while j < sigs.len() {
+            assert!(
+                !(sigs[i][0] == sigs[j][0]
+                    && sigs[i][1] == sigs[j][1]
+                    && sigs[i][2] == sigs[j][2]
+                    && sigs[i][3] == sigs[j][3]),
+                "duplicate 4-byte Solidity selector detected"
+            );
+            j += 1;
+        }
+        i += 1;
+    }
+}
+
 pub struct ConstProgramMeta<T>(marker::PhantomData<T>);
 
 impl<T> ConstProgramMeta<T>
@@ -375,6 +400,19 @@ mod tests {
             solidity::ConstProgramMeta::<Prg>::ctor_callback_sigs();
         let sig_ctor = selector("replyOn_create(bytes32)");
         assert_eq!(CTOR_CALLBACK_SIGS[0], sig_ctor.as_slice());
+    }
+
+    #[test]
+    fn assert_unique_selectors_passes_on_unique() {
+        const _: () = assert_unique_selectors(&[[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]]);
+        assert_unique_selectors(&[]);
+        assert_unique_selectors(&[[0, 0, 0, 0]]);
+    }
+
+    #[test]
+    #[should_panic(expected = "duplicate 4-byte Solidity selector detected")]
+    fn assert_unique_selectors_detects_duplicate() {
+        assert_unique_selectors(&[[1, 2, 3, 4], [9, 9, 9, 9], [1, 2, 3, 4]]);
     }
 
     #[test]
