@@ -71,6 +71,7 @@ ethexe = [
 gclient = ["dep:gclient", "dep:tokio-stream"]
 gstd = ["dep:gstd", "dep:gear-core"]
 gtest = ["std", "dep:gtest", "dep:log", "dep:tokio-stream"]
+experimental-vft-account = ["sails-storage?/experimental-vft-account"]
 idl-gen = ["dep:sails-idl-gen"]
 client-builder = ["std", "idl-gen", "idl-embed", "dep:sails-client-gen-v2", "dep:convert_case"]
 idl-embed = ["dep:sails-idl-embed"]

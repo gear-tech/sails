@@ -17,11 +17,14 @@ use anyhow::{Context, Result};
 pub use entities::{
     AllocBenchDataSerde, BenchCategory, BenchCategoryComparison, BenchCategoryComparisonReport,
     BenchData, BenchDataSerde, ComputeBenchDataSerde, CounterBenchDataSerde,
-    CrossProgramBenchDataSerde, RedirectBenchDataSerde, StorageStressDataSerde,
+    CrossProgramBenchDataSerde, ExampleBenchDataSerde, RedirectBenchDataSerde,
+    StorageMillionDataSerde, StorageStressDataSerde,
 };
 pub use file::BenchDataFile;
+#[cfg(feature = "gas-profile")]
+use serde::Serialize;
 use std::{
-    env,
+    env, fs,
     path::{Path, PathBuf},
 };
 
@@ -54,12 +57,117 @@ fn store_bench_data_to_file(path: impl AsRef<Path>, f: impl FnOnce(&mut BenchDat
         .context("Failed to unlock bench data file after writing")
 }
 
+#[cfg(feature = "gas-profile")]
+#[derive(Serialize)]
+struct GasProfileBucketSerde {
+    category: String,
+    label: String,
+    amount: u64,
+}
+
+#[cfg(feature = "gas-profile")]
+#[derive(Serialize)]
+struct GasProfileArtifactSerde {
+    benchmark: String,
+    total_gas: u64,
+    buckets: Vec<GasProfileBucketSerde>,
+}
+
+#[cfg(feature = "gas-profile")]
+fn gas_profile_root() -> Option<PathBuf> {
+    env::var_os("SAILS_GAS_PROFILE_DIR").map(PathBuf::from)
+}
+
+#[cfg(feature = "gas-profile")]
+pub fn write_gas_profile_artifact(
+    benchmark: &str,
+    total_gas: u64,
+    buckets: Vec<(String, String, u64)>,
+) -> Result<()> {
+    let Some(root) = gas_profile_root() else {
+        return Ok(());
+    };
+
+    fs::create_dir_all(root.join("profiles"))
+        .context("Failed to create gas profile artifact directory")?;
+
+    let artifact = GasProfileArtifactSerde {
+        benchmark: benchmark.to_owned(),
+        total_gas,
+        buckets: buckets
+            .iter()
+            .map(|(category, label, amount)| GasProfileBucketSerde {
+                category: category.clone(),
+                label: label.clone(),
+                amount: *amount,
+            })
+            .collect(),
+    };
+
+    let json_path = root.join("profiles").join(format!("{benchmark}.json"));
+    let folded_path = root.join("profiles").join(format!("{benchmark}.folded"));
+
+    fs::write(
+        &json_path,
+        serde_json::to_vec_pretty(&artifact).context("Failed to encode gas profile artifact")?,
+    )
+    .with_context(|| {
+        format!(
+            "Failed to write gas profile artifact to {}",
+            json_path.display()
+        )
+    })?;
+
+    let folded = buckets
+        .into_iter()
+        .map(|(category, label, amount)| format!("{benchmark};{category};{label} {amount}"))
+        .collect::<Vec<_>>()
+        .join("\n");
+    fs::write(&folded_path, format!("{folded}\n")).with_context(|| {
+        format!(
+            "Failed to write folded gas profile artifact to {}",
+            folded_path.display()
+        )
+    })?;
+
+    Ok(())
+}
+
+#[cfg(feature = "gas-profile")]
+pub fn write_gas_profile_summary(
+    summary: &std::collections::BTreeMap<String, u64>,
+    comparison_markdown: &str,
+) -> Result<()> {
+    let Some(root) = gas_profile_root() else {
+        return Ok(());
+    };
+
+    fs::create_dir_all(&root).context("Failed to create gas profile output directory")?;
+
+    let summary_path = root.join("summary.json");
+    fs::write(
+        &summary_path,
+        serde_json::to_vec_pretty(summary).context("Failed to encode gas profile summary")?,
+    )
+    .with_context(|| format!("Failed to write summary to {}", summary_path.display()))?;
+
+    let comparison_path = root.join("comparison.md");
+    fs::write(&comparison_path, comparison_markdown).with_context(|| {
+        format!(
+            "Failed to write gas profile comparison markdown to {}",
+            comparison_path.display()
+        )
+    })?;
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::entities::{
         BenchDataSerde, ComputeBenchDataSerde, CounterBenchDataSerde, CrossProgramBenchDataSerde,
-        RedirectBenchDataSerde, StorageStressDataSerde,
+        ExampleBenchDataSerde, RedirectBenchDataSerde, StorageStressDataSerde,
     };
     use std::{
         collections::BTreeMap,
@@ -84,6 +192,14 @@ mod tests {
             storage: StorageStressDataSerde(BTreeMap::from([(
                 "sails_static_balance_prepare_1024".to_owned(),
                 777,
+            )])),
+            storage_million: StorageMillionDataSerde(BTreeMap::from([(
+                "static_balance_prepare_1000000".to_owned(),
+                999,
+            )])),
+            examples: ExampleBenchDataSerde(BTreeMap::from([(
+                "aggregator_btree_prepare_1024".to_owned(),
+                888,
             )])),
         };
 
@@ -150,6 +266,14 @@ mod tests {
                 storage: StorageStressDataSerde(BTreeMap::from([(
                     "sails_static_balance_prepare_1024".to_owned(),
                     777,
+                )])),
+                storage_million: StorageMillionDataSerde(BTreeMap::from([(
+                    "static_balance_prepare_1000000".to_owned(),
+                    999,
+                )])),
+                examples: ExampleBenchDataSerde(BTreeMap::from([(
+                    "aggregator_btree_prepare_1024".to_owned(),
+                    888,
                 )])),
             },
         )

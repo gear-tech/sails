@@ -1,0 +1,84 @@
+
+!@sails: 1.0.0-beta.5
+
+service StorageMillion@0x4534f13d9216fc6b {
+    functions {
+        Bench(backend: MillionStorageBackend, op: MillionStorageOp, seed: u32) -> MillionStorageBenchResult;
+        BenchMany(backend: MillionStorageBackend, op: MillionStorageOp, start_seed: u32, count: u32) -> MillionStorageBenchResult;
+        BenchVftApproveBool(backend: MillionVftBackend, owner_seed: u32, spender_seed: u32) -> bool;
+        BenchVftTransfer(backend: MillionVftBackend, op: MillionVftTransferOp, seed: u32) -> MillionVftTransferResult;
+        BenchVftTransferBool(backend: MillionVftBackend, op: MillionVftTransferOp, seed: u32) -> bool;
+        BenchVftTransferFreshBool(backend: MillionVftBackend, seed: u32) -> bool;
+        BenchVftTransferFromSpenderBool(backend: MillionVftBackend, owner_seed: u32, spender_seed: u32) -> bool;
+        PrepareChunk(backend: MillionStorageBackend, start: u32, len: u32) -> MillionStorageBenchResult;
+        PrepareVftChunk(backend: MillionVftBackend, start: u32, len: u32) -> MillionVftTransferResult;
+    }
+    types {
+        enum MillionStorageBackend {
+            GenericStatic,
+            WatActorStatic,
+            MixedActorStatic,
+            TagActorStatic,
+            TagU64ActorStatic,
+            ControlActorStatic,
+            PageLocalActorStatic,
+            GroupedActorPages2,
+            GroupedActorPages4,
+            GroupedActorPages8,
+            GroupedActorPages16,
+            GroupedActorPages32,
+            GroupedActorPages64,
+            GroupedActorPages128,
+        }
+        struct MillionStorageBenchResult {
+            value: U256,
+            len: u32,
+            existed: bool,
+        }
+        enum MillionStorageOp {
+            InsertFresh,
+            UpdateExisting,
+            ReadExisting,
+            ReadMissing,
+            Remove,
+        }
+        enum MillionVftBackend {
+            BTree,
+            HashMap,
+            GenericStatic,
+            GenericStaticFused,
+            GenericStaticFast,
+            WatActorStatic,
+            MixedActorStatic,
+            MixedActorFast,
+            TagActorStatic,
+            TagU64ActorStatic,
+            ControlActorStatic,
+            PageLocalActorStatic,
+            GroupedActorPages64,
+            GroupedActorPages128,
+            InlineOwnerAccountU256,
+        }
+        enum MillionVftTransferOp {
+            Transfer,
+            TransferFrom,
+        }
+        struct MillionVftTransferResult {
+            from_balance: U256,
+            to_balance: U256,
+            allowance: U256,
+            balance_len: u32,
+            allowance_len: u32,
+            transferred: bool,
+        }
+    }
+}
+
+program StorageMillion {
+    constructors {
+        NewForBench();
+    }
+    services {
+        StorageMillion@0x4534f13d9216fc6b,
+    }
+}

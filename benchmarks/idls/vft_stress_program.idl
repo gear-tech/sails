@@ -1,0 +1,41 @@
+
+!@sails: 1.0.0-beta.5
+
+service VftStress@0x9d98a323ba179bf4 {
+    functions {
+        BenchVftApproveBool(backend: VftStorageBackend, owner_seed: u32, spender_seed: u32) -> bool;
+        BenchVftTransfer(backend: VftStorageBackend, op: VftTransferOp, seed: u32) -> VftTransferResult;
+        BenchVftTransferFreshBool(backend: VftStorageBackend, seed: u32) -> bool;
+        PrepareVft(backend: VftStorageBackend, len: u32) -> VftTransferResult;
+    }
+    types {
+        enum VftStorageBackend {
+            BTree,
+            HashMap,
+            SailsFixed,
+            SailsStatic,
+            SailsStaticFast,
+        }
+        enum VftTransferOp {
+            Transfer,
+            TransferFrom,
+        }
+        struct VftTransferResult {
+            from_balance: U256,
+            to_balance: U256,
+            allowance: U256,
+            balance_len: u32,
+            allowance_len: u32,
+            transferred: bool,
+        }
+    }
+}
+
+program VftStress {
+    constructors {
+        NewForBench();
+    }
+    services {
+        VftStress@0x9d98a323ba179bf4,
+    }
+}

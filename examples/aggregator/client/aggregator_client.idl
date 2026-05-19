@@ -1,8 +1,9 @@
 
 !@sails: 1.0.0-beta.5
 
-service Aggregator@0x8e5b7b94507d0323 {
+service Aggregator@0x4fe37e07a040ac29 {
     functions {
+        BenchTracker(op: TrackerOp, seed: u32) -> TrackerBenchResult;
         ComplexAdd() -> Result<u32, String>;
         @query
         FetchFastest(target: ActorId) -> Result<u32, String>;
@@ -18,6 +19,7 @@ service Aggregator@0x8e5b7b94507d0323 {
         FetchWithFallback(use_fallback: bool) -> Result<u32, String>;
         @query
         GetStatuses() -> [(MessageId, OpStatus)];
+        PrepareTracker(len: u32) -> TrackerBenchResult;
         @query
         TestPollAfterCompletion();
     }
@@ -28,14 +30,32 @@ service Aggregator@0x8e5b7b94507d0323 {
             Step2,
             Finalized,
         }
+        struct TrackerBenchResult {
+            len: u32,
+            status: Option<OpStatus>,
+            existed: bool,
+        }
+        enum TrackerOp {
+            InsertFresh,
+            UpdateExisting,
+            ReadExisting,
+            ListStatuses,
+        }
     }
 }
 
 program AggregatorClient {
     constructors {
         New(target: ActorId);
+        NewWithTracker(target: ActorId, tracker_backend: TrackerBackend);
     }
     services {
-        Aggregator@0x8e5b7b94507d0323,
+        Aggregator@0x4fe37e07a040ac29,
+    }
+    types {
+        enum TrackerBackend {
+            BTree,
+            SailsFixed,
+        }
     }
 }

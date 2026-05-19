@@ -1,5 +1,5 @@
 [package]
-name = "storage-stress"
+name = "storage-million"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
@@ -8,7 +8,7 @@ repository.workspace = true
 
 [dependencies]
 sails-rs.workspace = true
-sails-storage.workspace = true
+sails-storage = { workspace = true, features = ["experimental-vft-account"] }
 
 [build-dependencies]
-sails-rs = { workspace = true, features = ["wasm-builder"] }
+sails-rs = { workspace = true, features = ["wasm-builder", "experimental-vft-account"] }

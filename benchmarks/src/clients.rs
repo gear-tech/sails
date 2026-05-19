@@ -17,3 +17,13 @@ pub(crate) mod storage_stress_client {
     #![allow(unused)]
     include!("storage_stress_program.rs");
 }
+
+pub(crate) mod vft_stress_client {
+    #![allow(unused)]
+    include!("vft_stress_program.rs");
+}
+
+pub(crate) mod storage_million_client {
+    #![allow(unused)]
+    include!("storage_million_program.rs");
+}

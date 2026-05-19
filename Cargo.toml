@@ -56,6 +56,8 @@ members = [
     "benchmarks/compute-stress",
     "benchmarks/counter-bench",
     "benchmarks/storage-stress",
+    "benchmarks/vft-stress",
+    "benchmarks/storage-million",
     "benchmarks/ping-pong/app",
     "benchmarks/ping-pong/client",
     "benchmarks",

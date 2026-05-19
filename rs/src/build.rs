@@ -3,7 +3,13 @@
 pub use gwasm_builder::build as build_wasm;
 
 use gwasm_builder::{PreProcessor, PreProcessorTarget, WasmBuilder};
-use sails_storage::{StaticLayout, StaticOpenAddressTable};
+use sails_storage::{
+    ACTOR_ID_U256_SLOT_SIZE, ALLOWANCE_U256_SLOT_SIZE, PAGE_LOCAL_ACTOR_U256_DATA_OFFSET,
+    PAGE_LOCAL_ACTOR_U256_SLOTS_PER_TILE, PAGE_LOCAL_ACTOR_U256_TILE_BYTES, StaticLayout,
+    StaticOpenAddressTable,
+};
+#[cfg(feature = "experimental-vft-account")]
+use sails_storage::VFT_ACCOUNT_U256_SLOT_SIZE;
 use std::{
     boxed::Box,
     collections::BTreeSet,
@@ -33,8 +39,22 @@ pub struct StaticMemoryLayout {
 #[derive(Clone, Debug)]
 struct StaticTable {
     name: String,
-    slots: usize,
-    slot_size: usize,
+    slots: StaticTableSlots,
+    kind: StaticTableKind,
+}
+
+#[derive(Clone, Debug)]
+enum StaticTableSlots {
+    Exact(usize),
+    Log2(u8),
+}
+
+#[derive(Clone, Debug)]
+enum StaticTableKind {
+    SingleRegion { slot_size: usize, align: usize },
+    ControlActorU256,
+    PageLocalActorU256,
+    GroupedControlActorU256 { log2_group_pages: u8 },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -48,7 +68,24 @@ struct ResolvedStaticMemoryLayout {
 struct ResolvedStaticTable {
     name: String,
     base: usize,
+    control_base: Option<usize>,
+    slots_base: Option<usize>,
     slots: usize,
+    log2_slots: Option<u8>,
+    tiles: Option<usize>,
+    log2_tiles: Option<u8>,
+    slots_per_tile: Option<usize>,
+    tile_bytes: Option<usize>,
+    groups: Option<usize>,
+    log2_groups: Option<u8>,
+    group_pages: Option<usize>,
+    log2_group_pages: Option<u8>,
+    slots_per_group: Option<usize>,
+    group_bytes: Option<usize>,
+    data_offset: Option<usize>,
+    mask: Option<usize>,
+    control_bytes: Option<usize>,
+    slots_bytes: Option<usize>,
     bytes: usize,
 }
 
@@ -143,8 +180,123 @@ impl StaticMemoryLayout {
     ) -> Self {
         self.tables.push(StaticTable {
             name: name.into(),
-            slots,
-            slot_size: StaticOpenAddressTable::<KEY_SIZE, VALUE_SIZE>::slot_size(),
+            slots: StaticTableSlots::Exact(slots),
+            kind: StaticTableKind::SingleRegion {
+                slot_size: StaticOpenAddressTable::<KEY_SIZE, VALUE_SIZE>::slot_size(),
+                align: 1,
+            },
+        });
+        self
+    }
+
+    /// Reserves a WAT-shaped `ActorId -> U256` static map.
+    ///
+    /// The reserved table uses `2^LOG2_SLOTS` slots. Each slot is exactly 64
+    /// bytes: a 32-byte actor id followed by a 32-byte `U256` value.
+    pub fn reserve_actor_u256_map<const LOG2_SLOTS: u8>(mut self, name: impl Into<String>) -> Self {
+        self.tables.push(StaticTable {
+            name: name.into(),
+            slots: StaticTableSlots::Log2(LOG2_SLOTS),
+            kind: StaticTableKind::SingleRegion {
+                slot_size: ACTOR_ID_U256_SLOT_SIZE,
+                align: 64,
+            },
+        });
+        self
+    }
+
+    /// Reserves a WAT-shaped `(ActorId, ActorId) -> U256` static map.
+    ///
+    /// The reserved table uses `2^LOG2_SLOTS` slots. Each slot is exactly 96
+    /// bytes: owner actor id, spender actor id, and a `U256` value.
+    pub fn reserve_allowance_u256_map<const LOG2_SLOTS: u8>(
+        mut self,
+        name: impl Into<String>,
+    ) -> Self {
+        self.tables.push(StaticTable {
+            name: name.into(),
+            slots: StaticTableSlots::Log2(LOG2_SLOTS),
+            kind: StaticTableKind::SingleRegion {
+                slot_size: ALLOWANCE_U256_SLOT_SIZE,
+                align: 32,
+            },
+        });
+        self
+    }
+
+    /// Reserves an experimental owner-local VFT account map.
+    ///
+    /// The reserved table uses `2^LOG2_SLOTS` slots. Each slot is exactly 200
+    /// bytes: owner state bytes, a 32-byte owner actor id, a 32-byte `U256`
+    /// balance, and two inline spender actor id plus `U256` allowance pairs.
+    #[cfg(feature = "experimental-vft-account")]
+    pub fn reserve_vft_account_map<const LOG2_SLOTS: u8>(
+        mut self,
+        name: impl Into<String>,
+    ) -> Self {
+        self.tables.push(StaticTable {
+            name: name.into(),
+            slots: StaticTableSlots::Log2(LOG2_SLOTS),
+            kind: StaticTableKind::SingleRegion {
+                slot_size: VFT_ACCOUNT_U256_SLOT_SIZE,
+                align: 8,
+            },
+        });
+        self
+    }
+
+    /// Reserves a control-byte `ActorId -> U256` static map.
+    ///
+    /// The reserved table uses a one-byte control region followed by a 64-byte
+    /// aligned data slot region. Each data slot stores a 32-byte actor id and a
+    /// 32-byte `U256` value.
+    pub fn reserve_control_actor_u256_map<const LOG2_SLOTS: u8>(
+        mut self,
+        name: impl Into<String>,
+    ) -> Self {
+        self.tables.push(StaticTable {
+            name: name.into(),
+            slots: StaticTableSlots::Log2(LOG2_SLOTS),
+            kind: StaticTableKind::ControlActorU256,
+        });
+        self
+    }
+
+    /// Reserves a page-local control-byte `ActorId -> U256` static map.
+    ///
+    /// The reserved table uses `2^LOG2_TILES` Gear-page-sized tiles. Each tile
+    /// stores its control bytes and 64-byte actor/value slots in the same
+    /// 16 KiB page to avoid split control/data page touches on hit paths.
+    pub fn reserve_page_local_actor_u256_map<const LOG2_TILES: u8>(
+        mut self,
+        name: impl Into<String>,
+    ) -> Self {
+        self.tables.push(StaticTable {
+            name: name.into(),
+            slots: StaticTableSlots::Log2(LOG2_TILES),
+            kind: StaticTableKind::PageLocalActorU256,
+        });
+        self
+    }
+
+    /// Reserves a grouped-control `ActorId -> U256` static map.
+    ///
+    /// The reserved table uses `2^LOG2_GROUPS` groups. Each group spans
+    /// `2^LOG2_GROUP_PAGES` Gear pages and stores its control bytes before its
+    /// 64-byte actor/value slots.
+    pub fn reserve_grouped_control_actor_u256_map<
+        const LOG2_GROUPS: u8,
+        const LOG2_GROUP_PAGES: u8,
+    >(
+        mut self,
+        name: impl Into<String>,
+    ) -> Self {
+        self.tables.push(StaticTable {
+            name: name.into(),
+            slots: StaticTableSlots::Log2(LOG2_GROUPS),
+            kind: StaticTableKind::GroupedControlActorU256 {
+                log2_group_pages: LOG2_GROUP_PAGES,
+            },
         });
         self
     }
@@ -165,17 +317,162 @@ impl StaticMemoryLayout {
                 return Err(Error::DuplicateTableName(table.name));
             }
 
-            let bytes = table
-                .slots
-                .checked_mul(table.slot_size)
-                .ok_or(Error::LayoutOverflow)?;
-            let region = layout.reserve_bytes(bytes).map_err(Error::StorageLayout)?;
-            tables.push(ResolvedStaticTable {
-                name: table.name,
-                base: region.base(),
-                slots: table.slots,
-                bytes: region.bytes(),
-            });
+            let log2_slots = table.slots.log2();
+            let slots = table.slots.resolve()?;
+            let resolved = match table.kind {
+                StaticTableKind::SingleRegion { slot_size, align } => {
+                    let bytes = slots.checked_mul(slot_size).ok_or(Error::LayoutOverflow)?;
+                    let region = layout
+                        .reserve_aligned_bytes(bytes, align)
+                        .map_err(Error::StorageLayout)?;
+                    ResolvedStaticTable {
+                        name: table.name,
+                        base: region.base(),
+                        control_base: None,
+                        slots_base: None,
+                        slots,
+                        log2_slots,
+                        tiles: None,
+                        log2_tiles: None,
+                        slots_per_tile: None,
+                        tile_bytes: None,
+                        groups: None,
+                        log2_groups: None,
+                        group_pages: None,
+                        log2_group_pages: None,
+                        slots_per_group: None,
+                        group_bytes: None,
+                        data_offset: None,
+                        mask: log2_slots.map(|_| slots - 1),
+                        control_bytes: None,
+                        slots_bytes: None,
+                        bytes: region.bytes(),
+                    }
+                }
+                StaticTableKind::ControlActorU256 => {
+                    let control_bytes = slots;
+                    let control_region = layout
+                        .reserve_aligned_bytes(control_bytes, 64)
+                        .map_err(Error::StorageLayout)?;
+                    let slots_bytes = slots
+                        .checked_mul(ACTOR_ID_U256_SLOT_SIZE)
+                        .ok_or(Error::LayoutOverflow)?;
+                    let slots_region = layout
+                        .reserve_aligned_bytes(slots_bytes, 64)
+                        .map_err(Error::StorageLayout)?;
+                    let span_bytes = slots_region
+                        .end()
+                        .map_err(Error::StorageLayout)?
+                        .checked_sub(control_region.base())
+                        .ok_or(Error::LayoutOverflow)?;
+                    ResolvedStaticTable {
+                        name: table.name,
+                        base: control_region.base(),
+                        control_base: Some(control_region.base()),
+                        slots_base: Some(slots_region.base()),
+                        slots,
+                        log2_slots,
+                        tiles: None,
+                        log2_tiles: None,
+                        slots_per_tile: None,
+                        tile_bytes: None,
+                        groups: None,
+                        log2_groups: None,
+                        group_pages: None,
+                        log2_group_pages: None,
+                        slots_per_group: None,
+                        group_bytes: None,
+                        data_offset: None,
+                        mask: log2_slots.map(|_| slots - 1),
+                        control_bytes: Some(control_region.bytes()),
+                        slots_bytes: Some(slots_region.bytes()),
+                        bytes: span_bytes,
+                    }
+                }
+                StaticTableKind::PageLocalActorU256 => {
+                    let log2_tiles = table.slots.log2();
+                    let tiles = slots;
+                    let slots = tiles
+                        .checked_mul(PAGE_LOCAL_ACTOR_U256_SLOTS_PER_TILE)
+                        .ok_or(Error::LayoutOverflow)?;
+                    let bytes = tiles
+                        .checked_mul(PAGE_LOCAL_ACTOR_U256_TILE_BYTES)
+                        .ok_or(Error::LayoutOverflow)?;
+                    let region = layout
+                        .reserve_aligned_bytes(bytes, PAGE_LOCAL_ACTOR_U256_TILE_BYTES)
+                        .map_err(Error::StorageLayout)?;
+                    ResolvedStaticTable {
+                        name: table.name,
+                        base: region.base(),
+                        control_base: None,
+                        slots_base: None,
+                        slots,
+                        log2_slots: None,
+                        tiles: Some(tiles),
+                        log2_tiles,
+                        slots_per_tile: Some(PAGE_LOCAL_ACTOR_U256_SLOTS_PER_TILE),
+                        tile_bytes: Some(PAGE_LOCAL_ACTOR_U256_TILE_BYTES),
+                        groups: None,
+                        log2_groups: None,
+                        group_pages: None,
+                        log2_group_pages: None,
+                        slots_per_group: None,
+                        group_bytes: None,
+                        data_offset: None,
+                        mask: None,
+                        control_bytes: None,
+                        slots_bytes: None,
+                        bytes: region.bytes(),
+                    }
+                }
+                StaticTableKind::GroupedControlActorU256 { log2_group_pages } => {
+                    let log2_groups = table.slots.log2();
+                    let groups = slots;
+                    let group_pages = StaticTableSlots::Log2(log2_group_pages).resolve()?;
+                    let slots_per_group = group_pages
+                        .checked_mul(PAGE_LOCAL_ACTOR_U256_SLOTS_PER_TILE)
+                        .ok_or(Error::LayoutOverflow)?;
+                    let group_bytes = group_pages
+                        .checked_mul(PAGE_LOCAL_ACTOR_U256_TILE_BYTES)
+                        .ok_or(Error::LayoutOverflow)?;
+                    let data_offset = group_pages
+                        .checked_mul(PAGE_LOCAL_ACTOR_U256_DATA_OFFSET)
+                        .ok_or(Error::LayoutOverflow)?;
+                    let slots = groups
+                        .checked_mul(slots_per_group)
+                        .ok_or(Error::LayoutOverflow)?;
+                    let bytes = groups
+                        .checked_mul(group_bytes)
+                        .ok_or(Error::LayoutOverflow)?;
+                    let region = layout
+                        .reserve_aligned_bytes(bytes, PAGE_LOCAL_ACTOR_U256_TILE_BYTES)
+                        .map_err(Error::StorageLayout)?;
+                    ResolvedStaticTable {
+                        name: table.name,
+                        base: region.base(),
+                        control_base: None,
+                        slots_base: None,
+                        slots,
+                        log2_slots: None,
+                        tiles: None,
+                        log2_tiles: None,
+                        slots_per_tile: None,
+                        tile_bytes: None,
+                        groups: Some(groups),
+                        log2_groups,
+                        group_pages: Some(group_pages),
+                        log2_group_pages: Some(log2_group_pages),
+                        slots_per_group: Some(slots_per_group),
+                        group_bytes: Some(group_bytes),
+                        data_offset: Some(data_offset),
+                        mask: None,
+                        control_bytes: None,
+                        slots_bytes: None,
+                        bytes: region.bytes(),
+                    }
+                }
+            };
+            tables.push(resolved);
         }
 
         let end_page = byte_end_to_page(layout.cursor())?;
@@ -184,6 +481,29 @@ impl StaticMemoryLayout {
             end_page,
             tables,
         })
+    }
+}
+
+impl StaticTableSlots {
+    fn log2(&self) -> Option<u8> {
+        match *self {
+            Self::Exact(_) => None,
+            Self::Log2(log2_slots) => Some(log2_slots),
+        }
+    }
+
+    fn resolve(&self) -> Result<usize, Error> {
+        match *self {
+            Self::Exact(slots) => Ok(slots),
+            Self::Log2(log2_slots) => {
+                let shift = u32::from(log2_slots);
+                if shift > 32 || shift >= usize::BITS {
+                    return Err(Error::LayoutOverflow);
+                }
+
+                1usize.checked_shl(shift).ok_or(Error::LayoutOverflow)
+            }
+        }
     }
 }
 
@@ -243,12 +563,131 @@ fn emit_static_storage_to_dir(
             table.base
         )
         .expect("writing to String cannot fail");
+        if let Some(control_base) = table.control_base {
+            writeln!(
+                &mut source,
+                "#[allow(dead_code)]\npub const {name}_CONTROL_BASE: usize = {control_base};"
+            )
+            .expect("writing to String cannot fail");
+        }
+        if let Some(slots_base) = table.slots_base {
+            writeln!(
+                &mut source,
+                "#[allow(dead_code)]\npub const {name}_SLOTS_BASE: usize = {slots_base};"
+            )
+            .expect("writing to String cannot fail");
+        }
         writeln!(
             &mut source,
             "#[allow(dead_code)]\npub const {name}_SLOTS: usize = {};",
             table.slots
         )
         .expect("writing to String cannot fail");
+        if let Some(log2_slots) = table.log2_slots {
+            writeln!(
+                &mut source,
+                "#[allow(dead_code)]\npub const {name}_LOG2_SLOTS: u8 = {log2_slots};"
+            )
+            .expect("writing to String cannot fail");
+        }
+        if let Some(tiles) = table.tiles {
+            writeln!(
+                &mut source,
+                "#[allow(dead_code)]\npub const {name}_TILES: usize = {tiles};"
+            )
+            .expect("writing to String cannot fail");
+        }
+        if let Some(log2_tiles) = table.log2_tiles {
+            writeln!(
+                &mut source,
+                "#[allow(dead_code)]\npub const {name}_LOG2_TILES: u8 = {log2_tiles};"
+            )
+            .expect("writing to String cannot fail");
+        }
+        if let Some(slots_per_tile) = table.slots_per_tile {
+            writeln!(
+                &mut source,
+                "#[allow(dead_code)]\npub const {name}_SLOTS_PER_TILE: usize = {slots_per_tile};"
+            )
+            .expect("writing to String cannot fail");
+        }
+        if let Some(tile_bytes) = table.tile_bytes {
+            writeln!(
+                &mut source,
+                "#[allow(dead_code)]\npub const {name}_TILE_BYTES: usize = {tile_bytes};"
+            )
+            .expect("writing to String cannot fail");
+        }
+        if let Some(groups) = table.groups {
+            writeln!(
+                &mut source,
+                "#[allow(dead_code)]\npub const {name}_GROUPS: usize = {groups};"
+            )
+            .expect("writing to String cannot fail");
+        }
+        if let Some(log2_groups) = table.log2_groups {
+            writeln!(
+                &mut source,
+                "#[allow(dead_code)]\npub const {name}_LOG2_GROUPS: u8 = {log2_groups};"
+            )
+            .expect("writing to String cannot fail");
+        }
+        if let Some(group_pages) = table.group_pages {
+            writeln!(
+                &mut source,
+                "#[allow(dead_code)]\npub const {name}_GROUP_PAGES: usize = {group_pages};"
+            )
+            .expect("writing to String cannot fail");
+        }
+        if let Some(log2_group_pages) = table.log2_group_pages {
+            writeln!(
+                &mut source,
+                "#[allow(dead_code)]\npub const {name}_LOG2_GROUP_PAGES: u8 = {log2_group_pages};"
+            )
+            .expect("writing to String cannot fail");
+        }
+        if let Some(slots_per_group) = table.slots_per_group {
+            writeln!(
+                &mut source,
+                "#[allow(dead_code)]\npub const {name}_SLOTS_PER_GROUP: usize = {slots_per_group};"
+            )
+            .expect("writing to String cannot fail");
+        }
+        if let Some(group_bytes) = table.group_bytes {
+            writeln!(
+                &mut source,
+                "#[allow(dead_code)]\npub const {name}_GROUP_BYTES: usize = {group_bytes};"
+            )
+            .expect("writing to String cannot fail");
+        }
+        if let Some(data_offset) = table.data_offset {
+            writeln!(
+                &mut source,
+                "#[allow(dead_code)]\npub const {name}_DATA_OFFSET: usize = {data_offset};"
+            )
+            .expect("writing to String cannot fail");
+        }
+        if let Some(mask) = table.mask {
+            writeln!(
+                &mut source,
+                "#[allow(dead_code)]\npub const {name}_MASK: usize = {mask};"
+            )
+            .expect("writing to String cannot fail");
+        }
+        if let Some(control_bytes) = table.control_bytes {
+            writeln!(
+                &mut source,
+                "#[allow(dead_code)]\npub const {name}_CONTROL_BYTES: usize = {control_bytes};"
+            )
+            .expect("writing to String cannot fail");
+        }
+        if let Some(slots_bytes) = table.slots_bytes {
+            writeln!(
+                &mut source,
+                "#[allow(dead_code)]\npub const {name}_SLOTS_BYTES: usize = {slots_bytes};"
+            )
+            .expect("writing to String cannot fail");
+        }
         writeln!(
             &mut source,
             "#[allow(dead_code)]\npub const {name}_BYTES: usize = {};",
@@ -560,6 +999,128 @@ mod tests {
         let generated = fs::read_to_string(dir.path().join(GENERATED_STATIC_STORAGE)).unwrap();
         assert!(generated.contains("pub const BALANCES_BASE: usize = 67108864;"));
         assert!(generated.contains("pub const ALLOWANCES_SLOTS: usize = 1;"));
+    }
+
+    #[test]
+    fn resolves_specialized_static_maps_with_alignment_and_metadata() {
+        let layout = StaticMemoryLayout::new(1024)
+            .reserve_table::<1, 1>("prefix", 1)
+            .reserve_actor_u256_map::<2>("fast_balances")
+            .reserve_allowance_u256_map::<1>("fast_allowances")
+            .reserve_control_actor_u256_map::<6>("control_balances")
+            .reserve_page_local_actor_u256_map::<2>("page_balances")
+            .reserve_grouped_control_actor_u256_map::<2, 3>("grouped_balances")
+            .resolve()
+            .unwrap();
+
+        assert_eq!(layout.tables[1].base % 64, 0);
+        assert_eq!(layout.tables[1].slots, 4);
+        assert_eq!(layout.tables[1].log2_slots, Some(2));
+        assert_eq!(layout.tables[1].mask, Some(3));
+        assert_eq!(layout.tables[1].bytes, 4 * ACTOR_ID_U256_SLOT_SIZE);
+        assert_eq!(layout.tables[2].base % 32, 0);
+        assert_eq!(layout.tables[2].slots, 2);
+        assert_eq!(layout.tables[2].log2_slots, Some(1));
+        assert_eq!(layout.tables[2].mask, Some(1));
+        assert_eq!(layout.tables[2].bytes, 2 * ALLOWANCE_U256_SLOT_SIZE);
+        assert_eq!(layout.tables[3].control_base.unwrap() % 64, 0);
+        assert_eq!(layout.tables[3].slots_base.unwrap() % 64, 0);
+        assert_eq!(layout.tables[3].slots, 64);
+        assert_eq!(layout.tables[3].log2_slots, Some(6));
+        assert_eq!(layout.tables[3].mask, Some(63));
+        assert_eq!(layout.tables[3].control_bytes, Some(64));
+        assert_eq!(
+            layout.tables[3].slots_bytes,
+            Some(64 * ACTOR_ID_U256_SLOT_SIZE)
+        );
+        assert_eq!(layout.tables[3].bytes, 64 + 64 * ACTOR_ID_U256_SLOT_SIZE);
+        assert_eq!(layout.tables[4].base % PAGE_LOCAL_ACTOR_U256_TILE_BYTES, 0);
+        assert_eq!(
+            layout.tables[4].slots,
+            4 * PAGE_LOCAL_ACTOR_U256_SLOTS_PER_TILE
+        );
+        assert_eq!(layout.tables[4].tiles, Some(4));
+        assert_eq!(layout.tables[4].log2_tiles, Some(2));
+        assert_eq!(
+            layout.tables[4].slots_per_tile,
+            Some(PAGE_LOCAL_ACTOR_U256_SLOTS_PER_TILE)
+        );
+        assert_eq!(
+            layout.tables[4].tile_bytes,
+            Some(PAGE_LOCAL_ACTOR_U256_TILE_BYTES)
+        );
+        assert_eq!(layout.tables[4].bytes, 4 * PAGE_LOCAL_ACTOR_U256_TILE_BYTES);
+        assert_eq!(layout.tables[5].base % PAGE_LOCAL_ACTOR_U256_TILE_BYTES, 0);
+        assert_eq!(layout.tables[5].groups, Some(4));
+        assert_eq!(layout.tables[5].log2_groups, Some(2));
+        assert_eq!(layout.tables[5].group_pages, Some(8));
+        assert_eq!(layout.tables[5].log2_group_pages, Some(3));
+        assert_eq!(
+            layout.tables[5].slots_per_group,
+            Some(8 * PAGE_LOCAL_ACTOR_U256_SLOTS_PER_TILE)
+        );
+        assert_eq!(
+            layout.tables[5].group_bytes,
+            Some(8 * PAGE_LOCAL_ACTOR_U256_TILE_BYTES)
+        );
+        assert_eq!(
+            layout.tables[5].data_offset,
+            Some(8 * PAGE_LOCAL_ACTOR_U256_DATA_OFFSET)
+        );
+        assert_eq!(
+            layout.tables[5].slots,
+            4 * 8 * PAGE_LOCAL_ACTOR_U256_SLOTS_PER_TILE
+        );
+        assert_eq!(
+            layout.tables[5].bytes,
+            4 * 8 * PAGE_LOCAL_ACTOR_U256_TILE_BYTES
+        );
+
+        let dir = tempfile::tempdir().unwrap();
+        emit_static_storage_to_dir(&layout, dir.path()).unwrap();
+        let generated = fs::read_to_string(dir.path().join(GENERATED_STATIC_STORAGE)).unwrap();
+        assert!(generated.contains("pub const FAST_BALANCES_LOG2_SLOTS: u8 = 2;"));
+        assert!(generated.contains("pub const FAST_BALANCES_MASK: usize = 3;"));
+        assert!(generated.contains("pub const FAST_ALLOWANCES_LOG2_SLOTS: u8 = 1;"));
+        assert!(generated.contains("pub const FAST_ALLOWANCES_MASK: usize = 1;"));
+        assert!(generated.contains("pub const CONTROL_BALANCES_CONTROL_BASE: usize = "));
+        assert!(generated.contains("pub const CONTROL_BALANCES_SLOTS_BASE: usize = "));
+        assert!(generated.contains("pub const CONTROL_BALANCES_CONTROL_BYTES: usize = 64;"));
+        assert!(generated.contains("pub const CONTROL_BALANCES_SLOTS_BYTES: usize = 4096;"));
+        assert!(generated.contains("pub const PAGE_BALANCES_LOG2_TILES: u8 = 2;"));
+        assert!(generated.contains("pub const PAGE_BALANCES_TILES: usize = 4;"));
+        assert!(generated.contains("pub const PAGE_BALANCES_SLOTS_PER_TILE: usize = 252;"));
+        assert!(generated.contains("pub const PAGE_BALANCES_TILE_BYTES: usize = 16384;"));
+        assert!(generated.contains("pub const GROUPED_BALANCES_LOG2_GROUPS: u8 = 2;"));
+        assert!(generated.contains("pub const GROUPED_BALANCES_GROUPS: usize = 4;"));
+        assert!(generated.contains("pub const GROUPED_BALANCES_LOG2_GROUP_PAGES: u8 = 3;"));
+        assert!(generated.contains("pub const GROUPED_BALANCES_GROUP_PAGES: usize = 8;"));
+        assert!(generated.contains("pub const GROUPED_BALANCES_SLOTS_PER_GROUP: usize = 2016;"));
+        assert!(generated.contains("pub const GROUPED_BALANCES_GROUP_BYTES: usize = 131072;"));
+        assert!(generated.contains("pub const GROUPED_BALANCES_DATA_OFFSET: usize = 2048;"));
+    }
+
+    #[cfg(feature = "experimental-vft-account")]
+    #[test]
+    fn resolves_experimental_vft_account_map() {
+        let layout = StaticMemoryLayout::new(1024)
+            .reserve_table::<1, 1>("prefix", 1)
+            .reserve_vft_account_map::<2>("vft_accounts")
+            .resolve()
+            .unwrap();
+
+        assert_eq!(layout.tables[1].base % 8, 0);
+        assert_eq!(layout.tables[1].slots, 4);
+        assert_eq!(layout.tables[1].log2_slots, Some(2));
+        assert_eq!(layout.tables[1].mask, Some(3));
+        assert_eq!(layout.tables[1].bytes, 4 * VFT_ACCOUNT_U256_SLOT_SIZE);
+
+        let dir = tempfile::tempdir().unwrap();
+        emit_static_storage_to_dir(&layout, dir.path()).unwrap();
+        let generated = fs::read_to_string(dir.path().join(GENERATED_STATIC_STORAGE)).unwrap();
+        assert!(generated.contains("pub const VFT_ACCOUNTS_LOG2_SLOTS: u8 = 2;"));
+        assert!(generated.contains("pub const VFT_ACCOUNTS_MASK: usize = 3;"));
+        assert!(generated.contains("pub const VFT_ACCOUNTS_BYTES: usize = 800;"));
     }
 
     #[test]

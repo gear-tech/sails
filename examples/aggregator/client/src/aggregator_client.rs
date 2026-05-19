@@ -30,6 +30,11 @@ pub trait AggregatorClientCtors {
         self,
         target: ActorId,
     ) -> sails_rs::client::PendingCtor<AggregatorClientProgram, io::New, Self::Env>;
+    fn new_with_tracker(
+        self,
+        target: ActorId,
+        tracker_backend: TrackerBackend,
+    ) -> sails_rs::client::PendingCtor<AggregatorClientProgram, io::NewWithTracker, Self::Env>;
 }
 
 impl<E: sails_rs::client::GearEnv> AggregatorClientCtors
@@ -42,11 +47,25 @@ impl<E: sails_rs::client::GearEnv> AggregatorClientCtors
     ) -> sails_rs::client::PendingCtor<AggregatorClientProgram, io::New, Self::Env> {
         self.pending_ctor((target,))
     }
+    fn new_with_tracker(
+        self,
+        target: ActorId,
+        tracker_backend: TrackerBackend,
+    ) -> sails_rs::client::PendingCtor<AggregatorClientProgram, io::NewWithTracker, Self::Env> {
+        self.pending_ctor((target, tracker_backend))
+    }
 }
 
 pub mod io {
     use super::*;
     sails_rs::io_struct_impl!(New (target: ActorId) -> (), 0);
+    sails_rs::io_struct_impl!(NewWithTracker (target: ActorId, tracker_backend: super::TrackerBackend) -> (), 1);
+}
+#[sails_rs::sails_type(crate = sails_rs)]
+#[derive(PartialEq, Clone, Debug)]
+pub enum TrackerBackend {
+    BTree,
+    SailsFixed,
 }
 
 pub mod aggregator {
@@ -60,9 +79,29 @@ pub mod aggregator {
         Step2,
         Finalized,
     }
+    #[sails_rs::sails_type(crate = sails_rs)]
+    #[derive(PartialEq, Clone, Debug)]
+    pub struct TrackerBenchResult {
+        pub len: u32,
+        pub status: Option<OpStatus>,
+        pub existed: bool,
+    }
+    #[sails_rs::sails_type(crate = sails_rs)]
+    #[derive(PartialEq, Clone, Debug)]
+    pub enum TrackerOp {
+        InsertFresh,
+        UpdateExisting,
+        ReadExisting,
+        ListStatuses,
+    }
 
     pub trait Aggregator {
         type Env: sails_rs::client::GearEnv;
+        fn bench_tracker(
+            &mut self,
+            op: TrackerOp,
+            seed: u32,
+        ) -> sails_rs::client::PendingCall<io::BenchTracker, Self::Env>;
         fn complex_add(&mut self) -> sails_rs::client::PendingCall<io::ComplexAdd, Self::Env>;
         fn fetch_fastest(
             &self,
@@ -83,6 +122,10 @@ pub mod aggregator {
             use_fallback: bool,
         ) -> sails_rs::client::PendingCall<io::FetchWithFallback, Self::Env>;
         fn get_statuses(&self) -> sails_rs::client::PendingCall<io::GetStatuses, Self::Env>;
+        fn prepare_tracker(
+            &mut self,
+            len: u32,
+        ) -> sails_rs::client::PendingCall<io::PrepareTracker, Self::Env>;
         fn test_poll_after_completion(
             &self,
         ) -> sails_rs::client::PendingCall<io::TestPollAfterCompletion, Self::Env>;
@@ -92,11 +135,18 @@ pub mod aggregator {
 
     impl sails_rs::client::Identifiable for AggregatorImpl {
         const INTERFACE_ID: sails_rs::InterfaceId =
-            sails_rs::InterfaceId::from_bytes_8([142, 91, 123, 148, 80, 125, 3, 35]);
+            sails_rs::InterfaceId::from_bytes_8([79, 227, 126, 7, 160, 64, 172, 41]);
     }
 
     impl<E: sails_rs::client::GearEnv> Aggregator for sails_rs::client::Service<AggregatorImpl, E> {
         type Env = E;
+        fn bench_tracker(
+            &mut self,
+            op: TrackerOp,
+            seed: u32,
+        ) -> sails_rs::client::PendingCall<io::BenchTracker, Self::Env> {
+            self.pending_call((op, seed))
+        }
         fn complex_add(&mut self) -> sails_rs::client::PendingCall<io::ComplexAdd, Self::Env> {
             self.pending_call(())
         }
@@ -133,6 +183,12 @@ pub mod aggregator {
         fn get_statuses(&self) -> sails_rs::client::PendingCall<io::GetStatuses, Self::Env> {
             self.pending_call(())
         }
+        fn prepare_tracker(
+            &mut self,
+            len: u32,
+        ) -> sails_rs::client::PendingCall<io::PrepareTracker, Self::Env> {
+            self.pending_call((len,))
+        }
         fn test_poll_after_completion(
             &self,
         ) -> sails_rs::client::PendingCall<io::TestPollAfterCompletion, Self::Env> {
@@ -142,14 +198,16 @@ pub mod aggregator {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(ComplexAdd () -> super::Result<u32, String, >, 0, <super::AggregatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(FetchFastest (target: ActorId) -> super::Result<u32, String, >, 1, <super::AggregatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(FetchFromAddress (target: ActorId) -> super::Result<u32, String, >, 2, <super::AggregatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(FetchRedirectId (target: ActorId) -> super::Result<ActorId, String, >, 3, <super::AggregatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(FetchSummary () -> super::Result<(u32, u32, ), String, >, 4, <super::AggregatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(FetchValue () -> super::Result<u32, String, >, 5, <super::AggregatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(FetchWithFallback (use_fallback: bool) -> super::Result<u32, String, >, 6, <super::AggregatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(GetStatuses () -> Vec<(MessageId, super::OpStatus, )>, 7, <super::AggregatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(TestPollAfterCompletion () -> (), 8, <super::AggregatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(BenchTracker (op: super::TrackerOp, seed: u32) -> super::TrackerBenchResult, 0, <super::AggregatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(ComplexAdd () -> super::Result<u32, String, >, 1, <super::AggregatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(FetchFastest (target: ActorId) -> super::Result<u32, String, >, 2, <super::AggregatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(FetchFromAddress (target: ActorId) -> super::Result<u32, String, >, 3, <super::AggregatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(FetchRedirectId (target: ActorId) -> super::Result<ActorId, String, >, 4, <super::AggregatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(FetchSummary () -> super::Result<(u32, u32, ), String, >, 5, <super::AggregatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(FetchValue () -> super::Result<u32, String, >, 6, <super::AggregatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(FetchWithFallback (use_fallback: bool) -> super::Result<u32, String, >, 7, <super::AggregatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(GetStatuses () -> Vec<(MessageId, super::OpStatus, )>, 8, <super::AggregatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(PrepareTracker (len: u32) -> super::TrackerBenchResult, 9, <super::AggregatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(TestPollAfterCompletion () -> (), 10, <super::AggregatorImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 }

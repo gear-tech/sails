@@ -1,5 +1,6 @@
 use aggregator_client::{
-    AggregatorClient, AggregatorClientCtors, AggregatorClientProgram, aggregator::Aggregator as _,
+    AggregatorClient, AggregatorClientCtors, AggregatorClientProgram, TrackerBackend,
+    aggregator::Aggregator as _,
 };
 use demo_client::{DemoClientCtors, DemoClientProgram};
 use redirect_client::{
@@ -15,6 +16,10 @@ const DEMO_WASM_PATH: &str = "../../../target/wasm32-gear/debug/demo.opt.wasm";
 const DEMO_WASM_PATH: &str = "../../../target/wasm32-gear/release/demo.opt.wasm";
 
 async fn setup() -> (GtestEnv, ActorId, ActorId) {
+    setup_with_tracker(TrackerBackend::BTree).await
+}
+
+async fn setup_with_tracker(tracker_backend: TrackerBackend) -> (GtestEnv, ActorId, ActorId) {
     let system = sails_rs::gtest::System::new();
     system.init_logger();
     system.mint_to(ACTOR_ID, 100_000_000_000_000);
@@ -29,7 +34,10 @@ async fn setup() -> (GtestEnv, ActorId, ActorId) {
     let demo_program = demo_factory.default().await.unwrap();
 
     let aggregator_factory = env.deploy::<AggregatorClientProgram>(aggregator_code_id, vec![2]);
-    let aggregator_program = aggregator_factory.new(demo_program.id()).await.unwrap();
+    let aggregator_program = aggregator_factory
+        .new_with_tracker(demo_program.id(), tracker_backend)
+        .await
+        .unwrap();
 
     (env, demo_program.id(), aggregator_program.id())
 }
@@ -139,6 +147,23 @@ async fn poll_after_completion_panics() {
 #[tokio::test]
 async fn complex_add_works() {
     let (env, _, aggregator_id) = setup().await;
+    let mut aggregator = AggregatorClientProgram::client(aggregator_id)
+        .with_env(&env)
+        .aggregator();
+    let final_val: u32 = aggregator.complex_add().await.unwrap().unwrap();
+    assert_eq!(final_val, 60);
+
+    let statuses = aggregator.get_statuses().await.unwrap();
+    assert_eq!(statuses.len(), 1);
+    assert_eq!(
+        statuses[0].1,
+        aggregator_client::aggregator::OpStatus::Finalized
+    );
+}
+
+#[tokio::test]
+async fn complex_add_works_with_fixed_tracker() {
+    let (env, _, aggregator_id) = setup_with_tracker(TrackerBackend::SailsFixed).await;
     let mut aggregator = AggregatorClientProgram::client(aggregator_id)
         .with_env(&env)
         .aggregator();

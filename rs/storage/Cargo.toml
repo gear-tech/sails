@@ -10,8 +10,8 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-gprimitives = { workspace = true, optional = true }
+gprimitives.workspace = true
 
 [features]
 default = []
-gear = ["dep:gprimitives"]
+experimental-vft-account = []

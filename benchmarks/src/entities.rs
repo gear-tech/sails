@@ -30,6 +30,12 @@ impl BenchData {
         for (key, value) in data.storage.0 {
             map.insert(BenchCategory::Storage(key), value);
         }
+        for (key, value) in data.storage_million.0 {
+            map.insert(BenchCategory::StorageMillion(key), value);
+        }
+        for (key, value) in data.examples.0 {
+            map.insert(BenchCategory::Example(key), value);
+        }
 
         Ok(Self(map))
     }
@@ -83,6 +89,36 @@ impl BenchData {
         }
     }
 
+    /// Update million-entry storage benchmark category value.
+    pub fn update_storage_million_bench(&mut self, key: String, value: u64) {
+        self.0.insert(BenchCategory::StorageMillion(key), value);
+    }
+
+    /// Replace all million-entry storage benchmark values.
+    pub fn replace_storage_million_benches(&mut self, values: BTreeMap<String, u64>) {
+        self.0
+            .retain(|key, _| !matches!(key, BenchCategory::StorageMillion(_)));
+
+        for (key, value) in values {
+            self.update_storage_million_bench(key, value);
+        }
+    }
+
+    /// Update example benchmark category value.
+    pub fn update_example_bench(&mut self, key: String, value: u64) {
+        self.0.insert(BenchCategory::Example(key), value);
+    }
+
+    /// Replace all example benchmark values.
+    pub fn replace_example_benches(&mut self, values: BTreeMap<String, u64>) {
+        self.0
+            .retain(|key, _| !matches!(key, BenchCategory::Example(_)));
+
+        for (key, value) in values {
+            self.update_example_bench(key, value);
+        }
+    }
+
     /// Convert the benchmark data into a JSON string.
     pub fn into_json_string(self) -> Result<String> {
         let mut bench_data = BenchDataSerde::default();
@@ -102,6 +138,12 @@ impl BenchData {
                 }
                 BenchCategory::Storage(key) => {
                     bench_data.storage.0.insert(key, value);
+                }
+                BenchCategory::StorageMillion(key) => {
+                    bench_data.storage_million.0.insert(key, value);
+                }
+                BenchCategory::Example(key) => {
+                    bench_data.examples.0.insert(key, value);
                 }
             }
         }
@@ -139,6 +181,10 @@ pub struct BenchDataSerde {
     pub message_stack: MessageStackDataSerde,
     #[serde(default)]
     pub storage: StorageStressDataSerde,
+    #[serde(default)]
+    pub storage_million: StorageMillionDataSerde,
+    #[serde(default)]
+    pub examples: ExampleBenchDataSerde,
 }
 
 /// Compute benchmark data stored in the benchmarks file.
@@ -180,6 +226,14 @@ pub struct MessageStackDataSerde(pub BTreeMap<u32, u64>);
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct StorageStressDataSerde(pub BTreeMap<String, u64>);
 
+/// Million-entry storage benchmark data stored in the benchmarks file.
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub struct StorageMillionDataSerde(pub BTreeMap<String, u64>);
+
+/// Example benchmark data stored in the benchmarks file.
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ExampleBenchDataSerde(pub BTreeMap<String, u64>);
+
 /// Benchmark category that can be read (written) from (to) the benchmarks file.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum BenchCategory {
@@ -191,6 +245,8 @@ pub enum BenchCategory {
     Redirect,
     MessageStack(u32),
     Storage(String),
+    StorageMillion(String),
+    Example(String),
 }
 
 impl Display for BenchCategory {
@@ -204,6 +260,8 @@ impl Display for BenchCategory {
             BenchCategory::Redirect => write!(f, "redirect"),
             BenchCategory::MessageStack(limit) => write!(f, "stack_{limit}"),
             BenchCategory::Storage(key) => write!(f, "storage_{key}"),
+            BenchCategory::StorageMillion(key) => write!(f, "storage_million_{key}"),
+            BenchCategory::Example(key) => write!(f, "example_{key}"),
         }
     }
 }
