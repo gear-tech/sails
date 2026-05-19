@@ -1,8 +1,5 @@
 use crate::Output;
-use core::{
-    cell::Cell,
-    mem::{self, MaybeUninit},
-};
+use core::{cell::Cell, mem::MaybeUninit};
 
 /// A writer that writes to a buffer of `MaybeUninit<u8>` bytes
 /// safely using the `parity-scale-codec::Output` impl.
@@ -43,12 +40,8 @@ impl<'a> MaybeUninitBufferWriter<'a> {
         }
     }
 
-    /// Sets the number of bytes to be skipped on next write.
-    ///
-    /// This value will be reset to 0 after the next write.
-    ///
-    /// SAFETY: Calling `write` after this method is safe as long as the `skip` value
-    /// is less than or equal to the length of the bytes slice to be written.
+    /// Sets the number of bytes to be skipped from the start of the slice
+    /// passed to the next `write` call. Reset to 0 after that write.
     pub(crate) fn skip_next(&mut self, skip: usize) {
         self.skip = skip;
     }
@@ -61,22 +54,21 @@ impl Output for MaybeUninitBufferWriter<'_> {
             self.skip <= bytes.len(),
             "Skip value must be less than or equal to the length of the bytes slice"
         );
-        let write_len = bytes.len() - self.skip;
+        let write_len = bytes
+            .len()
+            .checked_sub(self.skip)
+            .expect("skip exceeds bytes length");
         let end_offset = self
             .offset
             .checked_add(write_len)
             .expect("buffer write offset overflow");
-        // Bounds-checked: capacity comes from `Encode::encoded_size()`, a safe trait
-        // method whose correctness we cannot rely on for memory safety.
+        // `Encode::encoded_size()` is a safe trait method — an incorrect implementation
+        // must not produce UB here, so bounds-check rather than `get_unchecked_mut`.
         let this = self
             .buffer
             .get_mut(self.offset..end_offset)
             .expect("buffer too small for encoded bytes");
-        // SAFETY: `&[u8]` and `&[MaybeUninit<u8>]` have the same layout, so transmuting
-        // the source slice for `copy_from_slice` into uninitialized memory is sound.
-        this.copy_from_slice(unsafe {
-            mem::transmute::<&[u8], &[MaybeUninit<u8>]>(&bytes[self.skip..])
-        });
+        this.write_copy_of_slice(&bytes[self.skip..]);
         self.offset = end_offset;
         self.skip = 0;
     }
