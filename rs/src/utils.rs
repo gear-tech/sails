@@ -57,18 +57,23 @@ impl<'a> MaybeUninitBufferWriter<'a> {
 // use `parity_scale_codec::Output` trait to not add a custom trait
 impl Output for MaybeUninitBufferWriter<'_> {
     fn write(&mut self, bytes: &[u8]) {
-        // SAFETY:
-        //
-        // Same as `MaybeUninit::write_slice(&mut self.buffer[self.offset..end_offset], bytes)`.
-        // This code transmutes `bytes: &[T]` to `bytes: &[MaybeUninit<T>]`. These types
-        // can be safely transmuted since they have the same layout. Then `bytes:
-        // &[MaybeUninit<T>]` is written to uninitialized memory via `copy_from_slice`.
         debug_assert!(
             self.skip <= bytes.len(),
             "Skip value must be less than or equal to the length of the bytes slice"
         );
-        let end_offset = self.offset + bytes.len() - self.skip;
-        let this = unsafe { self.buffer.get_unchecked_mut(self.offset..end_offset) };
+        let write_len = bytes.len() - self.skip;
+        let end_offset = self
+            .offset
+            .checked_add(write_len)
+            .expect("buffer write offset overflow");
+        // Bounds-checked: capacity comes from `Encode::encoded_size()`, a safe trait
+        // method whose correctness we cannot rely on for memory safety.
+        let this = self
+            .buffer
+            .get_mut(self.offset..end_offset)
+            .expect("buffer too small for encoded bytes");
+        // SAFETY: `&[u8]` and `&[MaybeUninit<u8>]` have the same layout, so transmuting
+        // the source slice for `copy_from_slice` into uninitialized memory is sound.
         this.copy_from_slice(unsafe {
             mem::transmute::<&[u8], &[MaybeUninit<u8>]>(&bytes[self.skip..])
         });
