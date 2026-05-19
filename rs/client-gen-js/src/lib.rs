@@ -55,7 +55,8 @@ impl<'a> JsClientGenerator<IdlPath<'a>> {
     pub fn generate(self) -> Result<String> {
         let idl_path = self.idl.0;
         let path_str = idl_path.to_string_lossy();
-        let idl = preprocess::preprocess(&path_str, &[&FsLoader, &GitLoader])
+        let fs_loader = FsLoader::for_entry(idl_path);
+        let idl = preprocess::preprocess(&path_str, &[&fs_loader, &GitLoader])
             .with_context(|| format!("Failed to preprocess IDL from {}", idl_path.display()))?;
         self.with_idl(&idl).generate()
     }
@@ -102,7 +103,9 @@ mod tests {
     #[test]
     fn test_js_generator_includes() {
         let path = "tests/idls/includes/main.idl";
-        let result = preprocess::preprocess(path, &[&FsLoader]).expect("Failed to preprocess IDL");
+        let fs_loader = FsLoader::with_root("tests/idls/includes");
+        let result =
+            preprocess::preprocess(path, &[&fs_loader]).expect("Failed to preprocess IDL");
 
         assert!(result.contains("struct ResultData"));
         assert!(result.contains("enum Error"));
