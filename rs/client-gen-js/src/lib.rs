@@ -104,8 +104,7 @@ mod tests {
     fn test_js_generator_includes() {
         let path = "tests/idls/includes/main.idl";
         let fs_loader = FsLoader::with_root("tests/idls/includes");
-        let result =
-            preprocess::preprocess(path, &[&fs_loader]).expect("Failed to preprocess IDL");
+        let result = preprocess::preprocess(path, &[&fs_loader]).expect("Failed to preprocess IDL");
 
         assert!(result.contains("struct ResultData"));
         assert!(result.contains("enum Error"));
