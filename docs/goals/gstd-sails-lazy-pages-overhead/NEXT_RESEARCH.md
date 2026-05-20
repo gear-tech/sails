@@ -8,6 +8,7 @@ Lower the remaining generated Sails noop floor without regressing the VFT lazy-p
 
 - `noop_gstd`: 444,865,660 gas.
 - `noop_sails`: 587,525,915 gas after the stack/heap read patch.
+- `noop_sails_hot`: 475,701,813 gas for benchmark-only direct Rust Sails-wire dispatch.
 - `noop_sails` lazy-pages bucket: unchanged at 150,446,687 gas.
 - `noop_sails` wasm grew from 26,141 to 26,620 bytes after the patch.
 - VFT transfer improved by about 145M gas, mostly from lazy-pages reduction.
@@ -25,6 +26,10 @@ Inspect optimized `noop_sails.opt.wasm` for code that should not be required in 
 - generic dispatch branches that remain despite static single-service shape
 
 Acceptance signal: reduce `noop_sails` total gas or wasm code bytes without increasing VFT rows.
+
+First pass result: `NOOP_CODE_SHAPE.md` shows the gap is mostly generated
+framework shape. Direct Rust Sails-wire dispatch closes about 78% of the
+generated noop gap versus `noop_gstd`.
 
 ### 2. Noop-Specific Minimal Sails Generator Path
 

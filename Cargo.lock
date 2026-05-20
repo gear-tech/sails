@@ -710,6 +710,7 @@ dependencies = [
  "minimal-vft-sails",
  "noop-gstd",
  "noop-sails",
+ "noop-sails-hot",
  "noop-wat",
  "ping-pong-bench-app",
  "ping-pong-stack",
@@ -4793,6 +4794,15 @@ dependencies = [
 name = "noop-sails"
 version = "1.0.0-beta.5"
 dependencies = [
+ "sails-rs",
+]
+
+[[package]]
+name = "noop-sails-hot"
+version = "1.0.0-beta.5"
+dependencies = [
+ "gcore",
+ "gstd",
  "sails-rs",
 ]
 

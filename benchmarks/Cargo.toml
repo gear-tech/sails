@@ -47,6 +47,7 @@ compute-stress = { path = "compute-stress" }
 counter-bench = { path = "counter-bench" }
 noop-gstd = { path = "noop-gstd" }
 noop-sails = { path = "noop-sails" }
+noop-sails-hot = { path = "noop-sails-hot" }
 noop-wat = { path = "noop-wat" }
 minimal-vft-sails = { path = "minimal-vft-sails" }
 minimal-vft-hot = { path = "minimal-vft-hot" }

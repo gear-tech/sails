@@ -1419,6 +1419,9 @@ async fn noop_floor_test(sample: u32) -> Vec<(String, u64)> {
     if floor_row_enabled("noop_gstd") {
         operations.push(noop_gstd_floor_test(sample).await);
     }
+    if floor_row_enabled("noop_sails_hot") {
+        operations.push(noop_sails_hot_floor_test(sample).await);
+    }
     if floor_row_enabled("noop_sails") {
         operations.push(noop_sails_floor_test(sample).await);
     }
@@ -1502,6 +1505,34 @@ async fn noop_gstd_floor_test(sample: u32) -> (String, u64) {
     assert_eq!(payload, vec![1u8]);
 
     ("noop_gstd".to_owned(), gas)
+}
+
+#[cfg(feature = "gas-profile")]
+async fn noop_sails_hot_floor_test(sample: u32) -> (String, u64) {
+    let _ = ::noop_sails_hot::PROGRAM_NAME;
+    let wasm_path = "../target/wasm32-gear/release/noop_sails_hot.opt.wasm";
+    let env = create_env();
+    let program = GtestProgram::from_file(env.system(), wasm_path);
+
+    let init_id = program.send_bytes(DEFAULT_USER_ALICE, Vec::new());
+    let init_res = env.system().run_next_block();
+    assert!(
+        init_res.succeed.contains(&init_id),
+        "noop-sails-hot init failed: {init_res:?}"
+    );
+
+    let message_id = program.send_bytes(DEFAULT_USER_ALICE, noop_sails_payload());
+    let profile_case = (sample == 0).then(|| format!("noop_sails_hot_sample{sample}"));
+    let (payload, gas) =
+        extract_reply_and_gas_profiled(env.system(), message_id, profile_case.as_deref());
+    let ok = crate::clients::noop_sails_client::noop_sails::io::Noop::decode_reply(
+        NoopSailsProgram::ROUTE_ID_NOOP_SAILS,
+        payload.as_slice(),
+    )
+    .unwrap();
+    assert!(ok);
+
+    ("noop_sails_hot".to_owned(), gas)
 }
 
 #[cfg(feature = "gas-profile")]
@@ -2862,6 +2893,7 @@ fn render_route_reply_shape_markdown(lines: &mut Vec<String>) {
         "| `noop_wat_raw` | empty bytes | one raw byte `[1]` |".to_owned(),
         "| `noop_wat_sails_wire` | 16-byte Sails header, no params | 16-byte Sails header plus SCALE `bool` |".to_owned(),
         "| `noop_gstd` | empty bytes | one raw byte `[1]` via `gstd::msg::reply_bytes` |".to_owned(),
+        "| `noop_sails_hot` | 16-byte Sails header, no params | 16-byte Sails header plus SCALE `bool` via direct Rust dispatch |".to_owned(),
         "| `noop_sails` | generated Sails call | generated Sails reply with `bool` |".to_owned(),
         "| `minimal_vft_sails_*` | generated Sails call with VFT params | generated Sails reply with `bool` |".to_owned(),
         "| `minimal_vft_hot_*` | manual Sails header with fixed VFT params | manual Sails header plus SCALE `bool` |".to_owned(),
@@ -2949,6 +2981,10 @@ fn render_wasm_section_sizes_markdown(lines: &mut Vec<String>) {
         (
             "noop_sails",
             "../target/wasm32-gear/release/noop_sails.opt.wasm",
+        ),
+        (
+            "noop_sails_hot",
+            "../target/wasm32-gear/release/noop_sails_hot.opt.wasm",
         ),
         (
             "minimal_vft_sails",

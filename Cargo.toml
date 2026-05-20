@@ -57,6 +57,7 @@ members = [
     "benchmarks/counter-bench",
     "benchmarks/noop-gstd",
     "benchmarks/noop-sails",
+    "benchmarks/noop-sails-hot",
     "benchmarks/noop-wat",
     "benchmarks/minimal-vft-sails",
     "benchmarks/minimal-vft-hot",
