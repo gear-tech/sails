@@ -36,18 +36,8 @@ pub struct StaticMemoryLayout {
 struct StaticTable {
     name: String,
     slots: StaticTableSlots,
-    kind: StaticTableKind,
-}
-
-#[derive(Clone, Debug)]
-enum StaticTableSlots {
-    Exact(usize),
-    Log2(u8),
-}
-
-#[derive(Clone, Debug)]
-enum StaticTableKind {
-    SingleRegion { slot_size: usize, align: usize },
+    slot_size: usize,
+    align: usize,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -61,25 +51,16 @@ struct ResolvedStaticMemoryLayout {
 struct ResolvedStaticTable {
     name: String,
     base: usize,
-    control_base: Option<usize>,
-    slots_base: Option<usize>,
     slots: usize,
     log2_slots: Option<u8>,
-    tiles: Option<usize>,
-    log2_tiles: Option<u8>,
-    slots_per_tile: Option<usize>,
-    tile_bytes: Option<usize>,
-    groups: Option<usize>,
-    log2_groups: Option<u8>,
-    group_pages: Option<usize>,
-    log2_group_pages: Option<u8>,
-    slots_per_group: Option<usize>,
-    group_bytes: Option<usize>,
-    data_offset: Option<usize>,
     mask: Option<usize>,
-    control_bytes: Option<usize>,
-    slots_bytes: Option<usize>,
     bytes: usize,
+}
+
+#[derive(Clone, Debug)]
+enum StaticTableSlots {
+    Exact(usize),
+    Log2(u8),
 }
 
 /// Errors returned by static-memory build helpers.
@@ -167,35 +148,29 @@ impl StaticMemoryLayout {
 
     /// Reserves a named static open-addressed table.
     pub fn reserve_table<const KEY_SIZE: usize, const VALUE_SIZE: usize>(
-        mut self,
+        self,
         name: impl Into<String>,
         slots: usize,
     ) -> Self {
-        self.tables.push(StaticTable {
-            name: name.into(),
-            slots: StaticTableSlots::Exact(slots),
-            kind: StaticTableKind::SingleRegion {
-                slot_size: StaticOpenAddressTable::<KEY_SIZE, VALUE_SIZE>::slot_size(),
-                align: 1,
-            },
-        });
-        self
+        self.reserve_single_region_table(
+            name,
+            StaticTableSlots::Exact(slots),
+            StaticOpenAddressTable::<KEY_SIZE, VALUE_SIZE>::slot_size(),
+            1,
+        )
     }
 
     /// Reserves a WAT-shaped `ActorId -> U256` static map.
     ///
     /// The reserved table uses `2^LOG2_SLOTS` slots. Each slot is exactly 64
     /// bytes: a 32-byte actor id followed by a 32-byte `U256` value.
-    pub fn reserve_actor_u256_map<const LOG2_SLOTS: u8>(mut self, name: impl Into<String>) -> Self {
-        self.tables.push(StaticTable {
-            name: name.into(),
-            slots: StaticTableSlots::Log2(LOG2_SLOTS),
-            kind: StaticTableKind::SingleRegion {
-                slot_size: ACTOR_ID_U256_SLOT_SIZE,
-                align: 64,
-            },
-        });
-        self
+    pub fn reserve_actor_u256_map<const LOG2_SLOTS: u8>(self, name: impl Into<String>) -> Self {
+        self.reserve_single_region_table(
+            name,
+            StaticTableSlots::Log2(LOG2_SLOTS),
+            ACTOR_ID_U256_SLOT_SIZE,
+            64,
+        )
     }
 
     /// Reserves a `(ActorId, ActorId) -> U256` static map.
@@ -203,19 +178,33 @@ impl StaticMemoryLayout {
     /// The reserved table uses `2^LOG2_SLOTS` slots. Each slot is exactly 96
     /// bytes: owner actor id, spender actor id, and a `U256` value.
     pub fn reserve_actor_pair_u256_map<const LOG2_SLOTS: u8>(
+        self,
+        name: impl Into<String>,
+    ) -> Self {
+        self.reserve_single_region_table(
+            name,
+            StaticTableSlots::Log2(LOG2_SLOTS),
+            ACTOR_PAIR_U256_SLOT_SIZE,
+            32,
+        )
+    }
+
+    fn reserve_single_region_table(
         mut self,
         name: impl Into<String>,
+        slots: StaticTableSlots,
+        slot_size: usize,
+        align: usize,
     ) -> Self {
         self.tables.push(StaticTable {
             name: name.into(),
-            slots: StaticTableSlots::Log2(LOG2_SLOTS),
-            kind: StaticTableKind::SingleRegion {
-                slot_size: ACTOR_PAIR_U256_SLOT_SIZE,
-                align: 32,
-            },
+            slots,
+            slot_size,
+            align,
         });
         self
     }
+
     fn resolve(self) -> Result<ResolvedStaticMemoryLayout, Error> {
         let start_base = page_offset(self.start_page)?;
         let max_bytes = page_offset(MAX_STATIC_MEMORY_PAGES)?;
@@ -234,36 +223,19 @@ impl StaticMemoryLayout {
 
             let log2_slots = table.slots.log2();
             let slots = table.slots.resolve()?;
-            let resolved = match table.kind {
-                StaticTableKind::SingleRegion { slot_size, align } => {
-                    let bytes = slots.checked_mul(slot_size).ok_or(Error::LayoutOverflow)?;
-                    let region = layout
-                        .reserve_aligned_bytes(bytes, align)
-                        .map_err(Error::StorageLayout)?;
-                    ResolvedStaticTable {
-                        name: table.name,
-                        base: region.base(),
-                        control_base: None,
-                        slots_base: None,
-                        slots,
-                        log2_slots,
-                        tiles: None,
-                        log2_tiles: None,
-                        slots_per_tile: None,
-                        tile_bytes: None,
-                        groups: None,
-                        log2_groups: None,
-                        group_pages: None,
-                        log2_group_pages: None,
-                        slots_per_group: None,
-                        group_bytes: None,
-                        data_offset: None,
-                        mask: log2_slots.map(|_| slots - 1),
-                        control_bytes: None,
-                        slots_bytes: None,
-                        bytes: region.bytes(),
-                    }
-                }
+            let bytes = slots
+                .checked_mul(table.slot_size)
+                .ok_or(Error::LayoutOverflow)?;
+            let region = layout
+                .reserve_aligned_bytes(bytes, table.align)
+                .map_err(Error::StorageLayout)?;
+            let resolved = ResolvedStaticTable {
+                name: table.name,
+                base: region.base(),
+                slots,
+                log2_slots,
+                mask: log2_slots.map(|_| slots - 1),
+                bytes: region.bytes(),
             };
             tables.push(resolved);
         }
@@ -356,20 +328,6 @@ fn emit_static_storage_to_dir(
             table.base
         )
         .expect("writing to String cannot fail");
-        if let Some(control_base) = table.control_base {
-            writeln!(
-                &mut source,
-                "#[allow(dead_code)]\npub const {name}_CONTROL_BASE: usize = {control_base};"
-            )
-            .expect("writing to String cannot fail");
-        }
-        if let Some(slots_base) = table.slots_base {
-            writeln!(
-                &mut source,
-                "#[allow(dead_code)]\npub const {name}_SLOTS_BASE: usize = {slots_base};"
-            )
-            .expect("writing to String cannot fail");
-        }
         writeln!(
             &mut source,
             "#[allow(dead_code)]\npub const {name}_SLOTS: usize = {};",
@@ -383,101 +341,10 @@ fn emit_static_storage_to_dir(
             )
             .expect("writing to String cannot fail");
         }
-        if let Some(tiles) = table.tiles {
-            writeln!(
-                &mut source,
-                "#[allow(dead_code)]\npub const {name}_TILES: usize = {tiles};"
-            )
-            .expect("writing to String cannot fail");
-        }
-        if let Some(log2_tiles) = table.log2_tiles {
-            writeln!(
-                &mut source,
-                "#[allow(dead_code)]\npub const {name}_LOG2_TILES: u8 = {log2_tiles};"
-            )
-            .expect("writing to String cannot fail");
-        }
-        if let Some(slots_per_tile) = table.slots_per_tile {
-            writeln!(
-                &mut source,
-                "#[allow(dead_code)]\npub const {name}_SLOTS_PER_TILE: usize = {slots_per_tile};"
-            )
-            .expect("writing to String cannot fail");
-        }
-        if let Some(tile_bytes) = table.tile_bytes {
-            writeln!(
-                &mut source,
-                "#[allow(dead_code)]\npub const {name}_TILE_BYTES: usize = {tile_bytes};"
-            )
-            .expect("writing to String cannot fail");
-        }
-        if let Some(groups) = table.groups {
-            writeln!(
-                &mut source,
-                "#[allow(dead_code)]\npub const {name}_GROUPS: usize = {groups};"
-            )
-            .expect("writing to String cannot fail");
-        }
-        if let Some(log2_groups) = table.log2_groups {
-            writeln!(
-                &mut source,
-                "#[allow(dead_code)]\npub const {name}_LOG2_GROUPS: u8 = {log2_groups};"
-            )
-            .expect("writing to String cannot fail");
-        }
-        if let Some(group_pages) = table.group_pages {
-            writeln!(
-                &mut source,
-                "#[allow(dead_code)]\npub const {name}_GROUP_PAGES: usize = {group_pages};"
-            )
-            .expect("writing to String cannot fail");
-        }
-        if let Some(log2_group_pages) = table.log2_group_pages {
-            writeln!(
-                &mut source,
-                "#[allow(dead_code)]\npub const {name}_LOG2_GROUP_PAGES: u8 = {log2_group_pages};"
-            )
-            .expect("writing to String cannot fail");
-        }
-        if let Some(slots_per_group) = table.slots_per_group {
-            writeln!(
-                &mut source,
-                "#[allow(dead_code)]\npub const {name}_SLOTS_PER_GROUP: usize = {slots_per_group};"
-            )
-            .expect("writing to String cannot fail");
-        }
-        if let Some(group_bytes) = table.group_bytes {
-            writeln!(
-                &mut source,
-                "#[allow(dead_code)]\npub const {name}_GROUP_BYTES: usize = {group_bytes};"
-            )
-            .expect("writing to String cannot fail");
-        }
-        if let Some(data_offset) = table.data_offset {
-            writeln!(
-                &mut source,
-                "#[allow(dead_code)]\npub const {name}_DATA_OFFSET: usize = {data_offset};"
-            )
-            .expect("writing to String cannot fail");
-        }
         if let Some(mask) = table.mask {
             writeln!(
                 &mut source,
                 "#[allow(dead_code)]\npub const {name}_MASK: usize = {mask};"
-            )
-            .expect("writing to String cannot fail");
-        }
-        if let Some(control_bytes) = table.control_bytes {
-            writeln!(
-                &mut source,
-                "#[allow(dead_code)]\npub const {name}_CONTROL_BYTES: usize = {control_bytes};"
-            )
-            .expect("writing to String cannot fail");
-        }
-        if let Some(slots_bytes) = table.slots_bytes {
-            writeln!(
-                &mut source,
-                "#[allow(dead_code)]\npub const {name}_SLOTS_BYTES: usize = {slots_bytes};"
             )
             .expect("writing to String cannot fail");
         }

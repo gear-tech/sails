@@ -186,11 +186,7 @@ impl<const KEY_SIZE: usize, const VALUE_SIZE: usize, const CAP: usize>
         match self.lookup(&key)? {
             Lookup::Found(index) => {
                 let previous = self.slots[index].value;
-                self.slots[index] = FixedSlot {
-                    state: SlotState::Full,
-                    key,
-                    value,
-                };
+                self.slots[index].value = value;
                 Ok(Some(previous))
             }
             Lookup::Vacant(index) => {
@@ -458,9 +454,7 @@ impl<const KEY_SIZE: usize, const VALUE_SIZE: usize> StaticOpenAddressTable<KEY_
             Lookup::Found(index) => {
                 let previous = unsafe { self.read_value(index)? };
                 unsafe {
-                    self.write_key(index, key);
                     self.write_value(index, value);
-                    self.write_state(index, SlotState::Full);
                 }
                 Ok(Some(previous))
             }
