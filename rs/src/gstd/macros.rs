@@ -280,9 +280,8 @@ macro_rules! service_route_dispatch {
         .unwrap_or_else(|| $crate::gstd::unknown_input_panic("Unknown call", &[]));
 
         if is_async {
-            let input = $input.to_vec();
             $crate::gstd::message_loop(async move {
-                $svc.try_handle_async($interface_id, $entry_id, &input, |encoded_result, value| {
+                $svc.try_handle_async($interface_id, $entry_id, $input, |encoded_result, value| {
                     $crate::gstd::msg::reply_bytes(encoded_result, value)
                         .expect("Failed to send output");
                 })

@@ -9,7 +9,6 @@ license.workspace = true
 
 [dependencies]
 sails-rs.workspace = true
-sails-storage.workspace = true
 demo-client = { path = "../../demo/client" }
 redirect-client = { path = "../../redirect/client" }
 futures = { workspace = true }

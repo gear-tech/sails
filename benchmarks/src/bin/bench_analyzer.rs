@@ -1,13 +1,9 @@
 use anyhow::{Context, Result, anyhow};
 use benchmarks::{
-    BenchCategory, BenchCategoryComparison, BenchCategoryComparisonReport, BenchData, BenchDataFile,
+    BenchCategoryComparison, BenchCategoryComparisonReport, BenchData, BenchDataFile,
 };
 use clap::Parser;
-use std::{
-    collections::{BTreeMap, BTreeSet},
-    fs,
-    path::PathBuf,
-};
+use std::{fs, path::PathBuf};
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -51,39 +47,34 @@ fn analyze_benches(
     // Flag to track if any benchmarks fail the threshold check.
     let mut threshold_failed = threshold.map(|_| false);
 
-    let current_data: BTreeMap<_, _> = current_data.into_iter().collect();
-    let other_data: BTreeMap<_, _> = other_data.into_iter().collect();
-    let categories = current_data
-        .keys()
-        .chain(other_data.keys())
-        .cloned()
-        .collect::<BTreeSet<_>>();
-
     // Create unfinished report.
-    let mut report = initialize_report();
-    for category in categories {
-        match (current_data.get(&category), other_data.get(&category)) {
-            (Some(current_value), Some(other_value)) => {
-                let comparison =
-                    BenchCategoryComparison::new(category, *current_value, *other_value, threshold);
+    let mut report = current_data
+        .into_iter()
+        .zip(other_data)
+        .map(
+            // Create a comparison entity for each benchmark category.
+            |((current_category, current_value), (other_category, other_value))| {
+                assert_eq!(current_category, other_category, "Categories do not match");
+
+                let comparison = BenchCategoryComparison::new(
+                    current_category,
+                    current_value,
+                    other_value,
+                    threshold,
+                );
 
                 if matches!(threshold_failed, Some(false)) && comparison.has_failed_threshold() {
                     let _ = threshold_failed.insert(true);
                 }
 
-                add_comparison_to_report(&mut report, comparison);
-            }
-            (Some(current_value), None) => {
-                mark_threshold_failed_on_shape_change(&mut threshold_failed);
-                add_added_benchmark_to_report(&mut report, category, *current_value);
-            }
-            (None, Some(other_value)) => {
-                mark_threshold_failed_on_shape_change(&mut threshold_failed);
-                add_removed_benchmark_to_report(&mut report, category, *other_value);
-            }
-            (None, None) => unreachable!("category is sourced from one of the maps"),
-        }
-    }
+                comparison
+            },
+        )
+        .fold(initialize_report(), |mut report, comparison| {
+            // Add each comparison to the report.
+            add_comparison_to_report(&mut report, comparison);
+            report
+        });
 
     // Finish the report.
     add_report_conclusion(&mut report, threshold, threshold_failed);
@@ -146,24 +137,6 @@ fn add_comparison_to_report(report: &mut String, comparison: BenchCategoryCompar
     ));
 }
 
-fn add_added_benchmark_to_report(report: &mut String, category: BenchCategory, current: u64) {
-    report.push_str(&format!(
-        "| {category} | {current} | - | - | - | 🆕 New benchmark |\n",
-    ));
-}
-
-fn add_removed_benchmark_to_report(report: &mut String, category: BenchCategory, other: u64) {
-    report.push_str(&format!(
-        "| {category} | - | {other} | - | - | ⚠️ Missing from current |\n",
-    ));
-}
-
-fn mark_threshold_failed_on_shape_change(threshold_failed: &mut Option<bool>) {
-    if matches!(threshold_failed, Some(false)) {
-        let _ = threshold_failed.insert(true);
-    }
-}
-
 fn add_report_conclusion(
     report: &mut String,
     threshold: Option<f64>,
@@ -181,83 +154,5 @@ fn add_report_conclusion(
         None => {
             report.push_str("\n### Legend\n- 🚀 Significant improvement (>5% reduction)\n- 👍 Minor improvement (<5% reduction)\n- ✅ No significant change\n- ⚠️ Minor regression (<5% increase)\n- ❌ Significant regression (>5% increase)\n");
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use benchmarks::{BenchDataSerde, ComputeBenchDataSerde, StorageStressDataSerde};
-    use std::collections::BTreeMap;
-
-    #[test]
-    fn report_includes_benchmarks_missing_from_baseline() {
-        let dir = tempfile::tempdir().unwrap();
-        let current_path = dir.path().join("current.json");
-        let baseline_path = dir.path().join("baseline.json");
-        let output_path = dir.path().join("comparison.md");
-        let storage_key = "sails_static_balance_read_existing_1024".to_owned();
-
-        let current = BenchDataSerde {
-            compute: ComputeBenchDataSerde { median: 1 },
-            storage: StorageStressDataSerde(BTreeMap::from([(storage_key.clone(), 810_912_211)])),
-            ..Default::default()
-        };
-        let baseline = BenchDataSerde {
-            compute: ComputeBenchDataSerde { median: 1 },
-            ..Default::default()
-        };
-
-        fs::write(
-            &current_path,
-            serde_json::to_string_pretty(&current).unwrap(),
-        )
-        .unwrap();
-        fs::write(
-            &baseline_path,
-            serde_json::to_string_pretty(&baseline).unwrap(),
-        )
-        .unwrap();
-
-        analyze_benches(current_path, baseline_path, Some(output_path.clone()), None).unwrap();
-
-        let report = fs::read_to_string(output_path).unwrap();
-        assert!(report.contains(&format!("storage_{storage_key}")));
-        assert!(report.contains("New benchmark"));
-    }
-
-    #[test]
-    fn threshold_mode_fails_when_categories_are_missing_from_baseline() {
-        let dir = tempfile::tempdir().unwrap();
-        let current_path = dir.path().join("current.json");
-        let baseline_path = dir.path().join("baseline.json");
-        let storage_key = "sails_static_balance_read_existing_1024".to_owned();
-
-        let current = BenchDataSerde {
-            compute: ComputeBenchDataSerde { median: 1 },
-            storage: StorageStressDataSerde(BTreeMap::from([(storage_key, 810_912_211)])),
-            ..Default::default()
-        };
-        let baseline = BenchDataSerde {
-            compute: ComputeBenchDataSerde { median: 1 },
-            ..Default::default()
-        };
-
-        fs::write(
-            &current_path,
-            serde_json::to_string_pretty(&current).unwrap(),
-        )
-        .unwrap();
-        fs::write(
-            &baseline_path,
-            serde_json::to_string_pretty(&baseline).unwrap(),
-        )
-        .unwrap();
-
-        let error = analyze_benches(current_path, baseline_path, None, Some(1.0)).unwrap_err();
-        assert_eq!(
-            error.to_string(),
-            "Benchmark contains tests failing the threshold."
-        );
     }
 }

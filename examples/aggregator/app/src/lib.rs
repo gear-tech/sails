@@ -2,9 +2,7 @@
 
 use demo_client::{DemoClient, DemoClientProgram, chaos::Chaos, counter::Counter};
 use futures::{FutureExt, future};
-use msg_tracker::{
-    MsgTracker, OpStatus, TrackerBackend, TrackerBenchResult, TrackerOp, message_id_for_seed,
-};
+use msg_tracker::{MsgTracker, OpStatus};
 use redirect_client::{redirect::Redirect as _, *};
 use sails_rs::{cell::RefCell, client::*, gstd::msg, prelude::*};
 
@@ -147,61 +145,6 @@ impl AggregatorService {
     }
 
     #[export]
-    pub fn prepare_tracker(&mut self, len: u32) -> TrackerBenchResult {
-        let mut tracker = msg_tracker().borrow_mut();
-        tracker.clear();
-        for seed in 1..=len {
-            tracker.insert(message_id_for_seed(seed), OpStatus::Started);
-        }
-        TrackerBenchResult {
-            len: tracker.len(),
-            status: None,
-            existed: false,
-        }
-    }
-
-    #[export]
-    pub fn bench_tracker(&mut self, op: TrackerOp, seed: u32) -> TrackerBenchResult {
-        let mut tracker = msg_tracker().borrow_mut();
-        match op {
-            TrackerOp::InsertFresh => {
-                let existed = tracker
-                    .insert_inner(message_id_for_seed(seed), OpStatus::Started)
-                    .is_some();
-                TrackerBenchResult {
-                    len: tracker.len(),
-                    status: Some(OpStatus::Started),
-                    existed,
-                }
-            }
-            TrackerOp::UpdateExisting => {
-                let existed = tracker.update_status(message_id_for_seed(seed), OpStatus::Finalized);
-                TrackerBenchResult {
-                    len: tracker.len(),
-                    status: Some(OpStatus::Finalized),
-                    existed,
-                }
-            }
-            TrackerOp::ReadExisting => {
-                let status = tracker.get_status(&message_id_for_seed(seed));
-                TrackerBenchResult {
-                    len: tracker.len(),
-                    status,
-                    existed: status.is_some(),
-                }
-            }
-            TrackerOp::ListStatuses => {
-                let statuses = tracker.get_statuses();
-                TrackerBenchResult {
-                    len: statuses.len() as u32,
-                    status: statuses.last().map(|(_, status)| *status),
-                    existed: !statuses.is_empty(),
-                }
-            }
-        }
-    }
-
-    #[export]
     pub async fn complex_add(&mut self) -> Result<u32, String> {
         let parent_id = msg::id();
         msg_tracker()
@@ -266,12 +209,10 @@ pub struct AggregatorProgram {
 #[sails_rs::program]
 impl AggregatorProgram {
     pub fn new(target: ActorId) -> Self {
-        Self::new_with_tracker(target, TrackerBackend::BTree)
-    }
-
-    pub fn new_with_tracker(target: ActorId, tracker_backend: TrackerBackend) -> Self {
         unsafe {
-            MSG_TRACKER = Some(RefCell::new(MsgTracker::new(tracker_backend)));
+            if (*core::ptr::addr_of_mut!(MSG_TRACKER)).is_none() {
+                MSG_TRACKER = Some(RefCell::new(MsgTracker::new()));
+            }
         }
         Self { target }
     }
