@@ -829,9 +829,10 @@ initiating an asynchronous call might change by the time the call completes. See
 
 > **Do not hold mutable state borrows across an `.await`.** While one message is
 > suspended, the runtime may start handling another message. If a `RefCell` write
-> guard (`.get_mut()` / `.write()`) is still alive, the second message can panic
-> with an already-borrowed error when it touches the same state. Keep the guard in
-> a smaller scope so it is dropped before awaiting.
+> guard (`.borrow_mut()`) or `StateMut` write guard (`.get_mut()` / `.write()`)
+> is still alive, the second message can panic with an already-borrowed error
+> when it touches the same state. Keep the guard in a smaller scope so it is
+> dropped before awaiting.
 >
 > For the same reason, `#[program]` service constructors must take `&self`, not
 > `&mut self`. Use interior mutability (`RefCell`, `Cell`) for mutable program
