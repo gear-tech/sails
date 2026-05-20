@@ -1,6 +1,7 @@
 #![no_std]
 
 use core::{fmt, marker::PhantomData, ptr};
+use gprimitives::{ActorId, U256};
 
 /// Errors returned by fixed and static storage tables.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -26,10 +27,9 @@ impl fmt::Display for TableError {
     }
 }
 
-/// The state byte stored before every static-memory slot.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u8)]
-pub enum SlotState {
+enum SlotState {
     Empty = 0,
     Full = 1,
     Deleted = 2,
@@ -108,20 +108,27 @@ fn hash_bytes(bytes: &[u8]) -> usize {
 /// Slot size used by the specialized actor-id static map.
 pub const ACTOR_ID_U256_SLOT_SIZE: usize = 64;
 
-/// Slot size used by the specialized allowance static map.
-pub const ALLOWANCE_U256_SLOT_SIZE: usize = 96;
+/// Slot size used by the specialized actor-pair static map.
+pub const ACTOR_PAIR_U256_SLOT_SIZE: usize = 96;
+
+#[doc(hidden)]
+pub const ALLOWANCE_U256_SLOT_SIZE: usize = ACTOR_PAIR_U256_SLOT_SIZE;
 
 /// Gear page-sized tile used by the page-local actor-id static map.
+#[doc(hidden)]
 pub const PAGE_LOCAL_ACTOR_U256_TILE_BYTES: usize = 16 * 1024;
 
 /// Actor/value slots fitting in one page-local actor-id static map tile.
+#[doc(hidden)]
 pub const PAGE_LOCAL_ACTOR_U256_SLOTS_PER_TILE: usize = 252;
 
 /// Offset where page-local actor-id static map data slots begin inside a tile.
+#[doc(hidden)]
 pub const PAGE_LOCAL_ACTOR_U256_DATA_OFFSET: usize = 256;
 
 /// Slot size used by the experimental owner-local VFT account map.
 #[cfg(feature = "experimental-vft-account")]
+#[doc(hidden)]
 pub const VFT_ACCOUNT_U256_SLOT_SIZE: usize = 200;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -575,11 +582,12 @@ impl<const KEY_SIZE: usize, const VALUE_SIZE: usize> StaticOpenAddressTable<KEY_
     }
 }
 
-pub mod gear {
+#[doc(hidden)]
+pub mod __experimental {
     #[cfg(feature = "experimental-vft-account")]
     use super::VFT_ACCOUNT_U256_SLOT_SIZE;
     use super::{
-        ACTOR_ID_U256_SLOT_SIZE, ALLOWANCE_U256_SLOT_SIZE, FixedOpenAddressMap, Lookup,
+        ACTOR_ID_U256_SLOT_SIZE, ACTOR_PAIR_U256_SLOT_SIZE, FixedOpenAddressMap, Lookup,
         PAGE_LOCAL_ACTOR_U256_DATA_OFFSET, PAGE_LOCAL_ACTOR_U256_SLOTS_PER_TILE,
         PAGE_LOCAL_ACTOR_U256_TILE_BYTES, SlotState, StaticOpenAddressTable, StaticRegion,
         TableError,
@@ -3361,7 +3369,7 @@ pub mod gear {
 
         /// Returns the byte length of one slot.
         pub const fn slot_size() -> usize {
-            ALLOWANCE_U256_SLOT_SIZE
+            ACTOR_PAIR_U256_SLOT_SIZE
         }
 
         /// Returns the configured slot count.
@@ -4989,14 +4997,185 @@ pub mod gear {
     }
 }
 
+/// A static-memory map keyed by `ActorId` and storing `U256`.
+///
+/// The layout uses `2^LOG2_SLOTS` slots. Each slot is exactly 64 bytes:
+/// a 32-byte actor id followed by a 32-byte little-endian `U256` value.
+pub struct StaticActorIdU256Map<const LOG2_SLOTS: u8> {
+    inner: __experimental::StaticActorIdU256Map<LOG2_SLOTS>,
+}
+
+impl<const LOG2_SLOTS: u8> StaticActorIdU256Map<LOG2_SLOTS> {
+    /// Returns the byte length of one slot.
+    pub const fn slot_size() -> usize {
+        __experimental::StaticActorIdU256Map::<LOG2_SLOTS>::slot_size()
+    }
+
+    /// Returns the configured slot count.
+    pub fn slots() -> Result<usize, TableError> {
+        __experimental::StaticActorIdU256Map::<LOG2_SLOTS>::slots()
+    }
+
+    /// Returns the mask used for power-of-two probing.
+    pub fn mask() -> Result<usize, TableError> {
+        __experimental::StaticActorIdU256Map::<LOG2_SLOTS>::mask()
+    }
+
+    /// Returns the byte length required for this map.
+    pub fn bytes_len() -> Result<usize, TableError> {
+        __experimental::StaticActorIdU256Map::<LOG2_SLOTS>::bytes_len()
+    }
+
+    /// Creates a map over `2^LOG2_SLOTS * 64` bytes at `base`.
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the memory interval is valid for reads and writes
+    /// for the whole lifetime of the map and does not overlap other mutable
+    /// state.
+    pub unsafe fn new(base: usize) -> Result<Self, TableError> {
+        Ok(Self {
+            inner: unsafe { __experimental::StaticActorIdU256Map::<LOG2_SLOTS>::new(base)? },
+        })
+    }
+
+    /// Returns the configured base address.
+    pub const fn base(&self) -> usize {
+        self.inner.base()
+    }
+
+    /// Returns the total byte length occupied by this map.
+    pub fn bytes(&self) -> Result<usize, TableError> {
+        self.inner.bytes()
+    }
+
+    /// Returns the visible value for `actor`.
+    pub fn get_actor_u256(&self, actor: &ActorId) -> Result<Option<U256>, TableError> {
+        self.inner.get_actor_u256(actor)
+    }
+
+    /// Inserts or updates `actor`, returning the previous visible value.
+    ///
+    /// A zero value removes the visible value. Zero actor ids are rejected
+    /// because zero key bytes mark empty slots in this layout.
+    pub fn insert_actor_u256(
+        &self,
+        actor: ActorId,
+        value: U256,
+    ) -> Result<Option<U256>, TableError> {
+        self.inner.insert_actor_u256(actor, value)
+    }
+
+    /// Removes the visible value for `actor`.
+    pub fn remove_actor_u256(&self, actor: &ActorId) -> Result<Option<U256>, TableError> {
+        self.inner.remove_actor_u256(actor)
+    }
+
+    /// Clears every slot to the empty state.
+    pub fn clear(&self) -> Result<(), TableError> {
+        self.inner.clear()
+    }
+}
+
+/// A static-memory map keyed by two `ActorId`s and storing `U256`.
+///
+/// The layout uses `2^LOG2_SLOTS` slots. Each slot is exactly 96 bytes:
+/// the two 32-byte actor ids followed by a 32-byte little-endian `U256` value.
+pub struct StaticActorPairU256Map<const LOG2_SLOTS: u8> {
+    inner: __experimental::StaticAllowanceU256Map<LOG2_SLOTS>,
+}
+
+impl<const LOG2_SLOTS: u8> StaticActorPairU256Map<LOG2_SLOTS> {
+    /// Returns the byte length of one slot.
+    pub const fn slot_size() -> usize {
+        __experimental::StaticAllowanceU256Map::<LOG2_SLOTS>::slot_size()
+    }
+
+    /// Returns the configured slot count.
+    pub fn slots() -> Result<usize, TableError> {
+        __experimental::StaticAllowanceU256Map::<LOG2_SLOTS>::slots()
+    }
+
+    /// Returns the mask used for power-of-two probing.
+    pub fn mask() -> Result<usize, TableError> {
+        __experimental::StaticAllowanceU256Map::<LOG2_SLOTS>::mask()
+    }
+
+    /// Returns the byte length required for this map.
+    pub fn bytes_len() -> Result<usize, TableError> {
+        __experimental::StaticAllowanceU256Map::<LOG2_SLOTS>::bytes_len()
+    }
+
+    /// Creates a map over `2^LOG2_SLOTS * 96` bytes at `base`.
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the memory interval is valid for reads and writes
+    /// for the whole lifetime of the map and does not overlap other mutable
+    /// state.
+    pub unsafe fn new(base: usize) -> Result<Self, TableError> {
+        Ok(Self {
+            inner: unsafe { __experimental::StaticAllowanceU256Map::<LOG2_SLOTS>::new(base)? },
+        })
+    }
+
+    /// Returns the configured base address.
+    pub const fn base(&self) -> usize {
+        self.inner.base()
+    }
+
+    /// Returns the total byte length occupied by this map.
+    pub fn bytes(&self) -> Result<usize, TableError> {
+        self.inner.bytes()
+    }
+
+    /// Returns the visible value for `(left, right)`.
+    pub fn get_actor_pair_u256(
+        &self,
+        left: &ActorId,
+        right: &ActorId,
+    ) -> Result<Option<U256>, TableError> {
+        self.inner.get_allowance_u256(left, right)
+    }
+
+    /// Inserts or updates `(left, right)`, returning the previous visible value.
+    ///
+    /// A zero value removes the visible value. Zero actor ids are rejected
+    /// because zero key bytes mark empty slots in this layout.
+    pub fn insert_actor_pair_u256(
+        &self,
+        left: ActorId,
+        right: ActorId,
+        value: U256,
+    ) -> Result<Option<U256>, TableError> {
+        self.inner.insert_allowance_u256(left, right, value)
+    }
+
+    /// Removes the visible value for `(left, right)`.
+    pub fn remove_actor_pair_u256(
+        &self,
+        left: &ActorId,
+        right: &ActorId,
+    ) -> Result<Option<U256>, TableError> {
+        self.inner.remove_allowance_u256(left, right)
+    }
+
+    /// Clears every slot to the empty state.
+    pub fn clear(&self) -> Result<(), TableError> {
+        self.inner.clear()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     extern crate std;
 
     use super::*;
-    use crate::gear::{
-        StaticActorU256Transfer, StaticActorU256TransferFrom, StaticAllowanceTable,
-        StaticBalanceTable,
+    use crate::__experimental::{
+        StaticActorIdU256Map, StaticActorU256Transfer, StaticActorU256TransferFrom,
+        StaticAllowanceTable, StaticAllowanceU256Map, StaticBalanceTable,
+        StaticControlActorIdU256Map, StaticGroupedControlActorIdU256Map,
+        StaticPageLocalActorIdU256Map, StaticVftStorage, VftAllowances, VftBalances,
     };
     use gprimitives::{ActorId, U256};
     use std::{vec, vec::Vec};
@@ -5305,12 +5484,12 @@ mod tests {
 }
 
 #[cfg(test)]
-mod gear_tests {
+mod experimental_tests {
     extern crate std;
 
-    use super::{PAGE_LOCAL_ACTOR_U256_TILE_BYTES, TableError, gear::*};
+    use super::{__experimental::*, PAGE_LOCAL_ACTOR_U256_TILE_BYTES, TableError};
     use gprimitives::{ActorId, U256};
-    use std::{ptr, vec, vec::Vec};
+    use std::{vec, vec::Vec};
 
     #[test]
     fn static_actor_map_insert_update_and_remove() {

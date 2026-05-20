@@ -1,7 +1,7 @@
 #![no_std]
 
 use sails_rs::{cell::RefCell, collections::HashMap, prelude::*};
-use sails_storage::gear::{
+use sails_storage::__experimental::{
     FixedAllowanceMap as SailsFixedAllowanceMap, FixedBalanceMap as SailsFixedBalanceMap,
     StaticAllowanceTable as SailsStaticAllowanceTable,
     StaticBalanceTable as SailsStaticBalanceTable,

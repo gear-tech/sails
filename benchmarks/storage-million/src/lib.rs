@@ -5,7 +5,7 @@ use sails_rs::{
     collections::{BTreeMap, HashMap},
     prelude::*,
 };
-use sails_storage::gear::{
+use sails_storage::__experimental::{
     StaticActorIdU256Map as SailsStaticActorIdU256Map,
     StaticActorTagU64Map as SailsStaticActorTagU64Map,
     StaticActorTagU256Map as SailsStaticActorTagU256Map,

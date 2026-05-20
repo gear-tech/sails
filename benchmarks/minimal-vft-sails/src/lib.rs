@@ -1,7 +1,7 @@
 #![no_std]
 
 use sails_rs::prelude::*;
-use sails_storage::gear::StaticVftStorage;
+use sails_storage::__experimental::StaticVftStorage;
 
 mod static_storage {
     include!(concat!(env!("OUT_DIR"), "/sails_static_storage.rs"));

@@ -5,7 +5,7 @@ use sails_rs::{
     collections::{BTreeMap, HashMap},
     prelude::*,
 };
-use sails_storage::gear::{
+use sails_storage::__experimental::{
     FixedAllowanceMap as SailsFixedAllowanceMap, FixedBalanceMap as SailsFixedBalanceMap,
     StaticAllowanceTable, StaticBalanceTable,
 };
@@ -1074,7 +1074,7 @@ impl SailsStaticBalanceMap {
         to: ActorId,
         amount: U256,
         unchecked: bool,
-    ) -> Result<Option<sails_storage::gear::StaticActorU256Transfer>, sails_storage::TableError>
+    ) -> Result<Option<sails_storage::__experimental::StaticActorU256Transfer>, sails_storage::TableError>
     {
         let outcome = if unchecked {
             unsafe {
@@ -1098,7 +1098,7 @@ impl SailsStaticBalanceMap {
         to: ActorId,
         amount: U256,
         unchecked: bool,
-    ) -> Result<Option<sails_storage::gear::StaticActorU256TransferFrom>, sails_storage::TableError>
+    ) -> Result<Option<sails_storage::__experimental::StaticActorU256TransferFrom>, sails_storage::TableError>
     {
         let outcome = if unchecked {
             unsafe {

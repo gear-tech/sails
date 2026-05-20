@@ -1,7 +1,7 @@
 #![no_std]
 
 use gprimitives::{ActorId, U256};
-use sails_storage::gear::StaticVftStorage;
+use sails_storage::__experimental::StaticVftStorage;
 
 mod static_storage {
     include!(concat!(env!("OUT_DIR"), "/sails_static_storage.rs"));

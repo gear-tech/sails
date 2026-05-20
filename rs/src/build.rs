@@ -6,7 +6,7 @@ use gwasm_builder::{PreProcessor, PreProcessorTarget, WasmBuilder};
 #[cfg(feature = "experimental-vft-account")]
 use sails_storage::VFT_ACCOUNT_U256_SLOT_SIZE;
 use sails_storage::{
-    ACTOR_ID_U256_SLOT_SIZE, ALLOWANCE_U256_SLOT_SIZE, PAGE_LOCAL_ACTOR_U256_DATA_OFFSET,
+    ACTOR_ID_U256_SLOT_SIZE, ACTOR_PAIR_U256_SLOT_SIZE, PAGE_LOCAL_ACTOR_U256_DATA_OFFSET,
     PAGE_LOCAL_ACTOR_U256_SLOTS_PER_TILE, PAGE_LOCAL_ACTOR_U256_TILE_BYTES, StaticLayout,
     StaticOpenAddressTable,
 };
@@ -205,11 +205,11 @@ impl StaticMemoryLayout {
         self
     }
 
-    /// Reserves a WAT-shaped `(ActorId, ActorId) -> U256` static map.
+    /// Reserves a `(ActorId, ActorId) -> U256` static map.
     ///
     /// The reserved table uses `2^LOG2_SLOTS` slots. Each slot is exactly 96
     /// bytes: owner actor id, spender actor id, and a `U256` value.
-    pub fn reserve_allowance_u256_map<const LOG2_SLOTS: u8>(
+    pub fn reserve_actor_pair_u256_map<const LOG2_SLOTS: u8>(
         mut self,
         name: impl Into<String>,
     ) -> Self {
@@ -217,7 +217,7 @@ impl StaticMemoryLayout {
             name: name.into(),
             slots: StaticTableSlots::Log2(LOG2_SLOTS),
             kind: StaticTableKind::SingleRegion {
-                slot_size: ALLOWANCE_U256_SLOT_SIZE,
+                slot_size: ACTOR_PAIR_U256_SLOT_SIZE,
                 align: 32,
             },
         });
@@ -230,6 +230,7 @@ impl StaticMemoryLayout {
     /// bytes: owner state bytes, a 32-byte owner actor id, a 32-byte `U256`
     /// balance, and two inline spender actor id plus `U256` allowance pairs.
     #[cfg(feature = "experimental-vft-account")]
+    #[doc(hidden)]
     pub fn reserve_vft_account_map<const LOG2_SLOTS: u8>(
         mut self,
         name: impl Into<String>,
@@ -250,6 +251,7 @@ impl StaticMemoryLayout {
     /// The reserved table uses a one-byte control region followed by a 64-byte
     /// aligned data slot region. Each data slot stores a 32-byte actor id and a
     /// 32-byte `U256` value.
+    #[doc(hidden)]
     pub fn reserve_control_actor_u256_map<const LOG2_SLOTS: u8>(
         mut self,
         name: impl Into<String>,
@@ -267,6 +269,7 @@ impl StaticMemoryLayout {
     /// The reserved table uses `2^LOG2_TILES` Gear-page-sized tiles. Each tile
     /// stores its control bytes and 64-byte actor/value slots in the same
     /// 16 KiB page to avoid split control/data page touches on hit paths.
+    #[doc(hidden)]
     pub fn reserve_page_local_actor_u256_map<const LOG2_TILES: u8>(
         mut self,
         name: impl Into<String>,
@@ -284,6 +287,7 @@ impl StaticMemoryLayout {
     /// The reserved table uses `2^LOG2_GROUPS` groups. Each group spans
     /// `2^LOG2_GROUP_PAGES` Gear pages and stores its control bytes before its
     /// 64-byte actor/value slots.
+    #[doc(hidden)]
     pub fn reserve_grouped_control_actor_u256_map<
         const LOG2_GROUPS: u8,
         const LOG2_GROUP_PAGES: u8,
@@ -1006,7 +1010,7 @@ mod tests {
         let layout = StaticMemoryLayout::new(1024)
             .reserve_table::<1, 1>("prefix", 1)
             .reserve_actor_u256_map::<2>("fast_balances")
-            .reserve_allowance_u256_map::<1>("fast_allowances")
+            .reserve_actor_pair_u256_map::<1>("fast_allowances")
             .reserve_control_actor_u256_map::<6>("control_balances")
             .reserve_page_local_actor_u256_map::<2>("page_balances")
             .reserve_grouped_control_actor_u256_map::<2, 3>("grouped_balances")
@@ -1022,7 +1026,7 @@ mod tests {
         assert_eq!(layout.tables[2].slots, 2);
         assert_eq!(layout.tables[2].log2_slots, Some(1));
         assert_eq!(layout.tables[2].mask, Some(1));
-        assert_eq!(layout.tables[2].bytes, 2 * ALLOWANCE_U256_SLOT_SIZE);
+        assert_eq!(layout.tables[2].bytes, 2 * ACTOR_PAIR_U256_SLOT_SIZE);
         assert_eq!(layout.tables[3].control_base.unwrap() % 64, 0);
         assert_eq!(layout.tables[3].slots_base.unwrap() % 64, 0);
         assert_eq!(layout.tables[3].slots, 64);

@@ -8,7 +8,7 @@ fn main() {
         .reserve_table::<64, 32>("million_allowances", MILLION_BALANCE_SLOTS)
         .reserve_actor_u256_map::<MILLION_BALANCE_LOG2_SLOTS>("wat_actor_balances")
         .reserve_actor_u256_map::<MILLION_BALANCE_LOG2_SLOTS>("mixed_actor_balances")
-        .reserve_allowance_u256_map::<MILLION_BALANCE_LOG2_SLOTS>("wat_allowances")
+        .reserve_actor_pair_u256_map::<MILLION_BALANCE_LOG2_SLOTS>("wat_allowances")
         .reserve_control_actor_u256_map::<MILLION_BALANCE_LOG2_SLOTS>("control_actor_balances")
         .reserve_page_local_actor_u256_map::<PAGE_LOCAL_BALANCE_LOG2_TILES>(
             "page_local_actor_balances",
