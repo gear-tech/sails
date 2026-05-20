@@ -12,6 +12,3 @@ rust-version.workspace = true
 [dependencies]
 gprimitives.workspace = true
 
-[features]
-default = []
-experimental-vft-account = []

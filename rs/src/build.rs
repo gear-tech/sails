@@ -3,8 +3,6 @@
 pub use gwasm_builder::build as build_wasm;
 
 use gwasm_builder::{PreProcessor, PreProcessorTarget, WasmBuilder};
-#[cfg(feature = "experimental-vft-account")]
-use sails_storage::VFT_ACCOUNT_U256_SLOT_SIZE;
 use sails_storage::{
     ACTOR_ID_U256_SLOT_SIZE, ACTOR_PAIR_U256_SLOT_SIZE, PAGE_LOCAL_ACTOR_U256_DATA_OFFSET,
     PAGE_LOCAL_ACTOR_U256_SLOTS_PER_TILE, PAGE_LOCAL_ACTOR_U256_TILE_BYTES, StaticLayout,
@@ -223,29 +221,6 @@ impl StaticMemoryLayout {
         });
         self
     }
-
-    /// Reserves an experimental owner-local VFT account map.
-    ///
-    /// The reserved table uses `2^LOG2_SLOTS` slots. Each slot is exactly 200
-    /// bytes: owner state bytes, a 32-byte owner actor id, a 32-byte `U256`
-    /// balance, and two inline spender actor id plus `U256` allowance pairs.
-    #[cfg(feature = "experimental-vft-account")]
-    #[doc(hidden)]
-    pub fn reserve_vft_account_map<const LOG2_SLOTS: u8>(
-        mut self,
-        name: impl Into<String>,
-    ) -> Self {
-        self.tables.push(StaticTable {
-            name: name.into(),
-            slots: StaticTableSlots::Log2(LOG2_SLOTS),
-            kind: StaticTableKind::SingleRegion {
-                slot_size: VFT_ACCOUNT_U256_SLOT_SIZE,
-                align: 8,
-            },
-        });
-        self
-    }
-
     /// Reserves a control-byte `ActorId -> U256` static map.
     ///
     /// The reserved table uses a one-byte control region followed by a 64-byte
@@ -1102,29 +1077,6 @@ mod tests {
         assert!(generated.contains("pub const GROUPED_BALANCES_SLOTS_PER_GROUP: usize = 2016;"));
         assert!(generated.contains("pub const GROUPED_BALANCES_GROUP_BYTES: usize = 131072;"));
         assert!(generated.contains("pub const GROUPED_BALANCES_DATA_OFFSET: usize = 2048;"));
-    }
-
-    #[cfg(feature = "experimental-vft-account")]
-    #[test]
-    fn resolves_experimental_vft_account_map() {
-        let layout = StaticMemoryLayout::new(1024)
-            .reserve_table::<1, 1>("prefix", 1)
-            .reserve_vft_account_map::<2>("vft_accounts")
-            .resolve()
-            .unwrap();
-
-        assert_eq!(layout.tables[1].base % 8, 0);
-        assert_eq!(layout.tables[1].slots, 4);
-        assert_eq!(layout.tables[1].log2_slots, Some(2));
-        assert_eq!(layout.tables[1].mask, Some(3));
-        assert_eq!(layout.tables[1].bytes, 4 * VFT_ACCOUNT_U256_SLOT_SIZE);
-
-        let dir = tempfile::tempdir().unwrap();
-        emit_static_storage_to_dir(&layout, dir.path()).unwrap();
-        let generated = fs::read_to_string(dir.path().join(GENERATED_STATIC_STORAGE)).unwrap();
-        assert!(generated.contains("pub const VFT_ACCOUNTS_LOG2_SLOTS: u8 = 2;"));
-        assert!(generated.contains("pub const VFT_ACCOUNTS_MASK: usize = 3;"));
-        assert!(generated.contains("pub const VFT_ACCOUNTS_BYTES: usize = 800;"));
     }
 
     #[test]
