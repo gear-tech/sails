@@ -639,11 +639,7 @@ impl StorageMillionState {
     ) -> bool {
         let len = self.vft_balance_len(backend);
         assert!(len > 1);
-        let to_seed = if owner_seed == len {
-            1
-        } else {
-            owner_seed + 1
-        };
+        let to_seed = if owner_seed == len { 1 } else { owner_seed + 1 };
         self.apply_vft_transfer_from_spender_bool(backend, owner_seed, spender_seed, to_seed)
     }
 
@@ -708,36 +704,30 @@ impl StorageMillionState {
             let transferred = match op {
                 MillionVftTransferOp::Transfer
                     if backend == MillionVftBackend::GenericStaticFast =>
-                {
-                    unsafe {
-                        generic_balance_table()
-                            .transfer_actor_u256_nonzero_distinct_unchecked(
-                                owner, recipient, amount,
-                            )
-                            .expect("generic million balance transfer failed")
-                            .is_some()
-                    }
-                }
+                unsafe {
+                    generic_balance_table()
+                        .transfer_actor_u256_nonzero_distinct_unchecked(owner, recipient, amount)
+                        .expect("generic million balance transfer failed")
+                        .is_some()
+                },
                 MillionVftTransferOp::Transfer => generic_balance_table()
                     .transfer_actor_u256(owner, recipient, amount)
                     .expect("generic million balance transfer failed")
                     .is_some(),
                 MillionVftTransferOp::TransferFrom
                     if backend == MillionVftBackend::GenericStaticFast =>
-                {
-                    unsafe {
-                        generic_balance_table()
-                            .transfer_actor_u256_from_nonzero_distinct_unchecked(
-                                &generic_allowance_table(),
-                                owner,
-                                spender,
-                                recipient,
-                                amount,
-                            )
-                            .expect("generic million transfer-from failed")
-                            .is_some()
-                    }
-                }
+                unsafe {
+                    generic_balance_table()
+                        .transfer_actor_u256_from_nonzero_distinct_unchecked(
+                            &generic_allowance_table(),
+                            owner,
+                            spender,
+                            recipient,
+                            amount,
+                        )
+                        .expect("generic million transfer-from failed")
+                        .is_some()
+                },
                 MillionVftTransferOp::TransferFrom => generic_balance_table()
                     .transfer_actor_u256_from(
                         &generic_allowance_table(),
@@ -747,7 +737,7 @@ impl StorageMillionState {
                         amount,
                     )
                     .expect("generic million transfer-from failed")
-                    .is_some()
+                    .is_some(),
             };
             if transferred && inserted_recipient {
                 *self.len_mut(MillionStorageBackend::GenericStatic) += 1;
@@ -864,16 +854,16 @@ impl StorageMillionState {
         }
         if backend == MillionVftBackend::InlineOwnerAccountU256 {
             return match op {
-                MillionVftTransferOp::Transfer => {
-                    inline_owner_account_table().transfer(
+                MillionVftTransferOp::Transfer => inline_owner_account_table()
+                    .transfer(
                         vft_actor_for_seed(seed),
                         vft_actor_for_seed(to_seed),
                         amount,
                     )
-                    .expect("inline owner account transfer failed")
-                },
-                MillionVftTransferOp::TransferFrom => self
-                    .apply_vft_transfer_from_spender_bool(backend, seed, seed, to_seed),
+                    .expect("inline owner account transfer failed"),
+                MillionVftTransferOp::TransferFrom => {
+                    self.apply_vft_transfer_from_spender_bool(backend, seed, seed, to_seed)
+                }
             };
         }
 
@@ -1237,12 +1227,10 @@ impl StorageMillionState {
             (MillionVftBackend::HashMap, DynamicMillionVftStorage::HashMap { balances, .. }) => {
                 balances.get(&actor).copied()
             }
-            (MillionVftBackend::InlineOwnerAccountU256, _) => {
-                inline_owner_account_table()
-                    .accounts()
-                    .get_balance(vft_actor_for_seed(seed))
-                    .expect("inline owner account balance get failed")
-            }
+            (MillionVftBackend::InlineOwnerAccountU256, _) => inline_owner_account_table()
+                .accounts()
+                .get_balance(vft_actor_for_seed(seed))
+                .expect("inline owner account balance get failed"),
             _ => backend
                 .static_backend()
                 .and_then(|backend| self.get_actor_value(backend, actor)),

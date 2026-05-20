@@ -42,6 +42,16 @@ fn main() {
     generate_client("alloc_stress_program", &clients_path, &idls_path);
     generate_client("compute_stress_program", &clients_path, &idls_path);
     generate_client("counter_bench_program", &clients_path, &idls_path);
+    generate_idl_and_client::<noop_sails::NoopSailsProgram>(
+        "noop_sails_program",
+        &clients_path,
+        &idls_path,
+    );
+    generate_idl_and_client::<minimal_vft_sails::MinimalVftSailsProgram>(
+        "minimal_vft_sails_program",
+        &clients_path,
+        &idls_path,
+    );
     generate_idl_and_client::<storage_stress::StorageStressProgram>(
         "storage_stress_program",
         &clients_path,

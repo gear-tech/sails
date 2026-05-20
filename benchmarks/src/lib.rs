@@ -22,9 +22,11 @@ pub use entities::{
 };
 pub use file::BenchDataFile;
 #[cfg(feature = "gas-profile")]
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+#[cfg(feature = "gas-profile")]
+use std::fs;
 use std::{
-    env, fs,
+    env,
     path::{Path, PathBuf},
 };
 
@@ -58,19 +60,19 @@ fn store_bench_data_to_file(path: impl AsRef<Path>, f: impl FnOnce(&mut BenchDat
 }
 
 #[cfg(feature = "gas-profile")]
-#[derive(Serialize)]
-struct GasProfileBucketSerde {
-    category: String,
-    label: String,
-    amount: u64,
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct GasProfileBucketSerde {
+    pub category: String,
+    pub label: String,
+    pub amount: u64,
 }
 
 #[cfg(feature = "gas-profile")]
-#[derive(Serialize)]
-struct GasProfileArtifactSerde {
-    benchmark: String,
-    total_gas: u64,
-    buckets: Vec<GasProfileBucketSerde>,
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct GasProfileArtifactSerde {
+    pub benchmark: String,
+    pub total_gas: u64,
+    pub buckets: Vec<GasProfileBucketSerde>,
 }
 
 #[cfg(feature = "gas-profile")]
@@ -131,6 +133,38 @@ pub fn write_gas_profile_artifact(
     })?;
 
     Ok(())
+}
+
+#[cfg(feature = "gas-profile")]
+pub fn read_gas_profile_artifacts() -> Result<Vec<GasProfileArtifactSerde>> {
+    let Some(root) = gas_profile_root() else {
+        return Ok(Vec::new());
+    };
+
+    let profiles = root.join("profiles");
+    if !profiles.exists() {
+        return Ok(Vec::new());
+    }
+
+    let mut artifacts = Vec::new();
+    for entry in fs::read_dir(&profiles)
+        .with_context(|| format!("Failed to read gas profiles from {}", profiles.display()))?
+    {
+        let entry = entry.context("Failed to read gas profile directory entry")?;
+        let path = entry.path();
+        if path.extension().and_then(|extension| extension.to_str()) != Some("json") {
+            continue;
+        }
+
+        let bytes = fs::read(&path)
+            .with_context(|| format!("Failed to read gas profile {}", path.display()))?;
+        let artifact: GasProfileArtifactSerde = serde_json::from_slice(&bytes)
+            .with_context(|| format!("Failed to decode gas profile {}", path.display()))?;
+        artifacts.push(artifact);
+    }
+
+    artifacts.sort_by(|left, right| left.benchmark.cmp(&right.benchmark));
+    Ok(artifacts)
 }
 
 #[cfg(feature = "gas-profile")]

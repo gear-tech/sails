@@ -3,13 +3,13 @@
 pub use gwasm_builder::build as build_wasm;
 
 use gwasm_builder::{PreProcessor, PreProcessorTarget, WasmBuilder};
+#[cfg(feature = "experimental-vft-account")]
+use sails_storage::VFT_ACCOUNT_U256_SLOT_SIZE;
 use sails_storage::{
     ACTOR_ID_U256_SLOT_SIZE, ALLOWANCE_U256_SLOT_SIZE, PAGE_LOCAL_ACTOR_U256_DATA_OFFSET,
     PAGE_LOCAL_ACTOR_U256_SLOTS_PER_TILE, PAGE_LOCAL_ACTOR_U256_TILE_BYTES, StaticLayout,
     StaticOpenAddressTable,
 };
-#[cfg(feature = "experimental-vft-account")]
-use sails_storage::VFT_ACCOUNT_U256_SLOT_SIZE;
 use std::{
     boxed::Box,
     collections::BTreeSet,

@@ -21,6 +21,14 @@
 //! ```
 
 #[cfg(feature = "gas-profile")]
+use crate::clients::minimal_vft_sails_client::{
+    MinimalVftSails as _, MinimalVftSailsCtors, MinimalVftSailsProgram, vft::Vft as _,
+};
+#[cfg(feature = "gas-profile")]
+use crate::clients::noop_sails_client::{
+    NoopSails as _, NoopSailsCtors, NoopSailsProgram, noop_sails::NoopSails as _,
+};
+#[cfg(feature = "gas-profile")]
 use crate::clients::vft_stress_client::vft_stress::{VftPhase, VftProfileResult};
 use crate::clients::{
     alloc_stress_client::{
@@ -54,6 +62,8 @@ use aggregator_client::{
         TrackerBenchResult as AggregatorTrackerBenchResult, TrackerOp as AggregatorTrackerOp,
     },
 };
+#[cfg(feature = "gas-profile")]
+use gtest::{Program as GtestProgram, ProgramBuilder as GtestProgramBuilder};
 use gtest::{System, constants::DEFAULT_USER_ALICE};
 use itertools::{Either, Itertools};
 use ping_pong_bench_app::client::{PingPong, PingPongCtors, PingPongProgram, ping_pong_service::*};
@@ -62,9 +72,23 @@ use redirect_proxy_client::{
     RedirectProxyClient, RedirectProxyClientCtors, RedirectProxyClientProgram, proxy::*,
 };
 use sails_rs::{client::*, prelude::*};
+#[cfg(feature = "gas-profile")]
+use std::path::Path;
 use std::{collections::BTreeMap, env, sync::atomic::AtomicU64};
 
 static COUNTER_SALT: AtomicU64 = AtomicU64::new(0);
+#[cfg(feature = "gas-profile")]
+const DEFAULT_FLOOR_SAMPLES: u32 = 3;
+#[cfg(feature = "gas-profile")]
+const HOT_VFT_INTERFACE_ID: [u8; 8] = [0x6d, 0x69, 0x6e, 0x76, 0x66, 0x74, 0x00, 0x01];
+#[cfg(feature = "gas-profile")]
+const HOT_VFT_ROUTE_ID: u8 = 1;
+#[cfg(feature = "gas-profile")]
+const HOT_VFT_APPROVE_ENTRY: u16 = 0;
+#[cfg(feature = "gas-profile")]
+const HOT_VFT_TRANSFER_ENTRY: u16 = 1;
+#[cfg(feature = "gas-profile")]
+const HOT_VFT_TRANSFER_FROM_ENTRY: u16 = 2;
 const STORAGE_MILLION_LOAD: u32 = 1_000_000;
 const STORAGE_MILLION_SAMPLES: u32 = 1;
 const STORAGE_MILLION_BATCH_COUNT: u32 = 512;
@@ -179,6 +203,45 @@ async fn counter_bench() {
         bench_data.update_counter_bench(true, median(gas_benches_async));
     })
     .unwrap();
+}
+
+#[cfg(feature = "gas-profile")]
+#[tokio::test]
+async fn noop_floor_bench() {
+    let mut benches: BTreeMap<String, Vec<u64>> = Default::default();
+
+    for sample in 0..floor_samples() {
+        for (key, gas) in noop_floor_test(sample).await {
+            benches.entry(key).or_default().push(gas);
+        }
+    }
+
+    let medians = benches
+        .into_iter()
+        .map(|(key, gas_benches)| (key, median(gas_benches)))
+        .collect::<BTreeMap<_, _>>();
+
+    crate::write_gas_profile_summary(&medians, &render_noop_floor_markdown(&medians)).unwrap();
+}
+
+#[cfg(feature = "gas-profile")]
+#[tokio::test]
+async fn minimal_vft_floor_bench() {
+    let mut benches: BTreeMap<String, Vec<u64>> = Default::default();
+
+    for sample in 0..floor_samples() {
+        for (key, gas) in minimal_vft_floor_test(sample).await {
+            benches.entry(key).or_default().push(gas);
+        }
+    }
+
+    let medians = benches
+        .into_iter()
+        .map(|(key, gas_benches)| (key, median(gas_benches)))
+        .collect::<BTreeMap<_, _>>();
+
+    crate::write_gas_profile_summary(&medians, &render_minimal_vft_floor_markdown(&medians))
+        .unwrap();
 }
 
 #[tokio::test]
@@ -409,6 +472,8 @@ async fn storage_million_static_bench() {
 #[tokio::test]
 async fn vft_million_transfer_bench() {
     let mut benches: BTreeMap<String, Vec<u64>> = Default::default();
+    #[cfg(feature = "gas-profile")]
+    let mut profile_benches: BTreeMap<String, Vec<u64>> = Default::default();
 
     let backends = filtered_million_vft_backends(
         "SAILS_STORAGE_MILLION_VFT_BACKENDS",
@@ -426,6 +491,13 @@ async fn vft_million_transfer_bench() {
             MillionVftBackend::InlineOwnerAccountU256,
         ],
     );
+
+    #[cfg(feature = "gas-profile")]
+    for sample in 0..STORAGE_MILLION_SAMPLES {
+        for (key, gas) in vft_framework_overhead_test(sample).await {
+            profile_benches.entry(key).or_default().push(gas);
+        }
+    }
 
     for backend in backends {
         for sample in 0..STORAGE_MILLION_SAMPLES {
@@ -464,12 +536,26 @@ async fn vft_million_transfer_bench() {
     .unwrap();
 
     #[cfg(feature = "gas-profile")]
-    crate::write_gas_profile_summary(&medians, &render_vft_comparison_markdown(&medians)).unwrap();
+    {
+        let mut profile_medians = medians.clone();
+        profile_medians.extend(
+            profile_benches
+                .into_iter()
+                .map(|(key, gas_benches)| (key, median(gas_benches))),
+        );
+        crate::write_gas_profile_summary(
+            &profile_medians,
+            &render_vft_comparison_markdown(&profile_medians),
+        )
+        .unwrap();
+    }
 }
 
 #[tokio::test]
 async fn vft_million_real_cost_bench() {
     let mut benches: BTreeMap<String, Vec<u64>> = Default::default();
+    #[cfg(feature = "gas-profile")]
+    let mut profile_benches: BTreeMap<String, Vec<u64>> = Default::default();
 
     let backends = filtered_million_vft_backends(
         "SAILS_STORAGE_MILLION_VFT_BACKENDS",
@@ -489,6 +575,13 @@ async fn vft_million_real_cost_bench() {
             MillionVftBackend::InlineOwnerAccountU256,
         ],
     );
+
+    #[cfg(feature = "gas-profile")]
+    for sample in 0..STORAGE_MILLION_SAMPLES {
+        for (key, gas) in vft_framework_overhead_test(sample).await {
+            profile_benches.entry(key).or_default().push(gas);
+        }
+    }
 
     for backend in backends {
         for sample in 0..STORAGE_MILLION_SAMPLES {
@@ -531,7 +624,19 @@ async fn vft_million_real_cost_bench() {
     .unwrap();
 
     #[cfg(feature = "gas-profile")]
-    crate::write_gas_profile_summary(&medians, &render_vft_comparison_markdown(&medians)).unwrap();
+    {
+        let mut profile_medians = medians.clone();
+        profile_medians.extend(
+            profile_benches
+                .into_iter()
+                .map(|(key, gas_benches)| (key, median(gas_benches))),
+        );
+        crate::write_gas_profile_summary(
+            &profile_medians,
+            &render_vft_comparison_markdown(&profile_medians),
+        )
+        .unwrap();
+    }
 }
 
 #[tokio::test]
@@ -1302,6 +1407,125 @@ async fn storage_stress_test(
 }
 
 #[cfg(feature = "gas-profile")]
+async fn noop_floor_test(sample: u32) -> Vec<(String, u64)> {
+    let mut operations = Vec::with_capacity(6);
+
+    if floor_row_enabled("noop_wat_raw") {
+        operations.push(noop_wat_raw_floor_test(sample).await);
+    }
+    if floor_row_enabled("noop_wat_sails_wire") {
+        operations.push(noop_wat_sails_wire_floor_test(sample).await);
+    }
+    if floor_row_enabled("noop_gstd") {
+        operations.push(noop_gstd_floor_test(sample).await);
+    }
+    if floor_row_enabled("noop_sails") {
+        operations.push(noop_sails_floor_test(sample).await);
+    }
+
+    let vft_wasm_path = "../target/wasm32-gear/release/vft_stress.opt.wasm";
+    if Path::new(vft_wasm_path).exists()
+        && (floor_row_enabled("vft_framework_noop") || floor_row_enabled("vft_framework_echo_args"))
+    {
+        operations.extend(vft_framework_overhead_test(sample).await);
+    }
+
+    operations
+}
+
+#[cfg(feature = "gas-profile")]
+async fn noop_wat_raw_floor_test(sample: u32) -> (String, u64) {
+    let env = create_env();
+    let program = GtestProgramBuilder::from_binary(::noop_wat::RAW_REPLY_WASM).build(env.system());
+
+    let init_id = program.send_bytes(DEFAULT_USER_ALICE, Vec::new());
+    let init_res = env.system().run_next_block();
+    assert!(
+        init_res.succeed.contains(&init_id),
+        "noop-wat raw init failed: {init_res:?}"
+    );
+
+    let message_id = program.send_bytes(DEFAULT_USER_ALICE, Vec::new());
+    let profile_case = (sample == 0).then(|| format!("noop_wat_raw_sample{sample}"));
+    let (payload, gas) =
+        extract_reply_and_gas_profiled(env.system(), message_id, profile_case.as_deref());
+    assert_eq!(payload, vec![1u8]);
+
+    ("noop_wat_raw".to_owned(), gas)
+}
+
+#[cfg(feature = "gas-profile")]
+async fn noop_wat_sails_wire_floor_test(sample: u32) -> (String, u64) {
+    let env = create_env();
+    let program =
+        GtestProgramBuilder::from_binary(::noop_wat::SAILS_WIRE_REPLY_WASM).build(env.system());
+
+    let init_id = program.send_bytes(DEFAULT_USER_ALICE, Vec::new());
+    let init_res = env.system().run_next_block();
+    assert!(
+        init_res.succeed.contains(&init_id),
+        "noop-wat Sails-wire init failed: {init_res:?}"
+    );
+
+    let message_id = program.send_bytes(DEFAULT_USER_ALICE, noop_sails_payload());
+    let profile_case = (sample == 0).then(|| format!("noop_wat_sails_wire_sample{sample}"));
+    let (payload, gas) =
+        extract_reply_and_gas_profiled(env.system(), message_id, profile_case.as_deref());
+    let ok = crate::clients::noop_sails_client::noop_sails::io::Noop::decode_reply(
+        NoopSailsProgram::ROUTE_ID_NOOP_SAILS,
+        payload.as_slice(),
+    )
+    .unwrap();
+    assert!(ok);
+
+    ("noop_wat_sails_wire".to_owned(), gas)
+}
+
+#[cfg(feature = "gas-profile")]
+async fn noop_gstd_floor_test(sample: u32) -> (String, u64) {
+    let _ = ::noop_gstd::PROGRAM_NAME;
+    let wasm_path = "../target/wasm32-gear/release/noop_gstd.opt.wasm";
+    let env = create_env();
+    let program = GtestProgram::from_file(env.system(), wasm_path);
+
+    let init_id = program.send_bytes(DEFAULT_USER_ALICE, Vec::new());
+    let init_res = env.system().run_next_block();
+    assert!(
+        init_res.succeed.contains(&init_id),
+        "noop-gstd init failed: {init_res:?}"
+    );
+
+    let message_id = program.send_bytes(DEFAULT_USER_ALICE, Vec::new());
+    let profile_case = (sample == 0).then(|| format!("noop_gstd_sample{sample}"));
+    let (payload, gas) =
+        extract_reply_and_gas_profiled(env.system(), message_id, profile_case.as_deref());
+    assert_eq!(payload, vec![1u8]);
+
+    ("noop_gstd".to_owned(), gas)
+}
+
+#[cfg(feature = "gas-profile")]
+async fn noop_sails_floor_test(sample: u32) -> (String, u64) {
+    let wasm_path = "../target/wasm32-gear/release/noop_sails.opt.wasm";
+    let env = create_env();
+    let program = deploy_for_bench(&env, wasm_path, |d| NoopSailsCtors::new_for_bench(d)).await;
+    let mut service = program.noop_sails();
+
+    let message_id = service.noop().send_one_way().unwrap();
+    let profile_case = (sample == 0).then(|| format!("noop_sails_sample{sample}"));
+    let (payload, gas) =
+        extract_reply_and_gas_profiled(env.system(), message_id, profile_case.as_deref());
+    let ok = crate::clients::noop_sails_client::noop_sails::io::Noop::decode_reply(
+        NoopSailsProgram::ROUTE_ID_NOOP_SAILS,
+        payload.as_slice(),
+    )
+    .unwrap();
+    assert!(ok);
+
+    ("noop_sails".to_owned(), gas)
+}
+
+#[cfg(feature = "gas-profile")]
 async fn vft_framework_overhead_test(sample: u32) -> Vec<(String, u64)> {
     let wasm_path = "../target/wasm32-gear/release/vft_stress.opt.wasm";
     let env = create_env();
@@ -1319,7 +1543,9 @@ async fn vft_framework_overhead_test(sample: u32) -> Vec<(String, u64)> {
     )
     .unwrap();
     assert!(ok);
-    operations.push(("vft_framework_noop".to_owned(), gas));
+    if floor_row_enabled("vft_framework_noop") {
+        operations.push(("vft_framework_noop".to_owned(), gas));
+    }
 
     let message_id = service
         .bench_echo_vft_args(
@@ -1338,9 +1564,164 @@ async fn vft_framework_overhead_test(sample: u32) -> Vec<(String, u64)> {
     )
     .unwrap();
     assert!(ok);
-    operations.push(("vft_framework_echo_args".to_owned(), gas));
+    if floor_row_enabled("vft_framework_echo_args") {
+        operations.push(("vft_framework_echo_args".to_owned(), gas));
+    }
 
     operations
+}
+
+#[cfg(feature = "gas-profile")]
+async fn minimal_vft_floor_test(sample: u32) -> Vec<(String, u64)> {
+    let mut operations = Vec::with_capacity(8);
+
+    if floor_row_enabled("minimal_vft_sails_approve") {
+        operations.push(minimal_vft_sails_approve_test(sample).await);
+    }
+    if floor_row_enabled("minimal_vft_sails_transfer") {
+        operations.push(minimal_vft_sails_transfer_test(sample).await);
+    }
+    if floor_row_enabled("minimal_vft_sails_transfer_from") {
+        operations.push(minimal_vft_sails_transfer_from_test(sample).await);
+    }
+    if floor_row_enabled("minimal_vft_hot_approve") {
+        operations.push(minimal_vft_hot_test("approve", HOT_VFT_APPROVE_ENTRY, sample).await);
+    }
+    if floor_row_enabled("minimal_vft_hot_transfer") {
+        operations.push(minimal_vft_hot_test("transfer", HOT_VFT_TRANSFER_ENTRY, sample).await);
+    }
+    if floor_row_enabled("minimal_vft_hot_transfer_from") {
+        operations
+            .push(minimal_vft_hot_test("transfer_from", HOT_VFT_TRANSFER_FROM_ENTRY, sample).await);
+    }
+
+    let vft_wasm_path = "../target/wasm32-gear/release/vft_stress.opt.wasm";
+    if Path::new(vft_wasm_path).exists()
+        && (floor_row_enabled("vft_framework_noop") || floor_row_enabled("vft_framework_echo_args"))
+    {
+        operations.extend(vft_framework_overhead_test(sample).await);
+    }
+
+    operations
+}
+
+#[cfg(feature = "gas-profile")]
+async fn minimal_vft_sails_approve_test(sample: u32) -> (String, u64) {
+    let wasm_path = "../target/wasm32-gear/release/minimal_vft_sails.opt.wasm";
+    let env = create_env();
+    let program =
+        deploy_for_bench(&env, wasm_path, |d| MinimalVftSailsCtors::new_for_bench(d)).await;
+    let mut service = program.vft();
+
+    let spender = ActorId::from(2u64);
+    let amount = U256::from(10_000u64);
+    let message_id = service.approve(spender, amount).send_one_way().unwrap();
+    let profile_case = (sample == 0).then(|| format!("minimal_vft_sails_approve_sample{sample}"));
+    let (payload, gas) =
+        extract_reply_and_gas_profiled(env.system(), message_id, profile_case.as_deref());
+    let ok = crate::clients::minimal_vft_sails_client::vft::io::Approve::decode_reply(
+        MinimalVftSailsProgram::ROUTE_ID_VFT,
+        payload.as_slice(),
+    )
+    .unwrap();
+    assert!(ok);
+
+    ("minimal_vft_sails_approve".to_owned(), gas)
+}
+
+#[cfg(feature = "gas-profile")]
+async fn minimal_vft_sails_transfer_test(sample: u32) -> (String, u64) {
+    let wasm_path = "../target/wasm32-gear/release/minimal_vft_sails.opt.wasm";
+    let env = create_env();
+    let program =
+        deploy_for_bench(&env, wasm_path, |d| MinimalVftSailsCtors::new_for_bench(d)).await;
+    let mut service = program.vft();
+
+    let to = ActorId::from(3u64);
+    let amount = U256::from(7u64);
+    let message_id = service.transfer(to, amount).send_one_way().unwrap();
+    let profile_case = (sample == 0).then(|| format!("minimal_vft_sails_transfer_sample{sample}"));
+    let (payload, gas) =
+        extract_reply_and_gas_profiled(env.system(), message_id, profile_case.as_deref());
+    let ok = crate::clients::minimal_vft_sails_client::vft::io::Transfer::decode_reply(
+        MinimalVftSailsProgram::ROUTE_ID_VFT,
+        payload.as_slice(),
+    )
+    .unwrap();
+    assert!(ok);
+
+    ("minimal_vft_sails_transfer".to_owned(), gas)
+}
+
+#[cfg(feature = "gas-profile")]
+async fn minimal_vft_sails_transfer_from_test(sample: u32) -> (String, u64) {
+    let wasm_path = "../target/wasm32-gear/release/minimal_vft_sails.opt.wasm";
+    let env = create_env();
+    let program =
+        deploy_for_bench(&env, wasm_path, |d| MinimalVftSailsCtors::new_for_bench(d)).await;
+    let mut service = program.vft();
+
+    let owner = ActorId::from(DEFAULT_USER_ALICE);
+    let to = ActorId::from(4u64);
+    let amount = U256::from(5u64);
+    let message_id = service
+        .transfer_from(owner, to, amount)
+        .send_one_way()
+        .unwrap();
+    let profile_case =
+        (sample == 0).then(|| format!("minimal_vft_sails_transfer_from_sample{sample}"));
+    let (payload, gas) =
+        extract_reply_and_gas_profiled(env.system(), message_id, profile_case.as_deref());
+    let ok = crate::clients::minimal_vft_sails_client::vft::io::TransferFrom::decode_reply(
+        MinimalVftSailsProgram::ROUTE_ID_VFT,
+        payload.as_slice(),
+    )
+    .unwrap();
+    assert!(ok);
+
+    ("minimal_vft_sails_transfer_from".to_owned(), gas)
+}
+
+#[cfg(feature = "gas-profile")]
+async fn minimal_vft_hot_test(label: &str, entry_id: u16, sample: u32) -> (String, u64) {
+    let wasm_path = "../target/wasm32-gear/release/minimal_vft_hot.opt.wasm";
+    let env = create_env();
+    let program = GtestProgram::from_file(env.system(), wasm_path);
+
+    let init_id = program.send_bytes(DEFAULT_USER_ALICE, Vec::new());
+    let init_res = env.system().run_next_block();
+    assert!(
+        init_res.succeed.contains(&init_id),
+        "minimal-vft-hot init failed: {init_res:?}"
+    );
+
+    let payload = match entry_id {
+        HOT_VFT_APPROVE_ENTRY => hot_vft_payload(
+            entry_id,
+            (ActorId::from(2u64), U256::from(10_000u64)).encode(),
+        ),
+        HOT_VFT_TRANSFER_ENTRY => {
+            hot_vft_payload(entry_id, (ActorId::from(3u64), U256::from(7u64)).encode())
+        }
+        HOT_VFT_TRANSFER_FROM_ENTRY => hot_vft_payload(
+            entry_id,
+            (
+                ActorId::from(DEFAULT_USER_ALICE),
+                ActorId::from(4u64),
+                U256::from(5u64),
+            )
+                .encode(),
+        ),
+        _ => unreachable!("unknown hot VFT entry"),
+    };
+
+    let message_id = program.send_bytes(DEFAULT_USER_ALICE, payload);
+    let profile_case = (sample == 0).then(|| format!("minimal_vft_hot_{label}_sample{sample}"));
+    let (payload, gas) =
+        extract_reply_and_gas_profiled(env.system(), message_id, profile_case.as_deref());
+    assert_sails_bool_reply(entry_id, &payload);
+
+    (format!("minimal_vft_hot_{label}"), gas)
 }
 
 async fn vft_storage_transfer_test(
@@ -2353,9 +2734,78 @@ fn vft_phase_name(phase: &VftPhase) -> &'static str {
 }
 
 #[cfg(feature = "gas-profile")]
+fn render_noop_floor_markdown(medians: &BTreeMap<String, u64>) -> String {
+    let mut lines = vec![
+        "# Noop Floor Gas Profile Summary".to_owned(),
+        "".to_owned(),
+        "Use a fresh `SAILS_GAS_PROFILE_DIR` for each comparison; the profile breakdown reads every JSON artifact under `profiles/`."
+            .to_owned(),
+        "".to_owned(),
+        "| Key | Median gas | Delta vs `noop_wat_raw` | Delta vs `noop_gstd` |".to_owned(),
+        "| --- | ---: | ---: | ---: |".to_owned(),
+    ];
+
+    let wat_floor = medians.get("noop_wat_raw").copied().unwrap_or(0);
+    let gstd_floor = medians.get("noop_gstd").copied().unwrap_or(0);
+    for (key, value) in medians {
+        lines.push(format!(
+            "| `{key}` | {value} | {} | {} |",
+            format_signed_delta(*value, wat_floor),
+            format_signed_delta(*value, gstd_floor),
+        ));
+    }
+
+    render_route_reply_shape_markdown(&mut lines);
+    render_wasm_section_sizes_markdown(&mut lines);
+    render_profile_breakdown_markdown(&mut lines);
+
+    lines.join("\n")
+}
+
+#[cfg(feature = "gas-profile")]
+fn format_signed_delta(value: u64, baseline: u64) -> String {
+    if value >= baseline {
+        (value - baseline).to_string()
+    } else {
+        format!("-{}", baseline - value)
+    }
+}
+
+#[cfg(feature = "gas-profile")]
+fn render_minimal_vft_floor_markdown(medians: &BTreeMap<String, u64>) -> String {
+    let mut lines = vec![
+        "# Minimal VFT Floor Gas Profile Summary".to_owned(),
+        "".to_owned(),
+        "This compares a production-shaped single-backend Sails VFT with a manual Sails-wire hot path and the current benchmark VFT framework rows."
+            .to_owned(),
+        "".to_owned(),
+        "| Key | Median gas | Delta vs matching hot row |".to_owned(),
+        "| --- | ---: | ---: |".to_owned(),
+    ];
+
+    for (key, value) in medians {
+        let hot_key = key.replace("minimal_vft_sails_", "minimal_vft_hot_");
+        let delta = medians
+            .get(&hot_key)
+            .map(|hot| value.saturating_sub(*hot))
+            .unwrap_or(0);
+        lines.push(format!("| `{key}` | {value} | {delta} |"));
+    }
+
+    render_route_reply_shape_markdown(&mut lines);
+    render_wasm_section_sizes_markdown(&mut lines);
+    render_profile_breakdown_markdown(&mut lines);
+
+    lines.join("\n")
+}
+
+#[cfg(feature = "gas-profile")]
 fn render_vft_comparison_markdown(medians: &BTreeMap<String, u64>) -> String {
     let mut lines = vec![
         "# VFT Gas Profile Summary".to_owned(),
+        "".to_owned(),
+        "Use a fresh `SAILS_GAS_PROFILE_DIR` for each comparison; the profile breakdown reads every JSON artifact under `profiles/`."
+            .to_owned(),
         "".to_owned(),
         "| Key | Median gas |".to_owned(),
         "| --- | ---: |".to_owned(),
@@ -2365,7 +2815,355 @@ fn render_vft_comparison_markdown(medians: &BTreeMap<String, u64>) -> String {
         lines.push(format!("| `{key}` | {value} |"));
     }
 
+    render_framework_overhead_markdown(medians, &mut lines);
+    render_profile_breakdown_markdown(&mut lines);
+
     lines.join("\n")
+}
+
+#[cfg(feature = "gas-profile")]
+fn render_framework_overhead_markdown(medians: &BTreeMap<String, u64>, lines: &mut Vec<String>) {
+    let Some(noop) = medians.get("vft_framework_noop").copied() else {
+        return;
+    };
+
+    lines.extend([
+        "".to_owned(),
+        "## Framework Baselines".to_owned(),
+        "".to_owned(),
+        "| Baseline | Median gas | Delta vs noop |".to_owned(),
+        "| --- | ---: | ---: |".to_owned(),
+        format!("| `vft_framework_noop` | {noop} | 0 |"),
+    ]);
+
+    if let Some(echo_args) = medians.get("vft_framework_echo_args").copied() {
+        lines.push(format!(
+            "| `vft_framework_echo_args` | {echo_args} | {} |",
+            echo_args.saturating_sub(noop)
+        ));
+    }
+
+    lines.extend([
+        "".to_owned(),
+        "`vft_framework_noop` is the lower-bound Sails call cost for this service. \
+         The echo delta estimates argument decode plus minimal method-body work without storage."
+            .to_owned(),
+    ]);
+}
+
+#[cfg(feature = "gas-profile")]
+fn render_route_reply_shape_markdown(lines: &mut Vec<String>) {
+    lines.extend([
+        "".to_owned(),
+        "## Route And Reply Shape".to_owned(),
+        "".to_owned(),
+        "| Row family | Input shape | Reply shape |".to_owned(),
+        "| --- | --- | --- |".to_owned(),
+        "| `noop_wat_raw` | empty bytes | one raw byte `[1]` |".to_owned(),
+        "| `noop_wat_sails_wire` | 16-byte Sails header, no params | 16-byte Sails header plus SCALE `bool` |".to_owned(),
+        "| `noop_gstd` | empty bytes | one raw byte `[1]` via `gstd::msg::reply_bytes` |".to_owned(),
+        "| `noop_sails` | generated Sails call | generated Sails reply with `bool` |".to_owned(),
+        "| `minimal_vft_sails_*` | generated Sails call with VFT params | generated Sails reply with `bool` |".to_owned(),
+        "| `minimal_vft_hot_*` | manual Sails header with fixed VFT params | manual Sails header plus SCALE `bool` |".to_owned(),
+    ]);
+}
+
+#[cfg(feature = "gas-profile")]
+fn render_profile_breakdown_markdown(lines: &mut Vec<String>) {
+    let artifacts = crate::read_gas_profile_artifacts().unwrap_or_default();
+    if artifacts.is_empty() {
+        return;
+    }
+
+    let mut phase_artifacts = BTreeMap::new();
+    let mut host_artifacts = BTreeMap::new();
+    for artifact in artifacts {
+        if let Some(base_name) = artifact.benchmark.strip_suffix("_wasm_phases") {
+            phase_artifacts.insert(base_name.to_owned(), artifact);
+        } else {
+            host_artifacts.insert(artifact.benchmark.clone(), artifact);
+        }
+    }
+
+    if host_artifacts.is_empty() {
+        return;
+    }
+
+    lines.extend([
+        "".to_owned(),
+        "## Profile Breakdown".to_owned(),
+        "".to_owned(),
+        "| Benchmark | Total | Non-Wasm buckets | Lazy-pages | Residual Wasm | Wasm phases | Unexplained Wasm |"
+            .to_owned(),
+        "| --- | ---: | ---: | ---: | ---: | ---: | ---: |".to_owned(),
+    ]);
+
+    for (benchmark, host) in host_artifacts {
+        let non_wasm_total = non_wasm_bucket_total(&host);
+        let lazy_pages = lazy_pages_bucket_total(&host);
+        let residual_wasm = residual_wasm_bucket_total(&host);
+        let phase_total = phase_artifacts
+            .get(&benchmark)
+            .map(bucket_total)
+            .unwrap_or(0);
+        let unexplained_wasm = residual_wasm.saturating_sub(phase_total);
+
+        lines.push(format!(
+            "| `{benchmark}` | {} | {} | {} | {} | {} | {} |",
+            host.total_gas,
+            non_wasm_total,
+            lazy_pages,
+            residual_wasm,
+            phase_total,
+            unexplained_wasm
+        ));
+    }
+
+    lines.extend([
+        "".to_owned(),
+        "Unexplained Wasm is `residual;wasm` after subtracting explicit benchmark phases. \
+         For profile rows this is the first place to look for Sails decode, routing, \
+         reply encoding, and uninstrumented app code."
+            .to_owned(),
+    ]);
+}
+
+#[cfg(feature = "gas-profile")]
+fn render_wasm_section_sizes_markdown(lines: &mut Vec<String>) {
+    let mut rows = vec![
+        (
+            "noop_wat_raw",
+            WasmSectionSizes::from_bytes(::noop_wat::RAW_REPLY_WASM),
+        ),
+        (
+            "noop_wat_sails_wire",
+            WasmSectionSizes::from_bytes(::noop_wat::SAILS_WIRE_REPLY_WASM),
+        ),
+    ];
+
+    for (name, path) in [
+        (
+            "noop_gstd",
+            "../target/wasm32-gear/release/noop_gstd.opt.wasm",
+        ),
+        (
+            "noop_sails",
+            "../target/wasm32-gear/release/noop_sails.opt.wasm",
+        ),
+        (
+            "minimal_vft_sails",
+            "../target/wasm32-gear/release/minimal_vft_sails.opt.wasm",
+        ),
+        (
+            "minimal_vft_hot",
+            "../target/wasm32-gear/release/minimal_vft_hot.opt.wasm",
+        ),
+        (
+            "vft_stress",
+            "../target/wasm32-gear/release/vft_stress.opt.wasm",
+        ),
+        (
+            "storage_million",
+            "../target/wasm32-gear/release/storage_million.opt.wasm",
+        ),
+    ] {
+        if let Some(sizes) = WasmSectionSizes::read(path) {
+            rows.push((name, sizes));
+        }
+    }
+
+    if rows.is_empty() {
+        return;
+    }
+
+    lines.extend([
+        "".to_owned(),
+        "## Wasm Section Sizes".to_owned(),
+        "".to_owned(),
+        "| Program | Bytes | Type | Import | Function | Code | Data | Global | Table | Element | Memory | Export | Custom | Other |"
+            .to_owned(),
+        "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |"
+            .to_owned(),
+    ]);
+
+    for (name, sizes) in rows {
+        lines.push(format!(
+            "| `{name}` | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} |",
+            sizes.file,
+            sizes.r#type,
+            sizes.import,
+            sizes.function,
+            sizes.code,
+            sizes.data,
+            sizes.global,
+            sizes.table,
+            sizes.element,
+            sizes.memory,
+            sizes.export,
+            sizes.custom,
+            sizes.other,
+        ));
+    }
+
+    lines.extend([
+        "".to_owned(),
+        "`instrumented_code` precharge tracks code bytes read from storage. `module_instantiation` is driven by instantiated section sizes, especially code, data, globals, tables, elements, and types."
+            .to_owned(),
+    ]);
+}
+
+#[cfg(feature = "gas-profile")]
+#[derive(Default)]
+struct WasmSectionSizes {
+    file: usize,
+    r#type: usize,
+    import: usize,
+    function: usize,
+    code: usize,
+    data: usize,
+    global: usize,
+    table: usize,
+    element: usize,
+    memory: usize,
+    export: usize,
+    custom: usize,
+    other: usize,
+}
+
+#[cfg(feature = "gas-profile")]
+impl WasmSectionSizes {
+    fn read(path: &str) -> Option<Self> {
+        let wasm = std::fs::read(path).ok()?;
+        Some(Self::from_bytes(&wasm))
+    }
+
+    fn from_bytes(wasm: &[u8]) -> Self {
+        let mut sizes = Self {
+            file: wasm.len(),
+            ..Self::default()
+        };
+
+        for payload in wasmparser::Parser::new(0).parse_all(&wasm) {
+            let Ok(payload) = payload else {
+                return sizes;
+            };
+            let Some((section, range)) = payload.as_section() else {
+                continue;
+            };
+            let len = range.end.saturating_sub(range.start);
+            match section {
+                1 => sizes.r#type += len,
+                2 => sizes.import += len,
+                3 => sizes.function += len,
+                4 => sizes.table += len,
+                5 => sizes.memory += len,
+                6 => sizes.global += len,
+                7 => sizes.export += len,
+                9 => sizes.element += len,
+                10 => sizes.code += len,
+                11 => sizes.data += len,
+                0 => sizes.custom += len,
+                _ => sizes.other += len,
+            }
+        }
+
+        sizes
+    }
+}
+
+#[cfg(feature = "gas-profile")]
+fn bucket_total(artifact: &crate::GasProfileArtifactSerde) -> u64 {
+    artifact.buckets.iter().map(|bucket| bucket.amount).sum()
+}
+
+#[cfg(feature = "gas-profile")]
+fn non_wasm_bucket_total(artifact: &crate::GasProfileArtifactSerde) -> u64 {
+    artifact
+        .buckets
+        .iter()
+        .filter(|bucket| bucket.category != "residual" || bucket.label != "wasm")
+        .map(|bucket| bucket.amount)
+        .sum()
+}
+
+#[cfg(feature = "gas-profile")]
+fn residual_wasm_bucket_total(artifact: &crate::GasProfileArtifactSerde) -> u64 {
+    artifact
+        .buckets
+        .iter()
+        .filter(|bucket| bucket.category == "residual" && bucket.label == "wasm")
+        .map(|bucket| bucket.amount)
+        .sum()
+}
+
+#[cfg(feature = "gas-profile")]
+fn lazy_pages_bucket_total(artifact: &crate::GasProfileArtifactSerde) -> u64 {
+    artifact
+        .buckets
+        .iter()
+        .filter(|bucket| bucket.category.contains("lazy") || bucket.label.contains("lazy"))
+        .map(|bucket| bucket.amount)
+        .sum()
+}
+
+#[cfg(feature = "gas-profile")]
+fn floor_samples() -> u32 {
+    env::var("SAILS_FLOOR_SAMPLES")
+        .ok()
+        .and_then(|value| value.parse().ok())
+        .filter(|samples| *samples > 0)
+        .unwrap_or(DEFAULT_FLOOR_SAMPLES)
+}
+
+#[cfg(feature = "gas-profile")]
+fn floor_row_enabled(row: &str) -> bool {
+    let Ok(rows) = env::var("SAILS_FLOOR_ROWS") else {
+        return true;
+    };
+
+    rows.split(',')
+        .map(str::trim)
+        .filter(|row| !row.is_empty())
+        .any(|enabled| row == enabled || row.starts_with(enabled))
+}
+
+#[cfg(feature = "gas-profile")]
+fn noop_sails_payload() -> Vec<u8> {
+    let mut payload = Vec::with_capacity(16);
+    payload.extend_from_slice(b"GM");
+    payload.push(1);
+    payload.push(16);
+    payload.extend_from_slice(&[84, 87, 204, 48, 221, 148, 206, 41]);
+    payload.extend_from_slice(&0u16.to_le_bytes());
+    payload.push(NoopSailsProgram::ROUTE_ID_NOOP_SAILS);
+    payload.push(0);
+    payload
+}
+
+#[cfg(feature = "gas-profile")]
+fn hot_vft_payload(entry_id: u16, params: Vec<u8>) -> Vec<u8> {
+    let mut payload = Vec::with_capacity(16 + params.len());
+    payload.extend_from_slice(b"GM");
+    payload.push(1);
+    payload.push(16);
+    payload.extend_from_slice(&HOT_VFT_INTERFACE_ID);
+    payload.extend_from_slice(&entry_id.to_le_bytes());
+    payload.push(HOT_VFT_ROUTE_ID);
+    payload.push(0);
+    payload.extend_from_slice(&params);
+    payload
+}
+
+#[cfg(feature = "gas-profile")]
+fn assert_sails_bool_reply(entry_id: u16, payload: &[u8]) {
+    assert_eq!(payload.len(), 17, "Sails bool reply length");
+    assert_eq!(&payload[0..2], b"GM");
+    assert_eq!(payload[2], 1);
+    assert_eq!(payload[3], 16);
+    assert_eq!(&payload[4..12], &HOT_VFT_INTERFACE_ID);
+    assert_eq!(u16::from_le_bytes([payload[12], payload[13]]), entry_id);
+    assert_eq!(payload[14], HOT_VFT_ROUTE_ID);
+    assert_eq!(payload[16], 1);
 }
 
 fn median(mut values: Vec<u64>) -> u64 {

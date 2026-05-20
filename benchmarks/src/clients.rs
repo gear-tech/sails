@@ -13,6 +13,16 @@ pub(crate) mod counter_bench_client {
     include!("counter_bench_program.rs");
 }
 
+pub(crate) mod noop_sails_client {
+    #![allow(unused)]
+    include!("noop_sails_program.rs");
+}
+
+pub(crate) mod minimal_vft_sails_client {
+    #![allow(unused)]
+    include!("minimal_vft_sails_program.rs");
+}
+
 pub(crate) mod storage_stress_client {
     #![allow(unused)]
     include!("storage_stress_program.rs");

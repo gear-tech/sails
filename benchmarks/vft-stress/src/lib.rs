@@ -386,7 +386,12 @@ impl VftStressState {
             .checked_add(seed)
             .and_then(|value| value.checked_add(1))
             .expect("fresh VFT recipient seed overflow");
-        self.bench_vft_transfer_profile_with_to_seed(backend, VftTransferOp::Transfer, seed, to_seed)
+        self.bench_vft_transfer_profile_with_to_seed(
+            backend,
+            VftTransferOp::Transfer,
+            seed,
+            to_seed,
+        )
     }
 
     #[cfg(feature = "wasm-profile")]
@@ -444,8 +449,8 @@ impl VftStressState {
             },
             VftStorageBackend::SailsStatic | VftStorageBackend::SailsStaticFast => {
                 ActiveVftStorage::SailsStatic {
-                balances: SailsStaticBalanceMap::new(),
-                allowances: SailsStaticAllowanceMap::new(),
+                    balances: SailsStaticBalanceMap::new(),
+                    allowances: SailsStaticAllowanceMap::new(),
                 }
             }
         };
@@ -673,7 +678,9 @@ impl VftStressState {
             .unwrap_or_else(U256::zero);
         phases.checkpoint(VftPhase::BalanceGetFrom);
         if from_balance >= amount {
-            let to_balance = self.vft_get_balance(backend, &to).unwrap_or_else(U256::zero);
+            let to_balance = self
+                .vft_get_balance(backend, &to)
+                .unwrap_or_else(U256::zero);
             phases.checkpoint(VftPhase::BalanceGetTo);
             self.vft_insert_balance(backend, from, from_balance - amount);
             phases.checkpoint(VftPhase::BalancePutFrom);
@@ -775,7 +782,10 @@ impl VftStressState {
                         transferred: true,
                     },
                     None => VftTransferResult {
-                        from_balance: balances.get(&from).unwrap_or(None).unwrap_or_else(U256::zero),
+                        from_balance: balances
+                            .get(&from)
+                            .unwrap_or(None)
+                            .unwrap_or_else(U256::zero),
                         to_balance: balances.get(&to).unwrap_or(None).unwrap_or_else(U256::zero),
                         allowance: U256::zero(),
                         balance_len: balances.len(),
@@ -798,7 +808,10 @@ impl VftStressState {
                         transferred: true,
                     },
                     None => VftTransferResult {
-                        from_balance: balances.get(&from).unwrap_or(None).unwrap_or_else(U256::zero),
+                        from_balance: balances
+                            .get(&from)
+                            .unwrap_or(None)
+                            .unwrap_or_else(U256::zero),
                         to_balance: balances.get(&to).unwrap_or(None).unwrap_or_else(U256::zero),
                         allowance: allowances
                             .get(&from, &spender)
@@ -883,7 +896,10 @@ impl VftStressState {
                         transferred: true,
                     },
                     None => VftTransferResult {
-                        from_balance: balances.get(&from).unwrap_or(None).unwrap_or_else(U256::zero),
+                        from_balance: balances
+                            .get(&from)
+                            .unwrap_or(None)
+                            .unwrap_or_else(U256::zero),
                         to_balance: balances.get(&to).unwrap_or(None).unwrap_or_else(U256::zero),
                         allowance: U256::zero(),
                         balance_len: balances.len(),
@@ -907,7 +923,10 @@ impl VftStressState {
                         transferred: true,
                     },
                     None => VftTransferResult {
-                        from_balance: balances.get(&from).unwrap_or(None).unwrap_or_else(U256::zero),
+                        from_balance: balances
+                            .get(&from)
+                            .unwrap_or(None)
+                            .unwrap_or_else(U256::zero),
                         to_balance: balances.get(&to).unwrap_or(None).unwrap_or_else(U256::zero),
                         allowance: allowances
                             .get(&from, &spender)

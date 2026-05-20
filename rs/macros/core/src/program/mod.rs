@@ -333,23 +333,27 @@ impl ProgramBuilder {
             extern "C" fn handle() {
                 #payable
 
-                let mut input = gstd::msg::load_bytes().expect("Failed to read input");
+                gstd::msg::with_read_on_stack_or_heap(|input| {
+                    let input = input.expect("Failed to read input");
+                    let input: &[u8] = input;
 
-                let program_ref = unsafe { #program_ident.as_mut() }.expect("Program not initialized");
+                    let program_ref = unsafe { #program_ident.as_mut() }.expect("Program not initialized");
 
-                #solidity_main
+                    #solidity_main
 
-                if let Ok(header) = <#sails_path::meta::SailsMessageHeader as #sails_path::Decode>::decode(&mut input.as_slice()) {
-                    let header_len = header.hlen().inner() as usize;
-                    let (interface_id, route_id, entry_id) = header
-                        .try_match_interfaces(INTERFACE_IDS)
-                        .expect("Failed to find matching service")
-                        .into_inner();
-                    match route_id {
-                        #(#route_dispatches)*
-                        _ => gstd::unknown_input_panic("Unknown route_id", &[route_id])
+                    let mut header_input: &[u8] = input;
+                    if let Ok(header) = <#sails_path::meta::SailsMessageHeader as #sails_path::Decode>::decode(&mut header_input) {
+                        let header_len = header.hlen().inner() as usize;
+                        let (interface_id, route_id, entry_id) = header
+                            .try_match_interfaces(INTERFACE_IDS)
+                            .expect("Failed to find matching service")
+                            .into_inner();
+                        match route_id {
+                            #(#route_dispatches)*
+                            _ => gstd::unknown_input_panic("Unknown route_id", &[route_id])
+                        }
                     }
-                }
+                });
             }
         );
 
@@ -428,11 +432,14 @@ impl ProgramBuilder {
         let init_fn = quote! {
             #[unsafe(no_mangle)]
             extern "C" fn init() {
-                let mut #input_ident: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
+                gstd::msg::with_read_on_stack_or_heap(|input| {
+                    let input = input.expect("Failed to read input");
+                    let mut #input_ident: &[u8] = input;
 
-                #solidity_init
+                    #solidity_init
 
-                #sails_init
+                    #sails_init
+                });
             }
         };
 

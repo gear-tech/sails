@@ -576,14 +576,14 @@ impl<const KEY_SIZE: usize, const VALUE_SIZE: usize> StaticOpenAddressTable<KEY_
 }
 
 pub mod gear {
+    #[cfg(feature = "experimental-vft-account")]
+    use super::VFT_ACCOUNT_U256_SLOT_SIZE;
     use super::{
         ACTOR_ID_U256_SLOT_SIZE, ALLOWANCE_U256_SLOT_SIZE, FixedOpenAddressMap, Lookup,
         PAGE_LOCAL_ACTOR_U256_DATA_OFFSET, PAGE_LOCAL_ACTOR_U256_SLOTS_PER_TILE,
         PAGE_LOCAL_ACTOR_U256_TILE_BYTES, SlotState, StaticOpenAddressTable, StaticRegion,
         TableError,
     };
-    #[cfg(feature = "experimental-vft-account")]
-    use super::VFT_ACCOUNT_U256_SLOT_SIZE;
     use core::{marker::PhantomData, ptr};
     use gprimitives::{ActorId, U256};
 
@@ -1096,7 +1096,9 @@ pub mod gear {
             else {
                 return Ok(None);
             };
-            let Some(allowance) = allowances.visible_value(allowance_index).map(u256_from_value)
+            let Some(allowance) = allowances
+                .visible_value(allowance_index)
+                .map(u256_from_value)
             else {
                 return Ok(None);
             };
@@ -1231,7 +1233,9 @@ pub mod gear {
             else {
                 return Ok(false);
             };
-            let Some(allowance) = allowances.visible_value(allowance_index).map(u256_from_value)
+            let Some(allowance) = allowances
+                .visible_value(allowance_index)
+                .map(u256_from_value)
             else {
                 return Ok(false);
             };
@@ -1631,7 +1635,9 @@ pub mod gear {
             else {
                 return Ok(false);
             };
-            let Some(allowance) = allowances.visible_value(allowance_index).map(u256_from_value)
+            let Some(allowance) = allowances
+                .visible_value(allowance_index)
+                .map(u256_from_value)
             else {
                 return Ok(false);
             };
@@ -1664,7 +1670,9 @@ pub mod gear {
             let LookupResult::Found(allowance_index) = allowances.lookup(allowance_tag)? else {
                 return Ok(false);
             };
-            let Some(allowance) = allowances.visible_value(allowance_index).map(u256_from_value)
+            let Some(allowance) = allowances
+                .visible_value(allowance_index)
+                .map(u256_from_value)
             else {
                 return Ok(false);
             };
@@ -4007,7 +4015,10 @@ pub mod gear {
         /// The caller must ensure both memory intervals are valid for reads and
         /// writes for the whole lifetime of the storage and do not overlap other
         /// mutable state.
-        pub unsafe fn new(account_base: usize, overflow_allowance_base: usize) -> Result<Self, TableError> {
+        pub unsafe fn new(
+            account_base: usize,
+            overflow_allowance_base: usize,
+        ) -> Result<Self, TableError> {
             let account_region = StaticRegion::new(
                 account_base,
                 StaticVftAccountMap::<ACCOUNT_LOG2_SLOTS>::bytes_len()?,
@@ -4034,9 +4045,7 @@ pub mod gear {
         }
 
         /// Returns the overflow allowance map backing this storage.
-        pub fn overflow_allowances(
-            &self,
-        ) -> &VftAllowances<OVERFLOW_ALLOWANCE_LOG2_SLOTS> {
+        pub fn overflow_allowances(&self) -> &VftAllowances<OVERFLOW_ALLOWANCE_LOG2_SLOTS> {
             &self.overflow_allowances
         }
 
@@ -4069,11 +4078,17 @@ pub mod gear {
             if owner == spender {
                 return Ok(false);
             }
-            match self.accounts.insert_inline_allowance(owner, spender, value)? {
+            match self
+                .accounts
+                .insert_inline_allowance(owner, spender, value)?
+            {
                 Some(previous) => {
                     if value.is_zero() {
-                        self.overflow_allowances
-                            .insert_allowance_u256(owner, spender, U256::zero())?;
+                        self.overflow_allowances.insert_allowance_u256(
+                            owner,
+                            spender,
+                            U256::zero(),
+                        )?;
                     }
                     Ok(previous.unwrap_or_else(U256::zero) != value)
                 }
@@ -4198,8 +4213,11 @@ pub mod gear {
                             .write_u256(from_index, value_offset, allowance);
                     }
                 } else {
-                    self.overflow_allowances
-                        .insert_allowance_u256(from, spender, allowance - amount)?;
+                    self.overflow_allowances.insert_allowance_u256(
+                        from,
+                        spender,
+                        allowance - amount,
+                    )?;
                 }
                 self.accounts.write_u256(
                     from_index,

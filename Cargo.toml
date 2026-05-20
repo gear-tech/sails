@@ -55,6 +55,11 @@ members = [
     "benchmarks/alloc-stress",
     "benchmarks/compute-stress",
     "benchmarks/counter-bench",
+    "benchmarks/noop-gstd",
+    "benchmarks/noop-sails",
+    "benchmarks/noop-wat",
+    "benchmarks/minimal-vft-sails",
+    "benchmarks/minimal-vft-hot",
     "benchmarks/storage-stress",
     "benchmarks/vft-stress",
     "benchmarks/storage-million",
@@ -143,6 +148,7 @@ tokio-stream = "0.1"
 trybuild = "1"
 wasm-encoder = "0.244"
 wasmparser = "0.244"
+wat = "1"
 
 # The profile that 'dist' will build with
 [profile.dist]
