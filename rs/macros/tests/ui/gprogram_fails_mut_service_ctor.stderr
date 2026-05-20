@@ -1,0 +1,7 @@
+error: service constructor must take `&self`, not `&mut self`: a `&mut self` factory can leak an exclusive borrow of program state across an `.await`
+  --> tests/ui/gprogram_fails_mut_service_ctor.rs:13:5
+   |
+13 | /     pub fn service(&mut self) -> MyService {
+14 | |         MyService
+15 | |     }
+   | |_____^

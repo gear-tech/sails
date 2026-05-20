@@ -1,4 +1,4 @@
-use core::ptr;
+use core::{cell::Cell, ptr};
 use sails_rs::prelude::*;
 
 // This example makes use of fully incapsulated static state.
@@ -14,12 +14,12 @@ pub struct ReferenceService<'a> {
 }
 
 struct ReferenceData<'a> {
-    num: &'a mut u8,
+    num: &'a Cell<u8>,
     message: &'a str,
 }
 
 impl<'a> ReferenceService<'a> {
-    pub fn new(num: &'a mut u8, message: &'a str) -> Self {
+    pub fn new(num: &'a Cell<u8>, message: &'a str) -> Self {
         let data = ReferenceData { num, message };
         Self { data: Some(data) }
     }
@@ -60,16 +60,16 @@ impl<'t> ReferenceService<'t> {
 
     #[export]
     #[allow(static_mut_refs)]
-    pub async fn last_byte<'a>(&self) -> Option<&'a u8> {
+    pub fn last_byte<'a>(&self) -> Option<&'a u8> {
         unsafe { BYTES.last() }
     }
 
     #[export]
-    pub async fn guess_num(&mut self, number: u8) -> Result<&'t str, &'static str> {
+    pub fn guess_num(&mut self, number: u8) -> Result<&'t str, &'static str> {
         if number > 42 {
             Err("Number is too large")
-        } else if let Some(data) = &self.data.as_ref() {
-            if *data.num == number {
+        } else if let Some(data) = self.data.as_ref() {
+            if data.num.get() == number {
                 Ok(data.message)
             } else {
                 Err("Try again")
@@ -80,16 +80,16 @@ impl<'t> ReferenceService<'t> {
     }
 
     #[export]
-    pub async fn message(&self) -> Option<&'t str> {
+    pub fn message(&self) -> Option<&'t str> {
         self.data.as_ref().map(|d| d.message)
     }
 
     #[export]
-    pub async fn set_num(&mut self, number: u8) -> Result<(), &'static str> {
+    pub fn set_num(&mut self, number: u8) -> Result<(), &'static str> {
         if number > 42 {
             Err("Number is too large")
-        } else if let Some(data) = self.data.as_mut() {
-            *data.num = number;
+        } else if let Some(data) = self.data.as_ref() {
+            data.num.set(number);
             Ok(())
         } else {
             Err("Data is not set")
