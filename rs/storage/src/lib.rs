@@ -1,3 +1,66 @@
+//! Allocator-light storage primitives for Sails programs.
+//!
+//! This crate provides bounded maps for program state that should not grow
+//! through the allocator at runtime. It has two layers:
+//!
+//! - [`FixedOpenAddressMap`] stores a fixed-capacity map directly inside a
+//!   Rust value. It is useful for small bounded state and tests.
+//! - [`StaticOpenAddressTable`] and the actor-specific maps operate on a
+//!   caller-reserved memory region. They are useful when a Sails program wants
+//!   stable, lazy-page-friendly storage outside allocator-managed collections.
+//!
+//! The static tables are intentionally low level. Constructors are `unsafe`
+//! because the caller must reserve a valid writable memory range and keep it
+//! from overlapping other mutable state for the whole lifetime of the table.
+//! In normal Sails builds, use `sails_rs::build::StaticMemoryLayout` from a
+//! build script to reserve static memory and generate base/size constants.
+//!
+//! # Fixed map
+//!
+//! ```
+//! use sails_storage::FixedOpenAddressMap;
+//!
+//! let mut map = FixedOpenAddressMap::<1, 1, 2>::new();
+//! assert_eq!(map.insert([1], [10]), Ok(None));
+//! assert_eq!(map.get(&[1]), Ok(Some([10])));
+//! ```
+//!
+//! # Generic static table
+//!
+//! ```
+//! use sails_storage::StaticOpenAddressTable;
+//!
+//! let mut memory = [0u8; StaticOpenAddressTable::<1, 1>::slot_size() * 2];
+//! let table = unsafe {
+//!     StaticOpenAddressTable::<1, 1>::new(memory.as_mut_ptr() as usize, 2).unwrap()
+//! };
+//!
+//! assert_eq!(table.insert(&[1], &[10]), Ok(None));
+//! assert_eq!(table.get(&[1]), Ok(Some([10])));
+//! ```
+//!
+//! # Actor maps
+//!
+//! [`StaticActorIdU256Map`] and [`StaticActorPairU256Map`] are specialized
+//! static-memory layouts for common token-like state. They store `ActorId` and
+//! `U256` values without per-slot state bytes: an all-zero actor key marks an
+//! empty slot, and writing a zero `U256` removes the visible value for an
+//! existing key. Because zero actor ids are reserved by the layout, mutation
+//! methods reject them with [`TableError::InvalidKey`].
+//!
+//! ```
+//! use gprimitives::{ActorId, U256};
+//! use sails_storage::{ACTOR_ID_U256_SLOT_SIZE, StaticActorIdU256Map};
+//!
+//! let mut memory = [0u8; 4 * ACTOR_ID_U256_SLOT_SIZE];
+//! let balances =
+//!     unsafe { StaticActorIdU256Map::<2>::new(memory.as_mut_ptr() as usize).unwrap() };
+//! let account = ActorId::from(1u64);
+//!
+//! assert_eq!(balances.insert_actor_u256(account, U256::from(10)), Ok(None));
+//! assert_eq!(balances.get_actor_u256(&account), Ok(Some(U256::from(10))));
+//! ```
+
 #![no_std]
 
 use core::{fmt, marker::PhantomData, ptr};
