@@ -6621,9 +6621,6 @@ dependencies = [
 [[package]]
 name = "sails-storage"
 version = "1.0.0-beta.5"
-dependencies = [
- "gprimitives",
-]
 
 [[package]]
 name = "sails-type-registry"

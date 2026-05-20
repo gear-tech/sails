@@ -9,6 +9,3 @@ license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 
-[dependencies]
-gprimitives.workspace = true
-

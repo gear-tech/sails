@@ -3,9 +3,7 @@
 pub use gwasm_builder::build as build_wasm;
 
 use gwasm_builder::{PreProcessor, PreProcessorTarget, WasmBuilder};
-use sails_storage::{
-    ACTOR_ID_U256_SLOT_SIZE, ACTOR_PAIR_U256_SLOT_SIZE, StaticLayout, StaticOpenAddressTable,
-};
+use sails_storage::{StaticLayout, StaticOpenAddressTable};
 use std::{
     boxed::Box,
     collections::BTreeSet,
@@ -18,6 +16,7 @@ use std::{
     vec,
     vec::Vec,
 };
+use wasm_encoder::reencode::{self, Reencode, RoundtripReencoder};
 
 const GENERATED_STATIC_STORAGE: &str = "sails_static_storage.rs";
 const WASM_PAGE_SIZE: usize = 64 * 1024;
@@ -35,7 +34,7 @@ pub struct StaticMemoryLayout {
 #[derive(Clone, Debug)]
 struct StaticTable {
     name: String,
-    slots: StaticTableSlots,
+    slots: usize,
     slot_size: usize,
     align: usize,
 }
@@ -52,15 +51,7 @@ struct ResolvedStaticTable {
     name: String,
     base: usize,
     slots: usize,
-    log2_slots: Option<u8>,
-    mask: Option<usize>,
     bytes: usize,
-}
-
-#[derive(Clone, Debug)]
-enum StaticTableSlots {
-    Exact(usize),
-    Log2(u8),
 }
 
 /// Errors returned by static-memory build helpers.
@@ -148,59 +139,15 @@ impl StaticMemoryLayout {
 
     /// Reserves a named static open-addressed table.
     pub fn reserve_table<const KEY_SIZE: usize, const VALUE_SIZE: usize>(
-        self,
-        name: impl Into<String>,
-        slots: usize,
-    ) -> Self {
-        self.reserve_single_region_table(
-            name,
-            StaticTableSlots::Exact(slots),
-            StaticOpenAddressTable::<KEY_SIZE, VALUE_SIZE>::slot_size(),
-            1,
-        )
-    }
-
-    /// Reserves a WAT-shaped `ActorId -> U256` static map.
-    ///
-    /// The reserved table uses `2^LOG2_SLOTS` slots. Each slot is exactly 64
-    /// bytes: a 32-byte actor id followed by a 32-byte `U256` value.
-    pub fn reserve_actor_u256_map<const LOG2_SLOTS: u8>(self, name: impl Into<String>) -> Self {
-        self.reserve_single_region_table(
-            name,
-            StaticTableSlots::Log2(LOG2_SLOTS),
-            ACTOR_ID_U256_SLOT_SIZE,
-            64,
-        )
-    }
-
-    /// Reserves a `(ActorId, ActorId) -> U256` static map.
-    ///
-    /// The reserved table uses `2^LOG2_SLOTS` slots. Each slot is exactly 96
-    /// bytes: owner actor id, spender actor id, and a `U256` value.
-    pub fn reserve_actor_pair_u256_map<const LOG2_SLOTS: u8>(
-        self,
-        name: impl Into<String>,
-    ) -> Self {
-        self.reserve_single_region_table(
-            name,
-            StaticTableSlots::Log2(LOG2_SLOTS),
-            ACTOR_PAIR_U256_SLOT_SIZE,
-            32,
-        )
-    }
-
-    fn reserve_single_region_table(
         mut self,
         name: impl Into<String>,
-        slots: StaticTableSlots,
-        slot_size: usize,
-        align: usize,
+        slots: usize,
     ) -> Self {
         self.tables.push(StaticTable {
             name: name.into(),
             slots,
-            slot_size,
-            align,
+            slot_size: StaticOpenAddressTable::<KEY_SIZE, VALUE_SIZE>::slot_size(),
+            align: 1,
         });
         self
     }
@@ -221,9 +168,8 @@ impl StaticMemoryLayout {
                 return Err(Error::DuplicateTableName(table.name));
             }
 
-            let log2_slots = table.slots.log2();
-            let slots = table.slots.resolve()?;
-            let bytes = slots
+            let bytes = table
+                .slots
                 .checked_mul(table.slot_size)
                 .ok_or(Error::LayoutOverflow)?;
             let region = layout
@@ -232,9 +178,7 @@ impl StaticMemoryLayout {
             let resolved = ResolvedStaticTable {
                 name: table.name,
                 base: region.base(),
-                slots,
-                log2_slots,
-                mask: log2_slots.map(|_| slots - 1),
+                slots: table.slots,
                 bytes: region.bytes(),
             };
             tables.push(resolved);
@@ -246,29 +190,6 @@ impl StaticMemoryLayout {
             end_page,
             tables,
         })
-    }
-}
-
-impl StaticTableSlots {
-    fn log2(&self) -> Option<u8> {
-        match *self {
-            Self::Exact(_) => None,
-            Self::Log2(log2_slots) => Some(log2_slots),
-        }
-    }
-
-    fn resolve(&self) -> Result<usize, Error> {
-        match *self {
-            Self::Exact(slots) => Ok(slots),
-            Self::Log2(log2_slots) => {
-                let shift = u32::from(log2_slots);
-                if shift > 32 || shift >= usize::BITS {
-                    return Err(Error::LayoutOverflow);
-                }
-
-                1usize.checked_shl(shift).ok_or(Error::LayoutOverflow)
-            }
-        }
     }
 }
 
@@ -334,20 +255,6 @@ fn emit_static_storage_to_dir(
             table.slots
         )
         .expect("writing to String cannot fail");
-        if let Some(log2_slots) = table.log2_slots {
-            writeln!(
-                &mut source,
-                "#[allow(dead_code)]\npub const {name}_LOG2_SLOTS: u8 = {log2_slots};"
-            )
-            .expect("writing to String cannot fail");
-        }
-        if let Some(mask) = table.mask {
-            writeln!(
-                &mut source,
-                "#[allow(dead_code)]\npub const {name}_MASK: usize = {mask};"
-            )
-            .expect("writing to String cannot fail");
-        }
         writeln!(
             &mut source,
             "#[allow(dead_code)]\npub const {name}_BYTES: usize = {};",
@@ -367,108 +274,90 @@ fn patch_imported_memory(
 ) -> Result<Vec<u8>, Error> {
     let parser = wasmparser::Parser::new(0);
     let mut module = wasm_encoder::Module::new();
-    let mut memory_import_seen = false;
+    let mut reencoder = StaticMemoryReencoder {
+        memory_import_seen: false,
+        start_page,
+        required_pages,
+    };
 
-    for payload in parser.parse_all(wasm) {
-        match payload? {
-            wasmparser::Payload::Version { .. } => {}
-            wasmparser::Payload::ImportSection(imports) => {
-                let mut import_section = wasm_encoder::ImportSection::new();
+    reencoder
+        .parse_core_module(&mut module, parser, wasm)
+        .map_err(map_reencode_error)?;
 
-                for imports in imports {
-                    match imports? {
-                        wasmparser::Imports::Single(_, import) => append_import(
-                            &mut import_section,
-                            import.module,
-                            import.name,
-                            import.ty,
-                            &mut memory_import_seen,
-                            start_page,
-                            required_pages,
-                        )?,
-                        wasmparser::Imports::Compact1 { module, items } => {
-                            for item in items {
-                                let item = item?;
-                                append_import(
-                                    &mut import_section,
-                                    module,
-                                    item.name,
-                                    item.ty,
-                                    &mut memory_import_seen,
-                                    start_page,
-                                    required_pages,
-                                )?;
-                            }
-                        }
-                        wasmparser::Imports::Compact2 { module, ty, names } => {
-                            for name in names {
-                                append_import(
-                                    &mut import_section,
-                                    module,
-                                    name?,
-                                    ty,
-                                    &mut memory_import_seen,
-                                    start_page,
-                                    required_pages,
-                                )?;
-                            }
-                        }
-                    }
-                }
-
-                module.section(&import_section);
-            }
-            wasmparser::Payload::End(_) => break,
-            other => {
-                if let Some((id, range)) = other.as_section() {
-                    module.section(&wasm_encoder::RawSection {
-                        id,
-                        data: &wasm[range],
-                    });
-                } else if !matches!(
-                    other,
-                    wasmparser::Payload::CodeSectionStart { .. }
-                        | wasmparser::Payload::CodeSectionEntry { .. }
-                ) {
-                    return Err(Error::UnsupportedWasmPayload);
-                }
-            }
-        }
-    }
-
-    if !memory_import_seen {
+    if !reencoder.memory_import_seen {
         return Err(Error::MemoryImportNotFound);
     }
 
     Ok(module.finish())
 }
 
-fn append_import(
-    imports: &mut wasm_encoder::ImportSection,
-    module: &str,
-    name: &str,
-    ty: wasmparser::TypeRef,
-    memory_import_seen: &mut bool,
+fn map_reencode_error(error: reencode::Error<Error>) -> Error {
+    match error {
+        reencode::Error::ParseError(error) => Error::WasmParse(error),
+        reencode::Error::UserError(error) => error,
+        error => Error::UnsupportedImport(error.to_string()),
+    }
+}
+
+struct StaticMemoryReencoder {
+    memory_import_seen: bool,
     start_page: u32,
     required_pages: u32,
-) -> Result<(), Error> {
-    let entity = match ty {
-        wasmparser::TypeRef::Memory(memory) => {
-            if *memory_import_seen {
-                return Err(Error::MultipleMemoryImports);
-            }
-            *memory_import_seen = true;
-            patched_memory_type(memory, start_page, required_pages)?
-        }
-        other => other
-            .try_into()
-            .map_err(|error: wasm_encoder::reencode::Error| {
-                Error::UnsupportedImport(error.to_string())
-            })?,
-    };
+}
 
-    imports.import(module, name, entity);
-    Ok(())
+impl Reencode for StaticMemoryReencoder {
+    type Error = Error;
+
+    fn parse_imports(
+        &mut self,
+        imports: &mut wasm_encoder::ImportSection,
+        import_group: wasmparser::Imports<'_>,
+    ) -> Result<(), reencode::Error<Self::Error>> {
+        match import_group {
+            wasmparser::Imports::Single(_, import) => {
+                self.append_import(imports, import.module, import.name, import.ty)?;
+            }
+            wasmparser::Imports::Compact1 { module, items } => {
+                for item in items {
+                    let item = item?;
+                    self.append_import(imports, module, item.name, item.ty)?;
+                }
+            }
+            wasmparser::Imports::Compact2 { module, ty, names } => {
+                for name in names {
+                    self.append_import(imports, module, name?, ty)?;
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
+impl StaticMemoryReencoder {
+    fn append_import(
+        &mut self,
+        imports: &mut wasm_encoder::ImportSection,
+        module: &str,
+        name: &str,
+        ty: wasmparser::TypeRef,
+    ) -> Result<(), reencode::Error<Error>> {
+        let entity = match ty {
+            wasmparser::TypeRef::Memory(memory) => {
+                if self.memory_import_seen {
+                    return Err(reencode::Error::UserError(Error::MultipleMemoryImports));
+                }
+                self.memory_import_seen = true;
+                patched_memory_type(memory, self.start_page, self.required_pages)
+                    .map_err(reencode::Error::UserError)?
+            }
+            other => RoundtripReencoder.entity_type(other).map_err(|error| {
+                reencode::Error::UserError(Error::UnsupportedImport(error.to_string()))
+            })?,
+        };
+
+        imports.import(module, name, entity);
+        Ok(())
+    }
 }
 
 fn patched_memory_type(
@@ -557,6 +446,7 @@ fn is_rust_keyword(name: &str) -> bool {
             | "false"
             | "fn"
             | "for"
+            | "gen"
             | "if"
             | "impl"
             | "in"
@@ -577,10 +467,24 @@ fn is_rust_keyword(name: &str) -> bool {
             | "trait"
             | "true"
             | "type"
+            | "union"
             | "unsafe"
             | "use"
             | "where"
             | "while"
+            | "abstract"
+            | "become"
+            | "box"
+            | "do"
+            | "final"
+            | "macro"
+            | "override"
+            | "priv"
+            | "try"
+            | "typeof"
+            | "unsized"
+            | "virtual"
+            | "yield"
     )
 }
 
@@ -662,32 +566,32 @@ mod tests {
     }
 
     #[test]
-    fn resolves_specialized_static_maps_with_alignment_and_metadata() {
+    fn resolves_multiple_static_tables_with_metadata() {
         let layout = StaticMemoryLayout::new(1024)
             .reserve_table::<1, 1>("prefix", 1)
-            .reserve_actor_u256_map::<2>("fast_balances")
-            .reserve_actor_pair_u256_map::<1>("fast_allowances")
+            .reserve_table::<32, 32>("fast_balances", 4)
+            .reserve_table::<64, 32>("fast_allowances", 2)
             .resolve()
             .unwrap();
 
-        assert_eq!(layout.tables[1].base % 64, 0);
         assert_eq!(layout.tables[1].slots, 4);
-        assert_eq!(layout.tables[1].log2_slots, Some(2));
-        assert_eq!(layout.tables[1].mask, Some(3));
-        assert_eq!(layout.tables[1].bytes, 4 * ACTOR_ID_U256_SLOT_SIZE);
-        assert_eq!(layout.tables[2].base % 32, 0);
+        assert_eq!(
+            layout.tables[1].bytes,
+            4 * StaticOpenAddressTable::<32, 32>::slot_size()
+        );
         assert_eq!(layout.tables[2].slots, 2);
-        assert_eq!(layout.tables[2].log2_slots, Some(1));
-        assert_eq!(layout.tables[2].mask, Some(1));
-        assert_eq!(layout.tables[2].bytes, 2 * ACTOR_PAIR_U256_SLOT_SIZE);
+        assert_eq!(
+            layout.tables[2].bytes,
+            2 * StaticOpenAddressTable::<64, 32>::slot_size()
+        );
 
         let dir = tempfile::tempdir().unwrap();
         emit_static_storage_to_dir(&layout, dir.path()).unwrap();
         let generated = fs::read_to_string(dir.path().join(GENERATED_STATIC_STORAGE)).unwrap();
-        assert!(generated.contains("pub const FAST_BALANCES_LOG2_SLOTS: u8 = 2;"));
-        assert!(generated.contains("pub const FAST_BALANCES_MASK: usize = 3;"));
-        assert!(generated.contains("pub const FAST_ALLOWANCES_LOG2_SLOTS: u8 = 1;"));
-        assert!(generated.contains("pub const FAST_ALLOWANCES_MASK: usize = 1;"));
+        assert!(generated.contains("pub const FAST_BALANCES_SLOTS: usize = 4;"));
+        assert!(generated.contains("pub const FAST_BALANCES_BYTES: usize = 260;"));
+        assert!(generated.contains("pub const FAST_ALLOWANCES_SLOTS: usize = 2;"));
+        assert!(generated.contains("pub const FAST_ALLOWANCES_BYTES: usize = 194;"));
     }
 
     #[test]
@@ -711,6 +615,14 @@ mod tests {
                 .resolve(),
             Err(Error::ReservedTableName(_))
         ));
+        for name in ["async", "dyn", "gen", "try", "union", "yield"] {
+            assert!(matches!(
+                StaticMemoryLayout::new(1)
+                    .reserve_table::<1, 1>(name, 1)
+                    .resolve(),
+                Err(Error::ReservedTableName(_))
+            ));
+        }
     }
 
     #[test]
