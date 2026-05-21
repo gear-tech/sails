@@ -4,6 +4,7 @@ import path from 'node:path';
 import { ProjectBuilder } from '../build/index.js';
 import { Sails } from '../../lib';
 import { SailsIdlParser } from '../../parser/lib';
+import { formatDocs } from '../build/generate/format.js';
 
 const __filename = fileURLToPath(import.meta.url);
 
@@ -36,5 +37,9 @@ describe('generator', () => {
 
     const types = generator.generateTypes();
     expect(types).toBeNull();
+  });
+
+  test('escapes comment terminators in docs', () => {
+    expect(formatDocs('*/;throw new Error("x");/*')).toEqual(['/**', ' * *\\/;throw new Error("x");/*', '*/']);
   });
 });
