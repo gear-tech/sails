@@ -118,7 +118,7 @@ impl ProgramBuilder {
                     } else {
                         abort!(
                             fn_item,
-                            "`handle_reply` function must have a single `&self` argument and no return type"
+                            "`handle_reply` function must be private and have a single `&self` argument and no return type"
                         );
                     }
                 }
@@ -165,9 +165,19 @@ impl ProgramBuilder {
         let mut route_dispatch_data = Vec::new(); // Store data for route dispatches
 
         for (idx, impl_item) in self.program_impl.items.iter().enumerate() {
-            if let ImplItem::Fn(fn_item) = impl_item
-                && service_ctor_predicate(fn_item)
-            {
+            if let ImplItem::Fn(fn_item) = impl_item {
+                if is_mut_service_ctor(fn_item) {
+                    abort!(
+                        fn_item,
+                        "service constructor must take `&self`, not `&mut self`: a `&mut self` \
+                         factory can leak an exclusive borrow of program state across an `.await`"
+                    );
+                }
+
+                if !service_ctor_predicate(fn_item) {
+                    continue;
+                }
+
                 let mut invocation_export = shared::invocation_export_or_default(fn_item);
                 let entry_id = routes.len() as u16;
 
@@ -247,7 +257,7 @@ impl ProgramBuilder {
         let handle_reply_fn = self.handle_reply_fn().map(|item_fn| {
             let handle_reply_fn_ident = &item_fn.sig.ident;
             quote! {
-                let program_ref = unsafe { #program_ident.as_mut() }.expect("Program not initialized");
+                let program_ref = unsafe { #program_ident.as_ref() }.expect("Program not initialized");
                 program_ref.#handle_reply_fn_ident();
             }
         })
@@ -342,7 +352,7 @@ impl ProgramBuilder {
 
                 let mut input = gstd::msg::load_bytes().expect("Failed to read input");
 
-                let program_ref = unsafe { #program_ident.as_mut() }.expect("Program not initialized");
+                let program_ref = unsafe { #program_ident.as_ref() }.expect("Program not initialized");
 
                 #solidity_main
 
@@ -640,17 +650,24 @@ fn program_ctor_predicate(
     false
 }
 
+fn service_ctor_receiver(fn_item: &ImplItemFn) -> Option<&Receiver> {
+    fn_item.sig.receiver().filter(|receiver| {
+        matches!(fn_item.vis, Visibility::Public(_))
+            && fn_item.sig.inputs.len() == 1
+            && !matches!(fn_item.sig.output, ReturnType::Default)
+            && receiver.reference.is_some()
+    })
+}
+
 fn service_ctor_predicate(fn_item: &ImplItemFn) -> bool {
-    matches!(fn_item.vis, Visibility::Public(_))
-        && matches!(
-            fn_item.sig.receiver(),
-            Some(Receiver {
-                reference: Some(_),
-                ..
-            })
-        )
-        && fn_item.sig.inputs.len() == 1
-        && !matches!(fn_item.sig.output, ReturnType::Default)
+    service_ctor_receiver(fn_item).is_some_and(|receiver| receiver.mutability.is_none())
+}
+
+/// Detects a public method shaped like a service constructor but taking `&mut self`.
+/// Used to emit a clear compile error instead of silently ignoring such a method
+/// (which `service_ctor_predicate` rejects).
+fn is_mut_service_ctor(fn_item: &ImplItemFn) -> bool {
+    service_ctor_receiver(fn_item).is_some_and(|receiver| receiver.mutability.is_some())
 }
 
 fn has_handle_reply_attr(fn_item: &ImplItemFn) -> bool {
@@ -901,5 +918,32 @@ mod tests {
 
         assert_eq!(discovered_services.len(), 1);
         assert!(discovered_services.contains(&String::from("public_method_returning_smth")));
+    }
+
+    #[test]
+    fn is_mut_service_ctor_detects_only_public_mut_self_factories() {
+        let program_impl: ItemImpl = syn::parse2(quote!(
+            impl MyProgram {
+                pub fn mut_factory(&mut self) -> MyService {}
+                pub fn shared_factory(&self) -> MyService {}
+                fn non_public_mut_factory(&mut self) -> MyService {}
+                pub fn mut_factory_returning_unit(&mut self) {}
+                pub fn mut_factory_with_other_params(&mut self, p1: u32) -> MyService {}
+            }
+        ))
+        .unwrap();
+
+        let detected = program_impl
+            .items
+            .iter()
+            .filter_map(|item| match item {
+                ImplItem::Fn(fn_item) if is_mut_service_ctor(fn_item) => {
+                    Some(fn_item.sig.ident.to_string())
+                }
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+
+        assert_eq!(detected, vec![String::from("mut_factory")]);
     }
 }

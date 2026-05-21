@@ -10,7 +10,9 @@ pub(crate) fn push_doc(tokens: &mut Tokens, docs: &[String]) {
     tokens.append("/**");
     tokens.push();
     for line in docs {
-        tokens.append(format!(" * {}", line));
+        // Escape comment terminators so doc text cannot break out of the
+        // generated JSDoc block and inject executable TypeScript.
+        tokens.append(format!(" * {}", line.replace("*/", "*\\/")));
         tokens.push();
     }
     tokens.append(" */");
@@ -50,5 +52,20 @@ pub(crate) fn payload_type_expr(params: &[ast::FuncParam], resolver_expr: &str) 
         format!(
             "{resolver_expr}.getTypeDeclString({{\"kind\":\"tuple\",\"types\":[{tuple_types}]}})"
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn push_doc_escapes_comment_terminators() {
+        let mut tokens = Tokens::new();
+        push_doc(&mut tokens, &[r#"*/;throw new Error("x");/*"#.to_string()]);
+        let rendered = tokens.to_string().expect("tokens should render");
+        // The only `*/` left must be the JSDoc block's own terminator.
+        assert_eq!(rendered.matches("*/").count(), 1);
+        assert!(rendered.contains(r"*\/;throw"));
     }
 }

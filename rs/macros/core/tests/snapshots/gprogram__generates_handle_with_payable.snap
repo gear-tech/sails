@@ -76,7 +76,7 @@ pub mod wasm {
             return;
         }
         let mut input = gstd::msg::load_bytes().expect("Failed to read input");
-        let program_ref = unsafe { PROGRAM.as_mut() }.expect("Program not initialized");
+        let program_ref = unsafe { PROGRAM.as_ref() }.expect("Program not initialized");
         if let Ok(header) = <sails_rs::meta::SailsMessageHeader as sails_rs::Decode>::decode(
             &mut input.as_slice(),
         ) {

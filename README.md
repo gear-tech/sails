@@ -829,6 +829,17 @@ initiating an asynchronous call might change by the time the call completes. See
 [RmrkResource](examples/rmrk/resource/app/src/services/) service's
 `add_part_to_resource` method for more details.
 
+> **Do not hold mutable state borrows across an `.await`.** While one message is
+> suspended, the runtime may start handling another message. If a `RefCell` write
+> guard (`.borrow_mut()`) or `StateMut` write guard (`.get_mut()` / `.write()`)
+> is still alive, the second message can panic with an already-borrowed error
+> when it touches the same state. Keep the guard in a smaller scope so it is
+> dropped before awaiting.
+>
+> For the same reason, `#[program]` service constructors must take `&self`, not
+> `&mut self`. Use interior mutability (`RefCell`, `Cell`) for mutable program
+> state passed into services.
+
 ### Events
 
 You can find an example of how to emit events from your service in the [Counter](examples/demo/app/src/counter/)

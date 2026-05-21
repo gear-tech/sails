@@ -148,7 +148,7 @@ Set `__GEAR_WASM_BUILDER_NO_FEATURES_TRACKING=1` to disable WASM builder feature
 
 ## Rust Edition & Toolchain
 
-- Edition 2024, MSRV `1.91`
+- Edition 2024, MSRV `1.93`
 - WASM targets: `wasm32-unknown-unknown`, `wasm32v1-none`
 - Dependencies on Gear crates are pinned to exact versions (`=1.10.0`)
 - Several other deps are also pinned (parity-scale-codec, lalrpop, handlebars)

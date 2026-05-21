@@ -103,7 +103,8 @@ impl<'ast> ClientGenerator<'ast, IdlPath<'ast>> {
         let idl_path = self.idl.0;
 
         let path_str = idl_path.to_string_lossy();
-        let idl = preprocess::preprocess(&path_str, &[&FsLoader, &GitLoader])
+        let fs_loader = FsLoader::for_entry(idl_path);
+        let idl = preprocess::preprocess(&path_str, &[&fs_loader, &GitLoader])
             .with_context(|| format!("Failed to open {} for reading", idl_path.display()))?;
 
         self.with_idl(&idl)
@@ -116,7 +117,8 @@ impl<'ast> ClientGenerator<'ast, IdlPath<'ast>> {
         let idl_path = self.idl.0;
 
         let path_str = idl_path.to_string_lossy();
-        let idl = preprocess::preprocess(&path_str, &[&FsLoader, &GitLoader])
+        let fs_loader = FsLoader::for_entry(idl_path);
+        let idl = preprocess::preprocess(&path_str, &[&fs_loader, &GitLoader])
             .with_context(|| format!("Failed to open {} for reading", idl_path.display()))?;
 
         self.with_idl(&idl)
@@ -222,8 +224,9 @@ mod tests {
     #[test]
     fn test_resolve_idl_from_path() {
         let path = "tests/idls/recursive_main.idl";
+        let fs_loader = FsLoader::with_root("tests/idls");
         let result =
-            preprocess::preprocess(path, &[&FsLoader]).expect("Failed to resolve nested IDL");
+            preprocess::preprocess(path, &[&fs_loader]).expect("Failed to resolve nested IDL");
 
         assert!(result.contains("service Leaf"));
         assert!(result.contains("service Middle"));
@@ -233,8 +236,9 @@ mod tests {
     #[test]
     fn test_resolve_nested_idl() {
         let path = "tests/idls/nested/main.idl";
+        let fs_loader = FsLoader::with_root("tests/idls/nested");
         let result =
-            preprocess::preprocess(path, &[&FsLoader]).expect("Failed to resolve nested IDL");
+            preprocess::preprocess(path, &[&fs_loader]).expect("Failed to resolve nested IDL");
 
         assert!(result.contains("service A"));
         assert!(result.contains("service B"));
@@ -252,7 +256,8 @@ mod tests {
     #[ignore]
     fn test_git_include_demo() {
         let path = "tests/idls/git_include/main.idl";
-        let result = preprocess::preprocess(path, &[&FsLoader, &GitLoader])
+        let fs_loader = FsLoader::with_root("tests/idls/git_include");
+        let result = preprocess::preprocess(path, &[&fs_loader, &GitLoader])
             .expect("Failed to preprocess git include chain");
 
         let doc = sails_idl_parser_v2::parse_idl(&result)

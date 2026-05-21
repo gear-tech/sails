@@ -1,3 +1,4 @@
+use super::path_utils::is_absolute_like;
 use super::{IdlLoader, IdlSource};
 use crate::error::{Error, Result};
 use alloc::format;
@@ -26,13 +27,27 @@ impl IdlLoader for GitLoader {
     }
 
     fn resolve(&self, base_path: &str, include_path: &str) -> Option<String> {
+        // An absolute `git://...` include is owned by this loader regardless of
+        // the base — local IDLs are allowed to include git-hosted IDLs.
+        if include_path.starts_with("git://") {
+            return Some(include_path.to_string());
+        }
+
         if !base_path.starts_with("git://") {
             return None;
         }
 
-        if include_path.contains("://") || include_path.starts_with('/') {
-            return Some(include_path.to_string());
+        // From a git base, a non-git URL include (other scheme) is not ours.
+        if include_path.contains("://") {
+            return None;
         }
+
+        // Refuse absolute filesystem paths: a git-hosted IDL must not be able to
+        // pivot into the local filesystem via another loader (e.g. FsLoader).
+        if is_absolute_like(Path::new(include_path)) {
+            return None;
+        }
+
         let pos = base_path.rfind(['/', ':']).unwrap_or(0);
         Some(format!("{}{}", &base_path[..pos + 1], include_path))
     }
@@ -87,9 +102,11 @@ fn git_fetch(url: &str) -> Result<String> {
         return Err(Error::Preprocess("Missing file path".to_string()));
     }
 
-    if Path::new(file_path)
-        .components()
-        .any(|c| matches!(c, Component::ParentDir))
+    let file_path_obj = Path::new(file_path);
+    if is_absolute_like(file_path_obj)
+        || file_path_obj
+            .components()
+            .any(|c| matches!(c, Component::ParentDir))
     {
         return Err(Error::Preprocess(format!(
             "Path traversal detected in URL: {url}"
@@ -187,12 +204,29 @@ mod tests {
     }
 
     #[test]
-    fn test_git_resolve_absolute_fs_path() {
+    fn test_git_resolve_absolute_fs_path_rejected() {
         let loader = GitLoader;
-        let result = loader
-            .resolve("git://github.com/org/repo/main/a.idl", "/etc/types.idl")
-            .unwrap();
-        assert_eq!(result, "/etc/types.idl");
+        // Absolute include paths must not escape a git-hosted IDL into the
+        // local filesystem via another loader.
+        assert!(
+            loader
+                .resolve("git://github.com/org/repo/main/a.idl", "/etc/types.idl")
+                .is_none()
+        );
+    }
+
+    #[test]
+    #[cfg(windows)]
+    fn test_git_resolve_windows_absolute_fs_path_rejected() {
+        let loader = GitLoader;
+        assert!(
+            loader
+                .resolve(
+                    "git://github.com/org/repo/main/a.idl",
+                    r"C:\Windows\System32\drivers\etc\hosts",
+                )
+                .is_none()
+        );
     }
 
     #[test]
@@ -224,6 +258,10 @@ mod tests {
             (
                 "git://github.com/gear-tech/sails/master:",
                 "Missing file path",
+            ),
+            (
+                "git://github.com/gear-tech/sails/master:/etc/passwd",
+                "Path traversal detected",
             ),
         ];
 

@@ -1,7 +1,8 @@
 #![no_std]
 
+use core::cell::{Cell, RefCell};
 use demo_walker as walker;
-use sails_rs::{cell::RefCell, prelude::*};
+use sails_rs::prelude::*;
 
 mod chaos;
 mod counter;
@@ -39,7 +40,7 @@ pub struct DemoProgram {
     // live as long as the program is available on the network.
     counter_data: RefCell<counter::CounterData>,
     validator_data: RefCell<validator::ValidatorData>,
-    ref_data: u8,
+    ref_data: Cell<u8>,
 }
 
 #[program(payable)]
@@ -57,7 +58,7 @@ impl DemoProgram {
         Self {
             counter_data: RefCell::new(counter::CounterData::new(Default::default())),
             validator_data: RefCell::new(validator::ValidatorData::new()),
-            ref_data: 42,
+            ref_data: Cell::new(42),
         }
     }
 
@@ -75,7 +76,7 @@ impl DemoProgram {
         Ok(Self {
             counter_data: RefCell::new(counter::CounterData::new(counter.unwrap_or_default())),
             validator_data: RefCell::new(validator::ValidatorData::new()),
-            ref_data: 42,
+            ref_data: Cell::new(42),
         })
     }
 
@@ -91,7 +92,7 @@ impl DemoProgram {
         Ok(Self {
             counter_data: RefCell::new(counter::CounterData::new(value)),
             validator_data: RefCell::new(validator::ValidatorData::new()),
-            ref_data: 42,
+            ref_data: Cell::new(42),
         })
     }
 
@@ -111,8 +112,8 @@ impl DemoProgram {
         dog::DogService::new(walker::WalkerService::new(dog_data()))
     }
 
-    pub fn references(&mut self) -> references::ReferenceService<'_> {
-        references::ReferenceService::new(&mut self.ref_data, "demo")
+    pub fn references(&self) -> references::ReferenceService<'_> {
+        references::ReferenceService::new(&self.ref_data, "demo")
     }
 
     pub fn this_that(&self) -> this_that::MyService {
