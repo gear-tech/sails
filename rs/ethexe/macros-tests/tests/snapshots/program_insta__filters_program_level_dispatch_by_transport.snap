@@ -3,17 +3,37 @@ source: macros-tests/tests/program_insta.rs
 expression: result
 ---
 impl MyProgram {
-    fn __service(&self) -> MyService {
-        MyService
+    #[export(scale)]
+    pub fn scale_ctor() -> Self {
+        Self
     }
-    pub fn create() -> Self {
-        Default::default()
+    #[export(ethabi)]
+    pub fn ethabi_ctor() -> Self {
+        Self
     }
-    pub fn service(&self) -> <MyService as sails_rs::gstd::services::Service>::Exposure {
-        let service = self.__service();
-        let exposure = <MyService as sails_rs::gstd::services::Service>::expose(
+    fn __ethabi_service(&self) -> EthabiService {
+        EthabiService
+    }
+    fn __scale_service(&self) -> ScaleService {
+        ScaleService
+    }
+    pub fn ethabi_service(
+        &self,
+    ) -> <EthabiService as sails_rs::gstd::services::Service>::Exposure {
+        let service = self.__ethabi_service();
+        let exposure = <EthabiService as sails_rs::gstd::services::Service>::expose(
             service,
             1u8,
+        );
+        exposure
+    }
+    pub fn scale_service(
+        &self,
+    ) -> <ScaleService as sails_rs::gstd::services::Service>::Exposure {
+        let service = self.__scale_service();
+        let exposure = <ScaleService as sails_rs::gstd::services::Service>::expose(
+            service,
+            2u8,
         );
         exposure
     }
@@ -21,17 +41,25 @@ impl MyProgram {
 impl sails_rs::meta::ProgramMeta for MyProgram {
     type ConstructorsMeta = meta_in_program::ConstructorsMeta;
     const SERVICES: &'static [(&'static str, sails_rs::meta::AnyServiceMeta)] = &[
-        ("Service", <MyService as sails_rs::meta::ServiceMeta>::META),
+        ("EthabiService", <EthabiService as sails_rs::meta::ServiceMeta>::META),
+        ("ScaleService", <ScaleService as sails_rs::meta::ServiceMeta>::META),
     ];
-    const ASYNC: bool = <MyService as sails_rs::meta::ServiceMeta>::ASYNC;
+    const ASYNC: bool = <EthabiService as sails_rs::meta::ServiceMeta>::ASYNC
+        || <ScaleService as sails_rs::meta::ServiceMeta>::ASYNC;
 }
 mod meta_in_program {
     use super::*;
-    sails_rs::invocation_io!(pub struct __CreateParams {}, entry_id = 0u16,);
+    sails_rs::invocation_io!(
+        pub struct __EthabiCtorParams {}, entry_id = 0u16, decode = false,
+    );
+    sails_rs::invocation_io!(pub struct __ScaleCtorParams {}, entry_id = 1u16,);
     #[derive(sails_rs::TypeInfo)]
     #[type_info(crate = sails_rs::type_info)]
     pub enum ConstructorsMeta {
-        Create(__CreateParams),
+        #[annotate(codec = "ethabi")]
+        EthabiCtor(__EthabiCtorParams),
+        #[annotate(codec = "scale")]
+        ScaleCtor(__ScaleCtorParams),
     }
 }
 impl sails_rs::solidity::ProgramSignature for MyProgram {
@@ -39,7 +67,7 @@ impl sails_rs::solidity::ProgramSignature for MyProgram {
         (
             sails_rs::meta::InterfaceId::zero(),
             0u16,
-            "create",
+            "ethabiCtor",
             <<(
                 bool,
             ) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
@@ -49,9 +77,13 @@ impl sails_rs::solidity::ProgramSignature for MyProgram {
         ),
     ];
     const SERVICES: &'static [sails_rs::solidity::ServiceExpo] = &[
-        ("service", 1u8, <MyService as sails_rs::solidity::ServiceSignature>::METHODS),
+        (
+            "ethabiService",
+            1u8,
+            <EthabiService as sails_rs::solidity::ServiceSignature>::METHODS,
+        ),
     ];
-    const METHODS_LEN: usize = <MyService as sails_rs::solidity::ServiceSignature>::METHODS
+    const METHODS_LEN: usize = <EthabiService as sails_rs::solidity::ServiceSignature>::METHODS
         .len();
 }
 const __CTOR_SIGS: [[u8; 4]; <MyProgram as sails_rs::solidity::ProgramSignature>::CTORS
@@ -81,13 +113,6 @@ pub mod wasm {
     #[unsafe(no_mangle)]
     extern "C" fn init() {
         let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
-        if input.is_empty() {
-            sails_rs::program_ctor!(
-                PROGRAM = MyProgram::create(), params_struct =
-                meta_in_program::__CreateParams
-            );
-            return;
-        }
         if let Some(input_sig) = input.get(..4)
             && let Ok(sig) = <[u8; 4]>::try_from(input_sig)
             && let Some(idx) = __CTOR_SIGS.iter().position(|s| s == &sig)
@@ -116,7 +141,7 @@ pub mod wasm {
                 );
             }
             match header.entry_id() {
-                0u16 => {
+                1u16 => {
                     let (): () = sails_rs::Decode::decode(&mut input)
                         .unwrap_or_else(|_| sails_rs::gstd::unknown_input_panic(
                             "Unknown request",
@@ -124,11 +149,11 @@ pub mod wasm {
                         ));
                     #[cfg(target_arch = "wasm32")]
                     if sails_rs::gstd::msg::value() > 0 {
-                        core::panic!("'create' accepts no value");
+                        core::panic!("'scale_ctor' accepts no value");
                     }
                     sails_rs::program_ctor!(
-                        PROGRAM = MyProgram::create(), params_struct =
-                        meta_in_program::__CreateParams
+                        PROGRAM = MyProgram::scale_ctor(), params_struct =
+                        meta_in_program::__ScaleCtorParams
                     )
                 }
                 _ => {
@@ -149,20 +174,26 @@ pub mod wasm {
                     .expect("Failed to decode request");
                 #[cfg(target_arch = "wasm32")]
                 if sails_rs::gstd::msg::value() > 0 {
-                    core::panic!("'create' accepts no value");
+                    core::panic!("'ethabi_ctor' accepts no value");
                 }
-                let program = MyProgram::create();
+                let program = MyProgram::ethabi_ctor();
                 unsafe { PROGRAM = Some(program) };
                 Some(__encode_reply)
             }
             _ => None,
         }
     }
-    const SERVICES_COUNT: usize = 1usize
-        + sails_rs::meta::count_base_services::<MyService>();
+    const SERVICES_COUNT: usize = 2usize
+        + sails_rs::meta::count_base_services::<EthabiService>()
+        + sails_rs::meta::count_base_services::<ScaleService>();
     const INTERFACE_IDS: &'static [(sails_rs::meta::InterfaceId, u8)] = &sails_rs::meta::interface_ids::<
         SERVICES_COUNT,
-    >(&[sails_rs::meta::BaseServiceMeta::new::<MyService>("")]);
+    >(
+        &[
+            sails_rs::meta::BaseServiceMeta::new::<EthabiService>(""),
+            sails_rs::meta::BaseServiceMeta::new::<ScaleService>(""),
+        ],
+    );
     #[unsafe(no_mangle)]
     extern "C" fn handle() {
         let mut input = gstd::msg::load_bytes().expect("Failed to read input");
@@ -173,8 +204,8 @@ pub mod wasm {
         {
             let (interface_id, entry_id, route_idx) = __METHOD_ROUTES[idx];
             if route_idx == 1u8 {
-                let mut service = program_ref.service();
-                let Some(is_async) = <MyService as sails_rs::gstd::services::Service>::Exposure::check_asyncness(
+                let mut service = program_ref.ethabi_service();
+                let Some(is_async) = <EthabiService as sails_rs::gstd::services::Service>::Exposure::check_asyncness(
                     interface_id,
                     entry_id,
                 ) else {
@@ -228,10 +259,10 @@ pub mod wasm {
                 .expect("Failed to find matching service")
                 .into_inner();
             match route_id {
-                1u8 => {
-                    let svc = program_ref.service();
+                2u8 => {
+                    let svc = program_ref.scale_service();
                     sails_rs::service_route_dispatch!(
-                        svc : MyService, interface_id = interface_id, entry_id =
+                        svc : ScaleService, interface_id = interface_id, entry_id =
                         entry_id, input = & input[header_len..],
                     );
                 }

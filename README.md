@@ -629,7 +629,9 @@ When this feature is active:
   - `#[export(scale, ethabi)]` — expose through both paths (same as bare `#[export]`).
   - `#[export(payable)]` or `#[export(ethabi, payable)]` — mark the method as payable. `payable` requires `ethabi` transport; writing `#[export(scale, payable)]` is a compile error.
 
-  Transport flags control **runtime dispatch visibility only**. All exported methods remain in the service's IDL metadata, interface hash, and method metadata regardless of their transport selection. Single-transport methods receive a `@codec: scale` or `@codec: ethabi` annotation in the generated IDL.
+  Transport flags control **runtime dispatch visibility only**. For program constructors, the flags decide which init dispatch path can call the constructor. For exposed service constructors (methods within a `#[program]` block that return a service), the flags decide which transport can enter that service route; methods inside the returned service are still filtered by their own `#[export]` transport flags.
+
+  All exported methods remain in the service's IDL metadata, interface hash, and method metadata regardless of their transport selection. Single-transport service methods and program constructors receive a `@codec: scale` or `@codec: ethabi` annotation in the generated IDL.
 
   Without the `ethexe` feature, only `#[export]` and `#[export(scale)]` are accepted; the `ethabi` and `payable` flags are unavailable.
 

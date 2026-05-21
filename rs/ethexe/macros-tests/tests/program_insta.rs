@@ -166,3 +166,35 @@ fn generates_handle_for_services_with_unwrap_result() {
 
     insta::assert_snapshot!(result);
 }
+
+#[test]
+fn filters_program_level_dispatch_by_transport() {
+    let input = quote! {
+        impl MyProgram {
+            #[export(scale)]
+            pub fn scale_ctor() -> Self {
+                Self
+            }
+
+            #[export(ethabi)]
+            pub fn ethabi_ctor() -> Self {
+                Self
+            }
+
+            #[export(ethabi)]
+            pub fn ethabi_service(&self) -> EthabiService {
+                EthabiService
+            }
+
+            #[export(scale)]
+            pub fn scale_service(&self) -> ScaleService {
+                ScaleService
+            }
+        }
+    };
+
+    let result = gprogram(TokenStream::new(), input).to_string();
+    let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
+
+    insta::assert_snapshot!(result);
+}

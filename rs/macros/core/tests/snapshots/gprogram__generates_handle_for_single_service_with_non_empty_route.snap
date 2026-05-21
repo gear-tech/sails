@@ -42,6 +42,13 @@ pub mod wasm {
     #[unsafe(no_mangle)]
     extern "C" fn init() {
         let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
+        if input.is_empty() {
+            sails_rs::program_ctor!(
+                PROGRAM = MyProgram::create(), params_struct =
+                meta_in_program::__CreateParams
+            );
+            return;
+        }
         if let Ok(header) = <sails_rs::meta::SailsMessageHeader as sails_rs::Decode>::decode(
             &mut input,
         ) {

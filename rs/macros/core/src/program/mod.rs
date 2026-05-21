@@ -73,18 +73,20 @@ struct ProgramBuilder {
     program_impl: ItemImpl,
     program_args: ProgramArgs,
     type_constraints: Option<WhereClause>,
+    has_default_ctor_only: bool,
 }
 
 impl ProgramBuilder {
     fn new(program_impl: ItemImpl, program_args: ProgramArgs) -> Self {
         let mut program_impl = program_impl;
         let type_constraints = program_impl.generics.where_clause.take();
-        ensure_default_program_ctor(&mut program_impl);
+        let has_default_ctor_only = ensure_default_program_ctor(&mut program_impl);
 
         Self {
             program_impl,
             program_args,
             type_constraints,
+            has_default_ctor_only,
         }
     }
 
@@ -218,7 +220,9 @@ impl ProgramBuilder {
                 }
 
                 #[cfg(feature = "ethexe")]
-                solidity_dispatchers.push(fn_builder.sol_service_invocation());
+                if fn_builder.has_ethabi_codec() {
+                    solidity_dispatchers.push(fn_builder.sol_service_invocation());
+                }
 
                 // Extract data needed later (not the fn_builder itself)
                 let service_type = fn_builder.result_type.clone();
@@ -226,7 +230,13 @@ impl ProgramBuilder {
 
                 services_count_data.push(service_type.clone());
                 services_ids_data.push(service_type.clone());
-                route_dispatch_data.push((service_ctor_ident, service_type));
+                if fn_builder.has_scale_codec() {
+                    route_dispatch_data.push((
+                        fn_builder.service_route_idx(),
+                        service_ctor_ident,
+                        service_type,
+                    ));
+                }
 
                 modifications.push((idx, original_service_ctor_fn, wrapping_service_ctor_fn));
             }
@@ -307,10 +317,7 @@ impl ProgramBuilder {
         // Generate route_id match arms using extracted data
         let route_dispatches = route_dispatch_data
             .iter()
-            .enumerate()
-            .map(|(idx, (service_ctor_ident, service_type))| {
-                let route_idx = (idx + 1) as u8;
-
+            .map(|(route_idx, service_ctor_ident, service_type)| {
                 quote! {
                     #route_idx => {
                         let svc = program_ref.#service_ctor_ident();
@@ -411,12 +418,14 @@ impl ProgramBuilder {
         let mut ctor_params_structs = Vec::with_capacity(program_ctors.len());
         let mut ctor_meta_variants = Vec::with_capacity(program_ctors.len());
 
-        for fn_builder in program_ctors {
-            ctor_dispatches.push(fn_builder.ctor_branch_impl(
-                program_type_path,
-                &input_ident,
-                program_ident,
-            ));
+        for fn_builder in &program_ctors {
+            if fn_builder.has_scale_codec() {
+                ctor_dispatches.push(fn_builder.ctor_branch_impl(
+                    program_type_path,
+                    &input_ident,
+                    program_ident,
+                ));
+            }
             ctor_params_structs.push(fn_builder.ctor_params_struct());
             ctor_meta_variants.push(fn_builder.ctor_meta_variant());
         }
@@ -435,10 +444,34 @@ impl ProgramBuilder {
             }
         };
 
+        // For programs with no user-defined constructors, also accept an empty payload.
+        // The default create() takes no arguments and is idempotent, so an empty slice is
+        // unambiguous: it cannot be confused with any real constructor message.
+        let empty_input_guard = if self.has_default_ctor_only {
+            let fn_builder = program_ctors
+                .first()
+                .expect("default ctor must exist when has_default_ctor_only is true");
+            let ctor_ident = fn_builder.ident;
+            let params_struct_ident = &fn_builder.params_struct_ident;
+            quote! {
+                if #input_ident.is_empty() {
+                    #sails_path::program_ctor!(
+                        #program_ident = #program_type_path :: #ctor_ident (),
+                        params_struct = meta_in_program::#params_struct_ident
+                    );
+                    return;
+                }
+            }
+        } else {
+            quote!()
+        };
+
         let init_fn = quote! {
             #[unsafe(no_mangle)]
             extern "C" fn init() {
                 let mut #input_ident: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
+
+                #empty_input_guard
 
                 #solidity_init
 
@@ -552,7 +585,7 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
     )
 }
 
-fn ensure_default_program_ctor(program_impl: &mut ItemImpl) {
+fn ensure_default_program_ctor(program_impl: &mut ItemImpl) -> bool {
     let sails_path = &sails_paths::sails_path_or_default(None);
     if discover_program_ctors(program_impl, sails_path).is_empty() {
         program_impl.items.push(ImplItem::Fn(parse_quote!(
@@ -560,7 +593,9 @@ fn ensure_default_program_ctor(program_impl: &mut ItemImpl) {
                 Default::default()
             }
         )));
+        return true;
     }
+    false
 }
 
 fn discover_program_ctors<'a>(
@@ -657,6 +692,13 @@ fn handle_reply_predicate(fn_item: &ImplItemFn) -> bool {
 }
 
 impl FnBuilder<'_> {
+    fn service_route_idx(&self) -> u8 {
+        if self.entry_id >= u8::MAX as u16 {
+            abort!(self.ident, "too many services; maximum is 255");
+        }
+        (self.entry_id + 1) as u8
+    }
+
     fn service_meta(&self) -> TokenStream2 {
         let sails_path = self.sails_path;
         let route = &self.route;
@@ -687,7 +729,7 @@ impl FnBuilder<'_> {
     fn wrapping_service_ctor_fn(&self, original_service_ctor_fn_ident: &Ident) -> ImplItemFn {
         let sails_path = self.sails_path;
         let service_type = &self.result_type;
-        let route_idx = (self.entry_id + 1) as u8;
+        let route_idx = self.service_route_idx();
         let unwrap_token = self.error_type.is_some().then(|| quote!(.unwrap()));
 
         let mut wrapping_service_ctor_fn = self.impl_fn.clone();
@@ -758,6 +800,7 @@ impl FnBuilder<'_> {
         let params_struct_ident = &self.params_struct_ident;
         let params_struct_members = self.params().map(|(ident, ty)| quote!(#ident: #ty));
         let entry_id = &self.entry_id;
+        let decode_disabled = (!self.has_scale_codec()).then(|| quote!(decode = false,));
 
         quote! {
             #sails_path::invocation_io!(
@@ -765,6 +808,7 @@ impl FnBuilder<'_> {
                     #(pub(super) #params_struct_members,)*
                 },
                 entry_id = #entry_id,
+                #decode_disabled
             );
         }
     }
@@ -783,17 +827,29 @@ impl FnBuilder<'_> {
         #[cfg(not(feature = "ethexe"))]
         let payable_ann: Option<TokenStream2> = None;
 
+        #[cfg(feature = "ethexe")]
+        let codec_ann: Option<TokenStream2> =
+            match (self.has_scale_codec(), self.has_ethabi_codec()) {
+                (true, false) => Some(quote!(#[annotate(codec = "scale")])),
+                (false, true) => Some(quote!(#[annotate(codec = "ethabi")])),
+                _ => None,
+            };
+        #[cfg(not(feature = "ethexe"))]
+        let codec_ann: Option<TokenStream2> = None;
+
         if let Some(err_ty) = &self.error_type {
             let err_ty = shared::replace_any_lifetime_with_static(err_ty.clone());
             quote! {
                 #( #ctor_docs_attrs )*
                 #payable_ann
+                #codec_ann
                 #ctor_route(#params_struct_ident, #err_ty)
             }
         } else {
             quote! {
                 #( #ctor_docs_attrs )*
                 #payable_ann
+                #codec_ann
                 #ctor_route(#params_struct_ident)
             }
         }
