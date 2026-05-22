@@ -227,6 +227,7 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 20.x
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Download sails-js artifact
         uses: actions/download-artifact@v8
@@ -234,11 +235,8 @@ jobs:
           name: sails-js-tgz
           path: ./
 
-      - name: Configure npm auth
-        run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
-
       - name: Publish sails-js
-        run: npm publish ./sails-js.tgz --access public
+        run: npm publish ./sails-js.tgz --access public --provenance
 
   publish-sails-js-parser:
     name: Publish sails-js-parser to npm
@@ -252,6 +250,7 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 20.x
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Download sails-js-parser artifact
         uses: actions/download-artifact@v8
@@ -259,11 +258,8 @@ jobs:
           name: sails-js-parser-tgz
           path: ./
 
-      - name: Configure npm auth
-        run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
-
       - name: Publish sails-js-parser
-        run: npm publish ./sails-js-parser.tgz --access public
+        run: npm publish ./sails-js-parser.tgz --access public --provenance
 
   publish-sails-js-cli:
     name: Publish sails-js-cli to npm
@@ -277,6 +273,7 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 20.x
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Download sails-js-cli artifact
         uses: actions/download-artifact@v8
@@ -284,11 +281,8 @@ jobs:
           name: sails-js-cli-tgz
           path: ./
 
-      - name: Configure npm auth
-        run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
-
       - name: Publish sails-js-cli
-        run: npm publish ./sails-js-cli.tgz --access public
+        run: npm publish ./sails-js-cli.tgz --access public --provenance
 
   release-draft:
     name: Create Draft Release
