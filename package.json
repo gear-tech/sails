@@ -9,7 +9,7 @@
     "directory": "js"
   },
   "license": "GPL-3.0",
-  "packageManager": "pnpm@10.30.2",
+  "packageManager": "pnpm@11.2.2",
   "workspaces": [
     "js",
     "js/cli",

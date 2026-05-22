@@ -97,24 +97,12 @@ jobs:
         run: pnpm install
 
       - name: Download prebuilt WASM from Rust release
-        if: needs.detect-changes.outputs.sails_js_version_changed == 'true'
         run: |
           SAILS_RS_VERSION=$(jq -r '."sails-rs"' js/config.json)
           mkdir -p ./target/wasm32-unknown-unknown/release
           curl -fL \
             "https://github.com/gear-tech/sails/releases/download/rs%2Fv${SAILS_RS_VERSION}/sails_idl_v2_parser.wasm" \
             -o ./target/wasm32-unknown-unknown/release/sails_idl_v2_parser.wasm
-
-      - name: Install wasm-opt
-        if: needs.detect-changes.outputs.sails_js_code_changed == 'true' && needs.detect-changes.outputs.sails_js_version_changed == 'false'
-        uses: ./.github/actions/install-wasm-utils
-
-      - name: Build WASM from source
-        if: needs.detect-changes.outputs.sails_js_code_changed == 'true' && needs.detect-changes.outputs.sails_js_version_changed == 'false'
-        run: |
-          cargo build -p sails-idl-parser-wasm --target wasm32-unknown-unknown --release
-          wasm-opt -O4 -o ./target/wasm32-unknown-unknown/release/sails_idl_v2_parser.wasm \
-            ./target/wasm32-unknown-unknown/release/sails_idl_parser_wasm.wasm
 
       - name: Build sails-js and bundled dependencies
         run: |
@@ -153,6 +141,14 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install
+
+      - name: Download prebuilt WASM from Rust release
+        run: |
+          SAILS_RS_VERSION=$(jq -r '."sails-rs"' js/config.json)
+          mkdir -p ./target/wasm32-unknown-unknown/release
+          curl -fL \
+            "https://github.com/gear-tech/sails/releases/download/rs%2Fv${SAILS_RS_VERSION}/sails_idl_parser.wasm" \
+            -o ./target/wasm32-unknown-unknown/release/sails_idl_parser.wasm
 
       - name: Build sails-js-types
         run: pnpm build:types
@@ -341,15 +337,6 @@ jobs:
           name: sails-js-tgz
           path: ./
 
-      - name: Get release notes
-        id: release_notes
-        run: |
-          VERSION=${{ needs.detect-changes.outputs.sails_js_version }}
-          awk "/^## ${VERSION}/{flag=1; next} /^## /{flag=0} flag" ./js/CHANGELOG.md > release_notes.txt
-          echo "release_notes<<EOF" >> $GITHUB_OUTPUT
-          cat release_notes.txt >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
       - name: Create release tag
         run: |
           TAG_NAME="js/v${{ needs.detect-changes.outputs.sails_js_version }}"
@@ -367,6 +354,6 @@ jobs:
           name: "Sails-JS v${{ needs.detect-changes.outputs.sails_js_version }}"
           draft: false
           make_latest: false
-          body: ${{ steps.release_notes.outputs.release_notes }}
+          generate_release_notes: true
           files: |
             ./sails-js.tgz
