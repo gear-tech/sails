@@ -223,11 +223,12 @@ jobs:
     if: needs.detect-changes.outputs.sails_js_version_changed == 'true'
     runs-on: ubuntu-latest
     steps:
-      - name: Setup NodeJS 20.x
+      - name: Setup NodeJS 24.x
         uses: actions/setup-node@v6
         with:
-          node-version: 20.x
+          node-version: 24.x
           registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false
 
       - name: Download sails-js artifact
         uses: actions/download-artifact@v8
@@ -235,8 +236,11 @@ jobs:
           name: sails-js-tgz
           path: ./
 
+      - name: Update npm
+        run: npm install -g npm@latest
+
       - name: Publish sails-js
-        run: npm publish ./sails-js.tgz --access public --provenance
+        run: npm publish ./sails-js.tgz --access public
 
   publish-sails-js-parser:
     name: Publish sails-js-parser to npm
@@ -246,11 +250,12 @@ jobs:
     if: needs.detect-changes.outputs.sails_js_parser_version_changed == 'true'
     runs-on: ubuntu-latest
     steps:
-      - name: Setup NodeJS 20.x
+      - name: Setup NodeJS 24.x
         uses: actions/setup-node@v6
         with:
-          node-version: 20.x
+          node-version: 24.x
           registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false
 
       - name: Download sails-js-parser artifact
         uses: actions/download-artifact@v8
@@ -258,8 +263,11 @@ jobs:
           name: sails-js-parser-tgz
           path: ./
 
+      - name: Update npm
+        run: npm install -g npm@latest
+
       - name: Publish sails-js-parser
-        run: npm publish ./sails-js-parser.tgz --access public --provenance
+        run: npm publish ./sails-js-parser.tgz --access public
 
   publish-sails-js-cli:
     name: Publish sails-js-cli to npm
@@ -269,11 +277,12 @@ jobs:
     if: needs.detect-changes.outputs.sails_js_cli_version_changed == 'true'
     runs-on: ubuntu-latest
     steps:
-      - name: Setup NodeJS 20.x
+      - name: Setup NodeJS 24.x
         uses: actions/setup-node@v6
         with:
-          node-version: 20.x
+          node-version: 24.x
           registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false
 
       - name: Download sails-js-cli artifact
         uses: actions/download-artifact@v8
@@ -281,8 +290,11 @@ jobs:
           name: sails-js-cli-tgz
           path: ./
 
+      - name: Update npm
+        run: npm install -g npm@latest
+
       - name: Publish sails-js-cli
-        run: npm publish ./sails-js-cli.tgz --access public --provenance
+        run: npm publish ./sails-js-cli.tgz --access public
 
   release-draft:
     name: Create Draft Release
