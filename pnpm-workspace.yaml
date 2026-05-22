@@ -7,5 +7,8 @@ packages:
   - js/example
   - js/parser-idl-v2
 
+allowBuilds:
+  unrs-resolver: false
+
 ignoredBuiltDependencies:
   - unrs-resolver
