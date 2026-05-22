@@ -144,7 +144,7 @@ jobs:
 
       - name: Download prebuilt WASM from Rust release
         run: |
-          SAILS_RS_VERSION=$(jq -r '."sails-rs"' js/config.json)
+          SAILS_RS_VERSION=$(jq -r '.v1."sails-rs"' js/config.json)
           mkdir -p ./target/wasm32-unknown-unknown/release
           curl -fL \
             "https://github.com/gear-tech/sails/releases/download/rs%2Fv${SAILS_RS_VERSION}/sails_idl_parser.wasm" \
