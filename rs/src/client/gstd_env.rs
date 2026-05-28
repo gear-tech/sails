@@ -33,7 +33,7 @@ impl GstdParams {
     }
 
     #[cfg(not(feature = "ethexe"))]
-    pub fn with_reply_hook<F: FnOnce() + Send + 'static>(self, f: F) -> Self {
+    pub fn with_reply_hook<F: FnOnce() + 'static>(self, f: F) -> Self {
         Self {
             reply_hook: Some(Box::new(f)),
             ..self
@@ -56,7 +56,7 @@ impl<T: ServiceCall> PendingCall<T, GstdEnv> {
     }
 
     #[cfg(not(feature = "ethexe"))]
-    pub fn with_reply_hook<F: FnOnce() + Send + 'static>(self, f: F) -> Self {
+    pub fn with_reply_hook<F: FnOnce() + 'static>(self, f: F) -> Self {
         self.with_params(|params| params.with_reply_hook(f))
     }
 }
@@ -131,8 +131,6 @@ const _: () = {
         payload: Vec<u8>,
         params: &mut GstdParams,
     ) -> Result<GstdFuture, Error> {
-        // send message
-        // let future = send_for_reply_future(destination, payload.as_ref(), params)?;
         let future = crate::ok!(crate::gstd::send_bytes_for_reply(
             destination,
             payload.as_ref(),

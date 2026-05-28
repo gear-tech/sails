@@ -199,6 +199,7 @@ pub fn is_empty_tuple<T: 'static>() -> bool {
     TypeId::of::<T>() == TypeId::of::<()>()
 }
 
+#[doc(hidden)]
 #[macro_export]
 macro_rules! ok {
     ($e:expr) => {

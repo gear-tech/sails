@@ -651,6 +651,49 @@ fn chaos_service_timeout_wait() {
     );
 }
 
+#[test]
+fn chaos_service_sleep_for_works() {
+    use demo_client::{chaos::io::SleepThenReturn, io::Default};
+    use sails_rs::gtest::{Program, System};
+
+    let system = System::new();
+    system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails_rs=debug");
+    system.mint_to(ACTOR_ID, 1_000_000_000_000_000);
+    let program = Program::from_file(&system, DEMO_WASM_PATH);
+    program.send_bytes(ACTOR_ID, Default::encode_call(0));
+    system.run_next_block();
+
+    const SLEEP_BLOCKS: u32 = 3;
+    let msg_id = program.send_bytes(
+        ACTOR_ID,
+        SleepThenReturn::encode_call(DemoClientProgram::ROUTE_ID_CHAOS, SLEEP_BLOCKS),
+    );
+
+    // First block sends the message and suspends via sleep_for(SLEEP_BLOCKS),
+    // then the runtime must wake the task at the deadline. Scan a few blocks
+    // beyond the deadline; the reply lands in whichever block the wake occurs.
+    let mut reply_payload: Option<Vec<u8>> = None;
+    for _ in 0..(SLEEP_BLOCKS + 3) {
+        let run = system.run_next_block();
+        if let Some(payload) = run
+            .log()
+            .iter()
+            .find(|log| log.reply_to() == Some(msg_id))
+            .map(|log| log.payload().to_vec())
+        {
+            reply_payload = Some(payload);
+            break;
+        }
+    }
+    let payload = reply_payload.expect("sleep_then_return reply not produced");
+    let elapsed =
+        SleepThenReturn::decode_reply(DemoClientProgram::ROUTE_ID_CHAOS, payload).unwrap();
+    assert!(
+        elapsed >= SLEEP_BLOCKS,
+        "sleep_for should suspend at least {SLEEP_BLOCKS} blocks, got {elapsed}"
+    );
+}
+
 #[tokio::test]
 async fn chaos_panic_does_not_affect_other_services() {
     use demo_client::chaos::Chaos as _;

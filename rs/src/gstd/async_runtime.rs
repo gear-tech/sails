@@ -75,6 +75,13 @@ impl Task {
         while let Some((Reverse(lock), reply_to)) = self.locks.peek() {
             // 1. skip and remove expired
             if now >= lock.deadline() {
+                // If the user future never polled the matching MessageFuture,
+                // its signal entry would sit in Pending forever. Push it
+                // through the same timeout transition `WakeSignals::poll`
+                // would apply, so the global signals map stays bounded.
+                if let Some(reply_to) = reply_to.as_ref().copied() {
+                    signals_map.record_timeout(reply_to, now);
+                }
                 self.locks.pop();
                 continue;
             }
@@ -124,11 +131,15 @@ impl Task {
 #[cfg(not(feature = "ethexe"))]
 pub fn set_critical_hook<F: FnOnce(MessageId) + 'static>(f: F) {
     if msg::reply_code().is_ok() {
-        panic!("`gstd::critical::set_hook()` must not be called in `handle_reply` entrypoint")
+        panic!(
+            "`sails_rs::gstd::set_critical_hook()` must not be called in `handle_reply` entrypoint"
+        )
     }
 
     if msg::signal_code().is_ok() {
-        panic!("`gstd::critical::set_hook()` must not be called in `handle_signal` entrypoint")
+        panic!(
+            "`sails_rs::gstd::set_critical_hook()` must not be called in `handle_signal` entrypoint"
+        )
     }
     let message_id = Syscall::message_id();
 
@@ -315,7 +326,7 @@ impl WakeSignals {
                 } => {
                     let message_id = *message_id;
                     let reply_hook = reply_hook.take();
-                    // replase entry with `WakeSignal::Ready`
+                    // replace entry with `WakeSignal::Ready`
                     _ = entry.insert(WakeSignal::Ready {
                         payload: Syscall::read_bytes().expect("Failed to read bytes"),
                         reply_code: Syscall::reply_code()
@@ -358,7 +369,6 @@ impl WakeSignals {
     ///
     /// # Context
     /// Triggered from [`Task::clear_signals`].
-    #[cfg(not(feature = "ethexe"))]
     pub fn record_timeout(&mut self, reply_to: MessageId, now: BlockNumber) {
         if let hashbrown::hash_map::Entry::Occupied(mut entry) = self.signals.entry(reply_to)
             && let WakeSignal::Pending {
@@ -368,7 +378,11 @@ impl WakeSignals {
             } = entry.get_mut()
         {
             let expected = *deadline;
-            // move `reply_hook` to `WakeSignal::Expired` state
+            // Always transition to Expired (with or without hook). The entry
+            // must stay consumable by a deferred `MessageFuture::poll` — that
+            // poll has to be able to observe `Err(Timeout)` instead of
+            // panicking on a missing entry. Final cleanup happens in
+            // `MessageFuture::drop` when the future is no longer reachable.
             let reply_hook = reply_hook.take();
             entry.insert(WakeSignal::Expired {
                 expected,
@@ -377,6 +391,59 @@ impl WakeSignals {
             });
         } else {
             ::gstd::debug!("A message has timed out after reply");
+        }
+    }
+
+    /// Release the entry tied to a `MessageFuture` that is being dropped.
+    ///
+    /// Called from `MessageFuture::drop`. Reclaims entries that no one will
+    /// observe via `poll` anymore; preserves entries that still hold a
+    /// reply hook so a late reply can fire it through `record_reply`.
+    ///
+    /// Cancellation must be symmetric with timeout:
+    /// - `Pending { reply_hook: Some, .. }` -> `Expired { reply_hook: Some, .. }`
+    ///   (same transition `record_timeout` would do, so the hook survives).
+    /// - `Pending { reply_hook: None, .. }` -> removed.
+    /// - `Ready` -> removed (payload will never be consumed; the hook, if any,
+    ///   already ran inside `record_reply`).
+    /// - `Expired { reply_hook: Some, .. }` -> kept.
+    /// - `Expired { reply_hook: None, .. }` -> removed.
+    pub fn forget_future(&mut self, reply_to: &MessageId) {
+        if let hashbrown::hash_map::EntryRef::Occupied(mut entry) =
+            self.signals.entry_ref(reply_to)
+        {
+            match entry.get_mut() {
+                WakeSignal::Pending {
+                    reply_hook,
+                    deadline,
+                    ..
+                } => {
+                    let expected = *deadline;
+                    let reply_hook = reply_hook.take();
+                    if reply_hook.is_some() {
+                        // Cancellation before timeout: keep the late-reply hook
+                        // alive by transitioning to Expired-with-hook, matching
+                        // what `record_timeout` would do on natural timeout.
+                        let now = Syscall::block_height();
+                        entry.insert(WakeSignal::Expired {
+                            expected,
+                            now,
+                            reply_hook,
+                        });
+                    } else {
+                        entry.remove();
+                    }
+                }
+                WakeSignal::Ready { .. } => {
+                    entry.remove();
+                }
+                WakeSignal::Expired { reply_hook, .. } if reply_hook.is_none() => {
+                    entry.remove();
+                }
+                WakeSignal::Expired { .. } => {
+                    // hook still pending — keep entry for late reply
+                }
+            }
         }
     }
 
@@ -419,6 +486,9 @@ impl WakeSignals {
                 let now = Syscall::block_height();
                 let expected = *deadline;
                 if now >= expected {
+                    // Transition to Expired and keep the entry. The future
+                    // may be polled again (idempotent timeout) or dropped;
+                    // `MessageFuture::drop` does the final cleanup.
                     let reply_hook = reply_hook.take();
                     _ = entry.insert(WakeSignal::Expired {
                         expected,
@@ -431,8 +501,8 @@ impl WakeSignals {
                 }
             }
             WakeSignal::Expired { expected, now, .. } => {
-                // DO NOT remove entry if `WakeSignal::Expired`
-                // will be removed in `record_reply`
+                // Entry persists either for a late reply (if there's a hook)
+                // or until the owning `MessageFuture` is dropped.
                 Poll::Ready(Err(Error::Timeout(*expected, *now)))
             }
             WakeSignal::Ready { .. } => {
@@ -472,6 +542,22 @@ impl Future for MessageFuture {
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         poll(&self.waiting_reply_to, cx)
+    }
+}
+
+impl Drop for MessageFuture {
+    /// Reclaim the `WakeSignals` entry tied to this future.
+    ///
+    /// `WakeSignals::poll` and `record_timeout` deliberately keep entries
+    /// alive so a deferred poll can still observe `Err(Timeout)`. That means
+    /// the only safe place to delete an entry that no one will ever poll
+    /// again is here, when the future itself is being dropped.
+    ///
+    /// Entries that retain a reply hook (`WakeSignal::Expired` with
+    /// `reply_hook.is_some()`) stay in the map so a late reply can still
+    /// fire the hook through `record_reply`.
+    fn drop(&mut self) {
+        signals().forget_future(&self.waiting_reply_to);
     }
 }
 
@@ -699,6 +785,19 @@ mod tests {
     use super::*;
     use crate::gstd::syscalls::Syscall;
     use core::{sync::atomic::AtomicU64, task, task::Context};
+    use std::sync::Mutex;
+
+    // `tasks()` / `signals()` are `static mut` — correct for the single-threaded
+    // WASM runtime, but cargo test runs this module on a thread pool. Serialize
+    // every test in here through one mutex so the parallel runner never races
+    // on the shared HashMaps. Recover from poisoning so a panicking test doesn't
+    // cascade into PoisonError for every subsequent one.
+    static SERIAL: Mutex<()> = Mutex::new(());
+
+    fn serial<R>(f: impl FnOnce() -> R) -> R {
+        let _guard = SERIAL.lock().unwrap_or_else(|e| e.into_inner());
+        f()
+    }
 
     static MSG_ID: AtomicU64 = AtomicU64::new(1);
 
@@ -713,84 +812,321 @@ mod tests {
 
     #[test]
     fn task_insert_lock_adds_entry() {
-        set_context(msg_id(), 10);
+        serial(|| {
+            set_context(msg_id(), 10);
 
-        let mut task = Task::new(async {});
-        let reply_to = msg_id();
-        let lock = Lock::up_to(3);
+            let mut task = Task::new(async {});
+            let reply_to = msg_id();
+            let lock = Lock::up_to(3);
 
-        task.insert_lock(reply_to, lock);
-        task.insert_lock(msg_id(), Lock::exactly(5));
+            task.insert_lock(reply_to, lock);
+            task.insert_lock(msg_id(), Lock::exactly(5));
 
-        let Some((Reverse(next_lock), next_reply_to)) = task.locks.peek() else {
-            unreachable!()
-        };
+            let Some((Reverse(next_lock), next_reply_to)) = task.locks.peek() else {
+                unreachable!()
+            };
 
-        assert_eq!(task.locks.len(), 2);
-        assert_eq!(Some(&reply_to), next_reply_to.as_ref());
-        assert_eq!(next_lock, &lock);
+            assert_eq!(task.locks.len(), 2);
+            assert_eq!(Some(&reply_to), next_reply_to.as_ref());
+            assert_eq!(next_lock, &lock);
+        });
     }
 
     #[test]
     fn signals_poll_converts_pending_into_timeout() {
-        let message_id = msg_id();
-        set_context(message_id, 20);
-        tasks().insert(message_id, Task::new(async {}));
+        serial(|| {
+            let message_id = msg_id();
+            set_context(message_id, 20);
+            tasks().insert(message_id, Task::new(async {}));
 
-        let reply_to = msg_id();
-        let lock = Lock::up_to(5);
-        let deadline = lock.deadline();
+            let reply_to = msg_id();
+            let lock = Lock::up_to(5);
+            let deadline = lock.deadline();
 
-        signals().register_signal(reply_to, lock, None);
+            signals().register_signal(reply_to, lock, None);
 
-        Syscall::with_block_height(deadline - 1);
-        let mut cx = Context::from_waker(task::Waker::noop());
-        assert!(matches!(signals().poll(&reply_to, &mut cx), Poll::Pending));
+            Syscall::with_block_height(deadline - 1);
+            let mut cx = Context::from_waker(task::Waker::noop());
+            assert!(matches!(signals().poll(&reply_to, &mut cx), Poll::Pending));
 
-        Syscall::with_block_height(deadline);
-        let mut cx = Context::from_waker(task::Waker::noop());
-        match signals().poll(&reply_to, &mut cx) {
-            Poll::Ready(Err(Error::Timeout(expected, now))) => {
-                assert_eq!(expected, deadline);
-                assert_eq!(now, deadline);
+            Syscall::with_block_height(deadline);
+            let mut cx = Context::from_waker(task::Waker::noop());
+            match signals().poll(&reply_to, &mut cx) {
+                Poll::Ready(Err(Error::Timeout(expected, now))) => {
+                    assert_eq!(expected, deadline);
+                    assert_eq!(now, deadline);
+                }
+                other => panic!("expected timeout, got {other:?}"),
             }
-            other => panic!("expected timeout, got {other:?}"),
-        }
 
-        signals().signals.remove(&reply_to);
-        tasks().remove(&message_id);
+            signals().signals.remove(&reply_to);
+            tasks().remove(&message_id);
+        });
     }
 
     #[test]
     fn task_remove_signal_skip_not_waited_lock() {
-        let message_id = msg_id();
-        set_context(message_id, 30);
-        let reply_to = msg_id();
-        let lock = Lock::up_to(5);
+        serial(|| {
+            let message_id = msg_id();
+            set_context(message_id, 30);
+            let reply_to = msg_id();
+            let lock = Lock::up_to(5);
 
-        tasks().insert(message_id, Task::new(async {}));
-        let task = tasks().get_mut(&message_id).unwrap();
-        signals().register_signal(reply_to, lock, None);
+            tasks().insert(message_id, Task::new(async {}));
+            let task = tasks().get_mut(&message_id).unwrap();
+            signals().register_signal(reply_to, lock, None);
 
-        assert_eq!(1, task.locks.len());
+            assert_eq!(1, task.locks.len());
 
-        signals().signals.remove(&reply_to);
+            signals().signals.remove(&reply_to);
 
-        assert_eq!(1, task.locks.len());
-        assert_eq!(None, task.next_lock(31));
-        tasks().remove(&message_id);
+            assert_eq!(1, task.locks.len());
+            assert_eq!(None, task.next_lock(31));
+            tasks().remove(&message_id);
+        });
     }
 
     #[test]
     fn task_insert_sleep_adds_entry_without_reply() {
-        let message_id = msg_id();
-        set_context(message_id, 40);
+        serial(|| {
+            let message_id = msg_id();
+            set_context(message_id, 40);
 
-        let mut task = Task::new(async {});
-        let lock = Lock::exactly(4);
+            let mut task = Task::new(async {});
+            let lock = Lock::exactly(4);
 
-        task.insert_sleep(lock);
-        assert_eq!(Some(lock), task.next_lock(42));
-        assert_eq!(None, task.next_lock(lock.deadline()));
+            task.insert_sleep(lock);
+            assert_eq!(Some(lock), task.next_lock(42));
+            assert_eq!(None, task.next_lock(lock.deadline()));
+        });
+    }
+
+    /// After a timed-out poll, the entry must stay alive as `Expired` so a
+    /// deferred re-poll (or a late reply with a hook) can still observe it.
+    /// Final cleanup is `MessageFuture::drop`'s job, not `poll`'s.
+    #[test]
+    fn signals_poll_keeps_expired_for_deferred_repoll() {
+        serial(|| {
+            let message_id = msg_id();
+            set_context(message_id, 50);
+            tasks().insert(message_id, Task::new(async {}));
+
+            let reply_to = msg_id();
+            let lock = Lock::up_to(2);
+            let deadline = lock.deadline();
+            signals().register_signal(reply_to, lock, None);
+
+            Syscall::with_block_height(deadline + 1);
+            let mut cx = Context::from_waker(task::Waker::noop());
+
+            // First poll: Pending -> Expired, returns Timeout.
+            assert!(matches!(
+                signals().poll(&reply_to, &mut cx),
+                Poll::Ready(Err(Error::Timeout(..)))
+            ));
+            assert!(
+                matches!(
+                    signals().signals.get(&reply_to),
+                    Some(WakeSignal::Expired { .. })
+                ),
+                "entry must remain so a re-poll can observe Timeout"
+            );
+
+            // Second poll on the same reply_to: same answer, no panic.
+            assert!(matches!(
+                signals().poll(&reply_to, &mut cx),
+                Poll::Ready(Err(Error::Timeout(..)))
+            ));
+
+            signals().signals.remove(&reply_to);
+            tasks().remove(&message_id);
+        });
+    }
+
+    /// `Task::next_lock` must lift the signal out of `Pending` when reaping
+    /// the matching expired lock — otherwise the future that polls later
+    /// would still see `Pending` past its deadline. The entry stays as
+    /// `Expired` so a deferred poll can observe `Err(Timeout)`.
+    #[test]
+    fn next_lock_expiring_lock_transitions_signal_to_expired() {
+        serial(|| {
+            let message_id = msg_id();
+            set_context(message_id, 100);
+            tasks().insert(message_id, Task::new(async {}));
+
+            let reply_to = msg_id();
+            let lock = Lock::up_to(2);
+            signals().register_signal(reply_to, lock, None);
+
+            // Advance past the deadline WITHOUT polling the MessageFuture
+            // (simulates select!/join! where another branch finished first).
+            let now = lock.deadline() + 5;
+            Syscall::with_block_height(now);
+
+            let task = tasks().get_mut(&message_id).unwrap();
+            assert_eq!(task.next_lock(now), None, "expired lock must be popped");
+
+            assert!(
+                matches!(
+                    signals().signals.get(&reply_to),
+                    Some(WakeSignal::Expired { .. })
+                ),
+                "next_lock must transition Pending -> Expired (not leave Pending, not delete)"
+            );
+
+            // Deferred poll: the user future finally awaits this MessageFuture.
+            // It must produce Err(Timeout), not panic on a missing entry.
+            let mut cx = Context::from_waker(task::Waker::noop());
+            assert!(matches!(
+                signals().poll(&reply_to, &mut cx),
+                Poll::Ready(Err(Error::Timeout(..)))
+            ));
+
+            signals().signals.remove(&reply_to);
+            tasks().remove(&message_id);
+        });
+    }
+
+    /// `MessageFuture::drop` must remove a `Pending` entry — the user gave
+    /// up before polling, no one will ever observe a reply or timeout.
+    #[test]
+    fn message_future_drop_removes_pending_entry() {
+        serial(|| {
+            let message_id = msg_id();
+            set_context(message_id, 200);
+            tasks().insert(message_id, Task::new(async {}));
+
+            let reply_to = msg_id();
+            signals().register_signal(reply_to, Lock::up_to(5), None);
+            assert!(signals().signals.contains_key(&reply_to));
+
+            drop(MessageFuture {
+                waiting_reply_to: reply_to,
+            });
+
+            assert!(
+                !signals().signals.contains_key(&reply_to),
+                "Pending entry must be removed when MessageFuture is dropped"
+            );
+
+            tasks().remove(&message_id);
+        });
+    }
+
+    /// `MessageFuture::drop` must remove an `Expired` entry that holds no
+    /// reply hook — keeping it serves no late-delivery purpose.
+    #[test]
+    fn message_future_drop_removes_expired_entry_when_no_hook() {
+        serial(|| {
+            let message_id = msg_id();
+            set_context(message_id, 300);
+            tasks().insert(message_id, Task::new(async {}));
+
+            let reply_to = msg_id();
+            let lock = Lock::up_to(2);
+            let deadline = lock.deadline();
+            signals().register_signal(reply_to, lock, None);
+
+            // Drive Pending -> Expired (no hook).
+            Syscall::with_block_height(deadline + 1);
+            let mut cx = Context::from_waker(task::Waker::noop());
+            assert!(matches!(
+                signals().poll(&reply_to, &mut cx),
+                Poll::Ready(Err(Error::Timeout(..)))
+            ));
+            assert!(matches!(
+                signals().signals.get(&reply_to),
+                Some(WakeSignal::Expired { .. })
+            ));
+
+            drop(MessageFuture {
+                waiting_reply_to: reply_to,
+            });
+
+            assert!(
+                !signals().signals.contains_key(&reply_to),
+                "Expired-no-hook entry must be removed when MessageFuture is dropped"
+            );
+
+            tasks().remove(&message_id);
+        });
+    }
+
+    /// Cancellation symmetry: dropping a `MessageFuture` while still
+    /// `Pending` with a reply hook must keep the hook alive (transition to
+    /// Expired-with-hook). Otherwise, whether `with_reply_hook` fires on a
+    /// late reply would depend on whether the future was dropped before or
+    /// after the timeout — a footgun.
+    #[test]
+    fn message_future_drop_preserves_pending_entry_with_hook() {
+        serial(|| {
+            let message_id = msg_id();
+            set_context(message_id, 500);
+            tasks().insert(message_id, Task::new(async {}));
+
+            let reply_to = msg_id();
+            let lock = Lock::up_to(5);
+            let deadline = lock.deadline();
+            signals().register_signal(reply_to, lock, Some(Box::new(|| {})));
+
+            // Drop while still well within the deadline — natural timeout has
+            // not fired. The hook must survive.
+            assert!(Syscall::block_height() < deadline);
+            drop(MessageFuture {
+                waiting_reply_to: reply_to,
+            });
+
+            assert!(
+                matches!(
+                    signals().signals.get(&reply_to),
+                    Some(WakeSignal::Expired { reply_hook: Some(_), .. })
+                ),
+                "Pending-with-hook drop must transition to Expired-with-hook \
+                 so a late reply can still fire the hook"
+            );
+
+            signals().signals.remove(&reply_to);
+            tasks().remove(&message_id);
+        });
+    }
+
+    /// Conversely, `MessageFuture::drop` MUST preserve an `Expired` entry
+    /// that still holds a reply hook — a late reply via `record_reply` is
+    /// the only thing that will ever fire that hook.
+    #[test]
+    fn message_future_drop_preserves_expired_entry_with_hook() {
+        serial(|| {
+            let message_id = msg_id();
+            set_context(message_id, 400);
+            tasks().insert(message_id, Task::new(async {}));
+
+            let reply_to = msg_id();
+            let lock = Lock::up_to(2);
+            let deadline = lock.deadline();
+            signals().register_signal(reply_to, lock, Some(Box::new(|| {})));
+
+            Syscall::with_block_height(deadline + 1);
+            let mut cx = Context::from_waker(task::Waker::noop());
+            assert!(matches!(
+                signals().poll(&reply_to, &mut cx),
+                Poll::Ready(Err(Error::Timeout(..)))
+            ));
+
+            drop(MessageFuture {
+                waiting_reply_to: reply_to,
+            });
+
+            assert!(
+                matches!(
+                    signals().signals.get(&reply_to),
+                    Some(WakeSignal::Expired { reply_hook: Some(_), .. })
+                ),
+                "Expired entry with a hook must survive future drop so a late \
+                 reply can still fire the hook"
+            );
+
+            signals().signals.remove(&reply_to);
+            tasks().remove(&message_id);
+        });
     }
 }

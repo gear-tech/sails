@@ -39,19 +39,17 @@ impl Syscall {
         ::gcore::msg::reply_to()
     }
 
-    pub fn reply_code() -> Result<ReplyCode, gcore::errors::Error> {
+    pub fn reply_code() -> Result<gcore::errors::ReplyCode, gcore::errors::Error> {
         ::gcore::msg::reply_code()
     }
 
     #[cfg(not(feature = "ethexe"))]
-
     pub fn signal_from() -> Result<MessageId, gcore::errors::Error> {
         ::gcore::msg::signal_from()
     }
 
     #[cfg(not(feature = "ethexe"))]
-
-    pub fn signal_code() -> Result<Option<SignalCode>, gcore::errors::Error> {
+    pub fn signal_code() -> Result<Option<::gcore::errors::SignalCode>, gcore::errors::Error> {
         ::gcore::msg::signal_code()
     }
 
@@ -94,7 +92,6 @@ impl Syscall {
     }
 
     #[cfg(not(feature = "ethexe"))]
-
     pub fn system_reserve_gas(amount: GasUnit) -> Result<(), ::gcore::errors::Error> {
         ::gcore::exec::system_reserve_gas(amount)
     }

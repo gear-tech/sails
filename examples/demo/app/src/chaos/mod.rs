@@ -41,4 +41,14 @@ impl ChaosService {
     pub fn reply_hook_counter(&self) -> u32 {
         unsafe { REPLY_HOOK_COUNTER }
     }
+
+    /// Suspends the message for `blocks` blocks via `sleep_for`, then returns
+    /// the actual block delta. Used to verify the `MessageSleepFuture` lifecycle:
+    /// register sleep lock -> `exec::wait_for` -> resume at deadline -> complete.
+    #[export]
+    pub async fn sleep_then_return(&self, blocks: u32) -> u32 {
+        let start = Syscall::block_height();
+        gstd::sleep_for(blocks).await;
+        Syscall::block_height().saturating_sub(start)
+    }
 }

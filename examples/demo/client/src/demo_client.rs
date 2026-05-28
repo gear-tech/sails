@@ -899,6 +899,13 @@ pub mod chaos {
         fn reply_hook_counter(
             &self,
         ) -> sails_rs::client::PendingCall<io::ReplyHookCounter, Self::Env>;
+        /// Suspends the message for `blocks` blocks via `sleep_for`, then returns
+        /// the actual block delta. Used to verify the `MessageSleepFuture` lifecycle:
+        /// register sleep lock -> `exec::wait_for` -> resume at deadline -> complete.
+        fn sleep_then_return(
+            &self,
+            blocks: u32,
+        ) -> sails_rs::client::PendingCall<io::SleepThenReturn, Self::Env>;
         fn timeout_wait(&self) -> sails_rs::client::PendingCall<io::TimeoutWait, Self::Env>;
     }
 
@@ -906,7 +913,7 @@ pub mod chaos {
 
     impl sails_rs::client::Identifiable for ChaosImpl {
         const INTERFACE_ID: sails_rs::InterfaceId =
-            sails_rs::InterfaceId::from_bytes_8([240, 200, 200, 13, 250, 191, 114, 213]);
+            sails_rs::InterfaceId::from_bytes_8([175, 188, 80, 11, 72, 244, 89, 186]);
     }
 
     impl<E: sails_rs::client::GearEnv> Chaos for sails_rs::client::Service<ChaosImpl, E> {
@@ -919,6 +926,12 @@ pub mod chaos {
         ) -> sails_rs::client::PendingCall<io::ReplyHookCounter, Self::Env> {
             self.pending_call(())
         }
+        fn sleep_then_return(
+            &self,
+            blocks: u32,
+        ) -> sails_rs::client::PendingCall<io::SleepThenReturn, Self::Env> {
+            self.pending_call((blocks,))
+        }
         fn timeout_wait(&self) -> sails_rs::client::PendingCall<io::TimeoutWait, Self::Env> {
             self.pending_call(())
         }
@@ -928,7 +941,8 @@ pub mod chaos {
         use super::*;
         sails_rs::io_struct_impl!(PanicAfterWait () -> (), 0, <super::ChaosImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
         sails_rs::io_struct_impl!(ReplyHookCounter () -> u32, 1, <super::ChaosImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(TimeoutWait () -> (), 2, <super::ChaosImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(SleepThenReturn (blocks: u32) -> u32, 2, <super::ChaosImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails_rs::io_struct_impl!(TimeoutWait () -> (), 3, <super::ChaosImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(feature = "with_mocks")]
@@ -943,7 +957,7 @@ pub mod chaos {
             #[allow(clippy::type_complexity)]
             impl chaos::Chaos for Chaos {
                 type Env = sails_rs::client::GstdEnv;
-                fn panic_after_wait (&self, ) -> sails_rs::client::PendingCall<chaos::io::PanicAfterWait, sails_rs::client::GstdEnv>;fn reply_hook_counter (&self, ) -> sails_rs::client::PendingCall<chaos::io::ReplyHookCounter, sails_rs::client::GstdEnv>;fn timeout_wait (&self, ) -> sails_rs::client::PendingCall<chaos::io::TimeoutWait, sails_rs::client::GstdEnv>;
+                fn panic_after_wait (&self, ) -> sails_rs::client::PendingCall<chaos::io::PanicAfterWait, sails_rs::client::GstdEnv>;fn reply_hook_counter (&self, ) -> sails_rs::client::PendingCall<chaos::io::ReplyHookCounter, sails_rs::client::GstdEnv>;fn sleep_then_return (&self, blocks: u32) -> sails_rs::client::PendingCall<chaos::io::SleepThenReturn, sails_rs::client::GstdEnv>;fn timeout_wait (&self, ) -> sails_rs::client::PendingCall<chaos::io::TimeoutWait, sails_rs::client::GstdEnv>;
             }
         }
     }

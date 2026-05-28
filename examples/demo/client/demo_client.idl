@@ -148,12 +148,17 @@ service Validator@0x4e78bafffdb4fb1c {
     }
 }
 
-service Chaos@0xf0c8c80dfabf72d5 {
+service Chaos@0xafbc500b48f459ba {
     functions {
         @query
         PanicAfterWait();
         @query
         ReplyHookCounter() -> u32;
+        /// Suspends the message for `blocks` blocks via `sleep_for`, then returns
+        /// the actual block delta. Used to verify the `MessageSleepFuture` lifecycle:
+        /// register sleep lock -> `exec::wait_for` -> resume at deadline -> complete.
+        @query
+        SleepThenReturn(blocks: u32) -> u32;
         @query
         TimeoutWait();
     }
@@ -198,7 +203,7 @@ program DemoClient {
         ThisThat@0x381e13fdd02d675f,
         ValueFee@0x61261a86528bf9d5,
         Validator@0x4e78bafffdb4fb1c,
-        Chaos@0xf0c8c80dfabf72d5,
+        Chaos@0xafbc500b48f459ba,
         Chain@0x01fcbe183e2199b0,
         OverrideGenerics@0xa33febc87c18925b,
     }
