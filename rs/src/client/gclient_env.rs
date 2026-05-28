@@ -15,6 +15,22 @@ pub enum GclientError {
     ReplyIsMissing,
 }
 
+impl ReplyError for GclientError {
+    fn from_codec_error(err: parity_scale_codec::Error) -> Self {
+        gclient::Error::Codec(err).into()
+    }
+
+    fn userspace_panic_payload(&self) -> Option<&[u8]> {
+        match self {
+            GclientError::ReplyHasError(
+                ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic),
+                payload,
+            ) => Some(payload),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct GclientEnv {
     api: GearApi,
@@ -99,34 +115,20 @@ impl<T: ServiceCall> PendingCall<T, GclientEnv> {
 
     pub async fn send_for_reply(mut self) -> Result<Self, GclientError> {
         let (payload, params) = self.take_encoded_args_and_params();
-        // send for reply
-        let send_future = send_for_reply(self.env.api.clone(), self.destination, payload, params);
-        self.state = Some(Box::pin(send_future));
+        let (listener, message_id) =
+            send_for_reply_and_listen(&self.env.api, self.destination, payload, params).await?;
+        self.state = Some(Box::pin(wait_for_reply_owned(
+            listener,
+            message_id,
+            self.destination,
+        )));
         Ok(self)
     }
 
     pub async fn query(mut self) -> Result<T::Output, GclientError> {
         let (payload, params) = self.take_encoded_args_and_params();
-
-        // Calculate reply
-        match query_calculate_reply(&self.env.api, self.destination, payload, params).await {
-            Ok(reply_bytes) => match T::decode_reply(&self.route, reply_bytes) {
-                Ok(reply) => Ok(reply),
-                Err(err) => Err(gclient::Error::Codec(err).into()),
-            },
-            Err(GclientError::ReplyHasError(reason, payload)) => {
-                if matches!(
-                    reason,
-                    ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic)
-                ) && let Ok(reply) = T::decode_error(&self.route, &payload)
-                {
-                    Ok(reply)
-                } else {
-                    Err(GclientError::ReplyHasError(reason, payload))
-                }
-            }
-            Err(err) => Err(err),
-        }
+        let reply = query_calculate_reply(&self.env.api, self.destination, payload, params).await;
+        decode_reply_or_throw::<T, _>(&self.route, reply)
     }
 }
 
@@ -147,25 +149,8 @@ impl<T: ServiceCall> Future for PendingCall<T, GclientEnv> {
             .state
             .as_pin_mut()
             .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
-        // Poll message future
-        match ready!(message_future.poll(cx)) {
-            Ok((_, payload)) => match T::decode_reply(&self.route, payload) {
-                Ok(decoded) => Poll::Ready(Ok(decoded)),
-                Err(err) => Poll::Ready(Err(gclient::Error::Codec(err).into())),
-            },
-            Err(GclientError::ReplyHasError(reason, payload)) => {
-                if matches!(
-                    reason,
-                    ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic)
-                ) && let Ok(reply) = T::decode_error(&self.route, &payload)
-                {
-                    Poll::Ready(Ok(reply))
-                } else {
-                    Poll::Ready(Err(GclientError::ReplyHasError(reason, payload)))
-                }
-            }
-            Err(err) => Poll::Ready(Err(err)),
-        }
+        let reply = ready!(message_future.poll(cx)).map(|(_, payload)| payload);
+        Poll::Ready(decode_reply_or_throw::<T, _>(this.route, reply))
     }
 }
 
@@ -195,30 +180,17 @@ where
             self.state = Some(Box::pin(create_program_future));
         }
 
-        let route = &self.route.clone();
         let this = self.as_mut().project();
         let message_future = this
             .state
             .as_pin_mut()
             .unwrap_or_else(|| panic!("{PENDING_CTOR_INVALID_STATE}"));
-        // Poll message future
-        match ready!(message_future.poll(cx)) {
-            Ok((program_id, payload)) => {
-                let reply = T::decode_reply(route, payload)
-                    .map_err(|err| GclientError::Env(gclient::Error::Codec(err)))?;
-                Poll::Ready(Ok(reply.map_result(this.env.clone(), program_id)))
-            }
-            Err(GclientError::ReplyHasError(reason, payload)) => {
-                if matches!(
-                    reason,
-                    ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic)
-                ) && let Ok(reply) = T::decode_error(route, &payload)
-                {
-                    Poll::Ready(Ok(reply.map_result(this.env.clone(), ActorId::zero())))
-                } else {
-                    Poll::Ready(Err(GclientError::ReplyHasError(reason, payload)))
-                }
-            }
+        let (reply, program_id) = match ready!(message_future.poll(cx)) {
+            Ok((program_id, payload)) => (Ok(payload), program_id),
+            Err(err) => (Err(err), ActorId::zero()),
+        };
+        match decode_reply_or_throw::<T, _>(this.route, reply) {
+            Ok(output) => Poll::Ready(Ok(output.map_result(this.env.clone(), program_id))),
             Err(err) => Poll::Ready(Err(err)),
         }
     }
@@ -264,16 +236,11 @@ async fn create_program(
     #[cfg(feature = "ethexe")]
     let gas_limit = 0;
 
-    let mut listener = api.subscribe().await?;
+    let listener = api.subscribe().await?;
     let (message_id, program_id, ..) = api
         .create_program_bytes(code_id, salt, payload, gas_limit, value)
         .await?;
-    let (_, reply_code, payload, _) = wait_for_reply(&mut listener, message_id).await?;
-    match reply_code {
-        ReplyCode::Success(_) => Ok((program_id, payload)),
-        ReplyCode::Error(reason) => Err(GclientError::ReplyHasError(reason, payload)),
-        ReplyCode::Unsupported => Err(GclientError::ReplyIsMissing),
-    }
+    wait_for_reply_owned(listener, message_id, program_id).await
 }
 
 async fn send_for_reply(
@@ -282,16 +249,27 @@ async fn send_for_reply(
     payload: Vec<u8>,
     params: GclientParams,
 ) -> Result<(ActorId, Vec<u8>), GclientError> {
+    let (listener, message_id) =
+        send_for_reply_and_listen(&api, program_id, payload, params).await?;
+    wait_for_reply_owned(listener, message_id, program_id).await
+}
+
+// Subscribes before dispatching so the reply event can't fire before the listener exists.
+async fn send_for_reply_and_listen(
+    api: &GearApi,
+    program_id: ActorId,
+    payload: Vec<u8>,
+    params: GclientParams,
+) -> Result<(EventListener, MessageId), GclientError> {
     let value = params.value.unwrap_or(0);
     #[cfg(not(feature = "ethexe"))]
-    let gas_limit =
-        calculate_gas_limit(&api, program_id, &payload, params.gas_limit, value).await?;
+    let gas_limit = calculate_gas_limit(api, program_id, &payload, params.gas_limit, value).await?;
     #[cfg(feature = "ethexe")]
     let gas_limit = 0;
 
-    let mut listener = api.subscribe().await?;
+    let listener = api.subscribe().await?;
     let message_id = send_message_with_voucher_if_some(
-        &api,
+        api,
         program_id,
         payload,
         gas_limit,
@@ -299,6 +277,14 @@ async fn send_for_reply(
         params.voucher,
     )
     .await?;
+    Ok((listener, message_id))
+}
+
+async fn wait_for_reply_owned(
+    mut listener: EventListener,
+    message_id: MessageId,
+    program_id: ActorId,
+) -> Result<(ActorId, Vec<u8>), GclientError> {
     let (_, reply_code, payload, _) = wait_for_reply(&mut listener, message_id).await?;
     match reply_code {
         ReplyCode::Success(_) => Ok((program_id, payload)),

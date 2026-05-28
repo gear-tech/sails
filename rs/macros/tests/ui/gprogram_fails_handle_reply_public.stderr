@@ -1,0 +1,5 @@
+error: `handle_reply` function must be private and have a single `&self` argument and no return type
+  --> tests/ui/gprogram_fails_handle_reply_public.rs:12:5
+   |
+12 |     pub fn handle_reply(&self) {}
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

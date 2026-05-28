@@ -5,7 +5,7 @@ import config from '../config.json' with { type: 'json' };
 const USE_LOCAL_BUILD = process.env.USE_LOCAL_BUILD === 'true';
 
 const downloadAndWriteFile = async (fileName, writeTo) => {
-  const link = `https://github.com/gear-tech/sails/releases/download/rs%2Fv${config['sails-rs']}/${fileName}`;
+  const link = `https://github.com/gear-tech/sails/releases/download/rs%2Fv${config.v1['sails-rs']}/${fileName}`;
 
   const res = await fetch(link);
   if (!res.ok) {

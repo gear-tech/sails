@@ -4,7 +4,9 @@ export function formatDocs(docs: string): string[] {
 
   const lines = docs.split('\n');
   for (const line of lines) {
-    result.push(` * ${line.trim()}`);
+    // Escape comment terminators so doc text cannot break out of the
+    // generated JSDoc block and inject executable TypeScript.
+    result.push(` * ${line.trim().replaceAll('*/', String.raw`*\/`)}`);
   }
 
   return ['/**', ...result, '*/'];

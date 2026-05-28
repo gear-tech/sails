@@ -432,6 +432,38 @@ where
     TypeId::of::<T>() == TypeId::of::<()>()
 }
 
+/// Env error type that [`decode_reply_or_throw`] can inspect to recover an
+/// application-level `throws` value from a userspace-panic reply.
+pub trait ReplyError: Sized {
+    /// Wrap a SCALE decode failure of a reply payload.
+    fn from_codec_error(err: parity_scale_codec::Error) -> Self;
+
+    /// If this error is a userspace panic carrying a reply payload, return that payload.
+    fn userspace_panic_payload(&self) -> Option<&[u8]>;
+}
+
+/// Decodes a raw reply against `route`:
+/// - `Ok(payload)` is decoded via [`ServiceCall::decode_reply`];
+/// - a userspace-panic error is decoded via [`ServiceCall::decode_error`] to recover a
+///   `throws` value, falling back to the original error when that fails;
+/// - any other error is propagated unchanged.
+pub fn decode_reply_or_throw<T: ServiceCall, E: ReplyError>(
+    route: &T::Route,
+    reply: Result<Vec<u8>, E>,
+) -> Result<T::Output, E> {
+    match reply {
+        Ok(payload) => T::decode_reply(route, payload).map_err(E::from_codec_error),
+        Err(err) => {
+            if let Some(payload) = err.userspace_panic_payload()
+                && let Ok(reply) = T::decode_error(route, payload)
+            {
+                return Ok(reply);
+            }
+            Err(err)
+        }
+    }
+}
+
 /// v2-specific: encode a call using a stack buffer (zero-copy, requires `gcore`).
 /// Used in wasm32 on-chain dispatch code via the `io_struct_impl!` inherent methods.
 pub fn encode_call_optimized<T, R>(
@@ -801,12 +833,14 @@ pub trait Listener {
         F: FnMut((ActorId, Vec<u8>)) -> Option<(ActorId, E)>;
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 struct EventInput<'a> {
     idx: u8,
     payload: &'a [u8],
     first: bool,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl<'a> parity_scale_codec::Input for EventInput<'a> {
     fn remaining_len(&mut self) -> Result<Option<usize>, parity_scale_codec::Error> {
         Ok(Some(1 + self.payload.len()))

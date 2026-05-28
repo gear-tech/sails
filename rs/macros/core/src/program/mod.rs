@@ -73,18 +73,20 @@ struct ProgramBuilder {
     program_impl: ItemImpl,
     program_args: ProgramArgs,
     type_constraints: Option<WhereClause>,
+    has_default_ctor_only: bool,
 }
 
 impl ProgramBuilder {
     fn new(program_impl: ItemImpl, program_args: ProgramArgs) -> Self {
         let mut program_impl = program_impl;
         let type_constraints = program_impl.generics.where_clause.take();
-        ensure_default_program_ctor(&mut program_impl);
+        let has_default_ctor_only = ensure_default_program_ctor(&mut program_impl);
 
         Self {
             program_impl,
             program_args,
             type_constraints,
+            has_default_ctor_only,
         }
     }
 
@@ -116,7 +118,7 @@ impl ProgramBuilder {
                     } else {
                         abort!(
                             fn_item,
-                            "`handle_reply` function must have a single `&self` argument and no return type"
+                            "`handle_reply` function must be private and have a single `&self` argument and no return type"
                         );
                     }
                 }
@@ -163,9 +165,19 @@ impl ProgramBuilder {
         let mut route_dispatch_data = Vec::new(); // Store data for route dispatches
 
         for (idx, impl_item) in self.program_impl.items.iter().enumerate() {
-            if let ImplItem::Fn(fn_item) = impl_item
-                && service_ctor_predicate(fn_item)
-            {
+            if let ImplItem::Fn(fn_item) = impl_item {
+                if is_mut_service_ctor(fn_item) {
+                    abort!(
+                        fn_item,
+                        "service constructor must take `&self`, not `&mut self`: a `&mut self` \
+                         factory can leak an exclusive borrow of program state across an `.await`"
+                    );
+                }
+
+                if !service_ctor_predicate(fn_item) {
+                    continue;
+                }
+
                 let mut invocation_export = shared::invocation_export_or_default(fn_item);
                 let entry_id = routes.len() as u16;
 
@@ -208,7 +220,9 @@ impl ProgramBuilder {
                 }
 
                 #[cfg(feature = "ethexe")]
-                solidity_dispatchers.push(fn_builder.sol_service_invocation());
+                if fn_builder.has_ethabi_codec() {
+                    solidity_dispatchers.push(fn_builder.sol_service_invocation());
+                }
 
                 // Extract data needed later (not the fn_builder itself)
                 let service_type = fn_builder.result_type.clone();
@@ -216,7 +230,13 @@ impl ProgramBuilder {
 
                 services_count_data.push(service_type.clone());
                 services_ids_data.push(service_type.clone());
-                route_dispatch_data.push((service_ctor_ident, service_type));
+                if fn_builder.has_scale_codec() {
+                    route_dispatch_data.push((
+                        fn_builder.service_route_idx(),
+                        service_ctor_ident,
+                        service_type,
+                    ));
+                }
 
                 modifications.push((idx, original_service_ctor_fn, wrapping_service_ctor_fn));
             }
@@ -237,7 +257,7 @@ impl ProgramBuilder {
         let handle_reply_fn = self.handle_reply_fn().map(|item_fn| {
             let handle_reply_fn_ident = &item_fn.sig.ident;
             quote! {
-                let program_ref = unsafe { #program_ident.as_mut() }.expect("Program not initialized");
+                let program_ref = unsafe { #program_ident.as_ref() }.expect("Program not initialized");
                 program_ref.#handle_reply_fn_ident();
             }
         })
@@ -297,10 +317,7 @@ impl ProgramBuilder {
         // Generate route_id match arms using extracted data
         let route_dispatches = route_dispatch_data
             .iter()
-            .enumerate()
-            .map(|(idx, (service_ctor_ident, service_type))| {
-                let route_idx = (idx + 1) as u8;
-
+            .map(|(route_idx, service_ctor_ident, service_type)| {
                 quote! {
                     #route_idx => {
                         let svc = program_ref.#service_ctor_ident();
@@ -335,7 +352,7 @@ impl ProgramBuilder {
 
                 let mut input = gstd::msg::load_bytes().expect("Failed to read input");
 
-                let program_ref = unsafe { #program_ident.as_mut() }.expect("Program not initialized");
+                let program_ref = unsafe { #program_ident.as_ref() }.expect("Program not initialized");
 
                 #solidity_main
 
@@ -401,12 +418,14 @@ impl ProgramBuilder {
         let mut ctor_params_structs = Vec::with_capacity(program_ctors.len());
         let mut ctor_meta_variants = Vec::with_capacity(program_ctors.len());
 
-        for fn_builder in program_ctors {
-            ctor_dispatches.push(fn_builder.ctor_branch_impl(
-                program_type_path,
-                &input_ident,
-                program_ident,
-            ));
+        for fn_builder in &program_ctors {
+            if fn_builder.has_scale_codec() {
+                ctor_dispatches.push(fn_builder.ctor_branch_impl(
+                    program_type_path,
+                    &input_ident,
+                    program_ident,
+                ));
+            }
             ctor_params_structs.push(fn_builder.ctor_params_struct());
             ctor_meta_variants.push(fn_builder.ctor_meta_variant());
         }
@@ -425,10 +444,34 @@ impl ProgramBuilder {
             }
         };
 
+        // For programs with no user-defined constructors, also accept an empty payload.
+        // The default create() takes no arguments and is idempotent, so an empty slice is
+        // unambiguous: it cannot be confused with any real constructor message.
+        let empty_input_guard = if self.has_default_ctor_only {
+            let fn_builder = program_ctors
+                .first()
+                .expect("default ctor must exist when has_default_ctor_only is true");
+            let ctor_ident = fn_builder.ident;
+            let params_struct_ident = &fn_builder.params_struct_ident;
+            quote! {
+                if #input_ident.is_empty() {
+                    #sails_path::program_ctor!(
+                        #program_ident = #program_type_path :: #ctor_ident (),
+                        params_struct = meta_in_program::#params_struct_ident
+                    );
+                    return;
+                }
+            }
+        } else {
+            quote!()
+        };
+
         let init_fn = quote! {
             #[unsafe(no_mangle)]
             extern "C" fn init() {
                 let mut #input_ident: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
+
+                #empty_input_guard
 
                 #solidity_init
 
@@ -542,7 +585,7 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
     )
 }
 
-fn ensure_default_program_ctor(program_impl: &mut ItemImpl) {
+fn ensure_default_program_ctor(program_impl: &mut ItemImpl) -> bool {
     let sails_path = &sails_paths::sails_path_or_default(None);
     if discover_program_ctors(program_impl, sails_path).is_empty() {
         program_impl.items.push(ImplItem::Fn(parse_quote!(
@@ -550,7 +593,9 @@ fn ensure_default_program_ctor(program_impl: &mut ItemImpl) {
                 Default::default()
             }
         )));
+        return true;
     }
+    false
 }
 
 fn discover_program_ctors<'a>(
@@ -605,17 +650,24 @@ fn program_ctor_predicate(
     false
 }
 
+fn service_ctor_receiver(fn_item: &ImplItemFn) -> Option<&Receiver> {
+    fn_item.sig.receiver().filter(|receiver| {
+        matches!(fn_item.vis, Visibility::Public(_))
+            && fn_item.sig.inputs.len() == 1
+            && !matches!(fn_item.sig.output, ReturnType::Default)
+            && receiver.reference.is_some()
+    })
+}
+
 fn service_ctor_predicate(fn_item: &ImplItemFn) -> bool {
-    matches!(fn_item.vis, Visibility::Public(_))
-        && matches!(
-            fn_item.sig.receiver(),
-            Some(Receiver {
-                reference: Some(_),
-                ..
-            })
-        )
-        && fn_item.sig.inputs.len() == 1
-        && !matches!(fn_item.sig.output, ReturnType::Default)
+    service_ctor_receiver(fn_item).is_some_and(|receiver| receiver.mutability.is_none())
+}
+
+/// Detects a public method shaped like a service constructor but taking `&mut self`.
+/// Used to emit a clear compile error instead of silently ignoring such a method
+/// (which `service_ctor_predicate` rejects).
+fn is_mut_service_ctor(fn_item: &ImplItemFn) -> bool {
+    service_ctor_receiver(fn_item).is_some_and(|receiver| receiver.mutability.is_some())
 }
 
 fn has_handle_reply_attr(fn_item: &ImplItemFn) -> bool {
@@ -640,6 +692,13 @@ fn handle_reply_predicate(fn_item: &ImplItemFn) -> bool {
 }
 
 impl FnBuilder<'_> {
+    fn service_route_idx(&self) -> u8 {
+        if self.entry_id >= u8::MAX as u16 {
+            abort!(self.ident, "too many services; maximum is 255");
+        }
+        (self.entry_id + 1) as u8
+    }
+
     fn service_meta(&self) -> TokenStream2 {
         let sails_path = self.sails_path;
         let route = &self.route;
@@ -670,7 +729,7 @@ impl FnBuilder<'_> {
     fn wrapping_service_ctor_fn(&self, original_service_ctor_fn_ident: &Ident) -> ImplItemFn {
         let sails_path = self.sails_path;
         let service_type = &self.result_type;
-        let route_idx = (self.entry_id + 1) as u8;
+        let route_idx = self.service_route_idx();
         let unwrap_token = self.error_type.is_some().then(|| quote!(.unwrap()));
 
         let mut wrapping_service_ctor_fn = self.impl_fn.clone();
@@ -741,6 +800,7 @@ impl FnBuilder<'_> {
         let params_struct_ident = &self.params_struct_ident;
         let params_struct_members = self.params().map(|(ident, ty)| quote!(#ident: #ty));
         let entry_id = &self.entry_id;
+        let decode_disabled = (!self.has_scale_codec()).then(|| quote!(decode = false,));
 
         quote! {
             #sails_path::invocation_io!(
@@ -748,6 +808,7 @@ impl FnBuilder<'_> {
                     #(pub(super) #params_struct_members,)*
                 },
                 entry_id = #entry_id,
+                #decode_disabled
             );
         }
     }
@@ -766,17 +827,29 @@ impl FnBuilder<'_> {
         #[cfg(not(feature = "ethexe"))]
         let payable_ann: Option<TokenStream2> = None;
 
+        #[cfg(feature = "ethexe")]
+        let codec_ann: Option<TokenStream2> =
+            match (self.has_scale_codec(), self.has_ethabi_codec()) {
+                (true, false) => Some(quote!(#[annotate(codec = "scale")])),
+                (false, true) => Some(quote!(#[annotate(codec = "ethabi")])),
+                _ => None,
+            };
+        #[cfg(not(feature = "ethexe"))]
+        let codec_ann: Option<TokenStream2> = None;
+
         if let Some(err_ty) = &self.error_type {
             let err_ty = shared::replace_any_lifetime_with_static(err_ty.clone());
             quote! {
                 #( #ctor_docs_attrs )*
                 #payable_ann
+                #codec_ann
                 #ctor_route(#params_struct_ident, #err_ty)
             }
         } else {
             quote! {
                 #( #ctor_docs_attrs )*
                 #payable_ann
+                #codec_ann
                 #ctor_route(#params_struct_ident)
             }
         }
@@ -845,5 +918,32 @@ mod tests {
 
         assert_eq!(discovered_services.len(), 1);
         assert!(discovered_services.contains(&String::from("public_method_returning_smth")));
+    }
+
+    #[test]
+    fn is_mut_service_ctor_detects_only_public_mut_self_factories() {
+        let program_impl: ItemImpl = syn::parse2(quote!(
+            impl MyProgram {
+                pub fn mut_factory(&mut self) -> MyService {}
+                pub fn shared_factory(&self) -> MyService {}
+                fn non_public_mut_factory(&mut self) -> MyService {}
+                pub fn mut_factory_returning_unit(&mut self) {}
+                pub fn mut_factory_with_other_params(&mut self, p1: u32) -> MyService {}
+            }
+        ))
+        .unwrap();
+
+        let detected = program_impl
+            .items
+            .iter()
+            .filter_map(|item| match item {
+                ImplItem::Fn(fn_item) if is_mut_service_ctor(fn_item) => {
+                    Some(fn_item.sig.ident.to_string())
+                }
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+
+        assert_eq!(detected, vec![String::from("mut_factory")]);
     }
 }

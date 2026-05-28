@@ -31,18 +31,24 @@ impl ProgramBuilder {
         let program_ctors = self.program_ctors();
         let program_ctor_sigs = program_ctors
             .iter()
+            .filter(|fn_builder| fn_builder.has_ethabi_codec())
             .map(|fn_builder| fn_builder.sol_handler_signature(None));
 
         let service_ctors = self.service_ctors();
         let service_ctor_sigs = service_ctors
             .iter()
+            .filter(|fn_builder| fn_builder.has_ethabi_codec())
             .map(|fn_builder| fn_builder.sol_service_signature());
 
-        let methods_len_iter = service_ctors.iter().map(|fn_builder| {
+        let ethabi_service_ctors = service_ctors
+            .iter()
+            .filter(|fn_builder| fn_builder.has_ethabi_codec())
+            .collect::<Vec<_>>();
+        let methods_len_iter = ethabi_service_ctors.iter().map(|fn_builder| {
             let service_type = &fn_builder.result_type;
             quote!(<#service_type as #sails_path::solidity::ServiceSignature>::METHODS.len())
         });
-        let methods_len = if service_ctors.is_empty() {
+        let methods_len = if ethabi_service_ctors.is_empty() {
             quote! {0}
         } else {
             quote! {#(#methods_len_iter) + *}
@@ -68,10 +74,12 @@ impl ProgramBuilder {
         quote! {
             const __CTOR_SIGS: [[u8; 4]; <#program_type_path as #sails_path::solidity::ProgramSignature>::CTORS.len()]
                 = #sails_path::solidity::ConstProgramMeta::<#program_type_path>::ctor_sigs();
+            const _: () = #sails_path::solidity::assert_unique_selectors(&__CTOR_SIGS);
             const __CTOR_CALLBACK_SIGS: [[u8; 4]; <#program_type_path as #sails_path::solidity::ProgramSignature>::CTORS.len()]
                 = #sails_path::solidity::ConstProgramMeta::<#program_type_path>::ctor_callback_sigs();
             const __METHOD_SIGS: [[u8; 4]; <#program_type_path as #sails_path::solidity::ProgramSignature>::METHODS_LEN]
                 = #sails_path::solidity::ConstProgramMeta::<#program_type_path>::method_sigs();
+            const _: () = #sails_path::solidity::assert_unique_selectors(&__METHOD_SIGS);
             const __METHOD_ROUTES: [(#sails_path::meta::InterfaceId, u16, u8); <#program_type_path as #sails_path::solidity::ProgramSignature>::METHODS_LEN]
                 = #sails_path::solidity::ConstProgramMeta::<#program_type_path>::method_routes();
             const __CALLBACK_SIGS: [[u8; 4]; <#program_type_path as #sails_path::solidity::ProgramSignature>::METHODS_LEN]
@@ -84,6 +92,7 @@ impl ProgramBuilder {
         let program_ctors = self.program_ctors();
         let ctor_branches = program_ctors
             .iter()
+            .filter(|fn_builder| fn_builder.has_ethabi_codec())
             .map(|fn_builder| fn_builder.sol_ctor_branch_impl(program_type_path, program_ident));
 
         quote! {
@@ -101,29 +110,32 @@ impl ProgramBuilder {
         let (program_type_path, ..) = self.impl_type();
 
         quote! {
-            if let Ok(sig) = TryInto::<[u8; 4]>::try_into(&#input_ident[..4]) {
-                if let Some(idx) = __CTOR_SIGS.iter().position(|s| s == &sig) {
-                    let (_, entry_id, ..) = <#program_type_path as #sails_path::solidity::ProgramSignature>::CTORS[idx];
-                    if let Some(encode_reply) = match_ctor_solidity(entry_id, &#input_ident[4..]) {
-                        // add callbak selector if `encode_reply` is set
-                        if encode_reply {
-                            let output = [__CTOR_CALLBACK_SIGS[idx].as_slice(), gstd::msg::id().into_bytes().as_slice()].concat();
-                            gstd::msg::reply_bytes(output, 0).expect("Failed to send output");
-                        }
-                        return;
-                    }
+            if let Some(input_sig) = #input_ident.get(..4)
+                && let Ok(sig) = <[u8; 4]>::try_from(input_sig)
+                && let Some(idx) = __CTOR_SIGS.iter().position(|s| s == &sig)
+                && let Some(encode_reply) = match_ctor_solidity(
+                    <#program_type_path as #sails_path::solidity::ProgramSignature>::CTORS[idx].1,
+                    &#input_ident[4..],
+                )
+            {
+                // add callback selector if `encode_reply` is set
+                if encode_reply {
+                    let output = [__CTOR_CALLBACK_SIGS[idx].as_slice(), gstd::msg::id().into_bytes().as_slice()].concat();
+                    gstd::msg::reply_bytes(output, 0).expect("Failed to send output");
                 }
+                return;
             }
         }
     }
 
     pub fn sol_main(&self, solidity_dispatchers: &[TokenStream]) -> TokenStream {
         quote! {
-            if let Ok(sig) = TryInto::<[u8; 4]>::try_into(&input[..4]) {
-                if let Some(idx) = __METHOD_SIGS.iter().position(|s| s == &sig) {
-                    let (interface_id, entry_id, route_idx) = __METHOD_ROUTES[idx];
-                    #(#solidity_dispatchers)*
-                }
+            if let Some(input_sig) = input.get(..4)
+                && let Ok(sig) = <[u8; 4]>::try_from(input_sig)
+                && let Some(idx) = __METHOD_SIGS.iter().position(|s| s == &sig)
+            {
+                let (interface_id, entry_id, route_idx) = __METHOD_ROUTES[idx];
+                #(#solidity_dispatchers)*
             }
         }
     }
@@ -132,7 +144,7 @@ impl ProgramBuilder {
 impl FnBuilder<'_> {
     fn sol_service_signature(&self) -> TokenStream {
         let sails_path = self.sails_path;
-        let route_idx = (self.entry_id + 1) as u8;
+        let route_idx = self.service_route_idx();
         let service_name = self.route_camel_case();
         let service_type = &self.result_type;
 
@@ -240,7 +252,7 @@ impl FnBuilder<'_> {
 
     pub(crate) fn sol_service_invocation(&self) -> TokenStream2 {
         let sails_path = self.sails_path;
-        let route_idx = (self.entry_id + 1) as u8;
+        let route_idx = self.service_route_idx();
         let service_ctor_ident = self.ident;
         let service_type = &self.result_type;
 
@@ -258,7 +270,7 @@ impl FnBuilder<'_> {
                             .unwrap_or_else(|| {
                                 gstd::unknown_input_panic("Unknown request", &input)
                             });
-                        // add callbak selector if `encode_reply` is set
+                        // add callback selector if `encode_reply` is set
                         let output = if encode_reply {
                             let selector = __CALLBACK_SIGS[idx];
                             [selector.as_slice(), output.as_slice()].concat()
@@ -273,7 +285,7 @@ impl FnBuilder<'_> {
                         .unwrap_or_else(|| {
                             gstd::unknown_input_panic("Unknown request", &input)
                         });
-                    // add callbak selector if `encode_reply` is set
+                    // add callback selector if `encode_reply` is set
                     let output = if encode_reply {
                         let selector = __CALLBACK_SIGS[idx];
                         [selector.as_slice(), output.as_slice()].concat()
