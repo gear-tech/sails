@@ -2,16 +2,41 @@ use super::*;
 use crate::collections::{BinaryHeap, HashMap};
 use core::{
     cmp::Reverse,
+    hash::{BuildHasherDefault, Hasher},
     pin::Pin,
     task::{Context, Poll},
 };
 use futures::future::{FusedFuture, FutureExt as _, LocalBoxFuture};
 use gstd::{BlockNumber, errors::Error};
 
-fn tasks() -> &'static mut crate::collections::HashMap<MessageId, Task> {
-    static mut MAP: Option<crate::collections::HashMap<MessageId, Task>> = None;
-    unsafe { &mut *core::ptr::addr_of_mut!(MAP) }
-        .get_or_insert_with(crate::collections::HashMap::new)
+/// Identity-hasher for `MessageId`. `MessageId` is itself a 32-byte
+/// cryptographic hash, so the first 8 bytes are already uniformly
+/// distributed — running them through a general-purpose hash function is
+/// wasted gas. Saves the 32-byte mixing on every HashMap op.
+#[derive(Default)]
+struct IdHasher(u64);
+
+impl Hasher for IdHasher {
+    #[inline]
+    fn write(&mut self, bytes: &[u8]) {
+        // MessageId encode_to writes 32 bytes; we read the first 8.
+        let n = bytes.len().min(8);
+        let mut buf = [0u8; 8];
+        buf[..n].copy_from_slice(&bytes[..n]);
+        self.0 = u64::from_ne_bytes(buf);
+    }
+
+    #[inline]
+    fn finish(&self) -> u64 {
+        self.0
+    }
+}
+
+type IdMap<V> = HashMap<MessageId, V, BuildHasherDefault<IdHasher>>;
+
+fn tasks() -> &'static mut IdMap<Task> {
+    static mut MAP: Option<IdMap<Task>> = None;
+    unsafe { &mut *core::ptr::addr_of_mut!(MAP) }.get_or_insert_with(IdMap::default)
 }
 
 fn signals() -> &'static mut WakeSignals {
@@ -223,13 +248,13 @@ enum WakeSignal {
 }
 
 struct WakeSignals {
-    signals: HashMap<MessageId, WakeSignal>,
+    signals: IdMap<WakeSignal>,
 }
 
 impl WakeSignals {
     pub fn new() -> Self {
         Self {
-            signals: HashMap::new(),
+            signals: IdMap::default(),
         }
     }
 
@@ -409,8 +434,7 @@ impl WakeSignals {
     /// - `Expired { reply_hook: Some, .. }` -> kept.
     /// - `Expired { reply_hook: None, .. }` -> removed.
     pub fn forget_future(&mut self, reply_to: &MessageId) {
-        if let hashbrown::hash_map::EntryRef::Occupied(mut entry) =
-            self.signals.entry_ref(reply_to)
+        if let hashbrown::hash_map::EntryRef::Occupied(mut entry) = self.signals.entry_ref(reply_to)
         {
             match entry.get_mut() {
                 WakeSignal::Pending {
@@ -1079,7 +1103,10 @@ mod tests {
             assert!(
                 matches!(
                     signals().signals.get(&reply_to),
-                    Some(WakeSignal::Expired { reply_hook: Some(_), .. })
+                    Some(WakeSignal::Expired {
+                        reply_hook: Some(_),
+                        ..
+                    })
                 ),
                 "Pending-with-hook drop must transition to Expired-with-hook \
                  so a late reply can still fire the hook"
@@ -1119,7 +1146,10 @@ mod tests {
             assert!(
                 matches!(
                     signals().signals.get(&reply_to),
-                    Some(WakeSignal::Expired { reply_hook: Some(_), .. })
+                    Some(WakeSignal::Expired {
+                        reply_hook: Some(_),
+                        ..
+                    })
                 ),
                 "Expired entry with a hook must survive future drop so a late \
                  reply can still fire the hook"
