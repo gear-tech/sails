@@ -3,10 +3,4 @@ rustflags = ["-C", "link-arg=--import-memory", "-C", "link-arg=--allow-undefined
 
 [target.wasm32v1-none]
 rustflags = ["-C", "link-arg=--import-memory", "-C", "link-arg=--allow-undefined", "-C", "linker-plugin-lto"]
-
-[profile.dev.package.proxy]
-opt-level = "z" # If not specified, the resulting WASM won't survive instrumentation when being loaded onto network
-
-[profile.release.package.proxy]
-codegen-units = 1
-opt-level = "z"
+{{- "\n" -}}
