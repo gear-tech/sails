@@ -197,8 +197,7 @@ where
     let task = tasks_map.entry(msg_id).or_insert_with(|| {
         #[cfg(not(feature = "ethexe"))]
         {
-            Syscall::system_reserve_gas(gstd::Config::system_reserve())
-                .expect("Failed to reserve gas for system signal");
+            Syscall::system_reserve_gas(gstd::Config::system_reserve()).unwrap();
         }
         Task::new(future)
     });
@@ -213,9 +212,7 @@ where
         tasks_map.remove(&msg_id);
     } else {
         let now = Syscall::block_height();
-        task.next_lock(now)
-            .expect("Cannot find lock to be waited")
-            .wait(now);
+        task.next_lock(now).unwrap().wait(now);
     }
 }
 
@@ -245,6 +242,33 @@ enum WakeSignal {
         now: BlockNumber,
         reply_hook: Option<Box<dyn FnOnce()>>,
     },
+}
+
+impl WakeSignal {
+    /// Transition a [`WakeSignal::Pending`] signal in place to
+    /// [`WakeSignal::Expired`], preserving the optional reply hook. No-op for
+    /// already-`Expired`/`Ready` signals.
+    ///
+    /// Centralizes the `Pending -> Expired` transition shared by
+    /// [`WakeSignals::record_timeout`] (natural timeout), [`WakeSignals::poll`]
+    /// (deferred timeout) and [`WakeSignals::forget_future`] (cancellation), so
+    /// a late reply can still fire the hook and deferred polls observe
+    /// `Err(Timeout)` rather than a missing entry.
+    #[inline]
+    fn expire(&mut self, now: BlockNumber) {
+        if let WakeSignal::Pending {
+            deadline,
+            reply_hook,
+            ..
+        } = self
+        {
+            *self = WakeSignal::Expired {
+                expected: *deadline,
+                now,
+                reply_hook: reply_hook.take(),
+            };
+        }
+    }
 }
 
 struct WakeSignals {
@@ -293,9 +317,10 @@ impl WakeSignals {
         // ::gstd::debug!(
         //     "register_signal: add lock for reply_to {waiting_reply_to} in message {message_id}"
         // );
-        tasks()
-            .get_mut(&message_id)
-            .expect("A message task must exist")
+        // SAFETY: the task for the current `message_id` is inserted by
+        // `message_loop` before the user future driving this call is polled, so
+        // it is always present here.
+        unsafe { tasks().get_mut(&message_id).unwrap_unchecked() }
             .insert_lock(waiting_reply_to, lock);
     }
 
@@ -353,15 +378,16 @@ impl WakeSignals {
                     let reply_hook = reply_hook.take();
                     // replace entry with `WakeSignal::Ready`
                     _ = entry.insert(WakeSignal::Ready {
-                        payload: Syscall::read_bytes().expect("Failed to read bytes"),
-                        reply_code: Syscall::reply_code()
-                            .expect("Shouldn't be called with incorrect context"),
+                        payload: Syscall::read_bytes().unwrap(),
+                        // SAFETY: `record_reply` runs only in the `handle_reply`
+                        // entrypoint, where the reply context always exists.
+                        reply_code: unsafe { Syscall::reply_code().unwrap_unchecked() },
                     });
                     ::gstd::debug!(
                         "record_reply: remove lock for reply_to {reply_to} in message {message_id}"
                     );
                     // wake message loop after receiving reply
-                    ::gcore::exec::wake(message_id).expect("Failed to wake the message");
+                    ::gcore::exec::wake(message_id).unwrap();
 
                     // execute reply hook
                     if let Some(f) = reply_hook {
@@ -395,25 +421,13 @@ impl WakeSignals {
     /// # Context
     /// Triggered from [`Task::clear_signals`].
     pub fn record_timeout(&mut self, reply_to: MessageId, now: BlockNumber) {
-        if let hashbrown::hash_map::Entry::Occupied(mut entry) = self.signals.entry(reply_to)
-            && let WakeSignal::Pending {
-                reply_hook,
-                deadline,
-                ..
-            } = entry.get_mut()
-        {
-            let expected = *deadline;
-            // Always transition to Expired (with or without hook). The entry
-            // must stay consumable by a deferred `MessageFuture::poll` — that
-            // poll has to be able to observe `Err(Timeout)` instead of
-            // panicking on a missing entry. Final cleanup happens in
-            // `MessageFuture::drop` when the future is no longer reachable.
-            let reply_hook = reply_hook.take();
-            entry.insert(WakeSignal::Expired {
-                expected,
-                now,
-                reply_hook,
-            });
+        // Always transition to Expired (with or without hook). The entry must
+        // stay consumable by a deferred `MessageFuture::poll` — that poll has
+        // to observe `Err(Timeout)` instead of panicking on a missing entry.
+        // Final cleanup happens in `MessageFuture::drop` when the future is no
+        // longer reachable.
+        if let Some(signal @ WakeSignal::Pending { .. }) = self.signals.get_mut(&reply_to) {
+            signal.expire(now);
         } else {
             ::gstd::debug!("A message has timed out after reply");
         }
@@ -437,35 +451,22 @@ impl WakeSignals {
         if let hashbrown::hash_map::EntryRef::Occupied(mut entry) = self.signals.entry_ref(reply_to)
         {
             match entry.get_mut() {
-                WakeSignal::Pending {
-                    reply_hook,
-                    deadline,
+                // Cancellation before timeout with a live hook: transition to
+                // Expired (same as a natural timeout) so a late reply can still
+                // fire the hook and a deferred poll observes `Err(Timeout)`.
+                signal @ WakeSignal::Pending {
+                    reply_hook: Some(_),
                     ..
-                } => {
-                    let expected = *deadline;
-                    let reply_hook = reply_hook.take();
-                    if reply_hook.is_some() {
-                        // Cancellation before timeout: keep the late-reply hook
-                        // alive by transitioning to Expired-with-hook, matching
-                        // what `record_timeout` would do on natural timeout.
-                        let now = Syscall::block_height();
-                        entry.insert(WakeSignal::Expired {
-                            expected,
-                            now,
-                            reply_hook,
-                        });
-                    } else {
-                        entry.remove();
-                    }
-                }
-                WakeSignal::Ready { .. } => {
+                } => signal.expire(Syscall::block_height()),
+                // Expired entry still holding a hook: keep it for a late reply.
+                WakeSignal::Expired {
+                    reply_hook: Some(_),
+                    ..
+                } => {}
+                // Nothing left to observe (Pending/Expired without a hook, or a
+                // Ready payload no one will consume): drop the entry.
+                _ => {
                     entry.remove();
-                }
-                WakeSignal::Expired { reply_hook, .. } if reply_hook.is_none() => {
-                    entry.remove();
-                }
-                WakeSignal::Expired { .. } => {
-                    // hook still pending — keep entry for late reply
                 }
             }
         }
@@ -502,23 +503,14 @@ impl WakeSignals {
         };
 
         match entry.get_mut() {
-            WakeSignal::Pending {
-                deadline,
-                reply_hook,
-                ..
-            } => {
+            WakeSignal::Pending { deadline, .. } => {
                 let now = Syscall::block_height();
                 let expected = *deadline;
                 if now >= expected {
                     // Transition to Expired and keep the entry. The future
                     // may be polled again (idempotent timeout) or dropped;
                     // `MessageFuture::drop` does the final cleanup.
-                    let reply_hook = reply_hook.take();
-                    _ = entry.insert(WakeSignal::Expired {
-                        expected,
-                        now,
-                        reply_hook,
-                    });
+                    entry.get_mut().expire(now);
                     Poll::Ready(Err(Error::Timeout(expected, now)))
                 } else {
                     Poll::Pending
@@ -732,7 +724,9 @@ pub fn create_program_for_reply(
 /// Default reply handler.
 #[inline]
 pub fn handle_reply_with_hook() {
-    let reply_to = Syscall::reply_to().expect("Shouldn't be called with incorrect context");
+    // SAFETY: only called from the `handle_reply` entrypoint, where the reply
+    // context always exists.
+    let reply_to = unsafe { Syscall::reply_to().unwrap_unchecked() };
 
     signals().record_reply(&reply_to);
 }
@@ -741,9 +735,9 @@ pub fn handle_reply_with_hook() {
 #[cfg(not(feature = "ethexe"))]
 #[inline]
 pub fn handle_signal() {
-    let msg_id = Syscall::signal_from().expect(
-        "`gstd::async_runtime::handle_signal()` must be called only in `handle_signal` entrypoint",
-    );
+    // SAFETY: only called from the `handle_signal` entrypoint, where the signal
+    // context always exists.
+    let msg_id = unsafe { Syscall::signal_from().unwrap_unchecked() };
     // Remove Task and all associated signals, execute critical hook
     if let Some(mut task) = tasks().remove(&msg_id) {
         if let Some(critical_hook) = task.critical_hook.take() {
@@ -796,10 +790,9 @@ impl Future for MessageSleepFuture {
 pub fn sleep_for(block_count: BlockCount) -> impl Future<Output = ()> {
     let message_id = Syscall::message_id();
     let lock = Lock::exactly(block_count);
-    tasks()
-        .get_mut(&message_id)
-        .expect("A message task must exist")
-        .insert_sleep(lock);
+    // SAFETY: `sleep_for` runs inside the user future, which `message_loop`
+    // polls only after inserting the task for the current `message_id`.
+    unsafe { tasks().get_mut(&message_id).unwrap_unchecked() }.insert_sleep(lock);
     MessageSleepFuture::new(lock.deadline())
 }
 

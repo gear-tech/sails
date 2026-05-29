@@ -53,10 +53,10 @@ impl Lock {
 
     /// Call wait functions by the lock type.
     pub fn wait(&self, now: BlockNumber) {
-        let duration = self
-            .deadline
-            .checked_sub(now)
-            .expect("Checked in `crate::gstd::async_runtime::message_loop`");
+        // SAFETY: `message_loop` only calls `wait(now)` with a lock returned by
+        // `Task::next_lock(now)`, which guarantees `lock.deadline() > now`, so
+        // the subtraction never underflows.
+        let duration = unsafe { self.deadline.unchecked_sub(now) };
         match self.ty {
             WaitType::Exactly => exec::wait_for(duration),
             WaitType::UpTo => exec::wait_up_to(duration),

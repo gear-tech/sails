@@ -26,6 +26,7 @@ compute-stress = { path = "compute-stress" }
 counter-bench = { path = "counter-bench" }
 convert_case.workspace = true
 sails-client-gen-v2.workspace = true
+noop-baseline = { path = "./noop-baseline" }
 
 [dev-dependencies]
 gtest.workspace = true
@@ -39,5 +40,6 @@ redirect-app = { path = "../examples/redirect/app" }
 redirect-client = { path = "../examples/redirect/client" }
 redirect-proxy = { path = "../examples/redirect/proxy" }
 redirect-proxy-client = { path = "../examples/redirect/proxy-client" }
+noop-baseline-client = { path = "./noop-baseline/client" }
 tokio = { workspace = true, features = ["rt", "macros"] }
 tempfile.workspace = true

@@ -1,0 +1,15 @@
+[package]
+name = "noop-baseline-app"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "Package containing business logic for the program"
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+sails-rs.workspace = true
+
+[dev-dependencies]
+sails-rs = { workspace = true, features = ["std"] }

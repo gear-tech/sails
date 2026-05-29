@@ -16,8 +16,8 @@ mod file;
 use anyhow::{Context, Result};
 pub use entities::{
     AllocBenchDataSerde, BenchCategory, BenchCategoryComparison, BenchCategoryComparisonReport,
-    BenchData, BenchDataSerde, ComputeBenchDataSerde, CounterBenchDataSerde,
-    CrossProgramBenchDataSerde, RedirectBenchDataSerde,
+    BenchData, BenchDataSerde, CounterBenchDataSerde, CrossProgramBenchDataSerde, MedianDataSerde,
+    RedirectBenchDataSerde,
 };
 pub use file::BenchDataFile;
 use std::{
@@ -58,7 +58,7 @@ fn store_bench_data_to_file(path: impl AsRef<Path>, f: impl FnOnce(&mut BenchDat
 mod tests {
     use super::*;
     use crate::entities::{
-        BenchDataSerde, ComputeBenchDataSerde, CounterBenchDataSerde, CrossProgramBenchDataSerde,
+        BenchDataSerde, CounterBenchDataSerde, CrossProgramBenchDataSerde, MedianDataSerde,
         RedirectBenchDataSerde,
     };
     use std::{
@@ -71,7 +71,7 @@ mod tests {
     fn test_data_not_overwritten() {
         // Create initial bench data.
         let initial_bench_data = BenchDataSerde {
-            compute: ComputeBenchDataSerde { median: 123 },
+            compute: MedianDataSerde { median: 123 },
             alloc: Default::default(),
             counter: CounterBenchDataSerde {
                 async_call: 53,
@@ -80,6 +80,7 @@ mod tests {
             cross_program: CrossProgramBenchDataSerde { median: 42 },
             redirect: RedirectBenchDataSerde { median: 4242 },
             message_stack: Default::default(),
+            noop_baseline: Default::default(),
         };
 
         // Create a temporary file.
@@ -133,7 +134,7 @@ mod tests {
         assert_eq!(
             bench_data,
             BenchDataSerde {
-                compute: ComputeBenchDataSerde { median: 42 },
+                compute: MedianDataSerde { median: 42 },
                 alloc: Default::default(),
                 counter: CounterBenchDataSerde {
                     async_call: 84,
@@ -142,6 +143,7 @@ mod tests {
                 cross_program: CrossProgramBenchDataSerde { median: 0 },
                 redirect: RedirectBenchDataSerde { median: 4343 },
                 message_stack: Default::default(),
+                noop_baseline: Default::default(),
             },
         )
     }
