@@ -104,8 +104,8 @@ impl Task {
                 // its signal entry would sit in Pending forever. Push it
                 // through the same timeout transition `WakeSignals::poll`
                 // would apply, so the global signals map stays bounded.
-                if let Some(reply_to) = reply_to.as_ref().copied() {
-                    signals_map.record_timeout(reply_to, now);
+                if let Some(reply_to) = reply_to {
+                    signals_map.record_timeout(*reply_to, now);
                 }
                 self.locks.pop();
                 continue;

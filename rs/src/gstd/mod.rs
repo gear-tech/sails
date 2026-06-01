@@ -251,8 +251,16 @@ pub fn send_one_way(
     value: ValueUnit,
     #[cfg(not(feature = "ethexe"))] gas_limit: Option<GasUnit>,
     #[cfg(not(feature = "ethexe"))] reply_deposit: Option<GasUnit>,
-    #[cfg(not(feature = "ethexe"))] _reply_hook: Option<Box<dyn FnOnce()>>,
+    #[cfg(not(feature = "ethexe"))] reply_hook: Option<Box<dyn FnOnce()>>,
 ) -> Result<MessageId, ::gstd::errors::Error> {
+    // The legacy gstd fallback cannot deliver a reply hook on a fire-and-forget
+    // send (its only hook API is bound to an awaited future). Catch misuse in
+    // debug builds instead of silently dropping the hook.
+    #[cfg(not(feature = "ethexe"))]
+    debug_assert!(
+        reply_hook.is_none(),
+        "reply hooks on one-way sends require the `async-runtime` feature"
+    );
     let waiting_reply_to = crate::ok!(send_bytes(
         destination,
         payload,
