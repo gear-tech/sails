@@ -272,6 +272,34 @@ async fn message_stack_bench() {
     }
 }
 
+#[tokio::test]
+async fn noop_baseline_bench() {
+    use noop_baseline_client::{NoopBaselineClient as _, noop_baseline::NoopBaseline as _};
+    // Path taken from the .binpath file
+    let wasm_path = "../target/wasm32-gear/release/noop_baseline.opt.wasm";
+    let env = create_env();
+    let program = deploy_for_bench(&env, wasm_path, |d| {
+        noop_baseline_client::NoopBaselineClientCtors::create(d)
+    })
+    .await;
+
+    let mut service = program.noop_baseline();
+
+    let mut gas_benches = (0..100)
+        .map(|_| {
+            let message_id = service.do_nothing().send_one_way().unwrap();
+            let (_payload, gas) = extract_reply_and_gas(env.system(), message_id);
+            gas
+        })
+        .collect::<Vec<_>>();
+    gas_benches.sort_unstable();
+
+    crate::store_bench_data(|bench_data| {
+        bench_data.update(crate::BenchCategory::NoopBaseline, median(gas_benches));
+    })
+    .unwrap();
+}
+
 async fn alloc_stress_test(n: u32) -> (usize, u64) {
     // Path taken from the .binpath file
     let wasm_path = "../target/wasm32-gear/release/alloc_stress.opt.wasm";

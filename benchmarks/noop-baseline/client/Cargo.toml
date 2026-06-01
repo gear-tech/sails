@@ -1,0 +1,16 @@
+[package]
+name = "noop-baseline-client"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "Noop Sails Program"
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+sails-rs.workspace = true
+
+[build-dependencies]
+noop-baseline-app = { path = "../app"}
+sails-rs = { workspace = true, features = ["build"] }

@@ -27,8 +27,12 @@ impl BenchData {
         for (key, value) in data.message_stack.0 {
             map.insert(BenchCategory::MessageStack(key), value);
         }
-
+        map.insert(BenchCategory::NoopBaseline, data.noop_baseline.median);
         Ok(Self(map))
+    }
+
+    pub fn update(&mut self, category: BenchCategory, value: u64) {
+        self.0.insert(category, value);
     }
 
     /// Update compute benchmark category value.
@@ -82,6 +86,7 @@ impl BenchData {
                 BenchCategory::MessageStack(limit) => {
                     bench_data.message_stack.0.insert(limit, value);
                 }
+                BenchCategory::NoopBaseline => bench_data.noop_baseline.median = value,
             }
         }
 
@@ -105,7 +110,7 @@ impl IntoIterator for BenchData {
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct BenchDataSerde {
     #[serde(default)]
-    pub compute: ComputeBenchDataSerde,
+    pub compute: MedianDataSerde,
     #[serde(default)]
     pub alloc: AllocBenchDataSerde,
     #[serde(default)]
@@ -116,11 +121,13 @@ pub struct BenchDataSerde {
     pub redirect: RedirectBenchDataSerde,
     #[serde(default)]
     pub message_stack: MessageStackDataSerde,
+    #[serde(default)]
+    pub noop_baseline: MedianDataSerde,
 }
 
 /// Compute benchmark data stored in the benchmarks file.
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
-pub struct ComputeBenchDataSerde {
+pub struct MedianDataSerde {
     pub median: u64,
 }
 
@@ -163,6 +170,7 @@ pub enum BenchCategory {
     CrossProgram,
     Redirect,
     MessageStack(u32),
+    NoopBaseline,
 }
 
 impl Display for BenchCategory {
@@ -175,6 +183,7 @@ impl Display for BenchCategory {
             BenchCategory::CrossProgram => write!(f, "cross_program"),
             BenchCategory::Redirect => write!(f, "redirect"),
             BenchCategory::MessageStack(limit) => write!(f, "stack_{limit}"),
+            BenchCategory::NoopBaseline => write!(f, "noop_baseline"),
         }
     }
 }
