@@ -1179,9 +1179,11 @@ mod tests {
     /// code into a test that expects to be outside those entrypoints.
     fn clear_reply_signal_ctx() {
         use gear_core_errors::{ExecutionError, ExtError};
-        Syscall::with_reply_code(Err(ExtError::Execution(ExecutionError::NoReplyContext).into()));
+        Syscall::with_reply_code(Err(
+            ExtError::Execution(ExecutionError::NoReplyContext).into()
+        ));
         Syscall::with_signal_code(Err(
-            ExtError::Execution(ExecutionError::NoSignalContext).into(),
+            ExtError::Execution(ExecutionError::NoSignalContext).into()
         ));
     }
 
@@ -1273,7 +1275,11 @@ mod tests {
             let reply_to = msg_id();
             let fired = std::rc::Rc::new(core::cell::Cell::new(false));
             let f = fired.clone();
-            signals().register_signal(reply_to, Lock::up_to(10), Some(Box::new(move || f.set(true))));
+            signals().register_signal(
+                reply_to,
+                Lock::up_to(10),
+                Some(Box::new(move || f.set(true))),
+            );
 
             // Simulate the `handle_reply` context the runtime sees.
             Syscall::with_read_bytes(Ok(b"PONG".to_vec()));
@@ -1361,7 +1367,10 @@ mod tests {
             );
             signals().record_timeout(ready, 5);
             assert!(
-                matches!(signals().signals.get(&ready), Some(WakeSignal::Ready { .. })),
+                matches!(
+                    signals().signals.get(&ready),
+                    Some(WakeSignal::Ready { .. })
+                ),
                 "Ready must stay Ready"
             );
 
@@ -1489,7 +1498,10 @@ mod tests {
             );
 
             assert!(signals().waits_for(&pending));
-            assert!(signals().waits_for(&ready), "Ready still counts as waited-for");
+            assert!(
+                signals().waits_for(&ready),
+                "Ready still counts as waited-for"
+            );
             assert!(!signals().waits_for(&expired));
             assert!(!signals().waits_for(&missing));
 
@@ -1642,7 +1654,11 @@ mod tests {
             let reply_to = msg_id();
             let fired = std::rc::Rc::new(core::cell::Cell::new(false));
             let f = fired.clone();
-            signals().register_signal(reply_to, Lock::up_to(5), Some(Box::new(move || f.set(true))));
+            signals().register_signal(
+                reply_to,
+                Lock::up_to(5),
+                Some(Box::new(move || f.set(true))),
+            );
 
             Syscall::with_signal_from(Ok(message_id));
             handle_signal();

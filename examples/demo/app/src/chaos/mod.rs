@@ -63,10 +63,10 @@ impl ChaosService {
         use sails_rs::futures::future::{Either, select};
 
         let source = Syscall::message_source();
-        let a =
-            gstd::send_bytes_for_reply(source, b"A", 0, Lock::up_to(100), None, None, None).unwrap();
-        let b =
-            gstd::send_bytes_for_reply(source, b"B", 0, Lock::up_to(100), None, None, None).unwrap();
+        let a = gstd::send_bytes_for_reply(source, b"A", 0, Lock::up_to(100), None, None, None)
+            .unwrap();
+        let b = gstd::send_bytes_for_reply(source, b"B", 0, Lock::up_to(100), None, None, None)
+            .unwrap();
 
         match select(a, b).await {
             Either::Left(_) => 0,
