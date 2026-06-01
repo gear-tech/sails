@@ -1,0 +1,17 @@
+
+!@sails: 1.0.0
+
+service NoopBaseline@0xbc86c6bcc3a2b7a1 {
+    functions {
+        DoNothing();
+    }
+}
+
+program NoopBaselineClient {
+    constructors {
+        Create();
+    }
+    services {
+        NoopBaseline@0xbc86c6bcc3a2b7a1,
+    }
+}

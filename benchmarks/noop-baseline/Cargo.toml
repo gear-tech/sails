@@ -1,0 +1,17 @@
+[package]
+name = "noop-baseline"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "Package allowing to build WASM binary for the program and IDL file for it"
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+noop-baseline-app = { path = "app"}
+sails-rs.workspace = true
+
+[build-dependencies]
+noop-baseline-app = { path = "app"}
+sails-rs = { workspace = true, features = ["build"] }

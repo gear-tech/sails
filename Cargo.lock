@@ -730,6 +730,8 @@ dependencies = [
  "fs2",
  "gtest",
  "itertools 0.14.0",
+ "noop-baseline",
+ "noop-baseline-client",
  "ping-pong-bench-app",
  "ping-pong-stack",
  "redirect-app",
@@ -4970,6 +4972,29 @@ name = "nonempty"
 version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9737e026353e5cd0736f98eddae28665118eb6f6600902a7f50db585621fecb6"
+
+[[package]]
+name = "noop-baseline"
+version = "1.0.0"
+dependencies = [
+ "noop-baseline-app",
+ "sails-rs",
+]
+
+[[package]]
+name = "noop-baseline-app"
+version = "1.0.0"
+dependencies = [
+ "sails-rs",
+]
+
+[[package]]
+name = "noop-baseline-client"
+version = "1.0.0"
+dependencies = [
+ "noop-baseline-app",
+ "sails-rs",
+]
 
 [[package]]
 name = "nu-ansi-term"
