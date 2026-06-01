@@ -179,7 +179,7 @@ impl AggregatorService {
         let call3 = self
             .counter
             .add(30)
-            .with_wait(sails_rs::gstd::Lock::up_to(10))
+            .with_wait_up_to(10)
             .send_for_reply()
             .map_err(|e| e.to_string())?;
 

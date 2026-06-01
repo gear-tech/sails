@@ -25,6 +25,15 @@ crate::params_for_pending_impl!(GstdEnv, GstdParams {
 });
 
 impl GstdParams {
+    /// Wait *up to* `block_count` blocks for a reply.
+    ///
+    /// Convenience over [`Self::with_wait`]; equivalent to
+    /// `with_wait(Lock::up_to(block_count))`. The internal [`Lock`] stores an
+    /// absolute deadline, so the timeout survives a redirect unchanged.
+    pub fn with_wait_up_to(self, block_count: BlockCount) -> Self {
+        self.with_wait(Lock::up_to(block_count))
+    }
+
     pub fn with_redirect_on_exit(self, redirect_on_exit: bool) -> Self {
         Self {
             redirect_on_exit,
@@ -42,6 +51,11 @@ impl GstdParams {
 }
 
 impl<T: ServiceCall> PendingCall<T, GstdEnv> {
+    /// Wait *up to* `block_count` blocks for a reply. See [`GstdParams::with_wait_up_to`].
+    pub fn with_wait_up_to(self, block_count: BlockCount) -> Self {
+        self.with_params(|params| params.with_wait_up_to(block_count))
+    }
+
     /// Set `redirect_on_exit` flag to `true``
     ///
     /// This flag is used to redirect a message to a new program when the target program exits
@@ -58,6 +72,13 @@ impl<T: ServiceCall> PendingCall<T, GstdEnv> {
     #[cfg(not(feature = "ethexe"))]
     pub fn with_reply_hook<F: FnOnce() + 'static>(self, f: F) -> Self {
         self.with_params(|params| params.with_reply_hook(f))
+    }
+}
+
+impl<A, T: ServiceCall> PendingCtor<A, T, GstdEnv> {
+    /// Wait *up to* `block_count` blocks for a reply. See [`GstdParams::with_wait_up_to`].
+    pub fn with_wait_up_to(self, block_count: BlockCount) -> Self {
+        self.with_params(|params| params.with_wait_up_to(block_count))
     }
 }
 

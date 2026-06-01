@@ -222,13 +222,24 @@ fn send_bytes(
     reply_deposit: Option<GasUnit>,
 ) -> Result<MessageId, ::gstd::errors::Error> {
     let waiting_reply_to = if let Some(gas_limit) = gas_limit {
-        ::gcore::msg::send_with_gas(destination, payload, gas_limit, value)?
+        crate::ok!(::gcore::msg::send_with_gas(
+            destination,
+            payload,
+            gas_limit,
+            value
+        ))
     } else {
-        ::gcore::msg::send(destination, payload, value)?
+        crate::ok!(::gcore::msg::send(destination, payload, value))
     };
 
     if let Some(reply_deposit) = reply_deposit {
-        _ = ::gcore::exec::reply_deposit(waiting_reply_to, reply_deposit);
+        // Reserve gas for handling the reply. The error is propagated, not
+        // ignored, matching gstd's `#[wait_for_reply]`. On the awaited path the
+        // caller panics, trapping before the staged message commits.
+        crate::ok!(::gcore::exec::reply_deposit(
+            waiting_reply_to,
+            reply_deposit
+        ));
     }
     Ok(waiting_reply_to)
 }

@@ -39,7 +39,7 @@ fn create_env() -> (GtestEnv, CodeId, GasUnit) {
 
     let system = System::new();
     system.init_logger_with_default_filter(
-        "gwasm=debug,gtest=info,sails_rs=debug,ping_pong_stack=debug,gstd=debug",
+        "gwasm=debug,gtest=info,sails_rs=debug,ping_pong_stack=debug",
     );
     system.mint_to(ACTOR_ID, 1_000_000_000_000_000);
     // Submit program code into the system

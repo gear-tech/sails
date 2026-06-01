@@ -654,6 +654,8 @@ pub fn send_bytes_for_reply(
         reply_deposit
     ));
 
+    // Register the wait lock and reply hook so the runtime wakes this future
+    // when the reply arrives.
     signals().register_signal(waiting_reply_to, wait, reply_hook);
 
     Ok(MessageFuture { waiting_reply_to })
@@ -696,9 +698,17 @@ pub fn create_program_for_reply(
     };
 
     if let Some(reply_deposit) = reply_deposit {
-        _ = ::gcore::exec::reply_deposit(waiting_reply_to, reply_deposit);
+        // Reserve gas for handling the reply. The error is propagated, not
+        // ignored, matching gstd's `#[wait_for_reply]`. On the awaited path the
+        // caller panics, trapping before the program creation commits.
+        crate::ok!(::gcore::exec::reply_deposit(
+            waiting_reply_to,
+            reply_deposit
+        ));
     }
 
+    // Register the wait lock and reply hook so the runtime wakes this future
+    // when the reply arrives.
     signals().register_signal(waiting_reply_to, wait, reply_hook);
 
     Ok((MessageFuture { waiting_reply_to }, program_id))
