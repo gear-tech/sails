@@ -86,14 +86,7 @@ impl Syscall {
     }
 
     pub fn read_bytes() -> Result<Vec<u8>, ::gcore::errors::Error> {
-        let size = ::gcore::msg::size();
-        let mut result = Vec::with_capacity(size);
-        // SAFETY: capacity `size` is just allocated; `gcore::msg::read`
-        // overwrites all `size` bytes on success. On error we discard the Vec
-        // without observing the uninitialised tail.
-        unsafe {
-            result.set_len(size);
-        }
+        let mut result = vec![0u8; ::gcore::msg::size()];
         ::gcore::msg::read(result.as_mut())?;
         Ok(result)
     }
