@@ -94,8 +94,8 @@ gtest = "=1.10.0"
 gwasm-builder = { version = "=1.10.0", package = "gear-wasm-builder" }
 
 # Other deps in alphabetical order
-alloy-primitives = { version = "1.5", default-features = false }
-alloy-sol-types = { version = "1.5", default-features = false }
+alloy-primitives = { version = "1.6", default-features = false }
+alloy-sol-types = { version = "1.6", default-features = false }
 anyhow = "1"
 askama = { version = "0.16", default-features = false }
 cargo_metadata = "0.23"
@@ -129,7 +129,7 @@ rustdoc-types = "=0.57.3"
 quote = "1.0"
 serde = { version = "1.0", default-features = false }
 serde-json = { package = "serde_json", version = "1.0", default-features = false }
-spin = { version = "0.10", default-features = false, features = ["spin_mutex"] }
+spin = { version = "0.12", default-features = false, features = ["spin_mutex"] }
 syn = "2.0"
 thiserror = { version = "2.0", default-features = false }
 toml_edit = "0.25"
@@ -137,8 +137,8 @@ tempfile = "3.27"
 tokio = "1.52"
 tokio-stream = "0.1"
 trybuild = "1"
-wasm-encoder = "0.244"
-wasmparser = "0.244"
+wasm-encoder = "0.251"
+wasmparser = "0.251"
 
 # The profile that 'dist' will build with
 [profile.dist]
