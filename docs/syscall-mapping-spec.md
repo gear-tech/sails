@@ -46,6 +46,7 @@ See `rs/src/types.rs`.
 | `Syscall::exit(inheritor_id)` | `!` | `gcore::exec::exit(inheritor_id)` |  |
 | `Syscall::panic(data)` | `!` | `gcore::ext::panic(data)` |  |
 | `Syscall::read_bytes()` | `Result<Vec<u8>, gcore::errors::Error>` | allocate `vec![0u8; gcore::msg::size()]`, then `gcore::msg::read(result.as_mut())` |  |
+| `Syscall::wake(message_id)` | `Result<(), gcore::errors::Error>` | `gcore::exec::wake(message_id)` |  |
 | `Syscall::system_reserve_gas(amount)` | `Result<(), gcore::errors::Error>` | `gcore::exec::system_reserve_gas(amount)` | only when `ethexe` is disabled |
 
 ## Behavioral Notes
@@ -58,7 +59,7 @@ The `message_*`, `reply_*`, and `signal_*` methods are wrappers over `gcore::msg
 
 ### Execution Context
 
-The `program_id`, `block_height`, `block_timestamp`, `value_available`, `gas_available`, `env_vars`, `exit`, and `system_reserve_gas` methods are wrappers over `gcore::exec::*` accessors and control flow.
+The `program_id`, `block_height`, `block_timestamp`, `value_available`, `gas_available`, `env_vars`, `exit`, `wake`, and `system_reserve_gas` methods are wrappers over `gcore::exec::*` accessors and control flow.
 
 ### Panic Surface
 
@@ -75,6 +76,7 @@ On non-`wasm32` targets with feature `std`:
 - `env_vars()` returns a constructed `gcore::EnvVars` value rather than delegating to `gcore::exec::env_vars()`.
 - `exit()` and `panic()` call Rust `panic!` with diagnostic text instead of delegating to runtime syscalls.
 - `read_bytes()` reads from thread-local mock state.
+- `wake()` is a no-op that returns `Ok(())` (it takes a `MessageId` argument, so it is a manual mock rather than a generated getter).
 - `system_reserve_gas()` returns `Ok(())` when present, that is, when `ethexe` is disabled.
 
 These behaviors are intentionally test-oriented and are not part of the `gcore` mapping defined above.

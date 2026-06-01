@@ -694,6 +694,104 @@ fn chaos_service_sleep_for_works() {
     );
 }
 
+#[test]
+fn chaos_service_select_first_reply() {
+    use demo_client::{chaos::io::SelectFirstReply, io::Default};
+    use sails_rs::gtest::{Log, Program, System};
+
+    let system = System::new();
+    system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails_rs=debug");
+    system.mint_to(ACTOR_ID, 1_000_000_000_000_000);
+    let program = Program::from_file(&system, DEMO_WASM_PATH);
+    program.send_bytes(ACTOR_ID, Default::encode_call(0));
+    system.run_next_block();
+
+    let msg_id = program.send_bytes(
+        ACTOR_ID,
+        SelectFirstReply::encode_call(DemoClientProgram::ROUTE_ID_CHAOS),
+    );
+    // First block: the method sends b"A" and b"B" concurrently, then suspends
+    // with two armed locks.
+    system.run_next_block();
+
+    // Reply only to the first send (b"A"); the second future is dropped
+    // unresolved when `select` resolves Left, exercising `forget_future`.
+    let log = Log::builder().source(program.id()).dest(ACTOR_ID);
+    system
+        .get_mailbox(ACTOR_ID)
+        .reply_bytes(log.payload_bytes(b"A".to_vec()), vec![], 0)
+        .unwrap();
+    let run = system.run_next_block();
+
+    let payload = run
+        .log()
+        .iter()
+        .find(|log| log.reply_to() == Some(msg_id))
+        .map(|log| log.payload().to_vec())
+        .expect("select_first_reply did not produce a reply");
+    let winner =
+        SelectFirstReply::decode_reply(DemoClientProgram::ROUTE_ID_CHAOS, payload).unwrap();
+    assert_eq!(winner, 0, "the first send (b\"A\") must win the select");
+}
+
+#[test]
+fn chaos_service_critical_hook_on_signal() {
+    use demo_client::{
+        chaos::io::{CriticalHookCounter, CriticalHookOnSignal},
+        io::Default,
+    };
+    use sails_rs::gtest::{Log, Program, System};
+
+    let system = System::new();
+    system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails_rs=debug");
+    system.mint_to(ACTOR_ID, 1_000_000_000_000_000);
+    let program = Program::from_file(&system, DEMO_WASM_PATH);
+    program.send_bytes(ACTOR_ID, Default::encode_call(0));
+    system.run_next_block();
+
+    let read_counter = |system: &System, program: &Program| {
+        let msg_id = program.send_bytes(
+            ACTOR_ID,
+            CriticalHookCounter::encode_call(DemoClientProgram::ROUTE_ID_CHAOS),
+        );
+        let run = system.run_next_block();
+        let payload = run
+            .log()
+            .iter()
+            .find(|log| log.reply_to() == Some(msg_id))
+            .map(|log| log.payload().to_vec())
+            .expect("counter reply not found");
+        CriticalHookCounter::decode_reply(DemoClientProgram::ROUTE_ID_CHAOS, payload).unwrap()
+    };
+
+    assert_eq!(read_counter(&system, &program), 0, "hook must not fire yet");
+
+    program.send_bytes(
+        ACTOR_ID,
+        CriticalHookOnSignal::encode_call(DemoClientProgram::ROUTE_ID_CHAOS),
+    );
+    // Sends the inner message (reserving system gas) and suspends.
+    system.run_next_block();
+
+    // Reply so the method resumes and panics; the trap on a message that
+    // reserved system gas drives the runtime into `handle_signal`, which runs
+    // the stored critical hook.
+    let log = Log::builder().source(program.id()).dest(ACTOR_ID);
+    system
+        .get_mailbox(ACTOR_ID)
+        .reply_bytes(log.payload_bytes(().encode()), vec![], 0)
+        .unwrap();
+    system.run_next_block();
+    // Signal processing may land in the following block.
+    system.run_next_block();
+
+    assert_eq!(
+        read_counter(&system, &program),
+        1,
+        "critical hook must fire exactly once via handle_signal"
+    );
+}
+
 #[tokio::test]
 async fn chaos_panic_does_not_affect_other_services() {
     use demo_client::chaos::Chaos as _;

@@ -2,6 +2,7 @@ use sails_rs::gstd::{Lock, debug};
 use sails_rs::{gstd, prelude::*};
 
 static mut REPLY_HOOK_COUNTER: u32 = 0;
+static mut CRITICAL_HOOK_COUNTER: u32 = 0;
 
 pub struct ChaosService;
 
@@ -50,5 +51,47 @@ impl ChaosService {
         let start = Syscall::block_height();
         gstd::sleep_for(blocks).await;
         Syscall::block_height().saturating_sub(start)
+    }
+
+    /// Sends two messages for reply concurrently and resolves with the first to
+    /// reply via `futures::select`. Exercises `next_lock` picking the earliest
+    /// of several armed locks and `forget_future` reclaiming the losing branch
+    /// (its `MessageFuture` is dropped unresolved). Returns `0` if the first
+    /// send (`b"A"`) wins, `1` if the second (`b"B"`) does.
+    #[export]
+    pub async fn select_first_reply(&self) -> u8 {
+        use sails_rs::futures::future::{Either, select};
+
+        let source = Syscall::message_source();
+        let a =
+            gstd::send_bytes_for_reply(source, b"A", 0, Lock::up_to(100), None, None, None).unwrap();
+        let b =
+            gstd::send_bytes_for_reply(source, b"B", 0, Lock::up_to(100), None, None, None).unwrap();
+
+        match select(a, b).await {
+            Either::Left(_) => 0,
+            Either::Right(_) => 1,
+        }
+    }
+
+    /// Registers a critical hook, awaits a reply, then panics after resuming.
+    /// The trap on a message that reserved system gas makes the runtime invoke
+    /// `handle_signal`, which runs the stored critical hook. Used to verify the
+    /// `set_critical_hook` -> `handle_signal` path (distinct from the userspace
+    /// error reply). Observe the effect via [`Self::critical_hook_counter`].
+    #[export]
+    pub async fn critical_hook_on_signal(&self) {
+        gstd::set_critical_hook(|_msg_id| {
+            unsafe { CRITICAL_HOOK_COUNTER += 1 };
+            debug!("critical hook fired in handle_signal");
+        });
+        let source = Syscall::message_source();
+        let _ = gstd::send_for_reply::<()>(source, (), 0).unwrap().await;
+        panic!("panic after wait to trigger a signal");
+    }
+
+    #[export]
+    pub fn critical_hook_counter(&self) -> u32 {
+        unsafe { CRITICAL_HOOK_COUNTER }
     }
 }

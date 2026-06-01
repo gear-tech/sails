@@ -9,6 +9,17 @@ use core::{
 use futures::future::{FusedFuture, FutureExt as _, LocalBoxFuture};
 use gstd::{BlockNumber, errors::Error};
 
+/// `gstd::debug!` only emits in the wasm runtime; on host (e.g. unit tests) it
+/// is a no-op so the debug syscall is never reached.
+#[cfg(target_arch = "wasm32")]
+macro_rules! debug {
+    ($($arg:tt)*) => { ::gstd::debug!($($arg)*) };
+}
+#[cfg(not(target_arch = "wasm32"))]
+macro_rules! debug {
+    ($($arg:tt)*) => {};
+}
+
 /// Identity-hasher for `MessageId`. `MessageId` is itself a 32-byte
 /// cryptographic hash, so the first 8 bytes are already uniformly
 /// distributed — running them through a general-purpose hash function is
@@ -155,13 +166,13 @@ impl Task {
 /// for hook execution in case it is triggered.
 #[cfg(not(feature = "ethexe"))]
 pub fn set_critical_hook<F: FnOnce(MessageId) + 'static>(f: F) {
-    if msg::reply_code().is_ok() {
+    if Syscall::reply_code().is_ok() {
         panic!(
             "`sails_rs::gstd::set_critical_hook()` must not be called in `handle_reply` entrypoint"
         )
     }
 
-    if msg::signal_code().is_ok() {
+    if Syscall::signal_code().is_ok() {
         panic!(
             "`sails_rs::gstd::set_critical_hook()` must not be called in `handle_signal` entrypoint"
         )
@@ -204,7 +215,7 @@ where
 
     let completed = {
         let mut cx = Context::from_waker(task::Waker::noop());
-        ::gstd::debug!("message_loop: polling future for {msg_id}");
+        debug!("message_loop: polling future for {msg_id}");
         task.future.as_mut().poll(&mut cx).is_ready()
     };
 
@@ -383,11 +394,11 @@ impl WakeSignals {
                         // entrypoint, where the reply context always exists.
                         reply_code: unsafe { Syscall::reply_code().unwrap_unchecked() },
                     });
-                    ::gstd::debug!(
+                    debug!(
                         "record_reply: remove lock for reply_to {reply_to} in message {message_id}"
                     );
                     // wake message loop after receiving reply
-                    ::gcore::exec::wake(message_id).unwrap();
+                    Syscall::wake(message_id).unwrap();
 
                     // execute reply hook
                     if let Some(f) = reply_hook {
@@ -405,7 +416,7 @@ impl WakeSignals {
                 WakeSignal::Ready { .. } => panic!("A reply has already received"),
             };
         } else {
-            ::gstd::debug!(
+            debug!(
                 "A message has received a reply though it wasn't to receive one, or a processed message has received a reply"
             );
         }
@@ -429,7 +440,7 @@ impl WakeSignals {
         if let Some(signal @ WakeSignal::Pending { .. }) = self.signals.get_mut(&reply_to) {
             signal.expire(now);
         } else {
-            ::gstd::debug!("A message has timed out after reply");
+            debug!("A message has timed out after reply");
         }
     }
 
@@ -1161,5 +1172,546 @@ mod tests {
             signals().signals.remove(&reply_to);
             tasks().remove(&message_id);
         });
+    }
+
+    /// Reset the (thread-local) reply/signal context to "no context" so a test
+    /// that ran earlier on the same worker thread can't leak an `Ok` reply/signal
+    /// code into a test that expects to be outside those entrypoints.
+    fn clear_reply_signal_ctx() {
+        use gear_core_errors::{ExecutionError, ExtError};
+        Syscall::with_reply_code(Err(ExtError::Execution(ExecutionError::NoReplyContext).into()));
+        Syscall::with_signal_code(Err(
+            ExtError::Execution(ExecutionError::NoSignalContext).into(),
+        ));
+    }
+
+    fn poll_once<F: Future + Unpin>(f: &mut F) -> Poll<F::Output> {
+        let mut cx = Context::from_waker(task::Waker::noop());
+        core::pin::Pin::new(f).poll(&mut cx)
+    }
+
+    /// A `Ready` signal carrying a successful reply resolves the poll to
+    /// `Ok(payload)` and removes the entry so it can't be double-consumed.
+    #[test]
+    fn poll_ready_success_returns_ok_and_removes_entry() {
+        serial(|| {
+            let reply_to = msg_id();
+            signals().signals.insert(
+                reply_to,
+                WakeSignal::Ready {
+                    payload: b"OK".to_vec(),
+                    reply_code: ReplyCode::Success(SuccessReplyReason::Manual),
+                },
+            );
+            let mut cx = Context::from_waker(task::Waker::noop());
+            match signals().poll(&reply_to, &mut cx) {
+                Poll::Ready(Ok(p)) => assert_eq!(p, b"OK".to_vec()),
+                other => panic!("expected Ok, got {other:?}"),
+            }
+            assert!(
+                !signals().signals.contains_key(&reply_to),
+                "Ready entry must be removed once consumed"
+            );
+        });
+    }
+
+    #[test]
+    fn poll_ready_error_and_unsupported_map_to_errors() {
+        serial(|| {
+            let err_reply = msg_id();
+            signals().signals.insert(
+                err_reply,
+                WakeSignal::Ready {
+                    payload: b"e".to_vec(),
+                    reply_code: ReplyCode::Error(ErrorReplyReason::Execution(
+                        SimpleExecutionError::UserspacePanic,
+                    )),
+                },
+            );
+            let mut cx = Context::from_waker(task::Waker::noop());
+            assert!(matches!(
+                signals().poll(&err_reply, &mut cx),
+                Poll::Ready(Err(Error::ErrorReply(..)))
+            ));
+
+            let uns = msg_id();
+            signals().signals.insert(
+                uns,
+                WakeSignal::Ready {
+                    payload: b"u".to_vec(),
+                    reply_code: ReplyCode::Unsupported,
+                },
+            );
+            assert!(matches!(
+                signals().poll(&uns, &mut cx),
+                Poll::Ready(Err(Error::UnsupportedReply(_)))
+            ));
+        });
+    }
+
+    #[test]
+    #[should_panic(expected = "Poll not registered")]
+    fn poll_unregistered_panics() {
+        serial(|| {
+            let reply_to = msg_id();
+            let mut cx = Context::from_waker(task::Waker::noop());
+            let _ = signals().poll(&reply_to, &mut cx);
+        });
+    }
+
+    /// A reply for a `Pending` signal captures the payload and reply code into
+    /// `Ready`, fires the reply hook, and wakes the loop; the awaiting poll then
+    /// yields the payload.
+    #[test]
+    fn record_reply_pending_fires_hook_and_resolves_to_ready() {
+        serial(|| {
+            let message_id = msg_id();
+            set_context(message_id, 10);
+            clear_reply_signal_ctx();
+            tasks().insert(message_id, Task::new(async {}));
+
+            let reply_to = msg_id();
+            let fired = std::rc::Rc::new(core::cell::Cell::new(false));
+            let f = fired.clone();
+            signals().register_signal(reply_to, Lock::up_to(10), Some(Box::new(move || f.set(true))));
+
+            // Simulate the `handle_reply` context the runtime sees.
+            Syscall::with_read_bytes(Ok(b"PONG".to_vec()));
+            Syscall::with_reply_code(Ok(ReplyCode::Success(SuccessReplyReason::Manual)));
+
+            signals().record_reply(&reply_to);
+
+            assert!(fired.get(), "reply hook must fire on a successful reply");
+            assert!(matches!(
+                signals().signals.get(&reply_to),
+                Some(WakeSignal::Ready { .. })
+            ));
+
+            let mut cx = Context::from_waker(task::Waker::noop());
+            match signals().poll(&reply_to, &mut cx) {
+                Poll::Ready(Ok(p)) => assert_eq!(p, b"PONG".to_vec()),
+                other => panic!("expected Ok(PONG), got {other:?}"),
+            }
+            assert!(!signals().signals.contains_key(&reply_to));
+
+            tasks().remove(&message_id);
+            clear_reply_signal_ctx();
+        });
+    }
+
+    #[test]
+    fn record_reply_on_expired_with_hook_fires_and_removes() {
+        serial(|| {
+            let reply_to = msg_id();
+            let fired = std::rc::Rc::new(core::cell::Cell::new(false));
+            let f = fired.clone();
+            signals().signals.insert(
+                reply_to,
+                WakeSignal::Expired {
+                    expected: 1,
+                    now: 2,
+                    reply_hook: Some(Box::new(move || f.set(true))),
+                },
+            );
+            // Expired branch takes no wake path.
+            signals().record_reply(&reply_to);
+            assert!(fired.get(), "late reply must fire the preserved hook");
+            assert!(!signals().signals.contains_key(&reply_to));
+        });
+    }
+
+    #[test]
+    #[should_panic(expected = "already received")]
+    fn record_reply_on_ready_panics() {
+        serial(|| {
+            let reply_to = msg_id();
+            signals().signals.insert(
+                reply_to,
+                WakeSignal::Ready {
+                    payload: vec![],
+                    reply_code: ReplyCode::Success(SuccessReplyReason::Manual),
+                },
+            );
+            signals().record_reply(&reply_to);
+        });
+    }
+
+    #[test]
+    fn record_reply_unknown_is_noop() {
+        serial(|| {
+            let reply_to = msg_id();
+            signals().record_reply(&reply_to);
+            assert!(!signals().signals.contains_key(&reply_to));
+        });
+    }
+
+    /// `record_timeout` only transitions `Pending` entries; `Ready`, `Expired`,
+    /// and missing entries are left untouched (captured timing is never
+    /// overwritten).
+    #[test]
+    fn record_timeout_is_noop_on_non_pending() {
+        serial(|| {
+            let ready = msg_id();
+            signals().signals.insert(
+                ready,
+                WakeSignal::Ready {
+                    payload: b"x".to_vec(),
+                    reply_code: ReplyCode::Unsupported,
+                },
+            );
+            signals().record_timeout(ready, 5);
+            assert!(
+                matches!(signals().signals.get(&ready), Some(WakeSignal::Ready { .. })),
+                "Ready must stay Ready"
+            );
+
+            let expired = msg_id();
+            signals().signals.insert(
+                expired,
+                WakeSignal::Expired {
+                    expected: 3,
+                    now: 4,
+                    reply_hook: None,
+                },
+            );
+            signals().record_timeout(expired, 99);
+            assert!(
+                matches!(
+                    signals().signals.get(&expired),
+                    Some(WakeSignal::Expired {
+                        expected: 3,
+                        now: 4,
+                        ..
+                    })
+                ),
+                "Expired timing must not be overwritten"
+            );
+
+            let missing = msg_id();
+            signals().record_timeout(missing, 1);
+            assert!(!signals().signals.contains_key(&missing));
+
+            signals().signals.remove(&ready);
+            signals().signals.remove(&expired);
+        });
+    }
+
+    /// The `(expected, now)` of a timeout is captured on the first observation
+    /// and must not drift when the future is polled again at a later block.
+    #[test]
+    fn poll_expired_timing_is_captured_once() {
+        serial(|| {
+            let message_id = msg_id();
+            set_context(message_id, 700);
+            tasks().insert(message_id, Task::new(async {}));
+
+            let reply_to = msg_id();
+            let lock = Lock::up_to(2);
+            let deadline = lock.deadline();
+            signals().register_signal(reply_to, lock, None);
+
+            Syscall::with_block_height(deadline + 1);
+            let mut cx = Context::from_waker(task::Waker::noop());
+            let first = deadline + 1;
+            assert!(matches!(
+                signals().poll(&reply_to, &mut cx),
+                Poll::Ready(Err(Error::Timeout(d, n))) if d == deadline && n == first
+            ));
+
+            Syscall::with_block_height(deadline + 50);
+            match signals().poll(&reply_to, &mut cx) {
+                Poll::Ready(Err(Error::Timeout(expected, now))) => {
+                    assert_eq!(expected, deadline);
+                    assert_eq!(now, first, "now must stay the first-observed timeout block");
+                }
+                other => panic!("expected timeout, got {other:?}"),
+            }
+
+            signals().signals.remove(&reply_to);
+            tasks().remove(&message_id);
+        });
+    }
+
+    /// Dropping the future after its reply already arrived (`Ready`) discards
+    /// the unconsumed payload — nothing will ever read it.
+    #[test]
+    fn message_future_drop_removes_ready_entry() {
+        serial(|| {
+            let reply_to = msg_id();
+            signals().signals.insert(
+                reply_to,
+                WakeSignal::Ready {
+                    payload: b"z".to_vec(),
+                    reply_code: ReplyCode::Success(SuccessReplyReason::Manual),
+                },
+            );
+            drop(MessageFuture {
+                waiting_reply_to: reply_to,
+            });
+            assert!(
+                !signals().signals.contains_key(&reply_to),
+                "a Ready payload no one will consume must be dropped"
+            );
+        });
+    }
+
+    /// `waits_for` is true for `Pending`/`Ready` and false for `Expired`/missing
+    /// entries; `is_terminated` is its inverse.
+    #[test]
+    fn waits_for_and_is_terminated_truth_table() {
+        serial(|| {
+            let pending = msg_id();
+            let ready = msg_id();
+            let expired = msg_id();
+            let missing = msg_id();
+            signals().signals.insert(
+                pending,
+                WakeSignal::Pending {
+                    message_id: pending,
+                    deadline: 1,
+                    reply_hook: None,
+                },
+            );
+            signals().signals.insert(
+                ready,
+                WakeSignal::Ready {
+                    payload: vec![],
+                    reply_code: ReplyCode::Success(SuccessReplyReason::Manual),
+                },
+            );
+            signals().signals.insert(
+                expired,
+                WakeSignal::Expired {
+                    expected: 1,
+                    now: 2,
+                    reply_hook: None,
+                },
+            );
+
+            assert!(signals().waits_for(&pending));
+            assert!(signals().waits_for(&ready), "Ready still counts as waited-for");
+            assert!(!signals().waits_for(&expired));
+            assert!(!signals().waits_for(&missing));
+
+            assert!(!is_terminated(&pending));
+            assert!(!is_terminated(&ready));
+            assert!(is_terminated(&expired));
+            assert!(is_terminated(&missing));
+
+            signals().signals.remove(&pending);
+            signals().signals.remove(&ready);
+            signals().signals.remove(&expired);
+        });
+    }
+
+    /// `next_lock` returns the earliest-deadline lock, breaking deadline ties in
+    /// favour of `UpTo` over `Exactly`.
+    #[test]
+    fn next_lock_prefers_earliest_then_up_to_on_tie() {
+        serial(|| {
+            set_context(msg_id(), 1000);
+            let mut task = Task::new(async {});
+            let up = Lock::up_to(5); // deadline 1005, UpTo
+            let exact = Lock::exactly(5); // deadline 1005, Exactly
+            let later = Lock::up_to(10); // deadline 1010
+            task.insert_sleep(later);
+            task.insert_sleep(exact);
+            task.insert_sleep(up);
+
+            let next = task.next_lock(1000).unwrap();
+            assert_eq!(next.deadline(), up.deadline());
+            assert_eq!(
+                next.wait_type(),
+                WaitType::UpTo,
+                "UpTo must win the same-deadline tie-break"
+            );
+        });
+    }
+
+    #[test]
+    fn next_lock_skips_dropped_signal_and_returns_later_pending() {
+        serial(|| {
+            let message_id = msg_id();
+            set_context(message_id, 2000);
+            tasks().insert(message_id, Task::new(async {}));
+
+            let gone = msg_id();
+            let pending = msg_id();
+            signals().register_signal(gone, Lock::up_to(3), None); // deadline 2003
+            signals().register_signal(pending, Lock::up_to(7), None); // deadline 2007
+            // The earlier lock's signal disappears (e.g. consumed/cleared).
+            signals().signals.remove(&gone);
+
+            let task = tasks().get_mut(&message_id).unwrap();
+            let next = task.next_lock(2000).unwrap();
+            assert_eq!(
+                next.deadline(),
+                2007,
+                "the dropped earlier lock must be skipped, returning the live one"
+            );
+
+            signals().signals.remove(&pending);
+            tasks().remove(&message_id);
+        });
+    }
+
+    /// `register_hook` stores an `Expired`-with-hook entry only when a hook is
+    /// supplied (a later reply fires it); a `None` hook stores nothing.
+    #[cfg(not(feature = "ethexe"))]
+    #[test]
+    fn register_hook_some_stores_expired_with_hook_none_stores_nothing() {
+        serial(|| {
+            set_context(msg_id(), 10);
+
+            let with = msg_id();
+            let fired = std::rc::Rc::new(core::cell::Cell::new(false));
+            let f = fired.clone();
+            signals().register_hook(with, Some(Box::new(move || f.set(true))));
+            assert!(matches!(
+                signals().signals.get(&with),
+                Some(WakeSignal::Expired {
+                    reply_hook: Some(_),
+                    ..
+                })
+            ));
+
+            let without = msg_id();
+            signals().register_hook(without, None);
+            assert!(
+                !signals().signals.contains_key(&without),
+                "a None hook must store nothing"
+            );
+
+            // A later reply fires the stored hook (Expired branch, no wake).
+            signals().record_reply(&with);
+            assert!(fired.get());
+            assert!(!signals().signals.contains_key(&with));
+        });
+    }
+
+    /// `MessageSleepFuture` stays `Pending` until the block height reaches its
+    /// deadline, then resolves.
+    #[test]
+    fn message_sleep_future_pending_then_ready_at_deadline() {
+        serial(|| {
+            Syscall::with_block_height(800);
+            let mut fut = MessageSleepFuture::new(803);
+            assert!(matches!(poll_once(&mut fut), Poll::Pending));
+            Syscall::with_block_height(803);
+            assert!(matches!(poll_once(&mut fut), Poll::Ready(())));
+        });
+    }
+
+    #[test]
+    fn sleep_for_inserts_unkeyed_lock_and_zero_is_immediately_ready() {
+        serial(|| {
+            let message_id = msg_id();
+            set_context(message_id, 900);
+            tasks().insert(message_id, Task::new(async {}));
+
+            let mut fut = sleep_for(3); // deadline 903
+            assert!(
+                tasks()
+                    .get_mut(&message_id)
+                    .unwrap()
+                    .locks
+                    .iter()
+                    .any(|(_, reply_to)| reply_to.is_none()),
+                "sleep_for must push a lock with no reply id"
+            );
+            assert!(matches!(poll_once(&mut fut), Poll::Pending));
+
+            let mut zero = sleep_for(0); // deadline == now
+            assert!(matches!(poll_once(&mut zero), Poll::Ready(())));
+
+            tasks().remove(&message_id);
+        });
+    }
+
+    /// `handle_signal` drops the task and turns its pending reply locks into
+    /// `Expired`-with-hook entries, so a late reply can still fire the hook.
+    #[cfg(not(feature = "ethexe"))]
+    #[test]
+    fn handle_signal_drops_task_and_expires_signals_preserving_hook() {
+        serial(|| {
+            let message_id = msg_id();
+            set_context(message_id, 60);
+            clear_reply_signal_ctx();
+            tasks().insert(message_id, Task::new(async {}));
+
+            let reply_to = msg_id();
+            let fired = std::rc::Rc::new(core::cell::Cell::new(false));
+            let f = fired.clone();
+            signals().register_signal(reply_to, Lock::up_to(5), Some(Box::new(move || f.set(true))));
+
+            Syscall::with_signal_from(Ok(message_id));
+            handle_signal();
+
+            assert!(!tasks().contains_key(&message_id), "task must be removed");
+            assert!(
+                matches!(
+                    signals().signals.get(&reply_to),
+                    Some(WakeSignal::Expired {
+                        reply_hook: Some(_),
+                        ..
+                    })
+                ),
+                "pending reply locks become Expired-with-hook on signal teardown"
+            );
+
+            // A late reply after the signal still fires the hook.
+            signals().record_reply(&reply_to);
+            assert!(fired.get());
+            assert!(!signals().signals.contains_key(&reply_to));
+        });
+    }
+
+    /// `set_critical_hook` must reject being called inside the `handle_reply`
+    /// entrypoint (a reply context is present).
+    #[cfg(not(feature = "ethexe"))]
+    #[test]
+    #[should_panic(expected = "handle_reply")]
+    fn set_critical_hook_panics_in_reply_context() {
+        serial(|| {
+            Syscall::with_reply_code(Ok(ReplyCode::Success(SuccessReplyReason::Manual)));
+            set_critical_hook(|_| {});
+        });
+    }
+
+    #[cfg(not(feature = "ethexe"))]
+    #[test]
+    fn set_critical_hook_stores_hook_on_current_task() {
+        serial(|| {
+            let message_id = msg_id();
+            set_context(message_id, 1);
+            clear_reply_signal_ctx();
+            tasks().insert(message_id, Task::new(async {}));
+
+            set_critical_hook(|_| {});
+            assert!(
+                tasks().get(&message_id).unwrap().critical_hook.is_some(),
+                "hook must be stored on the current message's task"
+            );
+
+            tasks().remove(&message_id);
+        });
+    }
+
+    /// `IdHasher` derives its 64-bit hash from the first 8 bytes of the id, so
+    /// distinct ids hash distinctly.
+    #[test]
+    fn id_hasher_reads_first_eight_le_bytes() {
+        use core::hash::Hasher;
+        let mut h = IdHasher::default();
+        let mut bytes = [0u8; 32];
+        bytes[..8].copy_from_slice(&7u64.to_ne_bytes());
+        h.write(&bytes);
+        assert_eq!(h.finish(), 7u64);
+
+        let mut h2 = IdHasher::default();
+        let mut other = [0u8; 32];
+        other[..8].copy_from_slice(&8u64.to_ne_bytes());
+        h2.write(&other);
+        assert_ne!(h.finish(), h2.finish(), "distinct ids must hash distinctly");
     }
 }
