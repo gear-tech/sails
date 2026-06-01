@@ -719,7 +719,7 @@ fn chaos_service_select_first_reply() {
     let log = Log::builder().source(program.id()).dest(ACTOR_ID);
     system
         .get_mailbox(ACTOR_ID)
-        .reply_bytes(log.payload_bytes(b"A".to_vec()), vec![], 0)
+        .reply_bytes(log.payload_bytes(b"A"), vec![], 0)
         .unwrap();
     let run = system.run_next_block();
 
