@@ -55,13 +55,31 @@ fn signals() -> &'static mut WakeSignals {
     unsafe { &mut *core::ptr::addr_of_mut!(MAP) }.get_or_insert_with(WakeSignals::new)
 }
 
+/// Runs `f` with a short-lived `&mut Task` for `message_id`, returning `None`
+/// when no task exists.
+///
+/// The borrow is confined to `f`, so it never overlaps another `&mut Task` to
+/// the same entry. This is what keeps the reentrant accesses performed from
+/// inside a polled future (`register_signal`, `set_critical_hook`, `sleep_for`)
+/// sound: [`message_loop`] never holds a live `&mut Task` across the poll, so
+/// each `with_task_mut` reborrow of the `static mut` task map is disjoint in
+/// time from every other.
+#[inline]
+fn with_task_mut<R>(message_id: &MessageId, f: impl FnOnce(&mut Task) -> R) -> Option<R> {
+    tasks().get_mut(message_id).map(f)
+}
+
 /// Matches a task to a some message in order to avoid duplicate execution
 /// of code that was running before the program was interrupted by `wait`.
 ///
 /// The [`Task`] lifecycle matches to the single message processing in the `handle()` entry-point
 /// and ends when all internal futures are resolved or `handle_signal()` received for this `message_id`.
 pub struct Task {
-    future: LocalBoxFuture<'static, ()>,
+    /// Wrapped in `Option` so [`message_loop`] can move the future *out* for the
+    /// duration of a poll. While it is taken, the slot is `None` and the
+    /// reentrant `with_task_mut` accesses from inside the future cannot alias the
+    /// future allocation through this `Task` (no `Box`-noalias hazard).
+    future: Option<LocalBoxFuture<'static, ()>>,
     locks: BinaryHeap<(Reverse<Lock>, Option<MessageId>)>,
     #[cfg(not(feature = "ethexe"))]
     critical_hook: Option<Box<dyn FnOnce(MessageId)>>,
@@ -73,7 +91,7 @@ impl Task {
         F: Future<Output = ()> + 'static,
     {
         Self {
-            future: future.boxed_local(),
+            future: Some(future.boxed_local()),
             locks: Default::default(),
             #[cfg(not(feature = "ethexe"))]
             critical_hook: None,
@@ -179,10 +197,10 @@ pub fn set_critical_hook<F: FnOnce(MessageId) + 'static>(f: F) {
     }
     let message_id = Syscall::message_id();
 
-    tasks()
-        .get_mut(&message_id)
-        .expect("A message task must exist")
-        .critical_hook = Some(Box::new(f));
+    with_task_mut(&message_id, |task| {
+        task.critical_hook = Some(Box::new(f));
+    })
+    .unwrap();
 }
 
 /// Drives asynchronous handling for the currently executing inbound message.
@@ -204,26 +222,49 @@ where
     F: Future<Output = ()> + 'static,
 {
     let msg_id = Syscall::message_id();
-    let tasks_map = tasks();
-    let task = tasks_map.entry(msg_id).or_insert_with(|| {
-        #[cfg(not(feature = "ethexe"))]
-        {
-            Syscall::system_reserve_gas(gstd::Config::system_reserve()).unwrap();
-        }
-        Task::new(future)
-    });
+
+    // Locate-or-create the task and move its future *out* in a single map
+    // lookup: `or_insert_with` hands back the `&mut Task`, and that borrow ends
+    // with `.take()` — before the poll. While we own the future as an
+    // independent local, the task entry's `future` slot is `None`, so the
+    // reentrant `with_task_mut` accesses from inside the future
+    // (`register_signal` / `set_critical_hook` / `sleep_for`) borrow a `Task`
+    // that no longer owns this future allocation. There is therefore no overlap
+    // between the polled future and the `&mut Task` — sound under both Stacked
+    // and Tree Borrows, with no `Box`-noalias hazard and no `unsafe`.
+    let mut fut = tasks()
+        .entry(msg_id)
+        .or_insert_with(|| {
+            #[cfg(not(feature = "ethexe"))]
+            {
+                Syscall::system_reserve_gas(gstd::Config::system_reserve()).unwrap();
+            }
+            Task::new(future)
+        })
+        .future
+        .take()
+        .unwrap();
 
     let completed = {
         let mut cx = Context::from_waker(task::Waker::noop());
         debug!("message_loop: polling future for {msg_id}");
-        task.future.as_mut().poll(&mut cx).is_ready()
+        fut.as_mut().poll(&mut cx).is_ready()
     };
 
     if completed {
-        tasks_map.remove(&msg_id);
+        tasks().remove(&msg_id);
     } else {
+        // Still pending: return the future to its `Task` and arm the wait. The
+        // returned lock is awaited *outside* the borrow so `wait` never runs
+        // while a `&mut Task` is live.
         let now = Syscall::block_height();
-        task.next_lock(now).unwrap().wait(now);
+        with_task_mut(&msg_id, |task| {
+            task.future = Some(fut);
+            task.next_lock(now)
+        })
+        .flatten()
+        .unwrap()
+        .wait(now);
     }
 }
 
@@ -328,11 +369,11 @@ impl WakeSignals {
         // ::gstd::debug!(
         //     "register_signal: add lock for reply_to {waiting_reply_to} in message {message_id}"
         // );
-        // SAFETY: the task for the current `message_id` is inserted by
-        // `message_loop` before the user future driving this call is polled, so
-        // it is always present here.
-        unsafe { tasks().get_mut(&message_id).unwrap_unchecked() }
-            .insert_lock(waiting_reply_to, lock);
+        // The task for the current `message_id` is inserted by `message_loop`
+        // before the user future driving this call is polled, so it is always
+        // present here. `with_task_mut` confines the `&mut Task` to the closure,
+        // keeping this reentrant access disjoint from `message_loop`'s borrow.
+        with_task_mut(&message_id, |task| task.insert_lock(waiting_reply_to, lock)).unwrap();
     }
 
     /// Registers a reply hook for `waiting_reply_to` without creating a tracked wait.
@@ -811,9 +852,11 @@ impl Future for MessageSleepFuture {
 pub fn sleep_for(block_count: BlockCount) -> impl Future<Output = ()> {
     let message_id = Syscall::message_id();
     let lock = Lock::exactly(block_count);
-    // SAFETY: `sleep_for` runs inside the user future, which `message_loop`
-    // polls only after inserting the task for the current `message_id`.
-    unsafe { tasks().get_mut(&message_id).unwrap_unchecked() }.insert_sleep(lock);
+    // `sleep_for` runs inside the user future, which `message_loop` polls only
+    // after inserting the task for the current `message_id`. `with_task_mut`
+    // confines the `&mut Task` to the closure so this reentrant access never
+    // aliases `message_loop`'s borrow.
+    with_task_mut(&message_id, |task| task.insert_sleep(lock)).unwrap();
     MessageSleepFuture::new(lock.deadline())
 }
 
@@ -911,15 +954,18 @@ mod tests {
             let lock = Lock::up_to(5);
 
             tasks().insert(message_id, Task::new(async {}));
-            let task = tasks().get_mut(&message_id).unwrap();
             signals().register_signal(reply_to, lock, None);
 
-            assert_eq!(1, task.locks.len());
+            // Re-borrow `tasks()` for each read instead of holding a `&mut Task`
+            // across `register_signal` (which reborrows the `static mut` task
+            // map): two live `&mut Task` to the same entry is UB under Stacked
+            // Borrows. Short, disjoint borrows keep the test sound.
+            assert_eq!(1, tasks().get_mut(&message_id).unwrap().locks.len());
 
             signals().signals.remove(&reply_to);
 
-            assert_eq!(1, task.locks.len());
-            assert_eq!(None, task.next_lock(31));
+            assert_eq!(1, tasks().get_mut(&message_id).unwrap().locks.len());
+            assert_eq!(None, tasks().get_mut(&message_id).unwrap().next_lock(31));
             tasks().remove(&message_id);
         });
     }
@@ -1637,6 +1683,34 @@ mod tests {
             assert!(matches!(poll_once(&mut zero), Poll::Ready(())));
 
             tasks().remove(&message_id);
+        });
+    }
+
+    /// Drives `message_loop` with a future that reentrantly mutates its own
+    /// `Task` (`sleep_for` -> `with_task_mut(insert_sleep)`) *while being
+    /// polled*. This is the exact aliasing shape the runtime must keep sound:
+    /// `message_loop` moves the future out of its `Task` for the poll, so the
+    /// reentrant `with_task_mut` borrow cannot overlap the polled future (no
+    /// `&mut future` / `&mut Task` overlap, no `Box`-noalias hazard). Miri
+    /// (Stacked Borrows) validates the absence of UB on this path.
+    #[test]
+    fn message_loop_reentrant_with_task_mut_during_poll_is_sound() {
+        serial(|| {
+            let message_id = msg_id();
+            set_context(message_id, 7);
+
+            // `sleep_for(0)` resolves immediately (deadline == now), so the
+            // future completes in a single poll without reaching `Lock::wait`
+            // (the suspend syscall is not available off-chain) — but it still
+            // performs the reentrant `with_task_mut(insert_sleep)` mid-poll.
+            message_loop(async {
+                sleep_for(0).await;
+            });
+
+            assert!(
+                !tasks().contains_key(&message_id),
+                "a completed future must tear its task down"
+            );
         });
     }
 
