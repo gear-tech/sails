@@ -13,7 +13,7 @@ const main = async () => {
 
   // Deploy the program
 
-  const code = readFileSync('../../target/wasm32v1-none/release/demo.opt.wasm');
+  const code = readFileSync('../../target/wasm32-gear/release/demo.opt.wasm');
 
   const ctorBuilder = await program.newCtorFromCode(code, null, null).withAccount(alice).calculateGas();
   const { blockHash, msgId, txHash } = await ctorBuilder.signAndSend();
