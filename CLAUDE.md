@@ -58,8 +58,8 @@ cargo test -p sails-macros-core --locked -- test_name
 cargo test --workspace --all-targets --locked --no-fail-fast --manifest-path ./rs/ethexe/Cargo.toml
 
 # Build WASM IDL parser (needed for JS tests)
-cargo build -p sails-idl-parser-wasm --target wasm32-unknown-unknown --release
-wasm-opt -O4 -o ./target/wasm32-unknown-unknown/release/sails_idl_v2_parser.wasm ./target/wasm32-unknown-unknown/release/sails_idl_parser_wasm.wasm
+cargo build -p sails-idl-parser-wasm --target wasm32v1-none --release
+wasm-opt -O4 -o ./target/wasm32v1-none/release/sails_idl_v2_parser.wasm ./target/wasm32v1-none/release/sails_idl_parser_wasm.wasm
 ```
 
 ### JavaScript/TypeScript
@@ -106,7 +106,7 @@ Current version.
 - **`no_std` + `alloc`** core with an opt-in `std` feature — the same crate runs in WASM and on host.
 - **Preprocessor with `!@include` directives** (`rs/idl-parser-v2/src/preprocess/`): an `IdlLoader` trait with built-in `FsLoader` and `GitLoader` implementations, enabling multi-file IDLs assembled from local paths or `git://` URLs, with per-source deduplication.
 - Consumed by `rs/client-gen-v2/`, `rs/sol-gen/`, and the JS toolchain.
-- WASM bridge (`rs/idl-parser-wasm/`): C ABI (`parse_idl_to_json`) over `parse_idl`, compiled to `wasm32-unknown-unknown` and loaded by `js/parser/` so JS reuses the Rust grammar.
+- WASM bridge (`rs/idl-parser-wasm/`): C ABI (`parse_idl_to_json`) over `parse_idl`, compiled to `wasm32v1-none` and loaded by `js/parser/` so JS reuses the Rust grammar.
 
 ### Sails Header
 
@@ -149,7 +149,7 @@ Set `__GEAR_WASM_BUILDER_NO_FEATURES_TRACKING=1` to disable WASM builder feature
 ## Rust Edition & Toolchain
 
 - Edition 2024, MSRV `1.93`
-- WASM targets: `wasm32-unknown-unknown`, `wasm32v1-none`
+- WASM targets: `wasm32v1-none`
 - Dependencies on Gear crates are pinned to exact versions (`=1.10.0`)
 - Several other deps are also pinned (parity-scale-codec, lalrpop, handlebars)
 

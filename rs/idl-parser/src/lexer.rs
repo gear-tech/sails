@@ -1,5 +1,6 @@
+use alloc::string::{String, ToString};
+use core::fmt::{self, Display, Formatter};
 use logos::{Logos, SpannedIter};
-use std::fmt::{Display, Formatter, Result as FmtResult};
 use thiserror::Error;
 
 use crate::ast::ParseError;
@@ -98,7 +99,7 @@ pub(crate) enum Token {
 }
 
 impl Display for Token {
-    fn fmt(&self, fmt: &mut Formatter<'_>) -> FmtResult {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         write!(fmt, "{self:?}")
     }
 }

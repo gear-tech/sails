@@ -1,3 +1,16 @@
+#![no_std]
+
+#[macro_use]
+extern crate alloc;
+extern crate galloc;
+
+use alloc::{
+    boxed::Box,
+    ffi::CString,
+    string::{String, ToString},
+};
+use core::{ffi::c_char, slice};
+
 #[repr(u32)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ErrorCode {
@@ -8,7 +21,7 @@ pub enum ErrorCode {
 #[repr(C)]
 pub struct ParseResult {
     code: ErrorCode,
-    str: *const std::ffi::c_char,
+    str: *const c_char,
 }
 
 /// # Safety
@@ -41,8 +54,8 @@ fn create_parse_result(code: ErrorCode, str: String) -> *mut ParseResult {
     } else {
         str
     };
-    let cstring = std::ffi::CString::new(sanitized)
-        .expect("CString::new must succeed after NUL sanitization");
+    let cstring =
+        CString::new(sanitized).expect("CString::new must succeed after NUL sanitization");
     let result = ParseResult {
         code,
         str: cstring.into_raw(),
@@ -67,8 +80,8 @@ fn decode_idl_input(idl_utf8: *const u8, idl_len: i32) -> Result<String, *mut Pa
     if idl_len == 0 {
         return Ok(String::new());
     }
-    let slice = unsafe { std::slice::from_raw_parts(idl_utf8, idl_len as usize) };
-    match std::str::from_utf8(slice) {
+    let slice = unsafe { slice::from_raw_parts(idl_utf8, idl_len as usize) };
+    match str::from_utf8(slice) {
         Ok(s) => Ok(s.to_string()),
         Err(err) => Err(create_parse_result(
             ErrorCode::ParseError,
@@ -88,6 +101,12 @@ pub unsafe extern "C" fn free_parse_result(res: *mut ParseResult) {
     unsafe {
         let res = Box::from_raw(res);
         // drop
-        _ = std::ffi::CString::from_raw(res.str as _);
+        _ = CString::from_raw(res.str as _);
     }
+}
+
+#[cfg(target_arch = "wasm32")]
+#[panic_handler]
+pub fn panic(_: &core::panic::PanicInfo<'_>) -> ! {
+    core::arch::wasm32::unreachable()
 }

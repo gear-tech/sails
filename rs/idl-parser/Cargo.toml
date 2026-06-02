@@ -13,6 +13,8 @@ rust-version.workspace = true
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+galloc.workspace = true
+hashbrown.workspace = true
 lalrpop-util.workspace = true
 logos.workspace = true
 thiserror.workspace = true

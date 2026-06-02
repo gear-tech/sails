@@ -1,4 +1,9 @@
-use std::collections::HashSet;
+use alloc::{
+    boxed::Box,
+    string::{String, ToString},
+    vec::Vec,
+};
+use hashbrown::HashSet;
 use thiserror::Error;
 
 use crate::{

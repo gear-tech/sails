@@ -143,15 +143,15 @@ jobs:
 
       - name: Build IDL Parser for WASM
         run: |
-          cargo build -p sails-idl-parser --target wasm32-unknown-unknown --release
+          cargo build -p sails-idl-parser --target wasm32v1-none --release
           mkdir -p ./assets/sails_idl_parser
-          wasm-opt -O4 -o ./assets/sails_idl_parser/sails_idl_parser.wasm ./target/wasm32-unknown-unknown/release/sails_idl_parser.wasm
+          wasm-opt -O4 -o ./assets/sails_idl_parser/sails_idl_parser.wasm ./target/wasm32v1-none/release/sails_idl_parser.wasm
 
       - name: Build IDL v2 Parser for WASM
         run: |
-          cargo build -p sails-idl-parser-wasm --target wasm32-unknown-unknown --release
+          cargo build -p sails-idl-parser-wasm --target wasm32v1-none --release
           mkdir -p ./assets/sails_idl_parser
-          wasm-opt -O4 -o ./assets/sails_idl_parser/sails_idl_v2_parser.wasm ./target/wasm32-unknown-unknown/release/sails_idl_parser_wasm.wasm
+          wasm-opt -O4 -o ./assets/sails_idl_parser/sails_idl_v2_parser.wasm ./target/wasm32v1-none/release/sails_idl_parser_wasm.wasm
 
       - name: Build Demo
         run: |

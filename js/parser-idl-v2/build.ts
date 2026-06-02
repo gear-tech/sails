@@ -4,15 +4,15 @@ import { gzipSync } from 'node:zlib';
 import { buildEsmCjs, runTsc } from '../build-utils';
 
 const WASM_BYTES_PATH = resolve(import.meta.dir, 'src/wasm-bytes.ts');
-const WASM_PATH = resolve(import.meta.dir, '../../target/wasm32-unknown-unknown/release/sails_idl_v2_parser.wasm');
+const WASM_PATH = resolve(import.meta.dir, '../../target/wasm32v1-none/release/sails_idl_v2_parser.wasm');
 
 function getBase64Parser() {
   if (!existsSync(WASM_PATH)) {
     throw new Error(
       `WASM not found at ${WASM_PATH}\n` +
         'Build it first:\n' +
-        '  cargo build -p sails-idl-parser-wasm --target=wasm32-unknown-unknown --release\n' +
-        '  wasm-opt -O4 -o ./target/wasm32-unknown-unknown/release/sails_idl_v2_parser.wasm ./target/wasm32-unknown-unknown/release/sails_idl_parser_wasm.wasm',
+        '  cargo build -p sails-idl-parser-wasm --target=wasm32v1-none --release\n' +
+        '  wasm-opt -O4 -o ./target/wasm32v1-none/release/sails_idl_v2_parser.wasm ./target/wasm32v1-none/release/sails_idl_parser_wasm.wasm',
     );
   }
 

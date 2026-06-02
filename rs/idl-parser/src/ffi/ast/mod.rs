@@ -1,8 +1,6 @@
 use crate::ast;
-use std::{
-    ffi::{CString, c_char},
-    slice, str,
-};
+use alloc::{boxed::Box, ffi::CString};
+use core::{error::Error as CoreError, ffi::c_char, ptr, slice};
 
 pub mod visitor;
 
@@ -46,7 +44,7 @@ pub unsafe extern "C" fn parse_idl(idl_ptr: *const u8, idl_len: u32) -> *mut Par
     let result = ParseResult {
         error: Error {
             code: ErrorCode::Ok,
-            details: std::ptr::null(),
+            details: ptr::null(),
         },
         program: Box::into_raw(Box::new(program)),
     };
@@ -56,7 +54,7 @@ pub unsafe extern "C" fn parse_idl(idl_ptr: *const u8, idl_len: u32) -> *mut Par
 
 fn create_parse_error(
     code: ErrorCode,
-    e: impl std::error::Error,
+    e: impl CoreError,
     context: &'static str,
 ) -> *mut ParseResult {
     let details = CString::new(format!("{context}: {e}")).unwrap();
@@ -65,7 +63,7 @@ fn create_parse_error(
             code,
             details: details.into_raw(),
         },
-        program: std::ptr::null_mut(),
+        program: ptr::null_mut(),
     };
     Box::into_raw(Box::new(result))
 }
