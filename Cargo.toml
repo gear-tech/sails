@@ -83,7 +83,6 @@ sails-type-registry-derive = { path = "rs/type-registry/derive" }
 sails-rename = { package = "sails-rs", path = "rs" }
 
 # Gear deps
-galloc = "=1.10.0"
 gclient = "=1.10.0"
 gcore = "=1.10.0"
 gear-core = { version = "=1.10.0", default-features = false }
@@ -101,8 +100,9 @@ anyhow = "1"
 askama = { version = "0.16", default-features = false }
 cargo_metadata = "0.23"
 clap = "4.6"
-fs2 = "0.4.3"
 convert_case = "0.11"
+dlmalloc = "0.2"
+fs2 = "0.4.3"
 futures = { version = "0.3", default-features = false }
 genco = "0.19"
 git-download = "0.1"

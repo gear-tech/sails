@@ -13,7 +13,7 @@ rust-version.workspace = true
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-galloc.workspace = true
+dlmalloc = { workspace = true, features = ["global"] }
 hashbrown.workspace = true
 lalrpop-util.workspace = true
 logos.workspace = true

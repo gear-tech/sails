@@ -2,7 +2,6 @@
 
 #[macro_use]
 extern crate alloc;
-extern crate galloc;
 
 pub mod ast;
 mod grammar;
@@ -11,6 +10,10 @@ mod lexer;
 pub mod ffi {
     pub mod ast;
 }
+
+#[cfg(target_arch = "wasm32")]
+#[global_allocator]
+pub static ALLOC: dlmalloc::GlobalDlmalloc = dlmalloc::GlobalDlmalloc;
 
 #[cfg(target_arch = "wasm32")]
 #[panic_handler]

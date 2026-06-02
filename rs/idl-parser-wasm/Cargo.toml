@@ -13,6 +13,6 @@ rust-version.workspace = true
 crate-type = ["cdylib"]
 
 [dependencies]
-galloc.workspace = true
+dlmalloc = { workspace = true, features = ["global"] }
 sails-idl-ast = { workspace = true, features = ["serde"] }
 sails-idl-parser-v2.workspace = true

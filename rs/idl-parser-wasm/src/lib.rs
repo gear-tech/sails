@@ -2,7 +2,6 @@
 
 #[macro_use]
 extern crate alloc;
-extern crate galloc;
 
 use alloc::{
     boxed::Box,
@@ -104,6 +103,10 @@ pub unsafe extern "C" fn free_parse_result(res: *mut ParseResult) {
         _ = CString::from_raw(res.str as _);
     }
 }
+
+#[cfg(target_arch = "wasm32")]
+#[global_allocator]
+pub static ALLOC: dlmalloc::GlobalDlmalloc = dlmalloc::GlobalDlmalloc;
 
 #[cfg(target_arch = "wasm32")]
 #[panic_handler]
