@@ -1,4 +1,9 @@
-use std::collections::HashSet;
+use alloc::{
+    boxed::Box,
+    string::{String, ToString},
+    vec::Vec,
+};
+use hashbrown::HashSet;
 use thiserror::Error;
 
 use crate::{
@@ -491,7 +496,10 @@ impl EnumVariant {
 
 #[cfg(test)]
 mod tests {
+    extern crate alloc;
+
     use super::*;
+    use alloc::borrow::ToOwned;
 
     #[test]
     fn parser_works() {

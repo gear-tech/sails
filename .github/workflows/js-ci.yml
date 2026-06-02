@@ -52,8 +52,8 @@ jobs:
 
       - name: Build IDL v2 Parser for WASM
         run: |
-          cargo build -p sails-idl-parser-wasm --target wasm32-unknown-unknown --release
-          wasm-opt -O4 -o ./target/wasm32-unknown-unknown/release/sails_idl_v2_parser.wasm ./target/wasm32-unknown-unknown/release/sails_idl_parser_wasm.wasm
+          cargo build -p sails-idl-parser-wasm --target wasm32v1-none --release
+          wasm-opt -O4 -o ./target/wasm32v1-none/release/sails_idl_v2_parser.wasm ./target/wasm32v1-none/release/sails_idl_parser_wasm.wasm
 
       - name: "Install: NodeJS 20.x"
         uses: actions/setup-node@v6

@@ -1945,6 +1945,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "dlmalloc"
+version = "0.2.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ad5208a115eaba24916f7456929832e310a81518c641f93fee4f89aa93aa3675"
+dependencies = [
+ "cfg-if",
+ "libc",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
 name = "docify"
 version = "0.2.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4390,9 +4401,6 @@ name = "lalrpop-util"
 version = "0.20.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "507460a910eb7b32ee961886ff48539633b788a36b65692b95f225b844c82553"
-dependencies = [
- "regex-automata 0.4.14",
-]
 
 [[package]]
 name = "lazy_static"
@@ -6515,6 +6523,8 @@ dependencies = [
 name = "sails-idl-parser"
 version = "1.0.0"
 dependencies = [
+ "dlmalloc",
+ "hashbrown 0.17.0",
  "itertools 0.14.0",
  "lalrpop",
  "lalrpop-util",
@@ -6538,6 +6548,7 @@ dependencies = [
 name = "sails-idl-parser-wasm"
 version = "1.0.0"
 dependencies = [
+ "dlmalloc",
  "sails-idl-ast",
  "sails-idl-parser-v2",
 ]

@@ -1,6 +1,6 @@
 use super::*;
 use crate::{ast as raw_ast, ast::visitor as raw_visitor, ast::visitor::Visitor as RawVisitor};
-use std::ptr;
+use core::ptr;
 use wrapper::VisitorWrapper;
 
 #[repr(C, packed)]
