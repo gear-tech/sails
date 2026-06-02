@@ -99,10 +99,10 @@ jobs:
       - name: Download prebuilt WASM from Rust release
         run: |
           SAILS_RS_VERSION=$(jq -r '."sails-rs"' js/config.json)
-          mkdir -p ./target/wasm32-unknown-unknown/release
+          mkdir -p ./target/wasm32v1-none/release
           curl -fL \
             "https://github.com/gear-tech/sails/releases/download/rs%2Fv${SAILS_RS_VERSION}/sails_idl_v2_parser.wasm" \
-            -o ./target/wasm32-unknown-unknown/release/sails_idl_v2_parser.wasm
+            -o ./target/wasm32v1-none/release/sails_idl_v2_parser.wasm
 
       - name: Build sails-js and bundled dependencies
         run: |
@@ -145,10 +145,10 @@ jobs:
       - name: Download prebuilt WASM from Rust release
         run: |
           SAILS_RS_VERSION=$(jq -r '.v1."sails-rs"' js/config.json)
-          mkdir -p ./target/wasm32-unknown-unknown/release
+          mkdir -p ./target/wasm32v1-none/release
           curl -fL \
             "https://github.com/gear-tech/sails/releases/download/rs%2Fv${SAILS_RS_VERSION}/sails_idl_parser.wasm" \
-            -o ./target/wasm32-unknown-unknown/release/sails_idl_parser.wasm
+            -o ./target/wasm32v1-none/release/sails_idl_parser.wasm
 
       - name: Build sails-js-types
         run: pnpm build:types
@@ -190,10 +190,10 @@ jobs:
       - name: Download prebuilt WASM from Rust release
         run: |
           SAILS_RS_VERSION=$(jq -r '."sails-rs"' js/config.json)
-          mkdir -p ./target/wasm32-unknown-unknown/release
+          mkdir -p ./target/wasm32v1-none/release
           curl -fL \
             "https://github.com/gear-tech/sails/releases/download/rs%2Fv${SAILS_RS_VERSION}/sails_idl_v2_parser.wasm" \
-            -o ./target/wasm32-unknown-unknown/release/sails_idl_v2_parser.wasm
+            -o ./target/wasm32v1-none/release/sails_idl_v2_parser.wasm
 
       - name: Build all CLI dependencies in order
         run: |
