@@ -1,0 +1,11 @@
+[package]
+name = "sails-storage"
+description = "Allocator-light storage primitives for Sails programs"
+documentation = "https://docs.rs/sails-storage"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+

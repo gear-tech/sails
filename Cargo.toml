@@ -49,6 +49,7 @@ members = [
     "rs/macros/core",
     "rs/reflect-hash",
     "rs/sol-gen",
+    "rs/storage",
     "rs/type-registry",
     "rs/type-registry/derive",
     "benchmarks/alloc-stress",
@@ -75,6 +76,7 @@ sails-macros-core = { path = "rs/macros/core" }
 sails-macros = { path = "rs/macros" }
 sails-reflect-hash-derive = { path = "rs/reflect-hash/derive" }
 sails-reflect-hash = { path = "rs/reflect-hash" }
+sails-storage = { path = "rs/storage" }
 sails-rs = { path = "rs" }
 sails-sol-gen = { path = "rs/sol-gen" }
 sails-type-registry = { path = "rs/type-registry" }

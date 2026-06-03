@@ -34,10 +34,13 @@ sails-idl-gen = { workspace = true, optional = true }
 sails-idl-meta.workspace = true
 sails-macros.workspace = true
 sails-reflect-hash.workspace = true
+sails-storage = { workspace = true, optional = true }
 sails-type-registry = { workspace = true, features = ["derive", "gprimitives"] }
 spin.workspace = true
 thiserror.workspace = true
 tokio-stream = { workspace = true, optional = true }
+wasm-encoder = { workspace = true, features = ["wasmparser"], optional = true }
+wasmparser = { workspace = true, optional = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 gear-core = { workspace = true, optional = true } # Needed for compilation of gstd in native mode
@@ -46,6 +49,7 @@ gtest = { workspace = true, optional = true }
 log = { workspace = true, optional = true }
 
 [dev-dependencies]
+tempfile.workspace = true
 tokio = { workspace = true, features = ["rt", "macros"] }
 
 [features]
@@ -72,4 +76,4 @@ client-builder = ["std", "idl-gen", "idl-embed", "dep:sails-client-gen-v2", "dep
 idl-embed = ["dep:sails-idl-embed"]
 mockall = ["std", "dep:mockall"]
 std = ["futures/std", "sails-idl-gen?/std", "gear-core?/std"]
-wasm-builder = ["dep:gwasm-builder"]
+wasm-builder = ["dep:gwasm-builder", "dep:sails-storage", "dep:wasm-encoder", "dep:wasmparser"]

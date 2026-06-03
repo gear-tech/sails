@@ -1,13 +1,16 @@
 #![cfg_attr(not(doctest), doc = include_str!("../README.md"))]
 #![no_std]
 
-#[cfg(all(feature = "std", not(target_arch = "wasm32")))]
+#[cfg(any(
+    all(feature = "std", not(target_arch = "wasm32")),
+    all(feature = "wasm-builder", not(target_arch = "wasm32"))
+))]
 extern crate std;
 
+#[cfg(all(feature = "wasm-builder", not(target_arch = "wasm32")))]
+pub use build::build_wasm;
 #[cfg(feature = "client-builder")]
 pub use builder::{ClientBuilder, ClientGenerator, IdlPath, build_client, build_client_as_lib};
-#[cfg(feature = "wasm-builder")]
-pub use gwasm_builder::build as build_wasm;
 pub use hex;
 #[doc(hidden)]
 pub use paste;
@@ -21,6 +24,8 @@ pub use sails_idl_gen::generate_idl_to_file;
 pub use sails_idl_meta::{self as meta};
 pub use spin;
 
+#[cfg(all(feature = "wasm-builder", not(target_arch = "wasm32")))]
+pub mod build;
 #[cfg(feature = "client-builder")]
 mod builder;
 #[cfg(any(
