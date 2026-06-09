@@ -1,6 +1,7 @@
 use anyhow::Context;
 use askama::Template;
 use cargo_metadata::DependencyKind::{Build, Development, Normal};
+use chrono::{Datelike, Utc};
 use convert_case::{Case, Casing};
 use std::{
     env,
@@ -107,6 +108,7 @@ struct RootBuild {
 #[derive(Template)]
 #[template(path = "license.askama")]
 struct RootLicense {
+    copyright_year: String,
     package_author: String,
 }
 
@@ -240,6 +242,7 @@ impl ProgramGenerator {
 
     fn root_license(&self) -> RootLicense {
         RootLicense {
+            copyright_year: Utc::now().year().to_string(),
             package_author: self.package_author.clone(),
         }
     }
@@ -760,6 +763,7 @@ fn cargo_fmt<P: AsRef<Path>>(manifest_path: P) -> anyhow::Result<()> {
         .arg("fmt")
         .arg("--manifest-path")
         .arg(manifest_path.as_ref())
+        .arg("--all")
         .arg("--quiet");
 
     cmd.status()

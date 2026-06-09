@@ -54,3 +54,4 @@ async fn do_something_works() {
         event
     );
 }
+{{- "\n" -}}
