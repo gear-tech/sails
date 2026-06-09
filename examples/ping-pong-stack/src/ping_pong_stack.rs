@@ -27,7 +27,7 @@ impl<E: sails_rs::client::GearEnv> PingPongStack
     }
 }
 pub trait PingPongStackCtors {
-    type Env: sails_rs::client::GearEnv;
+    type Env: sails_rs::client::GearEnv + sails_rs::client::EnvWithCtor;
     fn create_ping(
         self,
         code_id: CodeId,
@@ -37,7 +37,7 @@ pub trait PingPongStackCtors {
     ) -> sails_rs::client::PendingCtor<PingPongStackProgram, io::CreatePong, Self::Env>;
 }
 
-impl<E: sails_rs::client::GearEnv> PingPongStackCtors
+impl<E: sails_rs::client::GearEnv + sails_rs::client::EnvWithCtor> PingPongStackCtors
     for sails_rs::client::Deployment<PingPongStackProgram, E>
 {
     type Env = E;

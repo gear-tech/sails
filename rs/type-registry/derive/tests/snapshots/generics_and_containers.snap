@@ -15,14 +15,12 @@ for Generics<T, N> {
         let base_name = ::sails_type_registry::const_suffixed_name(
             "Generics",
             ::sails_type_registry::alloc::vec![
-                (
-                    ::sails_type_registry::alloc::string::String::from("N"),
-                    ::sails_type_registry::alloc::format!("{}", N),
-                ),
+                (::sails_type_registry::alloc::string::String::from("N"),
+                ::sails_type_registry::alloc::format!("{}", N),)
             ],
         );
         let generics = ::sails_type_registry::alloc::vec![
-            <T as ::sails_type_registry::TypeInfo>::type_decl(registry),
+            < T as ::sails_type_registry::TypeInfo > ::type_decl(registry)
         ];
         registry
             .register_named_type_with_dependencies(
@@ -49,10 +47,8 @@ for Generics<T, N> {
         let base_name = ::sails_type_registry::const_suffixed_name(
             "Generics",
             ::sails_type_registry::alloc::vec![
-                (
-                    ::sails_type_registry::alloc::string::String::from("N"),
-                    ::sails_type_registry::alloc::format!("{}", N),
-                ),
+                (::sails_type_registry::alloc::string::String::from("N"),
+                ::sails_type_registry::alloc::format!("{}", N),)
             ],
         );
         ::core::option::Option::Some({
@@ -84,15 +80,9 @@ for Generics<T, N> {
                     ::sails_type_registry::ast::TypeDecl::named_with_generics(
                         "Result",
                         ::sails_type_registry::alloc::vec![
-                            ::sails_type_registry::ast::TypeDecl::named_with_generics(
-                                "Option",
-                                ::sails_type_registry::alloc::vec![
-                                    ::sails_type_registry::ast::TypeDecl::generic("T"),
-                                ],
-                            ),
-                            ::sails_type_registry::ast::TypeDecl::Primitive(
-                                ::sails_type_registry::ast::PrimitiveType::String,
-                            ),
+                            ::sails_type_registry::ast::TypeDecl::named_with_generics("Option",
+                            ::sails_type_registry::alloc::vec![::sails_type_registry::ast::TypeDecl::generic("T")],),
+                            ::sails_type_registry::ast::TypeDecl::Primitive(::sails_type_registry::ast::PrimitiveType::String)
                         ],
                     ),
                 )

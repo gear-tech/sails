@@ -27,13 +27,13 @@ impl<E: sails_rs::client::GearEnv> ComputeStress
     }
 }
 pub trait ComputeStressCtors {
-    type Env: sails_rs::client::GearEnv;
+    type Env: sails_rs::client::GearEnv + sails_rs::client::EnvWithCtor;
     fn new_for_bench(
         self,
     ) -> sails_rs::client::PendingCtor<ComputeStressProgram, io::NewForBench, Self::Env>;
 }
 
-impl<E: sails_rs::client::GearEnv> ComputeStressCtors
+impl<E: sails_rs::client::GearEnv + sails_rs::client::EnvWithCtor> ComputeStressCtors
     for sails_rs::client::Deployment<ComputeStressProgram, E>
 {
     type Env = E;

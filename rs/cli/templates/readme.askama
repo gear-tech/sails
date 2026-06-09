@@ -22,10 +22,10 @@ cargo build --release
 cargo test --release
 ```
 
-> For off-chain integration tests against a running node, add the `gclient` feature:
+> For off-chain integration tests against a running node, add the `gsdk` feature:
 >
 > ```bash
-> cargo add sails-rs --dev --features gclient
+> cargo add sails-rs --dev --features gsdk
 > ```
 
 # License

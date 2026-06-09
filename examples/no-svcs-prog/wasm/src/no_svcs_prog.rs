@@ -15,11 +15,11 @@ impl<E: sails_rs::client::GearEnv> NoSvcsProg for sails_rs::client::Actor<NoSvcs
     type Env = E;
 }
 pub trait NoSvcsProgCtors {
-    type Env: sails_rs::client::GearEnv;
+    type Env: sails_rs::client::GearEnv + sails_rs::client::EnvWithCtor;
     fn create(self) -> sails_rs::client::PendingCtor<NoSvcsProgProgram, io::Create, Self::Env>;
 }
 
-impl<E: sails_rs::client::GearEnv> NoSvcsProgCtors
+impl<E: sails_rs::client::GearEnv + sails_rs::client::EnvWithCtor> NoSvcsProgCtors
     for sails_rs::client::Deployment<NoSvcsProgProgram, E>
 {
     type Env = E;

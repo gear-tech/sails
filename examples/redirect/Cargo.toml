@@ -4,10 +4,10 @@ version = "0.1.0"
 edition.workspace = true
 
 [dev-dependencies]
-gclient.workspace = true
+gsdk.workspace = true
 redirect-app = { path = "app" }
 redirect-client = { path = "client" }
 redirect-proxy = { path = "proxy" }
 redirect-proxy-client = { path = "proxy-client" }
-sails-rs = { workspace = true, features = ["gtest", "gclient"] }
+sails-rs = { workspace = true, features = ["gtest", "gsdk"] }
 tokio = { workspace = true, features = ["rt", "macros"] }

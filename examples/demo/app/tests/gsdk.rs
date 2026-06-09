@@ -1,8 +1,8 @@
 use demo_client::{counter::events::*, counter::*, value_fee::*, *};
-use gclient::GearApi;
+use gear_node_wrapper::{Node, NodeInstance};
+use gsdk::{Api, SignedApi};
 use gstd::errors::{ErrorReplyReason, SimpleExecutionError};
 use sails_rs::{client::*, futures::StreamExt, prelude::*};
-use std::panic;
 
 #[cfg(debug_assertions)]
 pub(crate) const DEMO_WASM_PATH: &str = "../../../target/wasm32-gear/debug/demo.opt.wasm";
@@ -14,9 +14,7 @@ pub(crate) const DEMO_WASM_PATH: &str = "../../../target/wasm32-gear/release/dem
 async fn counter_add_works() {
     // Arrange
 
-    let (env, demo_code_id, gas_limit, gear_api) = spin_up_node_with_demo_code().await;
-    let admin_id = ActorId::try_from(gear_api.account_id().encode().as_ref())
-        .expect("failed to create actor id");
+    let (env, demo_code_id, gas_limit, gear_api, _node) = spin_up_node_with_demo_code().await;
 
     // Use generated client code for activating Demo program
     // using the `new` constructor
@@ -28,7 +26,7 @@ async fn counter_add_works() {
         .unwrap()
         .unwrap();
 
-    let initial_balance = gear_api.free_balance(admin_id).await.unwrap();
+    let initial_balance = gear_api.free_balance().await.unwrap();
 
     let mut counter_client = demo_program.counter();
     // Listen to Counter events
@@ -44,7 +42,7 @@ async fn counter_add_works() {
         .unwrap();
 
     // Assert
-    let balance = gear_api.free_balance(admin_id).await.unwrap();
+    let balance = gear_api.free_balance().await.unwrap();
     // initial_balance - balance = 287_416_465_000, release, node 1.8.0
     dbg!(initial_balance, balance, initial_balance - balance);
 
@@ -59,7 +57,7 @@ async fn counter_add_works() {
 async fn counter_sub_works() {
     // Arrange
 
-    let (env, demo_code_id, gas_limit, ..) = spin_up_node_with_demo_code().await;
+    let (env, demo_code_id, gas_limit, .., _node) = spin_up_node_with_demo_code().await;
 
     // Use generated client code for activating Demo program
     // using the `new` constructor and the `send`/`recv` pair
@@ -98,7 +96,7 @@ async fn counter_sub_works() {
 async fn ping_pong_works() {
     // Arrange
 
-    let (env, demo_code_id, gas_limit, ..) = spin_up_node_with_demo_code().await;
+    let (env, demo_code_id, gas_limit, .., _node) = spin_up_node_with_demo_code().await;
 
     // Use generated client code for activating Demo program
     // using the `default` constructor
@@ -110,7 +108,7 @@ async fn ping_pong_works() {
         .unwrap();
 
     // Use generated `io` module for encoding/decoding calls and replies
-    // and send/receive bytes using `gclient` native means (env is just a wrapper)
+    // and send/receive bytes using `gsdk` native means (env is just a wrapper)
     let ping_call_payload =
         ping_pong::io::Ping::encode_call(DemoClientProgram::ROUTE_ID_PING_PONG, "ping".into());
 
@@ -119,7 +117,7 @@ async fn ping_pong_works() {
         .send_for_reply(
             demo_program.id(),
             ping_call_payload,
-            GclientParams::default().with_gas_limit(gas_limit),
+            GsdkParams::default().with_gas_limit(gas_limit),
         )
         .await
         .unwrap();
@@ -139,7 +137,7 @@ async fn ping_pong_works() {
 #[ignore = "requires run gear node on GEAR_PATH"]
 async fn demo_returns_not_enough_gas_on_activation() {
     // Arrange
-    let (env, demo_code_id, ..) = spin_up_node_with_demo_code().await;
+    let (env, demo_code_id, .., _node) = spin_up_node_with_demo_code().await;
 
     // Act
     let demo_program = env
@@ -151,7 +149,7 @@ async fn demo_returns_not_enough_gas_on_activation() {
     // Assert
     assert!(matches!(
         demo_program,
-        Err(GclientError::ReplyHasError(
+        Err(GsdkError::ReplyHasError(
             ErrorReplyReason::Execution(SimpleExecutionError::RanOutOfGas),
             _
         ))
@@ -163,7 +161,7 @@ async fn demo_returns_not_enough_gas_on_activation() {
 async fn counter_query_works() {
     // Arrange
 
-    let (env, demo_code_id, gas_limit, ..) = spin_up_node_with_demo_code().await;
+    let (env, demo_code_id, gas_limit, .., _node) = spin_up_node_with_demo_code().await;
 
     // Use generated client code for activating Demo program
     // using the `new` constructor
@@ -191,7 +189,7 @@ async fn counter_query_works() {
 async fn counter_query_with_message_works() {
     // Arrange
 
-    let (env, demo_code_id, gas_limit, ..) = spin_up_node_with_demo_code().await;
+    let (env, demo_code_id, gas_limit, .., _node) = spin_up_node_with_demo_code().await;
 
     // Use generated client code for activating Demo program
     // using the `new` constructor
@@ -219,7 +217,7 @@ async fn counter_query_with_message_works() {
 async fn counter_query_not_enough_gas() {
     // Arrange
 
-    let (env, demo_code_id, gas_limit, ..) = spin_up_node_with_demo_code().await;
+    let (env, demo_code_id, gas_limit, .., _node) = spin_up_node_with_demo_code().await;
 
     // Use generated client code for activating Demo program
     // using the `new` constructor and the `send_recv` method
@@ -244,7 +242,7 @@ async fn counter_query_not_enough_gas() {
     // Assert
     assert!(matches!(
         result,
-        Err(GclientError::ReplyHasError(
+        Err(GsdkError::ReplyHasError(
             ErrorReplyReason::Execution(SimpleExecutionError::RanOutOfGas),
             _
         ))
@@ -255,9 +253,7 @@ async fn counter_query_not_enough_gas() {
 #[ignore = "requires run gear node on GEAR_PATH"]
 async fn value_fee_works() {
     // Arrange
-    let (env, demo_code_id, _gas_limit, gear_api) = spin_up_node_with_demo_code().await;
-    let admin_id = ActorId::try_from(gear_api.account_id().encode().as_ref())
-        .expect("failed to create actor id");
+    let (env, demo_code_id, _gas_limit, gear_api, _node) = spin_up_node_with_demo_code().await;
 
     let demo_program = env
         .deploy::<DemoClientProgram>(demo_code_id, vec![])
@@ -266,7 +262,7 @@ async fn value_fee_works() {
         .unwrap()
         .unwrap();
 
-    let initial_balance = gear_api.free_balance(admin_id).await.unwrap();
+    let initial_balance = gear_api.free_balance().await.unwrap();
     let mut client = demo_program.value_fee();
 
     // Act
@@ -283,7 +279,7 @@ async fn value_fee_works() {
         .unwrap();
 
     let fee = 10_000_000_000_000;
-    let balance = gear_api.free_balance(admin_id).await.unwrap();
+    let balance = gear_api.free_balance().await.unwrap();
     dbg!(initial_balance, balance, initial_balance - balance - fee);
     // fee is 10_000_000_000_000 + spent gas
     // initial_balance - balance - fee = 546_866_717_300, release, node 1.8.0
@@ -293,14 +289,20 @@ async fn value_fee_works() {
     );
 }
 
-async fn spin_up_node_with_demo_code() -> (GclientEnv, CodeId, GasUnit, GearApi) {
+// The returned `NodeInstance` owns the spawned gear node; callers must keep it
+// bound for the duration of the test so the node is shut down on drop.
+async fn spin_up_node_with_demo_code() -> (GsdkEnv, CodeId, GasUnit, SignedApi, NodeInstance) {
     let gear_path = option_env!("GEAR_PATH");
-    if gear_path.is_none() {
-        panic!("the 'GEAR_PATH' environment variable was not set during compile time");
-    }
-    let api = GearApi::dev_from_path(gear_path.unwrap()).await.unwrap();
+    let gear_path =
+        gear_path.expect("the 'GEAR_PATH' environment variable was not set during compile time");
+    let node = Node::from_path(gear_path)
+        .expect("failed to start node")
+        .spawn()
+        .expect("failed to spawn node process");
+
+    let api = Api::new(&node.ws()).await.unwrap().signed_as_alice();
     let gas_limit = api.block_gas_limit().unwrap();
-    let (code_id, _) = api.upload_code_by_path(DEMO_WASM_PATH).await.unwrap();
-    let remoting = GclientEnv::new(api.clone());
-    (remoting, code_id, gas_limit, api)
+    let code_id = api.upload_code_by_path(DEMO_WASM_PATH).await.unwrap().value;
+    let remoting = GsdkEnv::new(api.clone());
+    (remoting, code_id, gas_limit, api, node)
 }

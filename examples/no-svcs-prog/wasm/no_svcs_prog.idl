@@ -1,5 +1,5 @@
 
-!@sails: 1.0.0
+!@sails: 2.0.0
 
 program NoSvcsProg {
     constructors {

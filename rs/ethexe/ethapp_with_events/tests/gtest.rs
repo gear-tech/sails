@@ -3,7 +3,7 @@ use sails_rs::{
     alloy_sol_types::SolValue,
     client::*,
     futures::StreamExt,
-    gtest::{Program, System},
+    gtest::ethexe::{Program, System},
     meta::SailsMessageHeader,
     prelude::*,
 };
@@ -14,15 +14,18 @@ pub(crate) const WASM_PATH: &str = "../target/wasm32-gear/debug/ethapp_with_even
 pub(crate) const WASM_PATH: &str = "../target/wasm32-gear/release/ethapp_with_events.opt.wasm";
 
 pub(crate) const ADMIN_ID: u64 = 10;
+/// Executable balance to fund programs with under ethexe gtest, where execution
+/// gas is paid from the program's executable balance (no per-message gas limit).
+pub(crate) const EXECUTABLE_BALANCE: u128 = 100_000_000_000_000;
 
 #[tokio::test]
 async fn ethapp_with_events_low_level_works() {
     // arrange
     let system = System::new();
     system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails_rs=debug");
-    system.mint_to(ADMIN_ID, 1_000_000_000_000_000);
 
     let program = Program::from_file(&system, WASM_PATH);
+    system.top_up_executable_balance(program.id(), EXECUTABLE_BALANCE);
 
     let ctor = sails_rs::solidity::selector("create(bool)");
     let input = (false,).abi_encode_sequence();
@@ -106,7 +109,6 @@ async fn ethapp_with_events_low_level_works() {
 async fn ethapp_with_events_remoting_works() {
     let system = System::new();
     system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails_rs=debug");
-    system.mint_to(ADMIN_ID, 1_000_000_000_000_000);
     let code_id = system.submit_code_file(WASM_PATH);
 
     let env = GtestEnv::new(system, ADMIN_ID.into());
@@ -153,7 +155,6 @@ async fn ethapp_with_events_remoting_works() {
 async fn ethapp_with_events_exposure_emit_works() {
     let system = System::new();
     system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails_rs=debug");
-    system.mint_to(ADMIN_ID, 1_000_000_000_000_000);
     let code_id = system.submit_code_file(WASM_PATH);
 
     let env = GtestEnv::new(system, ADMIN_ID.into());

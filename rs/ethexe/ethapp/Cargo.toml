@@ -4,7 +4,7 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
-sails-rs = { workspace = true, features = ["ethexe"] }
+sails-rs = { workspace = true, features = ["ethexe", "gstd-panic-message"] }
 
 [build-dependencies]
 sails-rs = { workspace = true, features = ["ethexe", "wasm-builder"] }
