@@ -30,10 +30,10 @@ impl<E: sails_rs::client::GearEnv> CodecProgram
     }
 }
 pub trait CodecProgramCtors {
-    type Env: sails_rs::client::GearEnv;
+    type Env: sails_rs::client::GearEnv + sails_rs::client::EnvWithCtor;
 }
 
-impl<E: sails_rs::client::GearEnv> CodecProgramCtors
+impl<E: sails_rs::client::GearEnv + sails_rs::client::EnvWithCtor> CodecProgramCtors
     for sails_rs::client::Deployment<CodecProgramProgram, E>
 {
     type Env = E;

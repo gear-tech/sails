@@ -1,8 +1,19 @@
 use super::*;
-use ::gstd::{
-    errors::Error,
-    msg::{CreateProgramFuture, MessageFuture},
-};
+use ::gstd::errors::Error;
+use ::gstd::msg::MessageFuture;
+// `gstd::prog` (and `CreateProgramFuture`) is gated out on `ethexe`: programs are
+// deployed via the L1, not created from within a program.
+#[cfg(not(feature = "ethexe"))]
+use ::gstd::msg::CreateProgramFuture;
+
+// `pin_project_lite` does not support `#[cfg]` on enum variants, so the
+// `GstdFuture::CreateProgram` variant is always present. On `ethexe` the variant
+// is never constructed (program creation is unsupported); the alias just needs to
+// name a valid `Future` type there.
+#[cfg(not(feature = "ethexe"))]
+type CtorFuture = CreateProgramFuture;
+#[cfg(feature = "ethexe")]
+type CtorFuture = MessageFuture;
 
 #[derive(Default)]
 pub struct GstdParams {
@@ -74,6 +85,10 @@ impl GearEnv for GstdEnv {
     #[cfg(not(target_arch = "wasm32"))]
     type MessageState = core::future::Ready<Result<Vec<u8>, Self::Error>>;
 }
+
+// `ethexe` deploys programs via the L1, so on-chain program creation is unsupported.
+#[cfg(not(feature = "ethexe"))]
+impl EnvWithCtor for GstdEnv {}
 
 impl ReplyError for Error {
     fn from_codec_error(err: parity_scale_codec::Error) -> Self {
@@ -291,6 +306,7 @@ const _: () = {
         }
     }
 
+    #[cfg(not(feature = "ethexe"))]
     impl<A, T> Future for PendingCtor<A, T, GstdEnv>
     where
         T: ServiceCall,
@@ -313,7 +329,6 @@ const _: () = {
                     .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
                 let payload = T::encode_call(&self.route, args);
                 // Send message
-                #[cfg(not(feature = "ethexe"))]
                 let future = if let Some(gas_limit) = params.gas_limit {
                     ::gstd::prog::create_program_bytes_with_gas_for_reply(
                         self.code_id,
@@ -332,13 +347,6 @@ const _: () = {
                         params.reply_deposit.unwrap_or_default(),
                     )?
                 };
-                #[cfg(feature = "ethexe")]
-                let future = ::gstd::prog::create_program_bytes_for_reply(
-                    self.code_id,
-                    salt,
-                    payload,
-                    value,
-                )?;
 
                 // self.program_id = Some(program_future.program_id);
                 self.state = Some(GstdFuture::CreateProgram { future });
@@ -362,13 +370,17 @@ const _: () = {
             }
         }
     }
+
+    // Under `ethexe` there is no `Future` impl for `PendingCtor<_, _, GstdEnv>`:
+    // `GstdEnv` does not implement `EnvWithCtor`, so generated constructors are a
+    // compile-time error, and `gstd::prog` is unavailable on `ethexe` anyway.
 };
 
 pin_project_lite::pin_project! {
     #[project = Projection]
     #[project_replace = Replace]
     pub enum GstdFuture {
-        CreateProgram { #[pin] future: CreateProgramFuture },
+        CreateProgram { #[pin] future: CtorFuture },
         Message { #[pin] future: MessageFuture },
         MessageWithRedirect {
             #[pin]

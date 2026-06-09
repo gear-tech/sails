@@ -23,7 +23,7 @@ impl<E: sails_rs::client::GearEnv> RedirectProxyClient
     }
 }
 pub trait RedirectProxyClientCtors {
-    type Env: sails_rs::client::GearEnv;
+    type Env: sails_rs::client::GearEnv + sails_rs::client::EnvWithCtor;
     /// Proxy Program's constructor
     #[allow(clippy::new_ret_no_self)]
     #[allow(clippy::wrong_self_convention)]
@@ -33,7 +33,7 @@ pub trait RedirectProxyClientCtors {
     ) -> sails_rs::client::PendingCtor<RedirectProxyClientProgram, io::New, Self::Env>;
 }
 
-impl<E: sails_rs::client::GearEnv> RedirectProxyClientCtors
+impl<E: sails_rs::client::GearEnv + sails_rs::client::EnvWithCtor> RedirectProxyClientCtors
     for sails_rs::client::Deployment<RedirectProxyClientProgram, E>
 {
     type Env = E;

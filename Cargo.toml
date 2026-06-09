@@ -1,5 +1,5 @@
 [workspace.package]
-version = "1.0.0"
+version = "2.0.0"
 authors = ["Gear Technologies"]
 edition = "2024"
 license = "GPL-3.0"
@@ -83,19 +83,20 @@ sails-type-registry-derive = { path = "rs/type-registry/derive" }
 sails-rename = { package = "sails-rs", path = "rs" }
 
 # Gear deps
-gclient = "=1.10.0"
-gcore = "=1.10.0"
-gear-core = { version = "=1.10.0", default-features = false }
-gear-core-errors = "=1.10.0"
-gprimitives = { version = "=1.10.0", default-features = false, features = ["codec"] }
-gstd = "=1.10.0"
-gsys = "=1.10.0"
-gtest = "=1.10.0"
-gwasm-builder = { version = "=1.10.0", package = "gear-wasm-builder" }
+gsdk = { git = "https://github.com/gear-tech/gear", tag = "v2.0.0" }
+gcore = { git = "https://github.com/gear-tech/gear", tag = "v2.0.0" }
+gear-core = { git = "https://github.com/gear-tech/gear", tag = "v2.0.0", default-features = false }
+gear-core-errors = { git = "https://github.com/gear-tech/gear", tag = "v2.0.0" }
+gprimitives = { git = "https://github.com/gear-tech/gear", tag = "v2.0.0", default-features = false, features = ["codec"] }
+gstd = { git = "https://github.com/gear-tech/gear", tag = "v2.0.0", default-features = false }
+gsys = { git = "https://github.com/gear-tech/gear", tag = "v2.0.0" }
+gtest = { git = "https://github.com/gear-tech/gear", tag = "v2.0.0" }
+gear-node-wrapper = { git = "https://github.com/gear-tech/gear", tag = "v2.0.0" }
+gwasm-builder = { git = "https://github.com/gear-tech/gear", tag = "v2.0.0", package = "gear-wasm-builder" }
 
 # Other deps in alphabetical order
-alloy-primitives = { version = "1.5", default-features = false }
-alloy-sol-types = { version = "1.5", default-features = false }
+alloy-primitives = { version = "1.6", default-features = false }
+alloy-sol-types = { version = "1.6", default-features = false }
 anyhow = "1"
 askama = { version = "0.16", default-features = false }
 cargo_metadata = "0.23"
@@ -131,7 +132,7 @@ quote = "1.0"
 rustdoc-types = "=0.57.3"
 serde = { version = "1.0", default-features = false }
 serde-json = { package = "serde_json", version = "1.0", default-features = false }
-spin = { version = "0.10", default-features = false, features = ["spin_mutex"] }
+spin = { version = "0.12", default-features = false, features = ["spin_mutex"] }
 syn = "2.0"
 tempfile = "3.27"
 thiserror = { version = "2.0", default-features = false }

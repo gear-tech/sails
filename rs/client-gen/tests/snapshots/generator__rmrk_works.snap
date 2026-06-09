@@ -34,13 +34,13 @@ impl<E: sails_rs::client::GearEnv> RmrkCatalog for sails_rs::client::Actor<RmrkC
 }
 
 pub trait RmrkCatalogCtors {
-    type Env: sails_rs::client::GearEnv;
+    type Env: sails_rs::client::GearEnv + sails_rs::client::EnvWithCtor;
     #[allow(clippy::new_ret_no_self)]
     #[allow(clippy::wrong_self_convention)]
     fn new(self) -> sails_rs::client::PendingCtor<RmrkCatalogProgram, io::New, Self::Env>;
 }
 
-impl<E: sails_rs::client::GearEnv> RmrkCatalogCtors
+impl<E: sails_rs::client::GearEnv + sails_rs::client::EnvWithCtor> RmrkCatalogCtors
     for sails_rs::client::Deployment<RmrkCatalogProgram, E>
 {
     type Env = E;

@@ -27,14 +27,14 @@ impl<E: sails_rs::client::GearEnv> Service for sails_rs::client::Actor<ServicePr
 }
 
 pub trait ServiceCtors {
-    type Env: sails_rs::client::GearEnv;
+    type Env: sails_rs::client::GearEnv + sails_rs::client::EnvWithCtor;
     /// New constructor
     #[allow(clippy::new_ret_no_self)]
     #[allow(clippy::wrong_self_convention)]
     fn new(self, a: u32) -> sails_rs::client::PendingCtor<ServiceProgram, io::New, Self::Env>;
 }
 
-impl<E: sails_rs::client::GearEnv> ServiceCtors
+impl<E: sails_rs::client::GearEnv + sails_rs::client::EnvWithCtor> ServiceCtors
     for sails_rs::client::Deployment<ServiceProgram, E>
 {
     type Env = E;

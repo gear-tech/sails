@@ -8,7 +8,7 @@ repository.workspace = true
 license.workspace = true
 
 [dependencies]
-sails-rs.workspace = true
+sails-rs = { workspace = true, features = ["gstd-panic-message"] }
 demo-client = { path = "../../demo/client" }
 redirect-client = { path = "../../redirect/client" }
 futures = { workspace = true }

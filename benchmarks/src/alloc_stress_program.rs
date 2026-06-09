@@ -21,13 +21,13 @@ impl<E: sails_rs::client::GearEnv> AllocStress for sails_rs::client::Actor<Alloc
     }
 }
 pub trait AllocStressCtors {
-    type Env: sails_rs::client::GearEnv;
+    type Env: sails_rs::client::GearEnv + sails_rs::client::EnvWithCtor;
     fn new_for_bench(
         self,
     ) -> sails_rs::client::PendingCtor<AllocStressProgram, io::NewForBench, Self::Env>;
 }
 
-impl<E: sails_rs::client::GearEnv> AllocStressCtors
+impl<E: sails_rs::client::GearEnv + sails_rs::client::EnvWithCtor> AllocStressCtors
     for sails_rs::client::Deployment<AllocStressProgram, E>
 {
     type Env = E;

@@ -26,11 +26,11 @@ impl<'a> CtorGenerator<'a> {
     pub(crate) fn finalize(self) -> Tokens {
         quote! {
             pub trait $(self.service_name)Ctors {
-                type Env: $(self.sails_path)::client::GearEnv;
+                type Env: $(self.sails_path)::client::GearEnv + $(self.sails_path)::client::EnvWithCtor;
                 $(self.trait_ctors_tokens)
             }
 
-            impl<E: $(self.sails_path)::client::GearEnv> $(self.service_name)Ctors for $(self.sails_path)::client::Deployment<$(self.service_name)Program, E> {
+            impl<E: $(self.sails_path)::client::GearEnv + $(self.sails_path)::client::EnvWithCtor> $(self.service_name)Ctors for $(self.sails_path)::client::Deployment<$(self.service_name)Program, E> {
                 type Env = E;
                 $(self.ctor_tokens)
             }

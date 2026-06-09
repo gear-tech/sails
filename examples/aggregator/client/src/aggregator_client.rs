@@ -23,7 +23,7 @@ impl<E: sails_rs::client::GearEnv> AggregatorClient
     }
 }
 pub trait AggregatorClientCtors {
-    type Env: sails_rs::client::GearEnv;
+    type Env: sails_rs::client::GearEnv + sails_rs::client::EnvWithCtor;
     #[allow(clippy::new_ret_no_self)]
     #[allow(clippy::wrong_self_convention)]
     fn new(
@@ -32,7 +32,7 @@ pub trait AggregatorClientCtors {
     ) -> sails_rs::client::PendingCtor<AggregatorClientProgram, io::New, Self::Env>;
 }
 
-impl<E: sails_rs::client::GearEnv> AggregatorClientCtors
+impl<E: sails_rs::client::GearEnv + sails_rs::client::EnvWithCtor> AggregatorClientCtors
     for sails_rs::client::Deployment<AggregatorClientProgram, E>
 {
     type Env = E;

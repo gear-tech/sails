@@ -17,5 +17,5 @@ sails-rs = { workspace = true, features = ["wasm-builder"] }
 [dev-dependencies]
 demo = { path = "../../demo/app" }
 inspector-client = { path = "../client" }
-sails-rs = { workspace = true, features = ["gtest", "gclient"] }
+sails-rs = { workspace = true, features = ["gtest", "gsdk"] }
 tokio = { workspace = true, features = ["rt", "macros"] }

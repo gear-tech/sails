@@ -41,7 +41,7 @@ tokio-stream = { workspace = true, optional = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 gear-core = { workspace = true, optional = true } # Needed for compilation of gstd in native mode
-gclient = { workspace = true, optional = true }
+gsdk = { workspace = true, optional = true }
 gtest = { workspace = true, optional = true }
 log = { workspace = true, optional = true }
 
@@ -49,7 +49,7 @@ log = { workspace = true, optional = true }
 tokio = { workspace = true, features = ["rt", "macros"] }
 
 [features]
-default = ["gstd"]
+default = ["gstd", "gstd-panic-handler"]
 build = ["client-builder", "wasm-builder"]
 debug = ["gstd?/debug"]
 ethexe = [
@@ -58,18 +58,21 @@ ethexe = [
     "gcore/ethexe",
     "gstd?/ethexe",
     "gsys/ethexe",
+    "gtest?/ethexe",
     "dep:alloy-primitives",
     "dep:alloy-sol-types",
     "sails-macros/ethexe",
     "sails-reflect-hash/alloy-primitives",
     "sails-type-registry/alloy-primitives",
 ]
-gclient = ["dep:gclient", "dep:tokio-stream"]
+gsdk = ["dep:gsdk", "dep:tokio-stream"]
 gstd = ["dep:gstd", "dep:gear-core"]
 gtest = ["std", "dep:gtest", "dep:log", "dep:tokio-stream"]
 idl-gen = ["dep:sails-idl-gen"]
 client-builder = ["std", "idl-gen", "idl-embed", "dep:sails-client-gen-v2", "dep:convert_case"]
 idl-embed = ["dep:sails-idl-embed"]
 mockall = ["std", "dep:mockall"]
+gstd-panic-handler = ["gstd?/panic-handler"]
+gstd-panic-message = ["gstd?/panic-message"]
 std = ["futures/std", "sails-idl-gen?/std", "gear-core?/std"]
 wasm-builder = ["dep:gwasm-builder"]

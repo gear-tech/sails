@@ -52,7 +52,7 @@ impl<E: my_crate::sails::client::GearEnv> Service
 }
 
 pub trait ServiceCtors {
-    type Env: my_crate::sails::client::GearEnv;
+    type Env: my_crate::sails::client::GearEnv + my_crate::sails::client::EnvWithCtor;
     /// New constructor
     #[allow(clippy::new_ret_no_self)]
     #[allow(clippy::wrong_self_convention)]
@@ -69,7 +69,7 @@ pub trait ServiceCtors {
     ) -> my_crate::sails::client::PendingCtor<ServiceProgram, io::CreateWithData, Self::Env>;
 }
 
-impl<E: my_crate::sails::client::GearEnv> ServiceCtors
+impl<E: my_crate::sails::client::GearEnv + my_crate::sails::client::EnvWithCtor> ServiceCtors
     for my_crate::sails::client::Deployment<ServiceProgram, E>
 {
     type Env = E;

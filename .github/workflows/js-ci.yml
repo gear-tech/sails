@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  GEAR_NODE_VERSION: 1.10.0
+  GEAR_NODE_VERSION: 2.0.0
 
 jobs:
   lint:
