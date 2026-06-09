@@ -22,12 +22,14 @@ cargo build --release
 cargo test --release
 ```
 
+> [!TIP]
 > For off-chain integration tests against a running node, add the `gclient` feature:
->
-> ```bash
-> cargo add sails-rs --dev --features gclient
-> ```
+
+```bash
+cargo add sails-rs --dev --features gclient
+```
 
 # License
 
 The source code is licensed under the [MIT license](LICENSE).
+{{- "\n" -}}

@@ -99,6 +99,7 @@ alloy-sol-types = { version = "1.5", default-features = false }
 anyhow = "1"
 askama = { version = "0.16", default-features = false }
 cargo_metadata = "0.23"
+chrono = "0.4"
 clap = "4.6"
 convert_case = "0.11"
 dlmalloc = "0.2"
@@ -117,29 +118,29 @@ lalrpop-util = { version = "=0.20", default-features = false } # PIN version
 log = { version = "0.4", default-features = false }
 logos = { version = "0.16", default-features = false, features = ["export_derive"] }
 mockall = "0.14"
-pin-project-lite = "0.2"
 parity-scale-codec = { version = "=3.7.5", default-features = false }
 paste = "1.0"
 pest = { version = "2", default-features = false }
 pest_derive = { version = "2", default-features = false }
+pin-project-lite = "0.2"
 prettyplease = "0.2"
-proc-macro-error = "1.0"
 proc-macro2 = { version = "1", default-features = false }
 proc-macro-crate = "3.5.0"
-rustdoc-types = "=0.57.3"
+proc-macro-error = "1.0"
 quote = "1.0"
+rustdoc-types = "=0.57.3"
 serde = { version = "1.0", default-features = false }
 serde-json = { package = "serde_json", version = "1.0", default-features = false }
 spin = { version = "0.10", default-features = false, features = ["spin_mutex"] }
 syn = "2.0"
-thiserror = { version = "2.0", default-features = false }
-toml_edit = "0.25"
 tempfile = "3.27"
+thiserror = { version = "2.0", default-features = false }
 tokio = "1.52"
 tokio-stream = "0.1"
+toml_edit = "0.25"
 trybuild = "1"
-wasm-encoder = "0.244"
 wasmparser = "0.244"
+wasm-encoder = "0.244"
 
 # The profile that 'dist' will build with
 [profile.dist]

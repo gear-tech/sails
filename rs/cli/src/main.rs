@@ -10,7 +10,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-const SAILBOAT: &str = "\u{26F5}";
+const SAILBOAT: &str = "⛵";
 const ICON_CONFIG: &str = "📋";
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
