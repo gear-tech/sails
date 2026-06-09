@@ -22,12 +22,14 @@ cargo build --release
 cargo test --release
 ```
 
+> [!TIP]
 > For off-chain integration tests against a running node, add the `gsdk` feature:
->
-> ```bash
-> cargo add sails-rs --dev --features gsdk
-> ```
+
+```bash
+cargo add sails-rs --dev --features gsdk
+```
 
 # License
 
 The source code is licensed under the [MIT license](LICENSE).
+{{- "\n" -}}
