@@ -1,32 +1,39 @@
 use super::*;
-use ::gstd::{
-    errors::Error,
-    msg::{CreateProgramFuture, MessageFuture},
-};
+use crate::gstd::{CreateProgramFuture, Lock, MessageFuture};
+use ::gstd::errors::Error;
 
 #[derive(Default)]
 pub struct GstdParams {
+    pub value: Option<ValueUnit>,
+    pub wait: Option<Lock>,
+    pub redirect_on_exit: bool,
     #[cfg(not(feature = "ethexe"))]
     pub gas_limit: Option<GasUnit>,
-    pub value: Option<ValueUnit>,
-    pub wait_up_to: Option<BlockCount>,
     #[cfg(not(feature = "ethexe"))]
     pub reply_deposit: Option<GasUnit>,
     #[cfg(not(feature = "ethexe"))]
-    pub reply_hook: Option<Box<dyn FnOnce() + Send + 'static>>,
-    pub redirect_on_exit: bool,
+    pub reply_hook: Option<Box<dyn FnOnce() + 'static>>,
 }
 
 crate::params_for_pending_impl!(GstdEnv, GstdParams {
     #[cfg(not(feature = "ethexe"))]
     pub gas_limit: GasUnit,
     pub value: ValueUnit,
-    pub wait_up_to: BlockCount,
+    pub wait: Lock,
     #[cfg(not(feature = "ethexe"))]
     pub reply_deposit: GasUnit,
 });
 
 impl GstdParams {
+    /// Wait *up to* `block_count` blocks for a reply.
+    ///
+    /// Convenience over [`Self::with_wait`]; equivalent to
+    /// `with_wait(Lock::up_to(block_count))`. The internal [`Lock`] stores an
+    /// absolute deadline, so the timeout survives a redirect unchanged.
+    pub fn with_wait_up_to(self, block_count: BlockCount) -> Self {
+        self.with_wait(Lock::up_to(block_count))
+    }
+
     pub fn with_redirect_on_exit(self, redirect_on_exit: bool) -> Self {
         Self {
             redirect_on_exit,
@@ -35,7 +42,7 @@ impl GstdParams {
     }
 
     #[cfg(not(feature = "ethexe"))]
-    pub fn with_reply_hook<F: FnOnce() + Send + 'static>(self, f: F) -> Self {
+    pub fn with_reply_hook<F: FnOnce() + 'static>(self, f: F) -> Self {
         Self {
             reply_hook: Some(Box::new(f)),
             ..self
@@ -44,6 +51,11 @@ impl GstdParams {
 }
 
 impl<T: ServiceCall> PendingCall<T, GstdEnv> {
+    /// Wait *up to* `block_count` blocks for a reply. See [`GstdParams::with_wait_up_to`].
+    pub fn with_wait_up_to(self, block_count: BlockCount) -> Self {
+        self.with_params(|params| params.with_wait_up_to(block_count))
+    }
+
     /// Set `redirect_on_exit` flag to `true``
     ///
     /// This flag is used to redirect a message to a new program when the target program exits
@@ -58,8 +70,15 @@ impl<T: ServiceCall> PendingCall<T, GstdEnv> {
     }
 
     #[cfg(not(feature = "ethexe"))]
-    pub fn with_reply_hook<F: FnOnce() + Send + 'static>(self, f: F) -> Self {
+    pub fn with_reply_hook<F: FnOnce() + 'static>(self, f: F) -> Self {
         self.with_params(|params| params.with_reply_hook(f))
+    }
+}
+
+impl<A, T: ServiceCall> PendingCtor<A, T, GstdEnv> {
+    /// Wait *up to* `block_count` blocks for a reply. See [`GstdParams::with_wait_up_to`].
+    pub fn with_wait_up_to(self, block_count: BlockCount) -> Self {
+        self.with_params(|params| params.with_wait_up_to(block_count))
     }
 }
 
@@ -92,30 +111,26 @@ impl ReplyError for Error {
 }
 
 impl GstdEnv {
+    #[cfg_attr(feature = "ethexe", allow(unused_mut))]
     pub fn send_one_way(
         &self,
         destination: ActorId,
         payload: impl AsRef<[u8]>,
-        params: GstdParams,
+        mut params: GstdParams,
     ) -> Result<MessageId, Error> {
-        let value = params.value.unwrap_or_default();
-        let payload_bytes = payload.as_ref();
+        let reply_to = crate::ok!(crate::gstd::send_one_way(
+            destination,
+            payload.as_ref(),
+            params.value.unwrap_or_default(),
+            #[cfg(not(feature = "ethexe"))]
+            params.gas_limit,
+            #[cfg(not(feature = "ethexe"))]
+            params.reply_deposit,
+            #[cfg(not(feature = "ethexe"))]
+            params.reply_hook.take(),
+        ));
 
-        #[cfg(not(feature = "ethexe"))]
-        let waiting_reply_to = if let Some(gas_limit) = params.gas_limit {
-            ::gcore::msg::send_with_gas(destination, payload_bytes, gas_limit, value)?
-        } else {
-            ::gcore::msg::send(destination, payload_bytes, value)?
-        };
-        #[cfg(feature = "ethexe")]
-        let waiting_reply_to = ::gcore::msg::send(destination, payload_bytes, value)?;
-
-        #[cfg(not(feature = "ethexe"))]
-        if let Some(reply_deposit) = params.reply_deposit {
-            ::gcore::exec::reply_deposit(waiting_reply_to, reply_deposit)?;
-        }
-
-        Ok(waiting_reply_to)
+        Ok(reply_to)
     }
 }
 
@@ -129,52 +144,7 @@ impl<T: ServiceCall> PendingCall<T, GstdEnv> {
 #[cfg(target_arch = "wasm32")]
 const _: () = {
     use core::task::ready;
-
-    #[cfg(not(feature = "ethexe"))]
-    #[inline]
-    fn send_for_reply_future(
-        destination: ActorId,
-        payload: &[u8],
-        params: &mut GstdParams,
-    ) -> Result<MessageFuture, Error> {
-        let value = params.value.unwrap_or_default();
-        let reply_deposit = params.reply_deposit.unwrap_or_default();
-        // here can be a redirect target
-        let mut message_future = if let Some(gas_limit) = params.gas_limit {
-            ::gstd::msg::send_bytes_with_gas_for_reply(
-                destination,
-                payload,
-                gas_limit,
-                value,
-                reply_deposit,
-            )?
-        } else {
-            ::gstd::msg::send_bytes_for_reply(destination, payload, value, reply_deposit)?
-        };
-
-        message_future = message_future.up_to(params.wait_up_to)?;
-
-        if let Some(reply_hook) = params.reply_hook.take() {
-            message_future = message_future.handle_reply(reply_hook)?;
-        }
-        Ok(message_future)
-    }
-
-    #[cfg(feature = "ethexe")]
-    #[inline]
-    fn send_for_reply_future(
-        destination: ActorId,
-        payload: &[u8],
-        params: &mut GstdParams,
-    ) -> Result<MessageFuture, Error> {
-        let value = params.value.unwrap_or_default();
-        // here can be a redirect target
-        let mut message_future = ::gstd::msg::send_bytes_for_reply(destination, payload, value)?;
-
-        message_future = message_future.up_to(params.wait_up_to)?;
-
-        Ok(message_future)
-    }
+    use futures::future::FusedFuture;
 
     #[inline]
     fn send_for_reply(
@@ -182,12 +152,20 @@ const _: () = {
         payload: Vec<u8>,
         params: &mut GstdParams,
     ) -> Result<GstdFuture, Error> {
-        // send message
-        let future = send_for_reply_future(destination, payload.as_ref(), params)?;
+        let future = crate::ok!(crate::gstd::send_bytes_for_reply(
+            destination,
+            payload.as_ref(),
+            params.value.unwrap_or_default(),
+            params.wait.unwrap_or_default(),
+            #[cfg(not(feature = "ethexe"))]
+            params.gas_limit,
+            #[cfg(not(feature = "ethexe"))]
+            params.reply_deposit,
+            #[cfg(not(feature = "ethexe"))]
+            params.reply_hook.take(),
+        ));
         if params.redirect_on_exit {
-            let created_block = params.wait_up_to.map(|_| gstd::exec::block_height());
             Ok(GstdFuture::MessageWithRedirect {
-                created_block,
                 future,
                 destination,
                 payload,
@@ -195,6 +173,28 @@ const _: () = {
         } else {
             Ok(GstdFuture::Message { future })
         }
+    }
+
+    fn create_program(
+        code_id: CodeId,
+        salt: impl AsRef<[u8]>,
+        payload: impl AsRef<[u8]>,
+        params: &mut GstdParams,
+    ) -> Result<(GstdFuture, ActorId), Error> {
+        let (future, program_id) = crate::ok!(crate::gstd::create_program_for_reply(
+            code_id,
+            salt.as_ref(),
+            payload.as_ref(),
+            params.value.unwrap_or_default(),
+            params.wait.unwrap_or_default(),
+            #[cfg(not(feature = "ethexe"))]
+            params.gas_limit,
+            #[cfg(not(feature = "ethexe"))]
+            params.reply_deposit,
+            #[cfg(not(feature = "ethexe"))]
+            params.reply_hook.take(),
+        ));
+        Ok((GstdFuture::CreateProgram { future }, program_id))
     }
 
     impl<T: ServiceCall> PendingCall<T, GstdEnv> {
@@ -219,6 +219,7 @@ const _: () = {
     impl<T: ServiceCall> Future for PendingCall<T, GstdEnv> {
         type Output = Result<T::Output, <GstdEnv as GearEnv>::Error>;
 
+        #[inline(always)]
         fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
             if self.state.is_none() {
                 let args = self
@@ -252,7 +253,6 @@ const _: () = {
                     let params = this.params.get_or_insert_default();
                     if let Replace::MessageWithRedirect {
                         destination: _destination,
-                        created_block,
                         payload,
                         ..
                     } = state.as_mut().project_replace(GstdFuture::Dummy)
@@ -260,16 +260,6 @@ const _: () = {
                         && let Ok(new_target) = ActorId::try_from(error_payload.0.as_ref())
                     {
                         gstd::debug!("Redirecting message from {_destination} to {new_target}");
-
-                        // Calculate updated `wait_up_to` if provided
-                        // wait_up_to = wait_up_to - (current_block - created_block)
-                        params.wait_up_to = params.wait_up_to.and_then(|wait_up_to| {
-                            created_block.map(|created_block| {
-                                let current_block = gstd::exec::block_height();
-                                wait_up_to
-                                    .saturating_sub(current_block.saturating_sub(created_block))
-                            })
-                        });
 
                         // send message to new target
                         let future = send_for_reply(new_target, payload, params)?;
@@ -283,11 +273,26 @@ const _: () = {
                             ErrorReplyReason::UnavailableActor(
                                 SimpleUnavailableActorError::ProgramExited,
                             ),
-                        )))
+                        )
+                        .into()))
                     }
                 }
                 output => Poll::Ready(decode_reply_or_throw::<T, _>(this.route, output)),
             }
+        }
+    }
+
+    impl<T: ServiceCall> FusedFuture for PendingCall<T, GstdEnv> {
+        fn is_terminated(&self) -> bool {
+            self.state
+                .as_ref()
+                .map(|future| match future {
+                    GstdFuture::CreateProgram { future } => future.is_terminated(),
+                    GstdFuture::Message { future } => future.is_terminated(),
+                    GstdFuture::MessageWithRedirect { future, .. } => future.is_terminated(),
+                    GstdFuture::Dummy => false,
+                })
+                .unwrap_or_default()
         }
     }
 
@@ -303,8 +308,7 @@ const _: () = {
 
         fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
             if self.state.is_none() {
-                let params = self.params.take().unwrap_or_default();
-                let value = params.value.unwrap_or_default();
+                let mut params = self.params.take().unwrap_or_default();
                 let salt = self.salt.take().unwrap();
 
                 let args = self
@@ -313,35 +317,14 @@ const _: () = {
                     .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
                 let payload = T::encode_call(&self.route, args);
                 // Send message
-                #[cfg(not(feature = "ethexe"))]
-                let future = if let Some(gas_limit) = params.gas_limit {
-                    ::gstd::prog::create_program_bytes_with_gas_for_reply(
-                        self.code_id,
-                        salt,
-                        payload,
-                        gas_limit,
-                        value,
-                        params.reply_deposit.unwrap_or_default(),
-                    )?
-                } else {
-                    ::gstd::prog::create_program_bytes_for_reply(
-                        self.code_id,
-                        salt,
-                        payload,
-                        value,
-                        params.reply_deposit.unwrap_or_default(),
-                    )?
-                };
-                #[cfg(feature = "ethexe")]
-                let future = ::gstd::prog::create_program_bytes_for_reply(
-                    self.code_id,
-                    salt,
-                    payload,
-                    value,
-                )?;
+                let (future, program_id) =
+                    match create_program(self.code_id, salt, payload, &mut params) {
+                        Ok(res) => res,
+                        Err(err) => return Poll::Ready(Err(err)),
+                    };
 
-                // self.program_id = Some(program_future.program_id);
-                self.state = Some(GstdFuture::CreateProgram { future });
+                self.program_id = Some(program_id);
+                self.state = Some(future);
                 // No need to poll the future
                 return Poll::Pending;
             }
@@ -349,10 +332,8 @@ const _: () = {
             // SAFETY: checked in the code above.
             let state = unsafe { this.state.as_pin_mut().unwrap_unchecked() };
             if let Projection::CreateProgram { future } = state.project() {
-                let (reply, program_id) = match ready!(future.poll(cx)) {
-                    Ok((program_id, payload)) => (Ok(payload), program_id),
-                    Err(err) => (Err(err), ActorId::zero()),
-                };
+                let reply = ready!(future.poll(cx));
+                let program_id = unsafe { this.program_id.unwrap_unchecked() };
                 match decode_reply_or_throw::<T, _>(this.route, reply) {
                     Ok(output) => Poll::Ready(Ok(output.map_result(this.env.clone(), program_id))),
                     Err(err) => Poll::Ready(Err(err)),
@@ -374,7 +355,6 @@ pin_project_lite::pin_project! {
             #[pin]
             future: MessageFuture,
             destination: ActorId,
-            created_block: Option<BlockCount>,
             payload: Vec<u8>, // reuse encoded payload when redirecting
         },
         Dummy,
