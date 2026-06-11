@@ -131,7 +131,7 @@ quote = "1.0"
 rustdoc-types = "=0.57.3"
 serde = { version = "1.0", default-features = false }
 serde-json = { package = "serde_json", version = "1.0", default-features = false }
-spin = { version = "0.10", default-features = false, features = ["spin_mutex"] }
+spin = { version = "0.12", default-features = false, features = ["spin_mutex"] }
 syn = "2.0"
 tempfile = "3.27"
 thiserror = { version = "2.0", default-features = false }
@@ -139,8 +139,8 @@ tokio = "1.52"
 tokio-stream = "0.1"
 toml_edit = "0.25"
 trybuild = "1"
-wasmparser = "0.244"
-wasm-encoder = "0.244"
+wasmparser = "0.251"
+wasm-encoder = "0.251"
 
 # The profile that 'dist' will build with
 [profile.dist]
