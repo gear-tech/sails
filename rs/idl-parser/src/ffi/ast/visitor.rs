@@ -28,6 +28,7 @@ pub struct Visitor {
 }
 
 #[cfg(target_arch = "wasm32")]
+#[link(wasm_import_module = "env")]
 unsafe extern "C" {
     fn visit_ctor(context: *const (), ctor: *const Ctor);
     fn visit_service(context: *const (), service: *const Service);

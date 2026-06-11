@@ -126,10 +126,6 @@ struct RootReadme {
 #[template(path = "rust-toolchain.askama")]
 struct RootRustToolchain;
 
-#[derive(Template)]
-#[template(path = ".cargo/config.askama")]
-struct RootCargoConfig;
-
 pub struct ProgramGenerator {
     path: PathBuf,
     package_name: String,
@@ -261,10 +257,6 @@ impl ProgramGenerator {
         RootRustToolchain
     }
 
-    fn root_cargo_config(&self) -> RootCargoConfig {
-        RootCargoConfig
-    }
-
     fn app_path(&self) -> PathBuf {
         self.path.join("app")
     }
@@ -390,11 +382,6 @@ impl ProgramGenerator {
         let mut rust_toolchain_toml = File::create(rust_toolchain_path(path))?;
         self.root_rust_toolchain()
             .write_into(&mut rust_toolchain_toml)?;
-
-        fs::create_dir_all(cargo_config_dir_path(path))?;
-        let mut cargo_config_toml = File::create(cargo_config_path(path))?;
-        self.root_cargo_config()
-            .write_into(&mut cargo_config_toml)?;
 
         // add sails-rs refs
         self.cargo_add_sails_rs(manifest_path, Normal, self.eth.then_some("ethexe"))?;
@@ -938,14 +925,6 @@ fn readme_path<P: AsRef<Path>>(path: P) -> PathBuf {
 
 fn rust_toolchain_path<P: AsRef<Path>>(path: P) -> PathBuf {
     path.as_ref().join("rust-toolchain.toml")
-}
-
-fn cargo_config_dir_path<P: AsRef<Path>>(path: P) -> PathBuf {
-    path.as_ref().join(".cargo")
-}
-
-fn cargo_config_path<P: AsRef<Path>>(path: P) -> PathBuf {
-    path.as_ref().join(".cargo/config.toml")
 }
 
 fn git_command() -> String {

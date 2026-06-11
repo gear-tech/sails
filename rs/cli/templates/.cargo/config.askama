@@ -1,3 +1,0 @@
-[target.wasm32v1-none]
-rustflags = ["-C", "link-arg=--import-memory", "-C", "link-arg=--allow-undefined", "-C", "linker-plugin-lto"]
-{{- "\n" -}}

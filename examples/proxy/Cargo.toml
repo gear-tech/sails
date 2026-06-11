@@ -3,9 +3,6 @@ name = "proxy"
 version = "0.1.0"
 edition.workspace = true
 
-[lib]
-crate-type = ["cdylib", "rlib"]
-
 [[bin]]
 name = "proxy-idl-gen"
 path = "src/main-idl-gen.rs"
