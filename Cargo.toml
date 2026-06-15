@@ -102,7 +102,6 @@ cargo_metadata = "0.23"
 chrono = "0.4"
 clap = "4.6"
 convert_case = "0.11"
-dlmalloc = "0.2"
 fs2 = "0.4.3"
 futures = { version = "0.3", default-features = false }
 genco = "0.19"
@@ -132,7 +131,9 @@ rustdoc-types = "=0.57.3"
 serde = { version = "1.0", default-features = false }
 serde-json = { package = "serde_json", version = "1.0", default-features = false }
 spin = { version = "0.10", default-features = false, features = ["spin_mutex"] }
+spinning_top = "0.3"
 syn = "2.0"
+talc = "5.0"
 tempfile = "3.27"
 thiserror = { version = "2.0", default-features = false }
 tokio = "1.52"
