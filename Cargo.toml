@@ -131,7 +131,6 @@ rustdoc-types = "=0.57.3"
 serde = { version = "1.0", default-features = false }
 serde-json = { package = "serde_json", version = "1.0", default-features = false }
 spin = { version = "0.10", default-features = false, features = ["spin_mutex"] }
-spinning_top = "0.3"
 syn = "2.0"
 talc = "5.0"
 tempfile = "3.27"

@@ -6524,7 +6524,6 @@ dependencies = [
  "lalrpop",
  "lalrpop-util",
  "logos",
- "spinning_top",
  "talc",
  "thiserror 2.0.18",
 ]
@@ -6547,7 +6546,6 @@ version = "1.0.0"
 dependencies = [
  "sails-idl-ast",
  "sails-idl-parser-v2",
- "spinning_top",
  "talc",
 ]
 
@@ -7872,15 +7870,6 @@ name = "spin"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d5fe4ccb98d9c292d56fec89a5e07da7fc4cf0dc11e156b41793132775d3e591"
-
-[[package]]
-name = "spinning_top"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d96d2d1d716fb500937168cc09353ffdc7a012be8475ac7308e1bdf0e3923300"
-dependencies = [
- "lock_api",
-]
 
 [[package]]
 name = "spki"

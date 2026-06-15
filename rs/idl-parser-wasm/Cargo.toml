@@ -15,5 +15,4 @@ crate-type = ["cdylib"]
 [dependencies]
 sails-idl-ast = { workspace = true, features = ["serde"] }
 sails-idl-parser-v2.workspace = true
-spinning_top.workspace = true
 talc.workspace = true
