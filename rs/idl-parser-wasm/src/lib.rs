@@ -9,8 +9,6 @@ use alloc::{
     string::{String, ToString},
 };
 use core::{ffi::c_char, slice};
-#[cfg(target_arch = "wasm32")]
-use talc::{source::Claim, *};
 
 #[repr(u32)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -108,12 +106,7 @@ pub unsafe extern "C" fn free_parse_result(res: *mut ParseResult) {
 
 #[cfg(target_arch = "wasm32")]
 #[global_allocator]
-static TALC: TalcLock<spinning_top::RawSpinlock, Claim> = TalcLock::new(unsafe {
-    static mut INITIAL_HEAP: [u8; min_first_heap_size::<DefaultBinning>() + 100000] =
-        [0; min_first_heap_size::<DefaultBinning>() + 100000];
-
-    Claim::array(&raw mut INITIAL_HEAP)
-});
+static TALC: talc::wasm::WasmDynamicTalc = talc::wasm::new_wasm_dynamic_allocator();
 
 #[cfg(target_arch = "wasm32")]
 #[panic_handler]

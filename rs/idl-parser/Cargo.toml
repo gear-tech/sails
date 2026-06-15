@@ -16,7 +16,6 @@ crate-type = ["cdylib", "rlib"]
 hashbrown.workspace = true
 lalrpop-util.workspace = true
 logos.workspace = true
-spinning_top.workspace = true
 talc.workspace = true
 thiserror.workspace = true
 
