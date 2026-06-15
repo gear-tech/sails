@@ -2964,9 +2964,9 @@ dependencies = [
 
 [[package]]
 name = "gear-lazy-pages"
-version = "1.10.0"
+version = "1.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2e94788c25494ddb5ca7a73b71b61429990caba31dea7e3b55e0dfe33ae3634c"
+checksum = "22f7cd9520e63a1861b8711ad5425b214900b408d222db80c332560927db8989"
 dependencies = [
  "cfg-if",
  "derive_more 2.1.1",
@@ -2998,9 +2998,9 @@ dependencies = [
 
 [[package]]
 name = "gear-lazy-pages-native-interface"
-version = "1.10.0"
+version = "1.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "affb988d8baa32dced50d696046e9a3470602abf3effe0fe06bb546dd05581d0"
+checksum = "cda7ca47198d8d838d1a9754fa9cd246809b5a54fe9b43287a11c7dbb16fa846"
 dependencies = [
  "gear-core",
  "gear-lazy-pages",
@@ -3486,9 +3486,9 @@ dependencies = [
 
 [[package]]
 name = "gtest"
-version = "1.10.0"
+version = "1.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6cba01a0d56d5ff4a072ce3dfc142ecba271f097435985fe623a8b69918e785c"
+checksum = "6e9ab5e768c94f803d75796e038506476ba4c6a974e1790687afbaded91f4e4b"
 dependencies = [
  "builtins-common",
  "cargo_toml",

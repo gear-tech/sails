@@ -90,7 +90,7 @@ gear-core-errors = "=1.10.0"
 gprimitives = { version = "=1.10.0", default-features = false, features = ["codec"] }
 gstd = "=1.10.0"
 gsys = "=1.10.0"
-gtest = "=1.10.0"
+gtest = "=1.10.1"
 gwasm-builder = { version = "=1.10.1", package = "gear-wasm-builder" }
 
 # Other deps in alphabetical order
