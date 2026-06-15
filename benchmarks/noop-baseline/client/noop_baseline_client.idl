@@ -1,5 +1,5 @@
 
-!@sails: 1.0.0
+!@sails: 1.0.1
 
 service NoopBaseline@0xbc86c6bcc3a2b7a1 {
     functions {
