@@ -217,7 +217,9 @@ impl Listener for GsdkEnv {
                 UserMessageSentFilter::new().with_destination(ActorId::zero()),
             )
             .await?;
-        let stream = futures::StreamExt::filter_map(subscription, |res| async move {
+        // End the stream on the first subscription error so consumers observe
+        // termination (`next()` returns `None`) instead of silently missing events.
+        let stream = tokio_stream::StreamExt::map_while(subscription, |res| {
             res.ok().map(|m| (m.source, m.payload))
         });
         let stream = tokio_stream::StreamExt::filter_map(stream, f);

@@ -14,9 +14,6 @@ pub(crate) const WASM_PATH: &str = "../target/wasm32-gear/debug/ethapp_with_even
 pub(crate) const WASM_PATH: &str = "../target/wasm32-gear/release/ethapp_with_events.opt.wasm";
 
 pub(crate) const ADMIN_ID: u64 = 10;
-/// Executable balance to fund programs with under ethexe gtest, where execution
-/// gas is paid from the program's executable balance (no per-message gas limit).
-pub(crate) const EXECUTABLE_BALANCE: u128 = 100_000_000_000_000;
 
 #[tokio::test]
 async fn ethapp_with_events_low_level_works() {
@@ -25,7 +22,7 @@ async fn ethapp_with_events_low_level_works() {
     system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails_rs=debug");
 
     let program = Program::from_file(&system, WASM_PATH);
-    system.top_up_executable_balance(program.id(), EXECUTABLE_BALANCE);
+    system.top_up_executable_balance(program.id(), ETHEXE_EXECUTABLE_BALANCE);
 
     let ctor = sails_rs::solidity::selector("create(bool)");
     let input = (false,).abi_encode_sequence();

@@ -23,7 +23,7 @@ const GAS_LIMIT_DEFAULT: ::gtest::constants::Gas = ::gtest::constants::MAX_USER_
 /// where execution gas is paid from the program's executable balance rather than an
 /// explicit per-message gas limit. Generous default so tests don't run out of gas.
 #[cfg(feature = "ethexe")]
-const ETHEXE_EXECUTABLE_BALANCE: ValueUnit = 100_000_000_000_000;
+pub const ETHEXE_EXECUTABLE_BALANCE: ValueUnit = 100_000_000_000_000;
 type EventSender = mpsc::UnboundedSender<(ActorId, Vec<u8>)>;
 type ReplySender = oneshot::Sender<Result<Vec<u8>, GtestError>>;
 type ReplyReceiver = oneshot::Receiver<Result<Vec<u8>, GtestError>>;
