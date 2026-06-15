@@ -59,6 +59,7 @@ pub struct Visitor {
 }
 
 #[cfg(target_arch = "wasm32")]
+#[link(wasm_import_module = "env")]
 unsafe extern "C" {
     fn visit_globals(context: *const (), globals: *const Annotation, len: u32);
     fn visit_program_unit(context: *const (), program: *const ProgramUnit);

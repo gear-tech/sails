@@ -1,4 +1,4 @@
-!@sails: 0.9.2
+!@sails: 2.0.0
 
 service AllocStress {
     functions {

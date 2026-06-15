@@ -1,4 +1,4 @@
-#![no_std]
+#![cfg_attr(target_arch = "wasm32", no_std)]
 
 #[macro_use]
 extern crate alloc;
@@ -13,7 +13,7 @@ pub mod ffi {
 
 #[cfg(target_arch = "wasm32")]
 #[global_allocator]
-pub static ALLOC: dlmalloc::GlobalDlmalloc = dlmalloc::GlobalDlmalloc;
+static TALC: talc::wasm::WasmDynamicTalc = talc::wasm::new_wasm_dynamic_allocator();
 
 #[cfg(target_arch = "wasm32")]
 #[panic_handler]

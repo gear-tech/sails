@@ -106,7 +106,7 @@ pub unsafe extern "C" fn free_parse_result(res: *mut ParseResult) {
 
 #[cfg(target_arch = "wasm32")]
 #[global_allocator]
-pub static ALLOC: dlmalloc::GlobalDlmalloc = dlmalloc::GlobalDlmalloc;
+static TALC: talc::wasm::WasmDynamicTalc = talc::wasm::new_wasm_dynamic_allocator();
 
 #[cfg(target_arch = "wasm32")]
 #[panic_handler]
