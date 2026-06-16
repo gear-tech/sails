@@ -250,8 +250,9 @@ async fn create_program(
     let gas_limit = 0;
 
     // Subscribe before dispatching so the reply event can't fire before the listener exists.
+    let user_id = ActorId::from(api.account_id().0);
     let mut subscription = api
-        .subscribe_user_message_sent(UserMessageSentFilter::new())
+        .subscribe_user_message_sent(UserMessageSentFilter::new().with_destination(user_id))
         .await?;
     let tx = api
         .create_program_bytes(code_id, Vec::from(salt.as_ref()), payload, gas_limit, value)
@@ -286,8 +287,9 @@ async fn send_for_reply_and_listen(
     let gas_limit = 0;
     let value = params.value.unwrap_or(0);
 
+    let user_id = ActorId::from(api.account_id().0);
     let subscription = api
-        .subscribe_user_message_sent(UserMessageSentFilter::new())
+        .subscribe_user_message_sent(UserMessageSentFilter::new().with_destination(user_id))
         .await?;
     let message_id = send_message_with_voucher_if_some(
         api,
