@@ -91,6 +91,10 @@ impl Syscall {
         Ok(result)
     }
 
+    pub fn wake(message_id: MessageId) -> Result<(), ::gcore::errors::Error> {
+        ::gcore::exec::wake(message_id)
+    }
+
     #[cfg(not(feature = "ethexe"))]
     pub fn system_reserve_gas(amount: GasUnit) -> Result<(), ::gcore::errors::Error> {
         ::gcore::exec::system_reserve_gas(amount)
@@ -135,6 +139,7 @@ syscall_unimplemented!(
     exit(_inheritor_id: ActorId) -> !,
     panic(_data: &[u8]) -> !,
     read_bytes() -> Result<Vec<u8>, gcore::errors::Error>,
+    wake(_message_id: MessageId) -> Result<(), gcore::errors::Error>,
     system_reserve_gas(_amount: GasUnit) -> Result<(), ::gcore::errors::Error>,
 );
 
@@ -240,6 +245,10 @@ const _: () = {
                 }
             }
             panic!("{:?}", data);
+        }
+
+        pub fn wake(_message_id: MessageId) -> Result<(), ::gcore::errors::Error> {
+            Ok(())
         }
 
         #[cfg(not(feature = "ethexe"))]
