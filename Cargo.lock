@@ -6627,11 +6627,15 @@ dependencies = [
  "sails-idl-meta",
  "sails-macros",
  "sails-reflect-hash",
+ "sails-storage",
  "sails-type-registry",
  "spin 0.10.0",
+ "tempfile",
  "thiserror 2.0.18",
  "tokio",
  "tokio-stream",
+ "wasm-encoder 0.244.0",
+ "wasmparser 0.244.0",
 ]
 
 [[package]]
@@ -6645,6 +6649,10 @@ dependencies = [
  "sails-idl-parser-v2",
  "serde",
 ]
+
+[[package]]
+name = "sails-storage"
+version = "1.0.0-beta.5"
 
 [[package]]
 name = "sails-type-registry"
