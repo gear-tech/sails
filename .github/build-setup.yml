@@ -1,0 +1,14 @@
+- name: Configure Android toolchains
+  if: ${{ contains(join(matrix.targets, ','), 'android') }}
+  shell: bash
+  run: |
+    TOOLCHAIN="$ANDROID_NDK/toolchains/llvm/prebuilt/linux-x86_64/bin"
+
+    echo "CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER=$TOOLCHAIN/aarch64-linux-android28-clang" >> "$GITHUB_ENV"
+    echo "CARGO_TARGET_X86_64_LINUX_ANDROID_LINKER=$TOOLCHAIN/x86_64-linux-android28-clang" >> "$GITHUB_ENV"
+
+    echo "CC_aarch64_linux_android=$TOOLCHAIN/aarch64-linux-android28-clang" >> "$GITHUB_ENV"
+    echo "CC_x86_64_linux_android=$TOOLCHAIN/x86_64-linux-android28-clang" >> "$GITHUB_ENV"
+
+    echo "AR_aarch64_linux_android=$TOOLCHAIN/llvm-ar" >> "$GITHUB_ENV"
+    echo "AR_x86_64_linux_android=$TOOLCHAIN/llvm-ar" >> "$GITHUB_ENV"
