@@ -36,7 +36,7 @@ jobs:
       sails_js_cli_version: ${{ steps.versions.outputs.sails_js_cli_version }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup NodeJS 20.x
         uses: actions/setup-node@v6
@@ -83,7 +83,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup NodeJS 20.x
         uses: actions/setup-node@v6
@@ -129,7 +129,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup NodeJS 20.x
         uses: actions/setup-node@v6
@@ -174,7 +174,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup NodeJS 20.x
         uses: actions/setup-node@v6
@@ -335,7 +335,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Download sails-js artifact
         uses: actions/download-artifact@v8
