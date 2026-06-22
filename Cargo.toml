@@ -110,7 +110,7 @@ handlebars = "=6.4" # PIN version
 hashbrown = "0.17"
 hex = { version = "0.4", default-features = false }
 insta = "1.47"
-itertools = { version = "0.14", default-features = false }
+itertools = { version = "0.15", default-features = false }
 keccak-const = "0.2"
 lalrpop = { version = "=0.20", default-features = false } # PIN version
 lalrpop-util = { version = "=0.20", default-features = false } # PIN version
@@ -127,10 +127,10 @@ proc-macro2 = { version = "1", default-features = false }
 proc-macro-crate = "3.5.0"
 proc-macro-error = "1.0"
 quote = "1.0"
-rustdoc-types = "=0.57.3"
+rustdoc-types = "=0.57.4"
 serde = { version = "1.0", default-features = false }
 serde-json = { package = "serde_json", version = "1.0", default-features = false }
-spin = { version = "0.10", default-features = false, features = ["spin_mutex"] }
+spin = { version = "0.12", default-features = false, features = ["spin_mutex"] }
 syn = "2.0"
 talc = "5.0"
 tempfile = "3.27"
@@ -139,8 +139,8 @@ tokio = "1.52"
 tokio-stream = "0.1"
 toml_edit = "0.25"
 trybuild = "1"
-wasmparser = "0.244"
-wasm-encoder = "0.244"
+wasmparser = "0.252"
+wasm-encoder = "0.252"
 
 # The profile that 'dist' will build with
 [profile.dist]
