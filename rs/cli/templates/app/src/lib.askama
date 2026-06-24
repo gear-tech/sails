@@ -29,8 +29,8 @@ pub struct {{ service_name }}State {
 }
 
 /// Events emitted by the `{{ service_name }}` service.
-#[sails_rs::sails_type]
 #[sails_rs::event]
+#[sails_rs::sails_type]
 pub enum {{ service_name }}Events {
     CalledBy { caller: {% if eth %}Address{% else %}ActorId{% endif %} },
 }
