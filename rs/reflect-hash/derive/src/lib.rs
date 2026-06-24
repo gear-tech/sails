@@ -120,12 +120,10 @@ fn derive_reflect_hash_impl(input: DeriveInput) -> SynResult<TokenStream2> {
             // When an event macro is present, variants must be hashed in alphabetical order
             // to match IDL normalization, regardless of which macro ran first.
             let sort_alphabetically = input.attrs.iter().any(|attr| {
-                let path = attr.path();
-                path.is_ident("event")
-                    || path
-                        .segments
-                        .last()
-                        .map_or(false, |s| s.ident == "event" && path.segments.len() == 2)
+                attr.path()
+                    .segments
+                    .last()
+                    .is_some_and(|s| s.ident == "event")
             });
             generate_enum_hash(&data_enum.variants, &crate_name, sort_alphabetically)?
         }
