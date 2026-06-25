@@ -37,8 +37,10 @@ use syn::{
 ///
 /// ## Enums
 ///
-/// The final hash is `keccak256(variant_hash_0 || variant_hash_1 || ... || variant_hash_N)`
-/// where variants are processed in declaration order.
+/// The final hash is `keccak256(variant_hash_0 || variant_hash_1 || ... || variant_hash_N)`.
+/// Variants are processed in **declaration order** unless the enum also carries an `#[event]`
+/// (or `#[sails_rs::event]`) attribute, in which case variants are sorted case-insensitively by
+/// name to match IDL normalization.
 ///
 /// - **Unit variant** `Transferred` → `keccak256(b"Transferred")`
 /// - **Tuple variant** `Approved(ActorId, u128)` → `keccak256(b"Approved" || ActorId::HASH || u128::HASH)`
@@ -114,7 +116,17 @@ fn derive_reflect_hash_impl(input: DeriveInput) -> SynResult<TokenStream2> {
         Data::Struct(data_struct) => {
             generate_struct_hash(ty_name, &data_struct.fields, &crate_name)?
         }
-        Data::Enum(data_enum) => generate_enum_hash(&data_enum.variants, &crate_name)?,
+        Data::Enum(data_enum) => {
+            // When an event macro is present, variants must be hashed in alphabetical order
+            // to match IDL normalization, regardless of which macro ran first.
+            let sort_alphabetically = input.attrs.iter().any(|attr| {
+                attr.path()
+                    .segments
+                    .last()
+                    .is_some_and(|s| s.ident == "event")
+            });
+            generate_enum_hash(&data_enum.variants, &crate_name, sort_alphabetically)?
+        }
         Data::Union(_) => {
             return Err(Error::new_spanned(
                 ty_name,
@@ -130,7 +142,6 @@ fn derive_reflect_hash_impl(input: DeriveInput) -> SynResult<TokenStream2> {
     })
 }
 
-// TODO: #1125
 /// Look for `#[reflect_hash(crate = ...)]` attribute and return the path.
 /// If not found, use proc-macro-crate to detect the crate name.
 fn reflect_hash_crate_path(attrs: &[Attribute]) -> SynResult<TokenStream2> {
@@ -222,13 +233,22 @@ fn generate_struct_hash(
 }
 
 /// Generates hash computation for an enum.
+///
+/// When `sort_alphabetically` is true (i.e. the enum is an event type), variants are hashed in
+/// case-insensitive alphabetical order so the result matches IDL normalization.
 fn generate_enum_hash(
     variants: &Punctuated<Variant, token::Comma>,
     crate_name: &TokenStream2,
+    sort_alphabetically: bool,
 ) -> SynResult<TokenStream2> {
     let mut variant_hash_computations = Vec::new();
 
-    for variant in variants {
+    let mut variant_refs: Vec<&Variant> = variants.iter().collect();
+    if sort_alphabetically {
+        variant_refs.sort_by_key(|v| v.ident.to_string().to_lowercase());
+    }
+
+    for variant in variant_refs {
         let variant_hash = generate_struct_hash(&variant.ident, &variant.fields, crate_name)?;
         variant_hash_computations.push(variant_hash);
     }
