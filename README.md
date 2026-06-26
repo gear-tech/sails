@@ -453,7 +453,7 @@ Firstly, it supports manual interaction using the [Gear Protocol](https://gear-t
 You can use:
 
 - The `msg::send` functions from the `gstd` crate to interact between applications.
-- The `gclient` crate to interact from off-chain code with an on-chain application.
+- The `gsdk` crate to interact from off-chain code with an on-chain application.
 - The `@gear-js/api` library to interact with your program from JavaScript.
 
 All you need to do is compose a byte payload according to the layout outlined in the
@@ -540,7 +540,7 @@ trait:
 
 - `sails_rs::client::GstdEnv` should be used when the client code is executed
   as part of another on-chain application.
-- `sails_rs::client::GclientEnv` should be used when the client code is executed
+- `sails_rs::client::GsdkEnv` should be used when the client code is executed
   as part of an off-chain application.
 - `sails_rs::client::GtestEnv` should be used when the client code is executed
   as part of tests utilizing the `gtest` crate.

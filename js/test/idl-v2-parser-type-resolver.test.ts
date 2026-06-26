@@ -345,7 +345,7 @@ describe('type-resolver-v2 generics', () => {
 
 describe('sails v2 service-scoped type resolution', () => {
   const TWO_SERVICES_SAME_NAME = `
-    !@sails: 1.0.0-beta.3
+    !@sails: 2.0.0
 
     service A@0xa667a3b129e57f5c {
       functions {
@@ -401,7 +401,7 @@ describe('sails v2 service-scoped type resolution', () => {
     // are scoped to program/ctor declarations and are NOT ambient for services. A service
     // IDL must be resolvable from its own `types` plus its extends chain.
     const text = `
-      !@sails: 1.0.0-beta.3
+      !@sails: 2.0.0
 
       service A@0x4071744d7e684110 {
         functions {
@@ -434,7 +434,7 @@ describe('sails v2 service-scoped type resolution', () => {
     // explicitly extended service interfaces. Here `Child` has no `Shared` of its own,
     // but its base `Base` does — and the extension must surface it.
     const text = `
-      !@sails: 1.0.0-beta.3
+      !@sails: 2.0.0
 
       service Base {
         functions {
@@ -490,7 +490,7 @@ describe('sails v2 service-scoped type resolution', () => {
 
   test('generic substitution: Envelope<[u8]>.payload resolves to [u8]', () => {
     const text = `
-      !@sails: 1.0.0-beta.3
+      !@sails: 2.0.0
 
       service Gen@0x8c5db6384e4cf753 {
         functions {
@@ -578,7 +578,7 @@ describe('v2 decodeResult header validation', () => {
 describe('type-resolver-v2 service scopes', () => {
   test('service resolver does not see program-level types', () => {
     const text = `
-      !@sails: 1.0.0-beta.3
+      !@sails: 2.0.0
 
       service A {
         functions {
@@ -609,7 +609,7 @@ describe('type-resolver-v2 service scopes', () => {
 
   test('service-local types shadow same-named program types', () => {
     const text = `
-      !@sails: 1.0.0-beta.3
+      !@sails: 2.0.0
 
       service A {
         functions {

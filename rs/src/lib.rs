@@ -26,12 +26,12 @@ mod builder;
 #[cfg(any(
     feature = "gstd",
     all(feature = "gtest", not(target_arch = "wasm32")),
-    all(feature = "gclient", not(target_arch = "wasm32"))
+    all(feature = "gsdk", not(target_arch = "wasm32"))
 ))]
 pub mod client;
 pub mod errors;
-#[cfg(all(feature = "gclient", not(target_arch = "wasm32")))]
-pub use gclient;
+#[cfg(all(feature = "gsdk", not(target_arch = "wasm32")))]
+pub use gsdk;
 #[cfg(feature = "gstd")]
 pub mod gstd;
 #[cfg(all(feature = "gtest", not(target_arch = "wasm32")))]

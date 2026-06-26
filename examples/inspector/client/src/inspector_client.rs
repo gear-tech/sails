@@ -23,7 +23,7 @@ impl<E: sails_rs::client::GearEnv> InspectorClient
     }
 }
 pub trait InspectorClientCtors {
-    type Env: sails_rs::client::GearEnv;
+    type Env: sails_rs::client::GearEnv + sails_rs::client::EnvWithCtor;
     #[allow(clippy::new_ret_no_self)]
     #[allow(clippy::wrong_self_convention)]
     fn new(
@@ -36,7 +36,7 @@ pub trait InspectorClientCtors {
     ) -> sails_rs::client::PendingCtor<InspectorClientProgram, io::NewWithResult, Self::Env>;
 }
 
-impl<E: sails_rs::client::GearEnv> InspectorClientCtors
+impl<E: sails_rs::client::GearEnv + sails_rs::client::EnvWithCtor> InspectorClientCtors
     for sails_rs::client::Deployment<InspectorClientProgram, E>
 {
     type Env = E;

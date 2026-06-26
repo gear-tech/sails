@@ -15,10 +15,10 @@ mod gtest_env;
 #[cfg(all(feature = "gtest", not(target_arch = "wasm32")))]
 pub use gtest_env::*;
 
-#[cfg(all(feature = "gclient", not(target_arch = "wasm32")))]
-mod gclient_env;
-#[cfg(all(feature = "gclient", not(target_arch = "wasm32")))]
-pub use gclient_env::{GclientEnv, GclientError, GclientParams};
+#[cfg(all(feature = "gsdk", not(target_arch = "wasm32")))]
+mod gsdk_env;
+#[cfg(all(feature = "gsdk", not(target_arch = "wasm32")))]
+pub use gsdk_env::{GsdkEnv, GsdkError, GsdkParams};
 
 mod gstd_env;
 pub use gstd_env::{GstdEnv, GstdParams};
@@ -58,6 +58,18 @@ pub trait GearEnv: Clone {
         Deployment::new(self.clone(), code_id, salt)
     }
 }
+
+/// Marker for environments that can create programs from within a program.
+///
+/// Implemented for every built-in environment except [`GstdEnv`] under the
+/// `ethexe` feature, where programs are deployed via the L1 rather than created
+/// on-chain. Generated client constructors require this bound, so attempting to
+/// deploy through an environment that lacks it is a compile-time error.
+#[diagnostic::on_unimplemented(
+    message = "`{Self}` cannot create programs from within a program",
+    note = "on `ethexe`, programs are deployed via the L1, so `GstdEnv` does not implement `EnvWithCtor`"
+)]
+pub trait EnvWithCtor: GearEnv {}
 
 pub trait Program: Sized {
     fn deploy(code_id: CodeId, salt: Vec<u8>) -> Deployment<Self, GstdEnv> {

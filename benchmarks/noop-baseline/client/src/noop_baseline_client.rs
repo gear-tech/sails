@@ -27,13 +27,13 @@ impl<E: sails_rs::client::GearEnv> NoopBaselineClient
     }
 }
 pub trait NoopBaselineClientCtors {
-    type Env: sails_rs::client::GearEnv;
+    type Env: sails_rs::client::GearEnv + sails_rs::client::EnvWithCtor;
     fn create(
         self,
     ) -> sails_rs::client::PendingCtor<NoopBaselineClientProgram, io::Create, Self::Env>;
 }
 
-impl<E: sails_rs::client::GearEnv> NoopBaselineClientCtors
+impl<E: sails_rs::client::GearEnv + sails_rs::client::EnvWithCtor> NoopBaselineClientCtors
     for sails_rs::client::Deployment<NoopBaselineClientProgram, E>
 {
     type Env = E;
