@@ -265,7 +265,19 @@ pub fn event(args: TokenStream, input: TokenStream) -> TokenStream {
 /// pub struct LegacyType { pub a: u32 }
 /// ```
 ///
-/// Composes with `#[event]` in any order — the two macros are orthogonal.
+/// # Ordering with `#[event]`
+///
+/// When applied to an event enum, `#[event]` **must** appear _before_ `#[sails_type]`:
+///
+/// ```rust,ignore
+/// #[sails_rs::event]  // correct: sorts variants first
+/// #[sails_rs::sails_type]
+/// pub enum MyEvents { Transferred, Approved }
+/// ```
+///
+/// Placing `#[sails_type]` first is a compile error. `#[event]` must sort variants
+/// alphabetically before `ReflectHash` (added by `#[sails_type]`) runs its derive;
+/// the reversed order would produce a hash inconsistent with the IDL.
 #[proc_macro_error]
 #[proc_macro_attribute]
 pub fn sails_type(args: TokenStream, item: TokenStream) -> TokenStream {
