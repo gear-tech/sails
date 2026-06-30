@@ -227,6 +227,10 @@ impl Listener for GsdkEnv {
     }
 }
 
+fn signer_actor_id(api: &SignedApi) -> ActorId {
+    ActorId::try_from(api.account_id().as_ref()).expect("account id must be a valid ActorId")
+}
+
 async fn create_program(
     api: SignedApi,
     code_id: CodeId,
@@ -242,7 +246,7 @@ async fn create_program(
         gas_limit
     } else {
         // Calculate gas amount needed for initialization
-        api.calculate_create_gas(code_id, payload.clone(), value, true)
+        api.calculate_create_gas(code_id, &payload, value, true)
             .await?
             .min_limit
     };
@@ -250,8 +254,7 @@ async fn create_program(
     let gas_limit = 0;
 
     // Subscribe before dispatching so the reply event can't fire before the listener exists.
-    let user_id =
-        ActorId::try_from(api.account_id().as_ref()).expect("account id must be a valid ActorId");
+    let user_id = signer_actor_id(&api);
     let mut subscription = api
         .subscribe_user_message_sent(UserMessageSentFilter::new().with_destination(user_id))
         .await?;
@@ -288,8 +291,7 @@ async fn send_for_reply_and_listen(
     let gas_limit = 0;
     let value = params.value.unwrap_or(0);
 
-    let user_id =
-        ActorId::try_from(api.account_id().as_ref()).expect("account id must be a valid ActorId");
+    let user_id = signer_actor_id(api);
     let subscription = api
         .subscribe_user_message_sent(UserMessageSentFilter::new().with_destination(user_id))
         .await?;
