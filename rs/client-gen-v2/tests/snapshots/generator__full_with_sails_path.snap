@@ -118,7 +118,7 @@ impl<E: my_crate::sails::client::GearEnv> FullCoverageProgram
     }
 }
 pub trait FullCoverageProgramCtors {
-    type Env: my_crate::sails::client::GearEnv;
+    type Env: my_crate::sails::client::GearEnv + my_crate::sails::client::EnvWithCtor;
     /// Default program constructor
     fn default(
         self,
@@ -131,7 +131,8 @@ pub trait FullCoverageProgramCtors {
     ) -> my_crate::sails::client::PendingCtor<FullCoverageProgramProgram, io::WithOwner, Self::Env>;
 }
 
-impl<E: my_crate::sails::client::GearEnv> FullCoverageProgramCtors
+impl<E: my_crate::sails::client::GearEnv + my_crate::sails::client::EnvWithCtor>
+    FullCoverageProgramCtors
     for my_crate::sails::client::Deployment<FullCoverageProgramProgram, E>
 {
     type Env = E;

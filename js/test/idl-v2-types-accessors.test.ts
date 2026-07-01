@@ -55,7 +55,7 @@ describe('SailsProgram.programTypes', () => {
   test('returns an empty map when the IDL has no program block', () => {
     // Services-only IDL: legal per the v2 spec for service interface bundles.
     const text = `
-      !@sails: 1.0.0-beta.3
+      !@sails: 2.0.0
 
       service Foo {
         functions {
@@ -88,7 +88,7 @@ describe('SailsProgram.programTypes', () => {
 describe('SailsService.types', () => {
   test('returns a map of types declared in the service block', () => {
     const text = `
-      !@sails: 1.0.0-beta.3
+      !@sails: 2.0.0
 
       service Foo {
         functions {
@@ -119,7 +119,7 @@ describe('SailsService.types', () => {
 
   test('returns an empty map when the service has no types block', () => {
     const text = `
-      !@sails: 1.0.0-beta.3
+      !@sails: 2.0.0
 
       service Foo {
         functions {
@@ -143,7 +143,7 @@ describe('SailsService.types', () => {
 
   test('declared-only: types declared in service A are not in service B.types', () => {
     const text = `
-      !@sails: 1.0.0-beta.3
+      !@sails: 2.0.0
 
       service Alpha {
         functions {
@@ -191,7 +191,7 @@ describe('SailsService.types', () => {
     // says `Child.types` must NOT include `Shared` — that's only reachable via
     // `Child.extends.Base.types` or `program.resolveInService('Child', ...)`.
     const text = `
-      !@sails: 1.0.0-beta.3
+      !@sails: 2.0.0
 
       service Base {
         functions {
@@ -235,7 +235,7 @@ describe('SailsService.types', () => {
 
   test('returns the same Map instance on repeated access (eager construction)', () => {
     const text = `
-      !@sails: 1.0.0-beta.3
+      !@sails: 2.0.0
 
       service Foo {
         functions { Ping() -> u32; }

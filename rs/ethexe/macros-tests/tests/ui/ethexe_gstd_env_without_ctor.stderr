@@ -1,0 +1,12 @@
+error[E0277]: `GstdEnv` cannot create programs from within a program
+  --> tests/ui/ethexe_gstd_env_without_ctor.rs:11:30
+   |
+11 |     requires_env_with_ctor::<GstdEnv>();
+   |                              ^^^^^^^ the trait `EnvWithCtor` is not implemented for `GstdEnv`
+   |
+   = note: on `ethexe`, programs are deployed via the L1, so `GstdEnv` does not implement `EnvWithCtor`
+note: required by a bound in `requires_env_with_ctor`
+  --> tests/ui/ethexe_gstd_env_without_ctor.rs:8:30
+   |
+ 8 | fn requires_env_with_ctor<E: EnvWithCtor>() {}
+   |                              ^^^^^^^^^^^ required by this bound in `requires_env_with_ctor`

@@ -18,10 +18,10 @@ pub enum Error {
     GCore(#[from] GCoreError),
     #[error("codec: {0}")]
     Codec(CodecError),
-    #[cfg(feature = "gclient")]
+    #[cfg(feature = "gsdk")]
     #[cfg(not(target_arch = "wasm32"))]
-    #[error("gclient: {0}")]
-    GClient(#[from] gclient::Error),
+    #[error("gsdk: {0}")]
+    Gsdk(#[from] gsdk::Error),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]

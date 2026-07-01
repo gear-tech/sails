@@ -27,13 +27,13 @@ impl<E: sails_rs::client::GearEnv> PartialIdlClient
     }
 }
 pub trait PartialIdlClientCtors {
-    type Env: sails_rs::client::GearEnv;
+    type Env: sails_rs::client::GearEnv + sails_rs::client::EnvWithCtor;
     #[allow(clippy::new_ret_no_self)]
     #[allow(clippy::wrong_self_convention)]
     fn new(self) -> sails_rs::client::PendingCtor<PartialIdlClientProgram, io::New, Self::Env>;
 }
 
-impl<E: sails_rs::client::GearEnv> PartialIdlClientCtors
+impl<E: sails_rs::client::GearEnv + sails_rs::client::EnvWithCtor> PartialIdlClientCtors
     for sails_rs::client::Deployment<PartialIdlClientProgram, E>
 {
     type Env = E;

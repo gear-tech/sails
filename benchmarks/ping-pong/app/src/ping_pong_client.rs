@@ -25,13 +25,13 @@ impl<E: sails_rs::client::GearEnv> PingPong for sails_rs::client::Actor<PingPong
     }
 }
 pub trait PingPongCtors {
-    type Env: sails_rs::client::GearEnv;
+    type Env: sails_rs::client::GearEnv + sails_rs::client::EnvWithCtor;
     fn new_for_bench(
         self,
     ) -> sails_rs::client::PendingCtor<PingPongProgram, io::NewForBench, Self::Env>;
 }
 
-impl<E: sails_rs::client::GearEnv> PingPongCtors
+impl<E: sails_rs::client::GearEnv + sails_rs::client::EnvWithCtor> PingPongCtors
     for sails_rs::client::Deployment<PingPongProgram, E>
 {
     type Env = E;
