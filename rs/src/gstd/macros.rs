@@ -282,16 +282,14 @@ macro_rules! service_route_dispatch {
         if is_async {
             $crate::gstd::message_loop(async move {
                 $svc.try_handle_async($interface_id, $entry_id, $input, |encoded_result, value| {
-                    $crate::gstd::msg::reply_bytes(encoded_result, value)
-                        .expect("Failed to send output");
+                    $crate::gstd::msg::reply_bytes(encoded_result, value).unwrap();
                 })
                 .await
                 .unwrap_or_else(|| $crate::gstd::unknown_input_panic("Unknown request", &[]));
             });
         } else {
             $svc.try_handle($interface_id, $entry_id, $input, |encoded_result, value| {
-                $crate::gstd::msg::reply_bytes(encoded_result, value)
-                    .expect("Failed to send output");
+                $crate::gstd::msg::reply_bytes(encoded_result, value).unwrap();
             })
             .unwrap_or_else(|| $crate::gstd::unknown_input_panic("Unknown request", &[]));
         }

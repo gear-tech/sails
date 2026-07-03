@@ -148,12 +148,33 @@ service Validator@0x4e78bafffdb4fb1c {
     }
 }
 
-service Chaos@0xf0c8c80dfabf72d5 {
+service Chaos@0x6412b1f7e47f892d {
     functions {
+        @query
+        CriticalHookCounter() -> u32;
+        /// Registers a critical hook, awaits a reply, then panics after resuming.
+        /// The trap on a message that reserved system gas makes the runtime invoke
+        /// `handle_signal`, which runs the stored critical hook. Used to verify the
+        /// `set_critical_hook` -> `handle_signal` path (distinct from the userspace
+        /// error reply). Observe the effect via [`Self::critical_hook_counter`].
+        @query
+        CriticalHookOnSignal();
         @query
         PanicAfterWait();
         @query
         ReplyHookCounter() -> u32;
+        /// Sends two messages for reply concurrently and resolves with the first to
+        /// reply via `futures::select`. Exercises `next_lock` picking the earliest
+        /// of several armed locks and `forget_future` reclaiming the losing branch
+        /// (its `MessageFuture` is dropped unresolved). Returns `0` if the first
+        /// send (`b"A"`) wins, `1` if the second (`b"B"`) does.
+        @query
+        SelectFirstReply() -> u8;
+        /// Suspends the message for `blocks` blocks via `sleep_for`, then returns
+        /// the actual block delta. Used to verify the `MessageSleepFuture` lifecycle:
+        /// register sleep lock -> `exec::wait_for` -> resume at deadline -> complete.
+        @query
+        SleepThenReturn(blocks: u32) -> u32;
         @query
         TimeoutWait();
     }
@@ -198,7 +219,7 @@ program DemoClient {
         ThisThat@0x381e13fdd02d675f,
         ValueFee@0x61261a86528bf9d5,
         Validator@0x4e78bafffdb4fb1c,
-        Chaos@0xf0c8c80dfabf72d5,
+        Chaos@0x6412b1f7e47f892d,
         Chain@0x01fcbe183e2199b0,
         OverrideGenerics@0xa33febc87c18925b,
     }
