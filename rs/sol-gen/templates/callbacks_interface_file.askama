@@ -1,0 +1,10 @@
+// SPDX-License-Identifier: {{ license_identifier }}
+pragma solidity ^{{ solidity_version }};
+
+interface I{{ contract_name }}Callbacks {
+{%- for function in functions %}
+    function replyOn_{{ function.name }}(bytes32 messageId{% if function.reply_type.is_some() %}, {{ function.reply_type.as_ref().unwrap() }}{% if function.reply_mem_location.is_some() %} {{ function.reply_mem_location.as_ref().unwrap() }}{% endif %} reply{% endif %}) external{% if function.returns_value %} payable{% endif %};{{ "\n" }}
+{%- endfor %}
+    function onErrorReply(bytes32 messageId, bytes calldata payload, bytes4 replyCode) external payable;
+}
+{{- "\n" -}}

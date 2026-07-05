@@ -1,0 +1,21 @@
+// SPDX-License-Identifier: {{ license_identifier }}
+pragma solidity ^{{ solidity_version }};
+
+import {Script} from "forge-std/Script.sol";
+import { {{ contract_name }}Abi } from "src/{{ contract_name }}Abi.sol";
+
+contract {{ contract_name }}AbiScript is Script {
+    {{ contract_name }}Abi public {{ contract_name_camel_case }}Abi;
+
+    function setUp() public {}
+
+    function run() public {
+        uint256 privateKey = vm.envUint("PRIVATE_KEY");
+        vm.startBroadcast(privateKey);
+
+        {{ contract_name_camel_case }}Abi = new {{ contract_name }}Abi();
+
+        vm.stopBroadcast();
+    }
+}
+{{- "\n" -}}

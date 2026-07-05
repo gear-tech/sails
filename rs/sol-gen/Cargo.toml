@@ -9,12 +9,19 @@ license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 
+[lib]
+crate-type = ["rlib", "cdylib"]
+
 [dependencies]
-sails-idl-parser-v2 = { workspace = true, features = ["std"] }
-handlebars.workspace = true
-anyhow.workspace = true
-serde = { workspace = true, features = ["derive"] }
+askama = { workspace = true, features = ["alloc", "derive"] }
 convert_case.workspace = true
+sails-idl-parser-v2.workspace = true
+talc.workspace = true
+thiserror.workspace = true
 
 [dev-dependencies]
 insta.workspace = true
+
+[features]
+default = []
+ffi = []

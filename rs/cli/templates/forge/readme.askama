@@ -1,0 +1,88 @@
+## The **{{ contract_name_kebab_case }}** bindings for Solidity
+
+[![Build Status](https://github.com/{{ github_username }}/{{ contract_name_kebab_case }}/workflows/CI/badge.svg)](https://github.com/{{ github_username }}/{{ contract_name_kebab_case }}/actions/workflows/test.yml)
+
+## Foundry
+
+**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+
+Foundry consists of:
+
+- **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
+- **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
+- **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
+- **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+
+## Documentation
+
+https://book.getfoundry.sh/
+
+## Usage
+
+### Install dependencies
+
+```shell
+$ forge soldeer install
+```
+
+### Build
+
+```shell
+$ forge build
+```
+
+### Test
+
+```shell
+$ forge test
+```
+
+### Format
+
+```shell
+$ forge fmt
+```
+
+### Gas Snapshots
+
+```shell
+$ forge snapshot
+```
+
+### Anvil
+
+```shell
+$ anvil
+```
+
+### Deploy
+
+```shell
+$ cp .env.example .env
+$ source .env
+
+$ forge script script/{{ contract_name }}Abi.s.sol:{{ contract_name }}AbiScript --rpc-url $LOCAL_RPC_URL --broadcast -vvvv
+$ forge script script/{{ contract_name }}Abi.s.sol:{{ contract_name }}AbiScript --rpc-url $MAINNET_RPC_URL --broadcast --verify -vvvv
+$ forge script script/{{ contract_name }}Abi.s.sol:{{ contract_name }}AbiScript --rpc-url $SEPOLIA_RPC_URL --broadcast --verify -vvvv
+$ forge script script/{{ contract_name }}Abi.s.sol:{{ contract_name }}AbiScript --rpc-url $HOODI_RPC_URL --broadcast --verify -vvvv
+
+$ forge script script/{{ contract_name }}Caller.s.sol:{{ contract_name }}CallerScript --rpc-url $LOCAL_RPC_URL --broadcast -vvvv
+$ forge script script/{{ contract_name }}Caller.s.sol:{{ contract_name }}CallerScript --rpc-url $MAINNET_RPC_URL --broadcast --verify -vvvv
+$ forge script script/{{ contract_name }}Caller.s.sol:{{ contract_name }}CallerScript --rpc-url $SEPOLIA_RPC_URL --broadcast --verify -vvvv
+$ forge script script/{{ contract_name }}Caller.s.sol:{{ contract_name }}CallerScript --rpc-url $HOODI_RPC_URL --broadcast --verify -vvvv
+```
+
+### Cast
+
+```shell
+$ cast <subcommand>
+```
+
+### Help
+
+```shell
+$ forge --help
+$ anvil --help
+$ cast --help
+```
+{{- "\n" -}}

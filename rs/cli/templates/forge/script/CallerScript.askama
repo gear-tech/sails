@@ -1,0 +1,23 @@
+// SPDX-License-Identifier: {{ license_identifier }}
+pragma solidity ^{{ solidity_version }};
+
+import {Script} from "forge-std/Script.sol";
+import {I{{ contract_name }}} from "src/I{{ contract_name }}.sol";
+import { {{ contract_name }}Caller } from "src/{{ contract_name }}Caller.sol";
+
+contract {{ contract_name }}CallerScript is Script {
+    {{ contract_name }}Caller public {{ contract_name_camel_case }}Caller;
+
+    function setUp() public {}
+
+    function run() public {
+        uint256 privateKey = vm.envUint("PRIVATE_KEY");
+        address varaEthProgram = vm.envAddress("VARA_ETH_PROGRAM");
+        vm.startBroadcast(privateKey);
+
+        {{ contract_name_camel_case }}Caller = new {{ contract_name }}Caller(I{{ contract_name }}(varaEthProgram));
+
+        vm.stopBroadcast();
+    }
+}
+{{- "\n" -}}

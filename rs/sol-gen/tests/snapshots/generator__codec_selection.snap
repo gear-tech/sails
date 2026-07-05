@@ -2,8 +2,8 @@
 source: rs/sol-gen/tests/generator.rs
 expression: generated
 ---
-// SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.28;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.35;
 
 interface ICodecTest {
     event BothEvent(uint32);

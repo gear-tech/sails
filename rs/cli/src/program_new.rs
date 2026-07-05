@@ -1,4 +1,5 @@
-use anyhow::Context;
+use crate::utils::{self, ExitStatusExt};
+use anyhow::{Context, Result};
 use askama::Template;
 use cargo_metadata::DependencyKind::{Build, Development, Normal};
 use chrono::{Datelike, Utc};
@@ -6,14 +7,15 @@ use convert_case::{Case, Casing};
 use std::{
     env,
     ffi::{OsStr, OsString},
+    fmt::Display,
     fs::{self, File},
-    io::{self, Write},
+    io::Write,
     path::{Path, PathBuf},
-    process::{Command, ExitStatus, Output, Stdio},
+    process::{Command, Stdio},
 };
 
 const SAILS_VERSION: &str = env!("CARGO_PKG_VERSION");
-const TOKIO_VERSION: &str = "1.50.0";
+const TOKIO_VERSION: &str = "1.52.3";
 const ICON_CONFIG: &str = "📋";
 const ICON_WORKSPACE: &str = "⚓";
 const ICON_APP: &str = "📦";
@@ -24,43 +26,15 @@ const ICON_FORMAT: &str = "✨";
 const ICON_DONE: &str = "✅";
 const CRATES_IO: &str = "crates-io";
 
-trait ExitStatusExt: Sized {
-    fn exit_result(self) -> io::Result<()>;
-}
-
-impl ExitStatusExt for ExitStatus {
-    fn exit_result(self) -> io::Result<()> {
-        if self.success() {
-            Ok(())
-        } else {
-            Err(io::Error::from(io::ErrorKind::Other))
-        }
-    }
-}
-
-trait OutputExt: Sized {
-    fn exit_result(self) -> io::Result<Self>;
-}
-
-impl OutputExt for Output {
-    fn exit_result(self) -> io::Result<Self> {
-        if self.status.success() {
-            Ok(self)
-        } else {
-            Err(io::Error::from(io::ErrorKind::Other))
-        }
-    }
-}
-
 #[derive(Template)]
-#[template(path = ".github/workflows/ci.askama")]
+#[template(path = "sails/.github/workflows/ci.askama")]
 struct CIWorkflow {
     git_branch_name: String,
     client_file_name: String,
 }
 
 #[derive(Template)]
-#[template(path = "app/src/lib.askama")]
+#[template(path = "sails/app/src/lib.askama")]
 struct AppLib {
     service_name: String,
     service_name_snake: String,
@@ -69,26 +43,26 @@ struct AppLib {
 }
 
 #[derive(Template)]
-#[template(path = "client/src/lib.askama")]
+#[template(path = "sails/client/src/lib.askama")]
 struct ClientLib {
     client_file_name: String,
 }
 
 #[derive(Template)]
-#[template(path = "client/build.askama")]
+#[template(path = "sails/client/build.askama")]
 struct ClientBuild {
     app_crate_name: String,
     program_struct_name: String,
 }
 
 #[derive(Template)]
-#[template(path = "src/lib.askama")]
+#[template(path = "sails/src/lib.askama")]
 struct RootLib {
     app_crate_name: String,
 }
 
 #[derive(Template)]
-#[template(path = "tests/gtest.askama")]
+#[template(path = "sails/tests/gtest.askama")]
 struct TestsGtest {
     program_crate_name: String,
     client_crate_name: String,
@@ -99,21 +73,21 @@ struct TestsGtest {
 }
 
 #[derive(Template)]
-#[template(path = "build.askama")]
+#[template(path = "sails/build.askama")]
 struct RootBuild {
     app_crate_name: String,
     program_struct_name: String,
 }
 
 #[derive(Template)]
-#[template(path = "license.askama")]
+#[template(path = "sails/license.askama")]
 struct RootLicense {
     copyright_year: String,
     package_author: String,
 }
 
 #[derive(Template)]
-#[template(path = "readme.askama")]
+#[template(path = "sails/readme.askama")]
 struct RootReadme {
     program_crate_name: String,
     github_username: String,
@@ -123,7 +97,7 @@ struct RootReadme {
 }
 
 #[derive(Template)]
-#[template(path = "rust-toolchain.askama")]
+#[template(path = "sails/rust-toolchain.askama")]
 struct RootRustToolchain;
 
 pub struct ProgramGenerator {
@@ -278,7 +252,7 @@ impl ProgramGenerator {
         manifest_path: P,
         dependency: cargo_metadata::DependencyKind,
         features: Option<&str>,
-    ) -> anyhow::Result<()> {
+    ) -> Result<()> {
         let sails_package = ["sails-rs"];
         cargo_add(
             manifest_path,
@@ -295,7 +269,7 @@ impl ProgramGenerator {
             .as_ref()
             .map(|path| path.display().to_string())
             .unwrap_or_else(|| format!("crates.io:{SAILS_VERSION}"));
-        let print_field = |label: &str, value: &dyn std::fmt::Display| {
+        let print_field = |label: &str, value: &dyn Display| {
             println!("   {label:<10} {value}");
         };
 
@@ -309,27 +283,34 @@ impl ProgramGenerator {
         print_field("eth:", &self.eth);
     }
 
-    pub fn generate(self) -> anyhow::Result<()> {
+    pub fn generate(self) -> Result<()> {
         println!("⛵ Creating new Sails program...");
         self.print_config();
 
         println!("{ICON_WORKSPACE} [1/6] Initializing workspace...");
         self.generate_root()?;
+
         println!("{ICON_APP} [2/6] Generating app crate...");
         self.generate_app()?;
+
         println!("{ICON_CLIENT} [3/6] Generating client crate...");
         self.generate_client()?;
+
         println!("{ICON_BUILD} [4/6] Wiring root crate...");
         self.generate_build()?;
+
         println!("{ICON_TESTS} [5/6] Generating tests...");
         self.generate_tests()?;
+
         println!("{ICON_FORMAT} [6/6] Formatting workspace...");
         self.fmt()?;
+
         println!("{ICON_DONE} Done.");
+
         Ok(())
     }
 
-    fn generate_app(&self) -> anyhow::Result<()> {
+    fn generate_app(&self) -> Result<()> {
         let path = &self.app_path();
         cargo_new(path, &self.app_name(), self.offline, false)?;
         let manifest_path = &manifest_path(path);
@@ -349,11 +330,11 @@ impl ProgramGenerator {
         Ok(())
     }
 
-    fn generate_root(&self) -> anyhow::Result<()> {
+    fn generate_root(&self) -> Result<()> {
         let path = &self.path;
         cargo_new(path, &self.package_name, self.offline, true)?;
 
-        let git_branch_name = git_show_current_branch(path)?;
+        let git_branch_name = utils::git_show_current_branch(path)?;
         println!("   git branch: {git_branch_name}");
 
         fs::create_dir_all(ci_workflow_dir_path(path))?;
@@ -404,7 +385,7 @@ impl ProgramGenerator {
         Ok(())
     }
 
-    fn generate_build(&self) -> anyhow::Result<()> {
+    fn generate_build(&self) -> Result<()> {
         let path = &self.path;
         let manifest_path = &manifest_path(path);
 
@@ -421,7 +402,7 @@ impl ProgramGenerator {
         Ok(())
     }
 
-    fn generate_client(&self) -> anyhow::Result<()> {
+    fn generate_client(&self) -> Result<()> {
         let path = &self.client_path();
         cargo_new(path, &self.client_name(), self.offline, false)?;
 
@@ -446,7 +427,7 @@ impl ProgramGenerator {
         Ok(())
     }
 
-    fn generate_tests(&self) -> anyhow::Result<()> {
+    fn generate_tests(&self) -> Result<()> {
         let path = &self.path;
         let manifest_path = &manifest_path(path);
         // add sails-rs refs
@@ -491,36 +472,13 @@ impl ProgramGenerator {
         Ok(())
     }
 
-    fn fmt(&self) -> anyhow::Result<()> {
+    fn fmt(&self) -> Result<()> {
         let manifest_path = &manifest_path(&self.path);
         cargo_fmt(manifest_path)
     }
 }
 
-fn git_show_current_branch<P: AsRef<Path>>(target_dir: P) -> anyhow::Result<String> {
-    let git_command = git_command();
-    let mut cmd = Command::new(git_command);
-    cmd.stdout(Stdio::piped())
-        .arg("-C")
-        .arg(target_dir.as_ref())
-        .arg("branch")
-        .arg("--show-current");
-
-    let output = cmd
-        .output()?
-        .exit_result()
-        .context("failed to get current git branch")?;
-    let git_branch_name = String::from_utf8(output.stdout)?;
-
-    Ok(git_branch_name.trim().into())
-}
-
-fn cargo_new<P: AsRef<Path>>(
-    target_dir: P,
-    name: &str,
-    offline: bool,
-    root: bool,
-) -> anyhow::Result<()> {
+fn cargo_new<P: AsRef<Path>>(target_dir: P, name: &str, offline: bool, root: bool) -> Result<()> {
     let cargo_command = cargo_command();
     let target_dir = target_dir.as_ref();
     let cargo_new_or_init = if target_dir.exists() { "init" } else { "new" };
@@ -623,7 +581,7 @@ fn cargo_add<P, I, S>(
     dependency: cargo_metadata::DependencyKind,
     features: Option<&str>,
     offline: bool,
-) -> anyhow::Result<()>
+) -> Result<()>
 where
     P: AsRef<Path>,
     I: IntoIterator<Item = S>,
@@ -688,7 +646,7 @@ where
 }
 
 #[allow(unused)]
-fn cargo_update<P: AsRef<Path>>(manifest_path: P, package: Option<&str>) -> anyhow::Result<()> {
+fn cargo_update<P: AsRef<Path>>(manifest_path: P, package: Option<&str>) -> Result<()> {
     let cargo_command = cargo_command();
     if let Some(package) = package {
         println!(
@@ -719,7 +677,7 @@ fn cargo_update<P: AsRef<Path>>(manifest_path: P, package: Option<&str>) -> anyh
     Ok(())
 }
 
-fn cargo_info(package: &str) -> anyhow::Result<()> {
+fn cargo_info(package: &str) -> Result<()> {
     let cargo_command = cargo_command();
     let package_version = &format!("{package}@{SAILS_VERSION}");
     println!("   cargo info: {package_version}");
@@ -741,7 +699,7 @@ fn cargo_info(package: &str) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn cargo_fmt<P: AsRef<Path>>(manifest_path: P) -> anyhow::Result<()> {
+fn cargo_fmt<P: AsRef<Path>>(manifest_path: P) -> Result<()> {
     let cargo_command = cargo_command();
     println!("   cargo fmt: {}", manifest_path.as_ref().display());
 
@@ -765,7 +723,7 @@ fn cargo_toml_create_workspace_and_fill_package<P: AsRef<Path>>(
     author: &str,
     username: &str,
     sails_path: &Option<PathBuf>,
-) -> anyhow::Result<()> {
+) -> Result<()> {
     let manifest_path = manifest_path.as_ref();
     let cargo_toml = fs::read_to_string(manifest_path)?;
     let mut document: toml_edit::DocumentMut = cargo_toml.parse()?;
@@ -925,10 +883,6 @@ fn readme_path<P: AsRef<Path>>(path: P) -> PathBuf {
 
 fn rust_toolchain_path<P: AsRef<Path>>(path: P) -> PathBuf {
     path.as_ref().join("rust-toolchain.toml")
-}
-
-fn git_command() -> String {
-    env::var("GIT").unwrap_or("git".into())
 }
 
 fn cargo_command() -> String {
