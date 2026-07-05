@@ -28,7 +28,7 @@ struct TestWorkflow {
 }
 
 #[derive(Template)]
-#[template(path = "forge/.vscode/settings.askama")]
+#[template(path = "forge/vscode/settings.askama")]
 struct VsCodeSettings {
     solidity_version: String,
 }
