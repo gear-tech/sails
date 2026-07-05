@@ -1,13 +1,19 @@
 use clap::{Parser, Subcommand};
 use convert_case::{Case, Casing};
-use sails_cli::{idlgen::CrateIdlGenerator, program_new, solgen::SolidityGenerator};
+use sails_cli::{
+    idlgen::CrateIdlGenerator,
+    program_new::ProgramGenerator,
+    solgen::{SolidityGenerator, SolidityGeneratorOutputType},
+};
 use sails_client_gen::ClientGenerator as ClientGeneratorV1;
 use sails_client_gen_js::JsClientGenerator;
 use sails_client_gen_v2::ClientGenerator as ClientGeneratorV2;
 use sails_idl_parser_v2::parse_tokens;
 use std::{
     error::Error,
+    fs,
     path::{Path, PathBuf},
+    str::FromStr,
 };
 
 const SAILBOAT: &str = "⛵";
@@ -129,7 +135,7 @@ enum SailsCommands {
     #[command(name = "sol")]
     SolGen {
         /// Path to the IDL file
-        #[arg(long, value_hint = clap::ValueHint::FilePath)]
+        #[arg(value_hint = clap::ValueHint::FilePath)]
         idl_path: PathBuf,
         /// Directory for all generated artifacts
         #[arg(long, value_hint = clap::ValueHint::DirPath)]
@@ -137,15 +143,27 @@ enum SailsCommands {
         /// Name of the contract to generate
         #[arg(long, short = 'n')]
         contract_name: Option<String>,
+        /// Set the package author, defaults to "Gear Technologies"
+        #[arg(long)]
+        author: Option<String>,
+        /// Set the GitHub username for the package repository URL, defaults to "gear-tech"
+        #[arg(long)]
+        username: Option<String>,
+        /// Run without accessing the network
+        #[arg(long)]
+        offline: bool,
+        /// Generate Forge project instead of single Solidity file
+        #[arg(long)]
+        forge: bool,
     },
 }
 
 /// Parse a single key-value pair
 fn parse_key_val<T, U>(s: &str) -> Result<(T, U), Box<dyn Error + Send + Sync + 'static>>
 where
-    T: std::str::FromStr,
+    T: FromStr,
     T::Err: Error + Send + Sync + 'static,
-    U: std::str::FromStr,
+    U: FromStr,
     U::Err: Error + Send + Sync + 'static,
 {
     let pos = s
@@ -204,10 +222,9 @@ fn main() -> Result<(), i32> {
             sails_path,
             offline,
             eth,
-        } => program_new::ProgramGenerator::new(
-            path, name, author, username, sails_path, offline, eth,
-        )
-        .generate(),
+        } => {
+            ProgramGenerator::new(path, name, author, username, sails_path, offline, eth).generate()
+        }
         SailsCommands::ClientRs {
             idl_path,
             out_path,
@@ -219,7 +236,7 @@ fn main() -> Result<(), i32> {
         } => {
             let out_path = out_path.unwrap_or_else(|| idl_path.with_extension("rs"));
 
-            let Ok(idl) = std::fs::read_to_string(&idl_path) else {
+            let Ok(idl) = fs::read_to_string(&idl_path) else {
                 eprintln!("Error: failed to read {:?}", idl_path);
                 return Err(-1);
             };
@@ -286,7 +303,7 @@ fn main() -> Result<(), i32> {
         )
         .generate(),
         SailsCommands::IdlEmbed { wasm, idl } => (|| -> anyhow::Result<()> {
-            let idl_text = std::fs::read_to_string(&idl)?;
+            let idl_text = fs::read_to_string(&idl)?;
             sails_idl_embed::embed_idl_to_file(&wasm, &idl_text)?;
             println!(
                 "Embedded IDL ({} bytes) into {}",
@@ -300,7 +317,7 @@ fn main() -> Result<(), i32> {
             match idl {
                 Some(text) => {
                     if let Some(out_path) = output {
-                        std::fs::write(&out_path, &text)?;
+                        fs::write(&out_path, &text)?;
                         println!(
                             "Extracted IDL ({} bytes) to {}",
                             text.len(),
@@ -320,7 +337,27 @@ fn main() -> Result<(), i32> {
             idl_path,
             target_dir,
             contract_name,
-        } => SolidityGenerator::new(idl_path, target_dir, contract_name).generate(),
+            author,
+            username,
+            offline,
+            forge,
+        } => {
+            let output_type = if forge {
+                SolidityGeneratorOutputType::ForgeProject
+            } else {
+                SolidityGeneratorOutputType::SingleSolidity
+            };
+            SolidityGenerator::new(
+                idl_path,
+                target_dir,
+                contract_name,
+                author,
+                username,
+                offline,
+                output_type,
+            )
+            .generate()
+        }
     };
 
     if let Err(e) = result {

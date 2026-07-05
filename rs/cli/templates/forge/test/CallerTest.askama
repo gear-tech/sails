@@ -1,0 +1,21 @@
+// SPDX-License-Identifier: {{ license_identifier }}
+pragma solidity ^{{ solidity_version }};
+
+import {Test} from "forge-std/Test.sol";
+import { {{ contract_name }}Abi } from "src/{{ contract_name }}Abi.sol";
+import { {{ contract_name }}Caller } from "src/{{ contract_name }}Caller.sol";
+
+contract {{ contract_name }}CallerTest is Test {
+    {{ contract_name }}Caller public {{ contract_name_camel_case }}Caller;
+
+    function setUp() public {
+        {{ contract_name_camel_case }}Caller = new {{ contract_name }}Caller(new {{ contract_name }}Abi());
+    }
+
+    function test_CallSomething() public {
+        vm.expectRevert();
+        (bool success,) = address({{ contract_name_camel_case }}Caller).call("");
+        assertTrue(success);
+    }
+}
+{{- "\n" -}}

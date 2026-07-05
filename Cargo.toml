@@ -76,7 +76,7 @@ sails-macros = { path = "rs/macros" }
 sails-reflect-hash-derive = { path = "rs/reflect-hash/derive" }
 sails-reflect-hash = { path = "rs/reflect-hash" }
 sails-rs = { path = "rs" }
-sails-sol-gen = { path = "rs/sol-gen" }
+sails-sol-gen = { path = "rs/sol-gen", default-features = false }
 sails-type-registry = { path = "rs/type-registry" }
 sails-type-registry-derive = { path = "rs/type-registry/derive" }
 # Renamed sails-rs for `proxy` demo
@@ -107,7 +107,6 @@ fs2 = "0.4.3"
 futures = { version = "0.3", default-features = false }
 genco = "0.19"
 git-download = "0.1"
-handlebars = "=6.4" # PIN version
 hashbrown = "0.17"
 hex = { version = "0.4", default-features = false }
 insta = "1.47"

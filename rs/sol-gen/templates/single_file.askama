@@ -1,0 +1,55 @@
+// SPDX-License-Identifier: {{ license_identifier }}
+pragma solidity ^{{ solidity_version }};
+
+interface I{{ contract_name }} {
+{%- for event in events %}
+    event {{ event.name }}({% for arg in event.args %}{% if !loop.first %}, {% endif %}{{ arg.ty }}{% if arg.indexed %} indexed{% endif %}{% if arg.name.is_some() %} {{ arg.name.as_ref().unwrap() }}{% endif %}{% endfor %});{% if !loop.last || !functions.is_empty() %}{{ "\n" }}{% endif %}
+
+{%- endfor %}
+{%- for function in functions %}
+    function {{ function.name }}(bool _callReply{% if !function.args.is_empty() %}, {% for arg in function.args %}{% if !loop.first %}, {% endif %}{{ arg.ty }}{% if arg.mem_location.is_some() %} {{ arg.mem_location.as_ref().unwrap() }}{% endif %} {{ arg.name }}{% endfor %}{% endif %}) external{% if function.payable %} payable{% endif %} returns (bytes32 messageId);{% if !loop.last %}{{ "\n" }}{% endif %}
+{%- endfor %}
+}
+
+contract {{ contract_name }}Abi is I{{ contract_name }} {
+{%- for function in functions %}
+    function {{ function.name }}(bool _callReply{% if !function.args.is_empty() %}, {% for arg in function.args %}{% if !loop.first %}, {% endif %}{{ arg.ty }}{% if arg.mem_location.is_some() %} {{ arg.mem_location.as_ref().unwrap() }}{% endif %} {{ arg.name }}{% endfor %}{% endif %}) external{% if function.payable %} payable{% endif %} returns (bytes32 messageId) {}{% if !loop.last %}{{ "\n" }}{% endif %}
+{%- endfor %}
+}
+
+interface I{{ contract_name }}Callbacks {
+{%- for function in functions %}
+    function replyOn_{{ function.name }}(bytes32 messageId{% if function.reply_type.is_some() %}, {{ function.reply_type.as_ref().unwrap() }}{% if function.reply_mem_location.is_some() %} {{ function.reply_mem_location.as_ref().unwrap() }}{% endif %} reply{% endif %}) external{% if function.returns_value %} payable{% endif %};{{ "\n" }}
+{%- endfor %}
+    function onErrorReply(bytes32 messageId, bytes calldata payload, bytes4 replyCode) external payable;
+}
+
+contract {{ contract_name }}Caller is I{{ contract_name }}Callbacks {
+    I{{ contract_name }} public immutable VARA_ETH_PROGRAM;
+
+    error UnauthorizedCaller();
+
+    constructor(I{{ contract_name }} _varaEthProgram) {
+        VARA_ETH_PROGRAM = _varaEthProgram;
+    }
+
+    modifier onlyVaraEthProgram() {
+        _onlyVaraEthProgram();
+        _;
+    }
+
+    function _onlyVaraEthProgram() internal view {
+        if (msg.sender != address(VARA_ETH_PROGRAM)) {
+            revert UnauthorizedCaller();
+        }
+    }
+
+{% for function in functions %}    function replyOn_{{ function.name }}(bytes32 messageId{% if function.reply_type.is_some() %}, {{ function.reply_type.as_ref().unwrap() }}{% if function.reply_mem_location.is_some() %} {{ function.reply_mem_location.as_ref().unwrap() }}{% endif %} reply{% endif %}) external{% if function.returns_value %} payable{% endif %} onlyVaraEthProgram {
+        // TODO: implement this
+    }{{ "\n" }}{% if !loop.last %}{{ "\n" }}{% endif %}
+{%- endfor %}
+    function onErrorReply(bytes32 messageId, bytes calldata payload, bytes4 replyCode) external payable onlyVaraEthProgram {
+        // TODO: implement this
+    }
+}
+{{- "\n" -}}

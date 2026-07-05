@@ -1,0 +1,32 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["dependencies"]
+remappings = ["forge-std/=dependencies/forge-std-{{ forge_std_version }}/src/"]
+evm_version = "{{ evm_version }}"
+solc = "{{ solidity_version }}"
+optimizer = true
+extra_output_files = ["irOptimized"]
+via_ir = true
+bytecode_hash = "none"
+cbor_metadata = false
+revert_strings = "strip"
+
+[dependencies]
+forge-std = "{{ forge_std_version }}"
+
+[fmt]
+sort_imports = true
+
+[rpc_endpoints]
+mainnet = "${MAINNET_RPC_URL}"
+sepolia = "${SEPOLIA_RPC_URL}"
+hoodi = "${HOODI_RPC_URL}"
+
+[etherscan]
+mainnet = { key = "${ETHERSCAN_API_KEY}" }
+sepolia = { key = "${ETHERSCAN_API_KEY}" }
+hoodi = { key = "${ETHERSCAN_API_KEY}" }
+
+# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
+{{- "\n" -}}

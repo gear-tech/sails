@@ -1,184 +1,26 @@
-use anyhow::{Result, anyhow};
-use convert_case::{Case, Casing};
-use handlebars::Handlebars;
-use sails_idl_parser_v2::{
-    ast::{IdlDoc, PrimitiveType, Type, TypeDecl, codec::has_ethabi_codec},
-    parse_idl,
+#![cfg_attr(target_arch = "wasm32", no_std)]
+
+#[macro_use]
+extern crate alloc;
+
+mod error;
+#[cfg(feature = "ffi")]
+pub mod ffi;
+mod generator;
+mod sol_conversion;
+
+pub use error::*;
+pub use generator::{
+    LICENSE_IDENTIFIER, SOLIDITY_VERSION, SolidityFile, generate_solidity_contract,
 };
-use serde::Serialize;
-use typedecl_to_sol::TypeDeclToSol;
+pub use sol_conversion::ConversionError;
 
-mod consts;
-mod typedecl_to_sol;
+#[cfg(target_arch = "wasm32")]
+#[global_allocator]
+static TALC: talc::wasm::WasmDynamicTalc = talc::wasm::new_wasm_dynamic_allocator();
 
-#[derive(Serialize)]
-struct ArgData {
-    pub ty: String,
-    pub name: String,
-    pub mem_location: Option<String>,
-}
-
-#[derive(Serialize)]
-struct FunctionData {
-    pub name: String,
-    pub args: Vec<ArgData>,
-    pub reply_type: Option<String>,
-    pub reply_mem_location: Option<String>,
-    pub payable: bool,
-    pub returns_value: bool,
-}
-
-#[derive(Serialize)]
-struct EventArgData {
-    pub ty: String,
-    pub indexed: bool,
-    pub name: Option<String>,
-}
-
-#[derive(Serialize)]
-struct EventData {
-    pub name: String,
-    pub args: Vec<EventArgData>,
-}
-
-#[derive(Serialize)]
-struct ContractData {
-    pub pragma_version: String,
-    pub contract_name: String,
-    pub functions: Vec<FunctionData>,
-    pub events: Vec<EventData>,
-}
-
-pub struct GenerateContractResult {
-    pub data: Vec<u8>,
-    pub name: String,
-}
-
-fn resolve_type_decl(decl: &TypeDecl, types: &[Type]) -> Result<String> {
-    match decl {
-        TypeDecl::Named { name, .. } => types
-            .iter()
-            .find(|ty| ty.name == *name)
-            .and_then(|ty| ty.annotations.iter().find(|(k, _)| k == "sol_type"))
-            .and_then(|(_, v)| v.clone())
-            .ok_or_else(|| anyhow!("type is not supported")),
-        TypeDecl::Array { item, len } => {
-            Ok(format!("{}[{}]", resolve_type_decl(item, types)?, len))
-        }
-        TypeDecl::Slice { item } => Ok(format!("{}[]", resolve_type_decl(item, types)?)),
-        _ => decl.get_ty(),
-    }
-}
-
-pub fn generate_solidity_contract(idl_content: &str, name: &str) -> Result<GenerateContractResult> {
-    let doc = parse_idl(idl_content)?;
-
-    let contract_name = name.to_string().to_case(Case::UpperCamel);
-
-    let contract_data = ContractData {
-        contract_name: contract_name.clone(),
-        pragma_version: consts::PRAGMA_VERSION.to_string(),
-        functions: functions_from_idl(&doc)?,
-        events: events_from_idl(&doc)?,
-    };
-
-    let mut handlebars = Handlebars::new();
-    handlebars.register_template_string("contract", consts::CONTRACT_TEMPLATE)?;
-
-    let mut contract = Vec::new();
-
-    handlebars.render_to_write("contract", &contract_data, &mut contract)?;
-
-    Ok(GenerateContractResult {
-        data: contract,
-        name: contract_name,
-    })
-}
-
-fn functions_from_idl(doc: &IdlDoc) -> Result<Vec<FunctionData>> {
-    let mut functions = Vec::new();
-
-    if let Some(program) = &doc.program {
-        for func in &program.ctors {
-            let mut args = Vec::new();
-            for p in &func.params {
-                let arg = ArgData {
-                    ty: resolve_type_decl(&p.type_decl, &program.types)?,
-                    name: p.name.to_case(Case::Camel),
-                    mem_location: p.type_decl.get_mem_location(),
-                };
-                args.push(arg);
-            }
-            functions.push(FunctionData {
-                name: func.name.to_case(Case::Camel),
-                reply_type: None, // Constructors don't have replies in this sense
-                reply_mem_location: None,
-                payable: func.annotations.iter().any(|(k, _)| k == "payable"),
-                returns_value: false, // Constructors don't return CommandReply values
-                args,
-            });
-        }
-    }
-
-    for svc in &doc.services {
-        for f in &svc.funcs {
-            if !has_ethabi_codec(&f.annotations) {
-                continue;
-            }
-            let mut args = Vec::new();
-            for p in &f.params {
-                let arg = ArgData {
-                    ty: resolve_type_decl(&p.type_decl, &svc.types)?,
-                    name: p.name.to_case(Case::Camel),
-                    mem_location: p.type_decl.get_mem_location(),
-                };
-                args.push(arg);
-            }
-            let reply_type = if f.output != TypeDecl::Primitive(PrimitiveType::Void) {
-                Some(resolve_type_decl(&f.output, &svc.types)?)
-            } else {
-                None
-            };
-            functions.push(FunctionData {
-                name: format!("{}{}", svc.name.name, f.name)
-                    .as_str()
-                    .to_case(Case::Camel),
-                reply_type,
-                reply_mem_location: f.output.get_mem_location(),
-                payable: f.annotations.iter().any(|(k, _)| k == "payable"),
-                returns_value: f.annotations.iter().any(|(k, _)| k == "returns_value"),
-                args,
-            });
-        }
-    }
-
-    Ok(functions)
-}
-
-fn events_from_idl(doc: &IdlDoc) -> Result<Vec<EventData>> {
-    let mut events = Vec::new();
-
-    for svc in &doc.services {
-        for e in svc
-            .events
-            .iter()
-            .filter(|e| has_ethabi_codec(&e.annotations))
-        {
-            let mut args = Vec::new();
-            for f in &e.def.fields {
-                let arg = EventArgData {
-                    ty: resolve_type_decl(&f.type_decl, &svc.types)?,
-                    indexed: f.annotations.iter().any(|(k, _)| k == "indexed"),
-                    name: f.name.as_ref().map(|name| name.to_case(Case::Camel)),
-                };
-                args.push(arg);
-            }
-            events.push(EventData {
-                name: e.name.to_string(),
-                args,
-            });
-        }
-    }
-
-    Ok(events)
+#[cfg(target_arch = "wasm32")]
+#[panic_handler]
+fn panic(_: &core::panic::PanicInfo<'_>) -> ! {
+    core::arch::wasm32::unreachable()
 }

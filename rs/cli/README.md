@@ -71,7 +71,7 @@ cargo sails idl-extract --wasm path/to/app.opt.wasm
 Generate Solidity artifacts from IDL:
 
 ```bash
-cargo sails sol --idl-path path/to/app.idl
+cargo sails sol path/to/app.idl
 ```
 
 ## Generated Sails Project Parts

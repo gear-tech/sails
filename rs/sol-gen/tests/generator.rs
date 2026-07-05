@@ -1,5 +1,5 @@
 use insta::assert_snapshot;
-use sails_sol_gen::generate_solidity_contract;
+use sails_sol_gen::{SolidityFile, generate_solidity_contract};
 
 const SIMPLE_IDL: &str = r#"
 program TestProgram {
@@ -41,26 +41,27 @@ service Svc1 {
 
 #[test]
 fn test_generate_simple_contract() {
-    let contract = generate_solidity_contract(SIMPLE_IDL, "TestContract");
+    let contract = generate_solidity_contract("TestContract", SIMPLE_IDL, SolidityFile::SingleFile);
 
     assert!(
         contract.is_ok(),
         "Failed to generate contract: {:?}",
         contract.err()
     );
-    assert_snapshot!(String::from_utf8(contract.unwrap().data).unwrap());
+    assert_snapshot!(String::from_utf8(contract.unwrap()).unwrap());
 }
 
 #[test]
 fn test_generate_contract_w_events() {
-    let contract = generate_solidity_contract(IDL_W_EVENTS, "TestContract");
+    let contract =
+        generate_solidity_contract("TestContract", IDL_W_EVENTS, SolidityFile::SingleFile);
 
     assert!(
         contract.is_ok(),
         "Failed to generate contract: {:?}",
         contract.err()
     );
-    assert_snapshot!(String::from_utf8(contract.unwrap().data).unwrap());
+    assert_snapshot!(String::from_utf8(contract.unwrap()).unwrap());
 }
 
 const IDL_MIXED_INDEXED: &str = r#"
@@ -89,14 +90,15 @@ service Svc {
 
 #[test]
 fn test_generate_contract_w_mixed_indexed_events() {
-    let contract = generate_solidity_contract(IDL_MIXED_INDEXED, "TestContract");
+    let contract =
+        generate_solidity_contract("TestContract", IDL_MIXED_INDEXED, SolidityFile::SingleFile);
 
     assert!(
         contract.is_ok(),
         "Failed to generate contract: {:?}",
         contract.err()
     );
-    assert_snapshot!(String::from_utf8(contract.unwrap().data).unwrap());
+    assert_snapshot!(String::from_utf8(contract.unwrap()).unwrap());
 }
 
 const PAYABLE_IDL: &str = r#"
@@ -130,14 +132,15 @@ service MyService {
 
 #[test]
 fn test_generate_payable_contract() {
-    let contract = generate_solidity_contract(PAYABLE_IDL, "PayableContract");
+    let contract =
+        generate_solidity_contract("PayableContract", PAYABLE_IDL, SolidityFile::SingleFile);
 
     assert!(
         contract.is_ok(),
         "Failed to generate contract: {:?}",
         contract.err()
     );
-    assert_snapshot!(String::from_utf8(contract.unwrap().data).unwrap());
+    assert_snapshot!(String::from_utf8(contract.unwrap()).unwrap());
 }
 
 const IDL_W_ADDRESS: &str = r#"
@@ -167,14 +170,15 @@ service TokenSvc {
 
 #[test]
 fn test_generate_contract_w_address_type() {
-    let contract = generate_solidity_contract(IDL_W_ADDRESS, "TokenContract");
+    let contract =
+        generate_solidity_contract("TokenContract", IDL_W_ADDRESS, SolidityFile::SingleFile);
 
     assert!(
         contract.is_ok(),
         "Failed to generate contract: {:?}",
         contract.err()
     );
-    assert_snapshot!(String::from_utf8(contract.unwrap().data).unwrap());
+    assert_snapshot!(String::from_utf8(contract.unwrap()).unwrap());
 }
 
 #[test]
@@ -221,9 +225,9 @@ service CodecTest {
 }
 "#;
 
-    let contract =
-        generate_solidity_contract(idl, "CodecTest").expect("generate solidity contract");
-    let generated = String::from_utf8(contract.data).expect("utf8 contract");
+    let data = generate_solidity_contract("CodecTest", idl, SolidityFile::SingleFile)
+        .expect("generate solidity contract");
+    let generated = String::from_utf8(data).expect("utf8 contract");
 
     assert!(
         generated.contains("function codecTestBothMethod"),
