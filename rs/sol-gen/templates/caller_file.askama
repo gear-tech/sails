@@ -1,0 +1,35 @@
+// SPDX-License-Identifier: {{ license_identifier }}
+pragma solidity ^{{ solidity_version }};
+
+import {I{{ contract_name }}} from "./I{{ contract_name }}.sol";
+import {I{{ contract_name }}Callbacks} from "./I{{ contract_name }}Callbacks.sol";
+
+contract {{ contract_name }}Caller is I{{ contract_name }}Callbacks {
+    I{{ contract_name }} public immutable VARA_ETH_PROGRAM;
+
+    error UnauthorizedCaller();
+
+    constructor(I{{ contract_name }} _varaEthProgram) {
+        VARA_ETH_PROGRAM = _varaEthProgram;
+    }
+
+    modifier onlyVaraEthProgram() {
+        _onlyVaraEthProgram();
+        _;
+    }
+
+    function _onlyVaraEthProgram() internal view {
+        if (msg.sender != address(VARA_ETH_PROGRAM)) {
+            revert UnauthorizedCaller();
+        }
+    }
+
+{% for function in functions %}    function replyOn_{{ function.name }}(bytes32 messageId{% if function.reply_type.is_some() %}, {{ function.reply_type.as_ref().unwrap() }}{% if function.reply_mem_location.is_some() %} {{ function.reply_mem_location.as_ref().unwrap() }}{% endif %} reply{% endif %}) external{% if function.returns_value %} payable{% endif %} onlyVaraEthProgram {
+        // TODO: implement this
+    }{{ "\n" }}{% if !loop.last %}{{ "\n" }}{% endif %}
+{%- endfor %}
+    function onErrorReply(bytes32 messageId, bytes calldata payload, bytes4 replyCode) external payable onlyVaraEthProgram {
+        // TODO: implement this
+    }
+}
+{{- "\n" -}}

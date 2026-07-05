@@ -1,0 +1,11 @@
+// SPDX-License-Identifier: {{ license_identifier }}
+pragma solidity ^{{ solidity_version }};
+
+import {I{{ contract_name }}} from "./I{{ contract_name }}.sol";
+
+contract {{ contract_name }}Abi is I{{ contract_name }} {
+{%- for function in functions %}
+    function {{ function.name }}(bool _callReply{% if !function.args.is_empty() %}, {% for arg in function.args %}{% if !loop.first %}, {% endif %}{{ arg.ty }}{% if arg.mem_location.is_some() %} {{ arg.mem_location.as_ref().unwrap() }}{% endif %} {{ arg.name }}{% endfor %}{% endif %}) external{% if function.payable %} payable{% endif %} returns (bytes32 messageId) {}{% if !loop.last %}{{ "\n" }}{% endif %}
+{%- endfor %}
+}
+{{- "\n" -}}

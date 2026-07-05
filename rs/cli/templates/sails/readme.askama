@@ -1,6 +1,6 @@
 ## The **{{ program_crate_name }}** program
 
-[![Build Status](https://github.com/{{ github_username }}/{{ program_crate_name }}/workflows/CI/badge.svg)](https://github.com/{{ github_username }}/{{ program_crate_name }}/actions)
+[![Build Status](https://github.com/{{ github_username }}/{{ program_crate_name }}/workflows/CI/badge.svg)](https://github.com/{{ github_username }}/{{ program_crate_name }}/actions/workflows/ci.yml)
 
 Program **{{ program_crate_name }}** for [⚙️ Gear Protocol](https://github.com/gear-tech/gear) written in [⛵ Sails](https://github.com/gear-tech/sails) framework.
 
