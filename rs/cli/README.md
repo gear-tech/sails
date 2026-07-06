@@ -84,7 +84,7 @@ The `cargo sails new` command creates a workspace with a few distinct parts:
   implementation.
 - `client` crate: the package that builds the generated Rust client interface
   for interacting with the program.
-- `tests` directory: integration tests based on `gtest` (opt into `gclient` for live-node tests).
+- `tests` directory: integration tests based on `gtest` (opt into `gsdk` for live-node tests).
 
 Typical generated-project workflow:
 

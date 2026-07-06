@@ -3,7 +3,11 @@ pub use ::gtest::constants::{
     DEFAULT_USER_ALICE, DEFAULT_USER_BOB, DEFAULT_USER_CHARLIE, DEFAULT_USER_EVE,
     DEFAULT_USERS_INITIAL_BALANCE, EPOCH_DURATION_IN_BLOCKS, MAX_USER_GAS_LIMIT,
 };
-use ::gtest::{BlockRunResult, System, TestError};
+#[cfg(feature = "ethexe")]
+use ::gtest::ethexe::{Program, System};
+use ::gtest::{BlockRunResult, TestError};
+#[cfg(not(feature = "ethexe"))]
+use ::gtest::{Program, System};
 use core::{cell::RefCell, task::ready};
 use futures::{
     Stream,
@@ -15,6 +19,11 @@ use std::rc::Rc;
 use tokio_stream::StreamExt;
 
 const GAS_LIMIT_DEFAULT: ::gtest::constants::Gas = ::gtest::constants::MAX_USER_GAS_LIMIT;
+/// Executable balance credited to programs created through this env under `ethexe`,
+/// where execution gas is paid from the program's executable balance rather than an
+/// explicit per-message gas limit. Generous default so tests don't run out of gas.
+#[cfg(feature = "ethexe")]
+pub const ETHEXE_EXECUTABLE_BALANCE: ValueUnit = 100_000_000_000_000;
 type EventSender = mpsc::UnboundedSender<(ActorId, Vec<u8>)>;
 type ReplySender = oneshot::Sender<Result<Vec<u8>, GtestError>>;
 type ReplyReceiver = oneshot::Receiver<Result<Vec<u8>, GtestError>>;
@@ -172,7 +181,11 @@ impl GtestEnv {
             .submitted_code(code_id)
             .ok_or(TestError::Instrumentation)?;
         let program_id = ::gtest::calculate_program_id(code_id, salt.as_ref(), None);
-        let program = ::gtest::Program::from_binary_with_id(&self.system, program_id, code);
+        let program = Program::from_binary_with_id(&self.system, program_id, code);
+        // On `ethexe`, execution gas is drawn from the program's executable balance.
+        #[cfg(feature = "ethexe")]
+        self.system
+            .top_up_executable_balance(program_id, ETHEXE_EXECUTABLE_BALANCE);
         let actor_id = params.actor_id.unwrap_or(self.actor_id);
         let message_id = program.send_bytes_with_gas(actor_id, payload.as_ref(), gas_limit, value);
         log::debug!("Send activation id: {message_id}, to program: {program_id}");
@@ -235,6 +248,10 @@ impl GtestEnv {
         rx
     }
 
+    /// Read-only state query. Not available under `ethexe`: ethexe gtest mode
+    /// does not support `calculate_reply_for_handle`. As with `GstdEnv`, call the
+    /// query method as a message instead (`.await` / `send_for_reply`).
+    #[cfg(not(feature = "ethexe"))]
     pub fn query(
         &self,
         destination: ActorId,
@@ -242,10 +259,7 @@ impl GtestEnv {
         params: GtestParams,
     ) -> Result<Vec<u8>, GtestError> {
         let value = params.value.unwrap_or(0);
-        #[cfg(not(feature = "ethexe"))]
         let gas_limit = params.gas_limit.unwrap_or(GAS_LIMIT_DEFAULT);
-        #[cfg(feature = "ethexe")]
-        let gas_limit = GAS_LIMIT_DEFAULT;
 
         let actor_id = params.actor_id.unwrap_or(self.actor_id);
         let reply_info = self
@@ -316,6 +330,8 @@ impl GearEnv for GtestEnv {
     type MessageState = ReplyReceiver;
 }
 
+impl EnvWithCtor for GtestEnv {}
+
 impl<T: ServiceCall> PendingCall<T, GtestEnv> {
     pub fn send_one_way(&mut self) -> Result<MessageId, GtestError> {
         if self.state.is_some() {
@@ -333,6 +349,7 @@ impl<T: ServiceCall> PendingCall<T, GtestEnv> {
         Ok(self)
     }
 
+    #[cfg(not(feature = "ethexe"))]
     pub fn query(mut self) -> Result<T::Output, GtestError> {
         let (payload, params) = self.take_encoded_args_and_params();
         let reply = self.env.query(self.destination, payload, params);

@@ -28,11 +28,11 @@ impl<E: sails_rs::client::GearEnv> MyProgram for sails_rs::client::Actor<MyProgr
     }
 }
 pub trait MyProgramCtors {
-    type Env: sails_rs::client::GearEnv;
+    type Env: sails_rs::client::GearEnv + sails_rs::client::EnvWithCtor;
     fn init(self) -> sails_rs::client::PendingCtor<MyProgramProgram, io::Init, Self::Env>;
 }
 
-impl<E: sails_rs::client::GearEnv> MyProgramCtors
+impl<E: sails_rs::client::GearEnv + sails_rs::client::EnvWithCtor> MyProgramCtors
     for sails_rs::client::Deployment<MyProgramProgram, E>
 {
     type Env = E;

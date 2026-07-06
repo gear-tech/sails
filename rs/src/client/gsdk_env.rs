@@ -1,28 +1,31 @@
 use super::*;
-use ::gclient::gear::runtime_types::pallet_gear_voucher::internal::VoucherId;
-use ::gclient::{EventListener, EventProcessor as _, GearApi};
 use core::task::ready;
-use futures::{Stream, StreamExt, stream};
+use futures::{Stream, StreamExt};
 pub use gear_core_errors::{ErrorReplyReason, SimpleExecutionError};
+use gsdk::{
+    SignedApi,
+    gear::runtime_types::pallet_gear_voucher::internal::VoucherId,
+    subscription::{UserMessageSentFilter, UserMessageSentSubscription},
+};
 
 #[derive(Debug, thiserror::Error)]
-pub enum GclientError {
+pub enum GsdkError {
     #[error(transparent)]
-    Env(#[from] gclient::Error),
+    Env(#[from] gsdk::Error),
     #[error("reply error: {0}")]
     ReplyHasError(ErrorReplyReason, crate::Vec<u8>),
     #[error("reply is missing")]
     ReplyIsMissing,
 }
 
-impl ReplyError for GclientError {
+impl ReplyError for GsdkError {
     fn from_codec_error(err: parity_scale_codec::Error) -> Self {
-        gclient::Error::Codec(err).into()
+        gsdk::Error::Codec(err).into()
     }
 
     fn userspace_panic_payload(&self) -> Option<&[u8]> {
         match self {
-            GclientError::ReplyHasError(
+            GsdkError::ReplyHasError(
                 ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic),
                 payload,
             ) => Some(payload),
@@ -32,13 +35,13 @@ impl ReplyError for GclientError {
 }
 
 #[derive(Clone)]
-pub struct GclientEnv {
-    api: GearApi,
+pub struct GsdkEnv {
+    api: SignedApi,
 }
 
 crate::params_struct_impl!(
-    GclientEnv,
-    GclientParams {
+    GsdkEnv,
+    GsdkParams {
         #[cfg(not(feature = "ethexe"))]
         gas_limit: GasUnit,
         value: ValueUnit,
@@ -47,13 +50,18 @@ crate::params_struct_impl!(
     }
 );
 
-impl GclientEnv {
-    pub fn new(api: GearApi) -> Self {
+impl GsdkEnv {
+    pub fn new(api: SignedApi) -> Self {
         Self { api }
     }
 
     pub fn with_suri(self, suri: impl AsRef<str>) -> Self {
-        let api = self.api.with(suri).unwrap();
+        let api = self
+            .api
+            .unsigned()
+            .clone()
+            .signed(suri.as_ref(), None)
+            .unwrap();
         Self { api }
     }
 
@@ -62,20 +70,18 @@ impl GclientEnv {
         code_id: CodeId,
         salt: impl AsRef<[u8]>,
         payload: impl AsRef<[u8]>,
-        params: GclientParams,
-    ) -> Result<(ActorId, Vec<u8>), GclientError> {
-        let api = self.api.clone();
-        create_program(api, code_id, salt, payload, params).await
+        params: GsdkParams,
+    ) -> Result<(ActorId, Vec<u8>), GsdkError> {
+        create_program(self.api.clone(), code_id, salt, payload, params).await
     }
 
     pub async fn send_for_reply(
         &self,
         program_id: ActorId,
         payload: Vec<u8>,
-        params: GclientParams,
-    ) -> Result<Vec<u8>, GclientError> {
-        let api = self.api.clone();
-        send_for_reply(api, program_id, payload, params)
+        params: GsdkParams,
+    ) -> Result<Vec<u8>, GsdkError> {
+        send_for_reply(self.api.clone(), program_id, payload, params)
             .await
             .map(|(_program_id, payload)| payload)
     }
@@ -84,8 +90,8 @@ impl GclientEnv {
         &self,
         program_id: ActorId,
         payload: Vec<u8>,
-        params: GclientParams,
-    ) -> Result<MessageId, GclientError> {
+        params: GsdkParams,
+    ) -> Result<MessageId, GsdkError> {
         send_one_way(&self.api, program_id, payload, params).await
     }
 
@@ -93,47 +99,50 @@ impl GclientEnv {
         &self,
         destination: ActorId,
         payload: impl AsRef<[u8]>,
-        params: GclientParams,
-    ) -> Result<Vec<u8>, GclientError> {
+        params: GsdkParams,
+    ) -> Result<Vec<u8>, GsdkError> {
         query_calculate_reply(&self.api, destination, payload, params).await
     }
 }
 
-impl GearEnv for GclientEnv {
-    type Params = GclientParams;
-    type Error = GclientError;
-    type MessageState = Pin<Box<dyn Future<Output = Result<(ActorId, Vec<u8>), GclientError>>>>;
+impl GearEnv for GsdkEnv {
+    type Params = GsdkParams;
+    type Error = GsdkError;
+    type MessageState = Pin<Box<dyn Future<Output = Result<(ActorId, Vec<u8>), GsdkError>>>>;
 }
 
-impl<T: ServiceCall> PendingCall<T, GclientEnv> {
-    pub async fn send_one_way(&mut self) -> Result<MessageId, GclientError> {
+impl EnvWithCtor for GsdkEnv {}
+
+impl<T: ServiceCall> PendingCall<T, GsdkEnv> {
+    pub async fn send_one_way(&mut self) -> Result<MessageId, GsdkError> {
         let (payload, params) = self.take_encoded_args_and_params();
         self.env
             .send_one_way(self.destination, payload, params)
             .await
     }
 
-    pub async fn send_for_reply(mut self) -> Result<Self, GclientError> {
+    pub async fn send_for_reply(mut self) -> Result<Self, GsdkError> {
         let (payload, params) = self.take_encoded_args_and_params();
-        let (listener, message_id) =
+        // Subscribe and dispatch eagerly, store only the reply-waiting future.
+        let (subscription, message_id) =
             send_for_reply_and_listen(&self.env.api, self.destination, payload, params).await?;
         self.state = Some(Box::pin(wait_for_reply_owned(
-            listener,
+            subscription,
             message_id,
             self.destination,
         )));
         Ok(self)
     }
 
-    pub async fn query(mut self) -> Result<T::Output, GclientError> {
+    pub async fn query(mut self) -> Result<T::Output, GsdkError> {
         let (payload, params) = self.take_encoded_args_and_params();
         let reply = query_calculate_reply(&self.env.api, self.destination, payload, params).await;
         decode_reply_or_throw::<T, _>(&self.route, reply)
     }
 }
 
-impl<T: ServiceCall> Future for PendingCall<T, GclientEnv> {
-    type Output = Result<T::Output, <GclientEnv as GearEnv>::Error>;
+impl<T: ServiceCall> Future for PendingCall<T, GsdkEnv> {
+    type Output = Result<T::Output, <GsdkEnv as GearEnv>::Error>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         if self.state.is_none() {
@@ -154,15 +163,13 @@ impl<T: ServiceCall> Future for PendingCall<T, GclientEnv> {
     }
 }
 
-impl<A, T> Future for PendingCtor<A, T, GclientEnv>
+impl<A, T> Future for PendingCtor<A, T, GsdkEnv>
 where
     T: ServiceCall,
-    T::Output: PendingCtorOutput<A, GclientEnv>,
+    T::Output: PendingCtorOutput<A, GsdkEnv>,
 {
-    type Output = Result<
-        <T::Output as PendingCtorOutput<A, GclientEnv>>::Output,
-        <GclientEnv as GearEnv>::Error,
-    >;
+    type Output =
+        Result<<T::Output as PendingCtorOutput<A, GsdkEnv>>::Output, <GsdkEnv as GearEnv>::Error>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         if self.state.is_none() {
@@ -196,78 +203,98 @@ where
     }
 }
 
-impl Listener for GclientEnv {
-    type Error = GclientError;
+impl Listener for GsdkEnv {
+    type Error = GsdkError;
 
     async fn listen<E, F: FnMut((ActorId, Vec<u8>)) -> Option<(ActorId, E)>>(
         &self,
         f: F,
     ) -> Result<impl Stream<Item = (ActorId, E)> + Unpin + use<E, F>, Self::Error> {
-        let listener = self.api.subscribe().await?;
-        let stream = stream::unfold(listener, |mut l| async move {
-            let vec = get_events_from_block(&mut l).await.ok();
-            vec.map(|v| (v, l))
-        })
-        .flat_map(stream::iter);
+        // Events are user messages sent to the zero address.
+        let subscription = self
+            .api
+            .subscribe_user_message_sent(
+                UserMessageSentFilter::new().with_destination(ActorId::zero()),
+            )
+            .await?;
+        // End the stream on the first subscription error so consumers observe
+        // termination (`next()` returns `None`) instead of silently missing events.
+        let stream = tokio_stream::StreamExt::map_while(subscription, |res| {
+            res.ok().map(|m| (m.source, m.payload))
+        });
         let stream = tokio_stream::StreamExt::filter_map(stream, f);
         Ok(Box::pin(stream))
     }
 }
 
+fn signer_actor_id(api: &SignedApi) -> ActorId {
+    ActorId::try_from(api.account_id().as_ref()).expect("account id must be a valid ActorId")
+}
+
 async fn create_program(
-    api: GearApi,
+    api: SignedApi,
     code_id: CodeId,
     salt: impl AsRef<[u8]>,
     payload: impl AsRef<[u8]>,
-    params: GclientParams,
-) -> Result<(ActorId, Vec<u8>), GclientError> {
+    params: GsdkParams,
+) -> Result<(ActorId, Vec<u8>), GsdkError> {
     let value = params.value.unwrap_or(0);
+    let payload = Vec::from(payload.as_ref());
     // Calculate gas amount if it is not explicitly set
     #[cfg(not(feature = "ethexe"))]
     let gas_limit = if let Some(gas_limit) = params.gas_limit {
         gas_limit
     } else {
         // Calculate gas amount needed for initialization
-        let gas_info = api
-            .calculate_create_gas(None, code_id, Vec::from(payload.as_ref()), value, true)
-            .await?;
-        gas_info.min_limit
+        api.calculate_create_gas(code_id, &payload, value, true)
+            .await?
+            .min_limit
     };
     #[cfg(feature = "ethexe")]
     let gas_limit = 0;
 
-    let listener = api.subscribe().await?;
-    let (message_id, program_id, ..) = api
-        .create_program_bytes(code_id, salt, payload, gas_limit, value)
+    // Subscribe before dispatching so the reply event can't fire before the listener exists.
+    let user_id = signer_actor_id(&api);
+    let mut subscription = api
+        .subscribe_user_message_sent(UserMessageSentFilter::new().with_destination(user_id))
         .await?;
-    wait_for_reply_owned(listener, message_id, program_id).await
+    let tx = api
+        .create_program_bytes(code_id, Vec::from(salt.as_ref()), payload, gas_limit, value)
+        .await?;
+    let (message_id, program_id) = tx.value;
+    let payload = wait_for_reply(&mut subscription, message_id).await?;
+    Ok((program_id, payload))
 }
 
 async fn send_for_reply(
-    api: GearApi,
+    api: SignedApi,
     program_id: ActorId,
     payload: Vec<u8>,
-    params: GclientParams,
-) -> Result<(ActorId, Vec<u8>), GclientError> {
-    let (listener, message_id) =
+    params: GsdkParams,
+) -> Result<(ActorId, Vec<u8>), GsdkError> {
+    let (subscription, message_id) =
         send_for_reply_and_listen(&api, program_id, payload, params).await?;
-    wait_for_reply_owned(listener, message_id, program_id).await
+    wait_for_reply_owned(subscription, message_id, program_id).await
 }
 
 // Subscribes before dispatching so the reply event can't fire before the listener exists.
 async fn send_for_reply_and_listen(
-    api: &GearApi,
+    api: &SignedApi,
     program_id: ActorId,
     payload: Vec<u8>,
-    params: GclientParams,
-) -> Result<(EventListener, MessageId), GclientError> {
-    let value = params.value.unwrap_or(0);
+    params: GsdkParams,
+) -> Result<(UserMessageSentSubscription, MessageId), GsdkError> {
     #[cfg(not(feature = "ethexe"))]
-    let gas_limit = calculate_gas_limit(api, program_id, &payload, params.gas_limit, value).await?;
+    let gas_limit =
+        calculate_gas_limit(api, program_id, &payload, params.gas_limit, params.value).await?;
     #[cfg(feature = "ethexe")]
     let gas_limit = 0;
+    let value = params.value.unwrap_or(0);
 
-    let listener = api.subscribe().await?;
+    let user_id = signer_actor_id(api);
+    let subscription = api
+        .subscribe_user_message_sent(UserMessageSentFilter::new().with_destination(user_id))
+        .await?;
     let message_id = send_message_with_voucher_if_some(
         api,
         program_id,
@@ -277,47 +304,65 @@ async fn send_for_reply_and_listen(
         params.voucher,
     )
     .await?;
-    Ok((listener, message_id))
+    Ok((subscription, message_id))
 }
 
 async fn wait_for_reply_owned(
-    mut listener: EventListener,
+    mut subscription: UserMessageSentSubscription,
     message_id: MessageId,
     program_id: ActorId,
-) -> Result<(ActorId, Vec<u8>), GclientError> {
-    let (_, reply_code, payload, _) = wait_for_reply(&mut listener, message_id).await?;
-    match reply_code {
-        ReplyCode::Success(_) => Ok((program_id, payload)),
-        ReplyCode::Error(reason) => Err(GclientError::ReplyHasError(reason, payload)),
-        ReplyCode::Unsupported => Err(GclientError::ReplyIsMissing),
+) -> Result<(ActorId, Vec<u8>), GsdkError> {
+    let payload = wait_for_reply(&mut subscription, message_id).await?;
+    Ok((program_id, payload))
+}
+
+async fn wait_for_reply(
+    subscription: &mut UserMessageSentSubscription,
+    message_id: MessageId,
+) -> Result<Vec<u8>, GsdkError> {
+    while let Some(item) = subscription.next().await {
+        let message = item?;
+        let Some(reply) = message.reply else {
+            continue;
+        };
+        if reply.to != message_id {
+            continue;
+        }
+        return match reply.code {
+            ReplyCode::Success(_) => Ok(message.payload),
+            ReplyCode::Error(reason) => Err(GsdkError::ReplyHasError(reason, message.payload)),
+            ReplyCode::Unsupported => Err(GsdkError::ReplyIsMissing),
+        };
     }
+    Err(GsdkError::ReplyIsMissing)
 }
 
 async fn send_one_way(
-    api: &GearApi,
+    api: &SignedApi,
     program_id: ActorId,
     payload: Vec<u8>,
-    params: GclientParams,
-) -> Result<MessageId, GclientError> {
-    let value = params.value.unwrap_or(0);
+    params: GsdkParams,
+) -> Result<MessageId, GsdkError> {
     #[cfg(not(feature = "ethexe"))]
-    let gas_limit = calculate_gas_limit(api, program_id, &payload, params.gas_limit, value).await?;
+    let gas_limit =
+        calculate_gas_limit(api, program_id, &payload, params.gas_limit, params.value).await?;
     #[cfg(feature = "ethexe")]
     let gas_limit = 0;
+    let value = params.value.unwrap_or(0);
 
     send_message_with_voucher_if_some(api, program_id, payload, gas_limit, value, params.voucher)
         .await
 }
 
 async fn send_message_with_voucher_if_some(
-    api: &GearApi,
+    api: &SignedApi,
     program_id: ActorId,
-    payload: impl AsRef<[u8]>,
+    payload: impl Into<Vec<u8>>,
     gas_limit: GasUnit,
     value: ValueUnit,
     voucher: Option<(VoucherId, bool)>,
-) -> Result<MessageId, GclientError> {
-    let (message_id, ..) = if let Some((voucher_id, keep_alive)) = voucher {
+) -> Result<MessageId, GsdkError> {
+    let tx = if let Some((voucher_id, keep_alive)) = voucher {
         api.send_message_bytes_with_voucher(
             voucher_id, program_id, payload, gas_limit, value, keep_alive,
         )
@@ -326,35 +371,39 @@ async fn send_message_with_voucher_if_some(
         api.send_message_bytes(program_id, payload, gas_limit, value)
             .await?
     };
-    Ok(message_id)
+    Ok(tx.value)
 }
 
 #[cfg(not(feature = "ethexe"))]
 async fn calculate_gas_limit(
-    api: &GearApi,
+    api: &SignedApi,
     program_id: ActorId,
     payload: impl AsRef<[u8]>,
     gas_limit: Option<GasUnit>,
-    value: ValueUnit,
-) -> Result<u64, GclientError> {
+    value: Option<ValueUnit>,
+) -> Result<u64, GsdkError> {
     let gas_limit = if let Some(gas_limit) = gas_limit {
         gas_limit
     } else {
         // Calculate gas amount needed for handling the message
-        let gas_info = api
-            .calculate_handle_gas(None, program_id, payload.as_ref().to_vec(), value, true)
-            .await?;
-        gas_info.min_limit
+        api.calculate_handle_gas(
+            program_id,
+            payload.as_ref().to_vec(),
+            value.unwrap_or(0),
+            true,
+        )
+        .await?
+        .min_limit
     };
     Ok(gas_limit)
 }
 
 async fn query_calculate_reply(
-    api: &GearApi,
+    api: &SignedApi,
     destination: ActorId,
     payload: impl AsRef<[u8]>,
-    params: GclientParams,
-) -> Result<Vec<u8>, GclientError> {
+    params: GsdkParams,
+) -> Result<Vec<u8>, GsdkError> {
     // Get Max gas amount if it is not explicitly set
     #[cfg(not(feature = "ethexe"))]
     let gas_limit = if let Some(gas_limit) = params.gas_limit {
@@ -365,74 +414,18 @@ async fn query_calculate_reply(
     #[cfg(feature = "ethexe")]
     let gas_limit = 0;
     let value = params.value.unwrap_or(0);
-    let origin = H256::from_slice(api.account_id().as_ref());
     let payload = payload.as_ref().to_vec();
+    let at_block = params
+        .at_block
+        .map(|at| gsdk::ext::subxt::utils::H256::from(at.0));
 
     let reply_info = api
-        .calculate_reply_for_handle_at(
-            Some(origin.0.into()),
-            destination,
-            payload,
-            gas_limit,
-            value,
-            params.at_block.map(|at| at.0.into()),
-        )
+        .calculate_reply_for_handle_at(destination, payload, gas_limit, value, at_block)
         .await?;
 
     match reply_info.code {
         ReplyCode::Success(_) => Ok(reply_info.payload),
-        ReplyCode::Error(reason) => Err(GclientError::ReplyHasError(reason, reply_info.payload)),
-        ReplyCode::Unsupported => Err(GclientError::ReplyIsMissing),
+        ReplyCode::Error(reason) => Err(GsdkError::ReplyHasError(reason, reply_info.payload)),
+        ReplyCode::Unsupported => Err(GsdkError::ReplyIsMissing),
     }
-}
-
-async fn wait_for_reply(
-    listener: &mut EventListener,
-    message_id: MessageId,
-) -> Result<(MessageId, ReplyCode, Vec<u8>, ValueUnit), GclientError> {
-    listener
-        .proc(|e| {
-            if let ::gclient::Event::Gear(::gclient::GearEvent::UserMessageSent { message, .. }) = e
-                && let Some(details) = message.details()
-            {
-                details.to_message_id().eq(&message_id).then(|| {
-                    (
-                        message.id(),
-                        details.to_reply_code(),
-                        message.payload_bytes().to_vec(),
-                        message.value(),
-                    )
-                })
-            } else {
-                None
-            }
-        })
-        .await
-        .map_err(Into::into)
-}
-
-async fn get_events_from_block(
-    listener: &mut EventListener,
-) -> Result<Vec<(ActorId, Vec<u8>)>, GclientError> {
-    let vec = listener
-        .proc_many(
-            |e| {
-                if let ::gclient::Event::Gear(::gclient::GearEvent::UserMessageSent {
-                    message,
-                    ..
-                }) = e
-                {
-                    if message.destination() == ActorId::zero() {
-                        Some((message.source(), message.payload_bytes().to_vec()))
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                }
-            },
-            |v| (v, true),
-        )
-        .await?;
-    Ok(vec)
 }

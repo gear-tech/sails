@@ -79,7 +79,7 @@ impl<E: sails_rs::client::GearEnv> Demo for sails_rs::client::Actor<DemoProgram,
 }
 
 pub trait DemoCtors {
-    type Env: sails_rs::client::GearEnv;
+    type Env: sails_rs::client::GearEnv + sails_rs::client::EnvWithCtor;
     /// Program constructor (called once at the very beginning of the program lifetime)
     fn default(self) -> sails_rs::client::PendingCtor<DemoProgram, io::Default, Self::Env>;
     /// Another program constructor (called once at the very beginning of the program lifetime)
@@ -92,7 +92,9 @@ pub trait DemoCtors {
     ) -> sails_rs::client::PendingCtor<DemoProgram, io::New, Self::Env>;
 }
 
-impl<E: sails_rs::client::GearEnv> DemoCtors for sails_rs::client::Deployment<DemoProgram, E> {
+impl<E: sails_rs::client::GearEnv + sails_rs::client::EnvWithCtor> DemoCtors
+    for sails_rs::client::Deployment<DemoProgram, E>
+{
     type Env = E;
     fn default(self) -> sails_rs::client::PendingCtor<DemoProgram, io::Default, Self::Env> {
         self.pending_ctor_v1(())

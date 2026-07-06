@@ -27,13 +27,13 @@ impl<E: sails_rs::client::GearEnv> CounterBench
     }
 }
 pub trait CounterBenchCtors {
-    type Env: sails_rs::client::GearEnv;
+    type Env: sails_rs::client::GearEnv + sails_rs::client::EnvWithCtor;
     fn new_for_bench(
         self,
     ) -> sails_rs::client::PendingCtor<CounterBenchProgram, io::NewForBench, Self::Env>;
 }
 
-impl<E: sails_rs::client::GearEnv> CounterBenchCtors
+impl<E: sails_rs::client::GearEnv + sails_rs::client::EnvWithCtor> CounterBenchCtors
     for sails_rs::client::Deployment<CounterBenchProgram, E>
 {
     type Env = E;

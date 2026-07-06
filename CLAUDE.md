@@ -18,7 +18,7 @@ Sails is a framework for building applications on [Gear Protocol](https://gear-t
   - `rs/cli/` — `sails-cli` (`cargo sails` subcommand)
   - `rs/ethexe/` — Separate workspace for ethexe-specific apps/tests (own `Cargo.toml`)
   - `rs/src/gstd/` — Gear standard library integration, syscall abstractions
-  - `rs/src/client/` — Client environments (`GstdEnv`, `GclientEnv`, `GtestEnv`)
+  - `rs/src/client/` — Client environments (`GstdEnv`, `GsdkEnv`, `GtestEnv`)
 - **`js/`** — TypeScript/JS packages (pnpm workspace):
   - `js/` (root) — `sails-js` main library
   - `js/parser/`, `js/parser-idl-v2/` — IDL parsers (uses WASM-compiled Rust parser)
@@ -127,7 +127,7 @@ Gear Protocol uses an actor-model where programs communicate via asynchronous me
 **Three client environments** implement the `GearEnv` trait:
 - `GstdEnv` — on-chain program-to-program calls via `gstd::msg`
 - `GtestEnv` (`rs/src/client/gtest_env.rs`) — local testing via `gtest` crate
-- `GclientEnv` (`rs/src/client/gclient_env.rs`) — off-chain RPC calls via `gclient`
+- `GsdkEnv` (`rs/src/client/gsdk_env.rs`) — off-chain RPC calls via `gsdk`
 
 All three share the same generated client code; only the environment differs.
 
@@ -137,7 +137,7 @@ All three share the same generated client code; only the environment differs.
 
 - `gstd` (default) — On-chain Gear standard library
 - `gtest` — Test environment with `GtestEnv`
-- `gclient` — Off-chain client via `gclient`
+- `gsdk` — Off-chain client via `gsdk`
 - `ethexe` — Ethereum execution layer support (Solidity keywords validation, payable methods)
 - `build` — Combines `client-builder` + `wasm-builder` for build scripts
 - `mockall` — Mock generation for testing
