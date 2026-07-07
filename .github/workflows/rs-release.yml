@@ -153,6 +153,12 @@ jobs:
           mkdir -p ./assets/sails_idl_parser
           wasm-opt -O4 -o ./assets/sails_idl_parser/sails_idl_v2_parser.wasm ./target/wasm32v1-none/release/sails_idl_parser_wasm.wasm
 
+      - name: Build SOL Gen for WASM
+        run: |
+          cargo build -p sails-sol-gen --target wasm32v1-none -F ffi --release
+          mkdir -p ./assets/sails_sol_gen
+          wasm-opt -O4 -o ./assets/sails_sol_gen/sails_sol_gen.wasm ./target/wasm32v1-none/release/sails_sol_gen.wasm
+
       - name: Build Demo
         run: |
           cargo build -p demo --release
@@ -304,6 +310,7 @@ jobs:
           files: |
             ./assets/sails_idl_parser/sails_idl_parser.wasm
             ./assets/sails_idl_parser/sails_idl_v2_parser.wasm
+            ./assets/sails_sol_gen/sails_sol_gen.wasm
             ./assets/demo/demo.wasm
             ./assets/demo/demo.idl
             ./assets/no_svcs_prog/no_svcs_prog.wasm
