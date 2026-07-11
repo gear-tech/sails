@@ -127,7 +127,7 @@ impl GtestEnv {
         log::debug!(
             "Process block #{} run result, mode {:?}",
             run_result.block_info.height,
-            &self.block_run_mode
+            self.block_run_mode
         );
         let mut event_senders = self.event_senders.borrow_mut();
         let mut reply_senders = self.block_reply_senders.borrow_mut();

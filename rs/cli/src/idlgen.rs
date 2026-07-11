@@ -42,7 +42,7 @@ impl CrateIdlGenerator {
     }
 
     pub fn generate(self) -> anyhow::Result<()> {
-        println!("...reading metadata: {}", &self.manifest_path);
+        println!("...reading metadata: {}", self.manifest_path);
         // get metadata with deps
         let metadata = cargo_metadata::MetadataCommand::new()
             .manifest_path(&self.manifest_path)
@@ -139,7 +139,7 @@ impl<'a> PackageIdlGenerator<'a> {
             .find(|p| sails_dep.req == VersionReq::STAR || sails_dep.req.matches(&p.version))
             .context(format!(
                 "failed to find `sails-rs` package with matching version {}",
-                &sails_dep.req
+                sails_dep.req
             ))?;
 
         let crate_name = &get_idl_gen_crate_name(self.program_package);
@@ -155,7 +155,7 @@ impl<'a> PackageIdlGenerator<'a> {
 
         let out_file = self
             .target_dir
-            .join(format!("{}.idl", &self.program_package.name));
+            .join(format!("{}.idl", self.program_package.name));
         let program_name = self
             .program_name
             .clone()
@@ -245,7 +245,7 @@ fn get_program_struct_path_from_doc(
     // read doc
     let docs_path = target_dir
         .join("doc")
-        .join(format!("{}.json", &program_package_file_name));
+        .join(format!("{}.json", program_package_file_name));
     println!("...reading doc: {docs_path}");
     let json_string = std::fs::read_to_string(docs_path)?;
     let doc_crate: rustdoc_types::Crate = serde_json::from_str(&json_string)?;
