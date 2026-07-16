@@ -38,7 +38,7 @@ env:
     sails-macros-core
     sails-macros
     sails-rs
-    sails-cli
+    cargo-sails
 
 jobs:
   prepare:

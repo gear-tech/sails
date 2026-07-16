@@ -1,6 +1,6 @@
-# &#x26F5; Sails CLI
+# &#x26F5; Cargo Sails
 
-`sails-cli` is the command-line interface for working with Sails projects.
+`cargo-sails` is the command-line interface for working with Sails projects.
 It provides commands to scaffold a new Sails workspace, generate clients from
 IDL, extract IDL from Rust crates, and produce Solidity bindings.
 
@@ -11,13 +11,13 @@ The binary is exposed as the Cargo subcommand `cargo sails`.
 Install the CLI:
 
 ```bash
-cargo install sails-cli
+cargo install cargo-sails
 ```
 
 Or install a prebuilt binary with `cargo-binstall`:
 
 ```bash
-cargo binstall sails-cli
+cargo binstall cargo-sails
 ```
 
 Show available commands:

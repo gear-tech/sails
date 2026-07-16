@@ -1047,6 +1047,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "cargo-sails"
+version = "2.0.0"
+dependencies = [
+ "anyhow",
+ "askama",
+ "cargo_metadata 0.23.1",
+ "chrono",
+ "clap",
+ "convert_case 0.11.0",
+ "rustdoc-types",
+ "sails-client-gen",
+ "sails-client-gen-js",
+ "sails-client-gen-v2",
+ "sails-idl-embed",
+ "sails-idl-parser-v2",
+ "sails-sol-gen",
+ "serde_json",
+ "toml_edit 0.25.11+spec-1.1.0",
+]
+
+[[package]]
 name = "cargo-util-schemas"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6343,27 +6364,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "96b02de82ddbe1b636e6170c21be622223aea188ef2e139be0a5b219ec215323"
 dependencies = [
  "bytemuck",
-]
-
-[[package]]
-name = "sails-cli"
-version = "2.0.0"
-dependencies = [
- "anyhow",
- "askama",
- "cargo_metadata 0.23.1",
- "chrono",
- "clap",
- "convert_case 0.11.0",
- "rustdoc-types",
- "sails-client-gen",
- "sails-client-gen-js",
- "sails-client-gen-v2",
- "sails-idl-embed",
- "sails-idl-parser-v2",
- "sails-sol-gen",
- "serde_json",
- "toml_edit 0.25.11+spec-1.1.0",
 ]
 
 [[package]]
