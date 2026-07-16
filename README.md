@@ -20,7 +20,7 @@ clarity. It deals with things like:
 Either use `Sails` CLI:
 
 ```bash
-cargo install sails-cli
+cargo install cargo-sails
 cargo sails new my-ping
 ```
 

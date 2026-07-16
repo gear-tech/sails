@@ -15,7 +15,7 @@ Sails is a framework for building applications on [Gear Protocol](https://gear-t
   - `rs/sol-gen/` — Solidity interface generation
   - `rs/type-registry/`, `rs/reflect-hash/` — Type registry and interface hashing
   - `rs/idl-embed/` — Embeds IDL into WASM binaries
-  - `rs/cli/` — `sails-cli` (`cargo sails` subcommand)
+  - `rs/cargo/` — `cargo-sails` (`cargo sails` subcommand)
   - `rs/ethexe/` — Separate workspace for ethexe-specific apps/tests (own `Cargo.toml`)
   - `rs/src/gstd/` — Gear standard library integration, syscall abstractions
   - `rs/src/client/` — Client environments (`GstdEnv`, `GsdkEnv`, `GtestEnv`)

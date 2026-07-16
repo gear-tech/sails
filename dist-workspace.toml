@@ -1,5 +1,5 @@
 [workspace]
-members = ["cargo:rs/cli"]
+members = ["cargo:rs/cargo"]
 
 # Config for 'dist'
 [dist]
@@ -36,7 +36,7 @@ dist = false
 # Build only the required packages, and individually
 precise-builds = true
 # Specify which packages should be distributed
-packages = ["sails-cli"]
+packages = ["cargo-sails"]
 # Which actions to run on pull requests
 pr-run-mode = "plan"
 # Whether dist should create a Github Release or use an existing draft

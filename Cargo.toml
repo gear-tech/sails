@@ -34,7 +34,7 @@ members = [
     "examples/inspector/app",
     "examples/inspector/client",
     "rs",
-    "rs/cli",
+    "rs/cargo",
     "rs/client-gen-v2",
     "rs/client-gen-js",
     "rs/client-gen",

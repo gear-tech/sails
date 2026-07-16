@@ -1,10 +1,10 @@
-use clap::{Parser, Subcommand};
-use convert_case::{Case, Casing};
-use sails_cli::{
+use cargo_sails::{
     idlgen::CrateIdlGenerator,
     program_new::ProgramGenerator,
     solgen::{SolidityGenerator, SolidityGeneratorOutputType},
 };
+use clap::{Parser, Subcommand};
+use convert_case::{Case, Casing};
 use sails_client_gen::ClientGenerator as ClientGeneratorV1;
 use sails_client_gen_js::JsClientGenerator;
 use sails_client_gen_v2::ClientGenerator as ClientGeneratorV2;
