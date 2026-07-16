@@ -313,13 +313,11 @@ mod some_service_meta {
         final_hash = final_hash.update(&sails::hash_fn!(command DoThis() -> u32));
         final_hash = final_hash
             .update(
-                &<super::ExtendedService1 as sails::meta::Identifiable>::INTERFACE_ID
-                    .0,
+                &<super::ExtendedService1 as sails::meta::Identifiable>::INTERFACE_ID.0,
             );
         final_hash = final_hash
             .update(
-                &<super::ExtendedService2 as sails::meta::Identifiable>::INTERFACE_ID
-                    .0,
+                &<super::ExtendedService2 as sails::meta::Identifiable>::INTERFACE_ID.0,
             );
         let hash = final_hash.finalize();
         sails::meta::InterfaceId::from_bytes_32(hash)
@@ -368,13 +366,12 @@ mod some_service_meta {
 }
 impl sails::solidity::ServiceSignature for SomeService {
     const METHODS: &'static [sails::solidity::MethodExpo] = sails::const_concat_slices!(
-        < sails::solidity::MethodExpo >, & [(< SomeService as
-        sails::meta::Identifiable > ::INTERFACE_ID, 0u16, "DoThis", << (bool,) as
-        sails::alloy_sol_types::SolValue > ::SolType as
-        sails::alloy_sol_types::SolType > ::SOL_NAME, <<
+        < sails::solidity::MethodExpo >, & [(< SomeService as sails::meta::Identifiable >
+        ::INTERFACE_ID, 0u16, "DoThis", << (bool,) as sails::alloy_sol_types::SolValue >
+        ::SolType as sails::alloy_sol_types::SolType > ::SOL_NAME, <<
         (sails::alloy_primitives::B256, u32) as sails::alloy_sol_types::SolValue >
-        ::SolType as sails::alloy_sol_types::SolType > ::SOL_NAME,),], <
-        ExtendedService1 as sails::solidity::ServiceSignature > ::METHODS, <
-        ExtendedService2 as sails::solidity::ServiceSignature > ::METHODS
+        ::SolType as sails::alloy_sol_types::SolType > ::SOL_NAME,),], < ExtendedService1
+        as sails::solidity::ServiceSignature > ::METHODS, < ExtendedService2 as
+        sails::solidity::ServiceSignature > ::METHODS
     );
 }

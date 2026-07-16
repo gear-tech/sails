@@ -161,8 +161,7 @@ mod some_service_meta {
     use super::*;
     const __INTERFACE_ID: sails::meta::InterfaceId = {
         let mut final_hash = sails::keccak_const::Keccak256::new();
-        final_hash = final_hash
-            .update(&sails::hash_fn!(query DualMethod(u32) -> u32));
+        final_hash = final_hash.update(&sails::hash_fn!(query DualMethod(u32) -> u32));
         let hash = final_hash.finalize();
         sails::meta::InterfaceId::from_bytes_32(hash)
     };

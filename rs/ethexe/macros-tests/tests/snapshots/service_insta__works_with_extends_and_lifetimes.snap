@@ -311,13 +311,11 @@ mod extended_with_lifetime_meta {
     use super::*;
     const __INTERFACE_ID: sails::meta::InterfaceId = {
         let mut final_hash = sails::keccak_const::Keccak256::new();
-        final_hash = final_hash
-            .update(&sails::hash_fn!(query ExtendedName() -> String));
+        final_hash = final_hash.update(&sails::hash_fn!(query ExtendedName() -> String));
         final_hash = final_hash.update(&sails::hash_fn!(query Name() -> String));
         final_hash = final_hash
             .update(
-                &<super::BaseWithLifetime as sails::meta::Identifiable>::INTERFACE_ID
-                    .0,
+                &<super::BaseWithLifetime as sails::meta::Identifiable>::INTERFACE_ID.0,
             );
         let hash = final_hash.finalize();
         sails::meta::InterfaceId::from_bytes_32(hash)
@@ -374,16 +372,15 @@ mod extended_with_lifetime_meta {
 impl<'a> sails::solidity::ServiceSignature for ExtendedWithLifetime<'a> {
     const METHODS: &'static [sails::solidity::MethodExpo] = sails::const_concat_slices!(
         < sails::solidity::MethodExpo >, & [(< ExtendedWithLifetime as
-        sails::meta::Identifiable > ::INTERFACE_ID, 0u16, "ExtendedName", << (bool,)
-        as sails::alloy_sol_types::SolValue > ::SolType as
-        sails::alloy_sol_types::SolType > ::SOL_NAME, <<
-        (sails::alloy_primitives::B256, String) as sails::alloy_sol_types::SolValue
-        > ::SolType as sails::alloy_sol_types::SolType > ::SOL_NAME,), (<
-        ExtendedWithLifetime as sails::meta::Identifiable > ::INTERFACE_ID, 1u16,
-        "Name", << (bool,) as sails::alloy_sol_types::SolValue > ::SolType as
-        sails::alloy_sol_types::SolType > ::SOL_NAME, <<
-        (sails::alloy_primitives::B256, String) as sails::alloy_sol_types::SolValue
-        > ::SolType as sails::alloy_sol_types::SolType > ::SOL_NAME,),], <
-        BaseWithLifetime as sails::solidity::ServiceSignature > ::METHODS
+        sails::meta::Identifiable > ::INTERFACE_ID, 0u16, "ExtendedName", << (bool,) as
+        sails::alloy_sol_types::SolValue > ::SolType as sails::alloy_sol_types::SolType >
+        ::SOL_NAME, << (sails::alloy_primitives::B256, String) as
+        sails::alloy_sol_types::SolValue > ::SolType as sails::alloy_sol_types::SolType >
+        ::SOL_NAME,), (< ExtendedWithLifetime as sails::meta::Identifiable >
+        ::INTERFACE_ID, 1u16, "Name", << (bool,) as sails::alloy_sol_types::SolValue >
+        ::SolType as sails::alloy_sol_types::SolType > ::SOL_NAME, <<
+        (sails::alloy_primitives::B256, String) as sails::alloy_sol_types::SolValue >
+        ::SolType as sails::alloy_sol_types::SolType > ::SOL_NAME,),], < BaseWithLifetime
+        as sails::solidity::ServiceSignature > ::METHODS
     );
 }
