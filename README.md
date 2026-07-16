@@ -35,7 +35,7 @@ And then in your `lib.rs`:
 ```rust
 #![no_std]
 
-use sailsgstd::debug, prelude::*};
+use sails::{gstd::debug, prelude::*};
 
 struct MyPing;
 
@@ -534,11 +534,11 @@ trait from the `sails` crate. It abstracts the low-level communication details
 between client and the application. The `sails` crate provides three implementations of this
 trait:
 
-- `sailslient::GstdEnv` should be used when the client code is executed
+- `sails::client::GstdEnv` should be used when the client code is executed
   as part of another on-chain application.
-- `sailslient::GsdkEnv` should be used when the client code is executed
+- `sails::client::GsdkEnv` should be used when the client code is executed
   as part of an off-chain application.
-- `sailslient::GtestEnv` should be used when the client code is executed
+- `sails::client::GtestEnv` should be used when the client code is executed
   as part of tests utilizing the `gtest` crate.
 
 See the [Redirect](/examples/redirect/proxy/src/lib.rs) example, which demonstrates how to work with a remote program using a generated client.
@@ -644,7 +644,7 @@ Here is an example demonstrating these features:
 ```rust
 #![no_std]
 
-use sailsrelude::*;
+use sails::prelude::*;
 
 pub struct MyProgram;
 
@@ -666,7 +666,7 @@ impl MyProgram {
 
 #[event]
 #[derive(Clone, Debug, PartialEq, Encode, TypeInfo, ReflectHash)]
-#[reflect_hash(crate = sails
+#[reflect_hash(crate = sails)]
 pub enum MyEvent {
     Transfer {
         #[indexed]
@@ -864,7 +864,7 @@ You can find an example of the interaction from an application in the
 [Rmrk Resource](/examples/rmrk/resource/app/src/services/mod.rs) service's `add_part_to_resource`
 method.
 
-Bear in mind that working with the generated client requires the `sailsrate to
+Bear in mind that working with the generated client requires the `sails` crate to
 be in dependencies.
 
 ##
