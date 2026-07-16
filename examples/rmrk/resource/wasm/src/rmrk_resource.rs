@@ -11,18 +11,12 @@ impl sails::client::Program for RmrkResourceProgram {}
 
 pub trait RmrkResource {
     type Env: sails::client::GearEnv;
-    fn rmrk_resource(
-        &self,
-    ) -> sails::client::Service<rmrk_resource::RmrkResourceImpl, Self::Env>;
+    fn rmrk_resource(&self) -> sails::client::Service<rmrk_resource::RmrkResourceImpl, Self::Env>;
 }
 
-impl<E: sails::client::GearEnv> RmrkResource
-    for sails::client::Actor<RmrkResourceProgram, E>
-{
+impl<E: sails::client::GearEnv> RmrkResource for sails::client::Actor<RmrkResourceProgram, E> {
     type Env = E;
-    fn rmrk_resource(
-        &self,
-    ) -> sails::client::Service<rmrk_resource::RmrkResourceImpl, Self::Env> {
+    fn rmrk_resource(&self) -> sails::client::Service<rmrk_resource::RmrkResourceImpl, Self::Env> {
         self.service(RmrkResourceProgram::ROUTE_ID_RMRK_RESOURCE)
     }
 }
@@ -118,10 +112,7 @@ pub mod rmrk_resource {
             resource_id: u8,
             resource: Resource,
         ) -> sails::client::PendingCall<io::AddResourceEntry, Self::Env>;
-        fn resource(
-            &self,
-            resource_id: u8,
-        ) -> sails::client::PendingCall<io::Resource, Self::Env>;
+        fn resource(&self, resource_id: u8) -> sails::client::PendingCall<io::Resource, Self::Env>;
     }
 
     pub struct RmrkResourceImpl;
@@ -147,10 +138,7 @@ pub mod rmrk_resource {
         ) -> sails::client::PendingCall<io::AddResourceEntry, Self::Env> {
             self.pending_call((resource_id, resource))
         }
-        fn resource(
-            &self,
-            resource_id: u8,
-        ) -> sails::client::PendingCall<io::Resource, Self::Env> {
+        fn resource(&self, resource_id: u8) -> sails::client::PendingCall<io::Resource, Self::Env> {
             self.pending_call((resource_id,))
         }
     }

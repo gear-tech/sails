@@ -16,9 +16,7 @@ pub trait ComputeStress {
     ) -> sails::client::Service<compute_stress::ComputeStressImpl, Self::Env>;
 }
 
-impl<E: sails::client::GearEnv> ComputeStress
-    for sails::client::Actor<ComputeStressProgram, E>
-{
+impl<E: sails::client::GearEnv> ComputeStress for sails::client::Actor<ComputeStressProgram, E> {
     type Env = E;
     fn compute_stress(
         &self,
@@ -73,9 +71,7 @@ pub mod compute_stress {
             sails::InterfaceId::from_bytes_8([254, 138, 70, 56, 122, 195, 121, 54]);
     }
 
-    impl<E: sails::client::GearEnv> ComputeStress
-        for sails::client::Service<ComputeStressImpl, E>
-    {
+    impl<E: sails::client::GearEnv> ComputeStress for sails::client::Service<ComputeStressImpl, E> {
         type Env = E;
         fn compute_stress(
             &mut self,

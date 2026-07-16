@@ -13,22 +13,15 @@ pub trait RmrkCatalog {
     type Env: sails::client::GearEnv;
     fn rmrk_catalog(
         &self,
-    ) -> sails::client::Service<
-        rmrk_catalog::RmrkCatalogImpl,
-        Self::Env,
-        sails::client::RouteName,
-    >;
+    ) -> sails::client::Service<rmrk_catalog::RmrkCatalogImpl, Self::Env, sails::client::RouteName>;
 }
 
 impl<E: sails::client::GearEnv> RmrkCatalog for sails::client::Actor<RmrkCatalogProgram, E> {
     type Env = E;
     fn rmrk_catalog(
         &self,
-    ) -> sails::client::Service<
-        rmrk_catalog::RmrkCatalogImpl,
-        Self::Env,
-        sails::client::RouteName,
-    > {
+    ) -> sails::client::Service<rmrk_catalog::RmrkCatalogImpl, Self::Env, sails::client::RouteName>
+    {
         self.service_v1(stringify!(RmrkCatalog))
     }
 }

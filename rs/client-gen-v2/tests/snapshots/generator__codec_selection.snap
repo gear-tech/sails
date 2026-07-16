@@ -21,9 +21,7 @@ pub trait CodecProgram {
     fn codec_test(&self) -> sails::client::Service<codec_test::CodecTestImpl, Self::Env>;
 }
 
-impl<E: sails::client::GearEnv> CodecProgram
-    for sails::client::Actor<CodecProgramProgram, E>
-{
+impl<E: sails::client::GearEnv> CodecProgram for sails::client::Actor<CodecProgramProgram, E> {
     type Env = E;
     fn codec_test(&self) -> sails::client::Service<codec_test::CodecTestImpl, Self::Env> {
         self.service(CodecProgramProgram::ROUTE_ID_CODEC_TEST)
@@ -49,17 +47,12 @@ pub mod codec_test {
     pub trait CodecTest {
         type Env: sails::client::GearEnv;
         /// Available via both codecs (default)
-        fn both_method(
-            &mut self,
-            p1: u32,
-        ) -> sails::client::PendingCall<io::BothMethod, Self::Env>;
+        fn both_method(&mut self, p1: u32)
+        -> sails::client::PendingCall<io::BothMethod, Self::Env>;
         /// Query available via both
         fn both_query(&self, p1: bool) -> sails::client::PendingCall<io::BothQuery, Self::Env>;
         /// SCALE only
-        fn scale_only(
-            &mut self,
-            p1: u32,
-        ) -> sails::client::PendingCall<io::ScaleOnly, Self::Env>;
+        fn scale_only(&mut self, p1: u32) -> sails::client::PendingCall<io::ScaleOnly, Self::Env>;
     }
 
     pub struct CodecTestImpl;
@@ -80,10 +73,7 @@ pub mod codec_test {
         fn both_query(&self, p1: bool) -> sails::client::PendingCall<io::BothQuery, Self::Env> {
             self.pending_call((p1,))
         }
-        fn scale_only(
-            &mut self,
-            p1: u32,
-        ) -> sails::client::PendingCall<io::ScaleOnly, Self::Env> {
+        fn scale_only(&mut self, p1: u32) -> sails::client::PendingCall<io::ScaleOnly, Self::Env> {
             self.pending_call((p1,))
         }
     }

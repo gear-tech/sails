@@ -249,8 +249,7 @@ mod reference_service_meta {
         let mut final_hash = sails::keccak_const::Keccak256::new();
         final_hash = final_hash
             .update(&sails::hash_fn!(command AddByte(u8) -> & 'static [u8]));
-        final_hash = final_hash
-            .update(&sails::hash_fn!(query Baked() -> & 'static str));
+        final_hash = final_hash.update(&sails::hash_fn!(query Baked() -> & 'static str));
         final_hash = final_hash
             .update(&sails::hash_fn!(query FirstByte() -> Option < & 'static u8 >));
         final_hash = final_hash

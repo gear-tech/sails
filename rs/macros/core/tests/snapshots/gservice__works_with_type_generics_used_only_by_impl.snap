@@ -72,9 +72,7 @@ impl<M: InfallibleStorage<Item = Metadata>> VftMetadataExposure<VftMetadata<M>> 
                 id,
                 0u16,
             ) if id
-                == <self::VftMetadata<
-                    M,
-                > as sails::meta::Identifiable>::INTERFACE_ID => {
+                == <self::VftMetadata<M> as sails::meta::Identifiable>::INTERFACE_ID => {
                 let request: vft_metadata_meta::__DecimalsParams = sails::scale_codec::Decode::decode(
                         &mut input,
                     )
@@ -100,9 +98,7 @@ impl<M: InfallibleStorage<Item = Metadata>> VftMetadataExposure<VftMetadata<M>> 
                 id,
                 1u16,
             ) if id
-                == <self::VftMetadata<
-                    M,
-                > as sails::meta::Identifiable>::INTERFACE_ID => {
+                == <self::VftMetadata<M> as sails::meta::Identifiable>::INTERFACE_ID => {
                 let request: vft_metadata_meta::__NameParams = sails::scale_codec::Decode::decode(
                         &mut input,
                     )
@@ -128,9 +124,7 @@ impl<M: InfallibleStorage<Item = Metadata>> VftMetadataExposure<VftMetadata<M>> 
                 id,
                 2u16,
             ) if id
-                == <self::VftMetadata<
-                    M,
-                > as sails::meta::Identifiable>::INTERFACE_ID => {
+                == <self::VftMetadata<M> as sails::meta::Identifiable>::INTERFACE_ID => {
                 let request: vft_metadata_meta::__SymbolParams = sails::scale_codec::Decode::decode(
                         &mut input,
                     )

@@ -66,12 +66,7 @@ pub mod wasm {
                         meta_in_program::__NewParams
                     )
                 }
-                _ => {
-                    sails::gstd::unknown_input_panic(
-                        "Unexpected ctor entry_id",
-                        input,
-                    )
-                }
+                _ => sails::gstd::unknown_input_panic("Unexpected ctor entry_id", input),
             }
         }
     }

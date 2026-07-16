@@ -16,9 +16,7 @@ pub trait PingPongStack {
     ) -> sails::client::Service<ping_pong_stack::PingPongStackImpl, Self::Env>;
 }
 
-impl<E: sails::client::GearEnv> PingPongStack
-    for sails::client::Actor<PingPongStackProgram, E>
-{
+impl<E: sails::client::GearEnv> PingPongStack for sails::client::Actor<PingPongStackProgram, E> {
     type Env = E;
     fn ping_pong_stack(
         &self,
@@ -76,9 +74,7 @@ pub mod ping_pong_stack {
             sails::InterfaceId::from_bytes_8([48, 181, 231, 61, 179, 133, 133, 236]);
     }
 
-    impl<E: sails::client::GearEnv> PingPongStack
-        for sails::client::Service<PingPongStackImpl, E>
-    {
+    impl<E: sails::client::GearEnv> PingPongStack for sails::client::Service<PingPongStackImpl, E> {
         type Env = E;
         fn ping(&mut self, countdown: u32) -> sails::client::PendingCall<io::Ping, Self::Env> {
             self.pending_call((countdown,))

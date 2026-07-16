@@ -141,10 +141,7 @@ pub mod my_complex_service {
             &self,
             count: u32,
         ) -> sails::client::PendingCall<io::GetActorIds, Self::Env>;
-        fn get_data(
-            &mut self,
-            key: String,
-        ) -> sails::client::PendingCall<io::GetData, Self::Env>;
+        fn get_data(&mut self, key: String) -> sails::client::PendingCall<io::GetData, Self::Env>;
         fn get_info(&self) -> sails::client::PendingCall<io::GetInfo, Self::Env>;
         fn initialize(
             &mut self,
@@ -182,10 +179,7 @@ pub mod my_complex_service {
         ) -> sails::client::PendingCall<io::GetActorIds, Self::Env> {
             self.pending_call((count,))
         }
-        fn get_data(
-            &mut self,
-            key: String,
-        ) -> sails::client::PendingCall<io::GetData, Self::Env> {
+        fn get_data(&mut self, key: String) -> sails::client::PendingCall<io::GetData, Self::Env> {
             self.pending_call((key,))
         }
         fn get_info(&self) -> sails::client::PendingCall<io::GetInfo, Self::Env> {
@@ -271,9 +265,7 @@ pub mod another_service {
             sails::InterfaceId::from_bytes_8([155, 46, 27, 116, 89, 52, 232, 187]);
     }
 
-    impl<E: sails::client::GearEnv> AnotherService
-        for sails::client::Service<AnotherServiceImpl, E>
-    {
+    impl<E: sails::client::GearEnv> AnotherService for sails::client::Service<AnotherServiceImpl, E> {
         type Env = E;
         fn ping(&mut self) -> sails::client::PendingCall<io::Ping, Self::Env> {
             self.pending_call(())

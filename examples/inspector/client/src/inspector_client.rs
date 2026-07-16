@@ -84,13 +84,10 @@ pub mod inspector {
             &mut self,
         ) -> sails::client::PendingCall<io::TestNonzeroPanic, Self::Env>;
         /// Proxy call to validator.validate_range(20, 5, 15)
-        fn test_range_panic(
-            &mut self,
-        ) -> sails::client::PendingCall<io::TestRangePanic, Self::Env>;
+        fn test_range_panic(&mut self)
+        -> sails::client::PendingCall<io::TestRangePanic, Self::Env>;
         /// Proxy call to validator.total_errors()
-        fn test_total_errors(
-            &self,
-        ) -> sails::client::PendingCall<io::TestTotalErrors, Self::Env>;
+        fn test_total_errors(&self) -> sails::client::PendingCall<io::TestTotalErrors, Self::Env>;
     }
 
     pub struct InspectorImpl;
@@ -121,9 +118,7 @@ pub mod inspector {
         ) -> sails::client::PendingCall<io::TestRangePanic, Self::Env> {
             self.pending_call(())
         }
-        fn test_total_errors(
-            &self,
-        ) -> sails::client::PendingCall<io::TestTotalErrors, Self::Env> {
+        fn test_total_errors(&self) -> sails::client::PendingCall<io::TestTotalErrors, Self::Env> {
             self.pending_call(())
         }
     }

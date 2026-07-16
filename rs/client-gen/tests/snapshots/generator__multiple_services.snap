@@ -23,8 +23,7 @@ impl<E: sails::client::GearEnv> Multiple for sails::client::Actor<MultipleProgra
     type Env = E;
     fn multiple(
         &self,
-    ) -> sails::client::Service<multiple::MultipleImpl, Self::Env, sails::client::RouteName>
-    {
+    ) -> sails::client::Service<multiple::MultipleImpl, Self::Env, sails::client::RouteName> {
         self.service_v1(stringify!(Multiple))
     }
     fn named(
@@ -44,10 +43,7 @@ pub mod multiple {
             p1: u32,
             p2: MyParam,
         ) -> sails::client::PendingCall<io::DoThis, Self::Env>;
-        fn do_that(
-            &mut self,
-            p1: (u8, u32),
-        ) -> sails::client::PendingCall<io::DoThat, Self::Env>;
+        fn do_that(&mut self, p1: (u8, u32)) -> sails::client::PendingCall<io::DoThat, Self::Env>;
     }
 
     pub struct MultipleImpl;
@@ -63,10 +59,7 @@ pub mod multiple {
         ) -> sails::client::PendingCall<io::DoThis, Self::Env> {
             self.pending_call((p1, p2))
         }
-        fn do_that(
-            &mut self,
-            p1: (u8, u32),
-        ) -> sails::client::PendingCall<io::DoThat, Self::Env> {
+        fn do_that(&mut self, p1: (u8, u32)) -> sails::client::PendingCall<io::DoThat, Self::Env> {
             self.pending_call((p1,))
         }
     }

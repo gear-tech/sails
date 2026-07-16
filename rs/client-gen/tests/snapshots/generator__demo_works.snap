@@ -17,9 +17,7 @@ pub trait Demo {
     fn counter(
         &self,
     ) -> sails::client::Service<counter::CounterImpl, Self::Env, sails::client::RouteName>;
-    fn dog(
-        &self,
-    ) -> sails::client::Service<dog::DogImpl, Self::Env, sails::client::RouteName>;
+    fn dog(&self) -> sails::client::Service<dog::DogImpl, Self::Env, sails::client::RouteName>;
     fn references(
         &self,
     ) -> sails::client::Service<references::ReferencesImpl, Self::Env, sails::client::RouteName>;
@@ -38,19 +36,15 @@ impl<E: sails::client::GearEnv> Demo for sails::client::Actor<DemoProgram, E> {
     type Env = E;
     fn ping_pong(
         &self,
-    ) -> sails::client::Service<ping_pong::PingPongImpl, Self::Env, sails::client::RouteName>
-    {
+    ) -> sails::client::Service<ping_pong::PingPongImpl, Self::Env, sails::client::RouteName> {
         self.service_v1(stringify!(PingPong))
     }
     fn counter(
         &self,
-    ) -> sails::client::Service<counter::CounterImpl, Self::Env, sails::client::RouteName>
-    {
+    ) -> sails::client::Service<counter::CounterImpl, Self::Env, sails::client::RouteName> {
         self.service_v1(stringify!(Counter))
     }
-    fn dog(
-        &self,
-    ) -> sails::client::Service<dog::DogImpl, Self::Env, sails::client::RouteName> {
+    fn dog(&self) -> sails::client::Service<dog::DogImpl, Self::Env, sails::client::RouteName> {
         self.service_v1(stringify!(Dog))
     }
     fn references(
@@ -61,14 +55,12 @@ impl<E: sails::client::GearEnv> Demo for sails::client::Actor<DemoProgram, E> {
     }
     fn this_that(
         &self,
-    ) -> sails::client::Service<this_that::ThisThatImpl, Self::Env, sails::client::RouteName>
-    {
+    ) -> sails::client::Service<this_that::ThisThatImpl, Self::Env, sails::client::RouteName> {
         self.service_v1(stringify!(ThisThat))
     }
     fn value_fee(
         &self,
-    ) -> sails::client::Service<value_fee::ValueFeeImpl, Self::Env, sails::client::RouteName>
-    {
+    ) -> sails::client::Service<value_fee::ValueFeeImpl, Self::Env, sails::client::RouteName> {
         self.service_v1(stringify!(ValueFee))
     }
     fn chaos(
@@ -280,10 +272,7 @@ pub mod references {
         type Env: sails::client::GearEnv;
         fn add(&mut self, v: u32) -> sails::client::PendingCall<io::Add, Self::Env>;
         fn add_byte(&mut self, byte: u8) -> sails::client::PendingCall<io::AddByte, Self::Env>;
-        fn guess_num(
-            &mut self,
-            number: u8,
-        ) -> sails::client::PendingCall<io::GuessNum, Self::Env>;
+        fn guess_num(&mut self, number: u8) -> sails::client::PendingCall<io::GuessNum, Self::Env>;
         fn incr(&mut self) -> sails::client::PendingCall<io::Incr, Self::Env>;
         fn set_num(&mut self, number: u8) -> sails::client::PendingCall<io::SetNum, Self::Env>;
         fn baked(&self) -> sails::client::PendingCall<io::Baked, Self::Env>;
@@ -303,10 +292,7 @@ pub mod references {
         fn add_byte(&mut self, byte: u8) -> sails::client::PendingCall<io::AddByte, Self::Env> {
             self.pending_call((byte,))
         }
-        fn guess_num(
-            &mut self,
-            number: u8,
-        ) -> sails::client::PendingCall<io::GuessNum, Self::Env> {
+        fn guess_num(&mut self, number: u8) -> sails::client::PendingCall<io::GuessNum, Self::Env> {
             self.pending_call((number,))
         }
         fn incr(&mut self) -> sails::client::PendingCall<io::Incr, Self::Env> {
@@ -465,9 +451,8 @@ pub mod chaos {
     pub trait Chaos {
         type Env: sails::client::GearEnv;
         fn panic_after_wait(&self) -> sails::client::PendingCall<io::PanicAfterWait, Self::Env>;
-        fn reply_hook_counter(
-            &self,
-        ) -> sails::client::PendingCall<io::ReplyHookCounter, Self::Env>;
+        fn reply_hook_counter(&self)
+        -> sails::client::PendingCall<io::ReplyHookCounter, Self::Env>;
         fn timeout_wait(&self) -> sails::client::PendingCall<io::TimeoutWait, Self::Env>;
     }
 

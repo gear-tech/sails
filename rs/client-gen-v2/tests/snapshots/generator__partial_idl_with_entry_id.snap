@@ -25,9 +25,7 @@ pub mod partial_service {
             sails::InterfaceId::from_bytes_8([18, 52, 86, 120, 144, 171, 205, 239]);
     }
 
-    impl<E: sails::client::GearEnv> PartialService
-        for sails::client::Service<PartialServiceImpl, E>
-    {
+    impl<E: sails::client::GearEnv> PartialService for sails::client::Service<PartialServiceImpl, E> {
         type Env = E;
         fn first(&mut self) -> sails::client::PendingCall<io::First, Self::Env> {
             self.pending_call(())

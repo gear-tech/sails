@@ -74,9 +74,7 @@ pub mod ping_pong_service {
             sails::InterfaceId::from_bytes_8([106, 114, 150, 138, 76, 98, 231, 215]);
     }
 
-    impl<E: sails::client::GearEnv> PingPongService
-        for sails::client::Service<PingPongServiceImpl, E>
-    {
+    impl<E: sails::client::GearEnv> PingPongService for sails::client::Service<PingPongServiceImpl, E> {
         type Env = E;
         fn ping(
             &mut self,

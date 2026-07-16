@@ -79,8 +79,7 @@ pub mod service_with_events {
             Reset,
         }
         impl sails::client::EventNames for ServiceWithEventsEvents {
-            const EVENT_NAMES: &'static [sails::client::Route] =
-                &["One", "Two", "Three", "Reset"];
+            const EVENT_NAMES: &'static [sails::client::Route] = &["One", "Two", "Three", "Reset"];
         }
 
         impl sails::client::Event<sails::client::RouteName> for ServiceWithEventsEvents {

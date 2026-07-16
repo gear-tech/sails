@@ -11,26 +11,21 @@ impl sails::client::Program for NoopBaselineClientProgram {}
 
 pub trait NoopBaselineClient {
     type Env: sails::client::GearEnv;
-    fn noop_baseline(
-        &self,
-    ) -> sails::client::Service<noop_baseline::NoopBaselineImpl, Self::Env>;
+    fn noop_baseline(&self) -> sails::client::Service<noop_baseline::NoopBaselineImpl, Self::Env>;
 }
 
 impl<E: sails::client::GearEnv> NoopBaselineClient
     for sails::client::Actor<NoopBaselineClientProgram, E>
 {
     type Env = E;
-    fn noop_baseline(
-        &self,
-    ) -> sails::client::Service<noop_baseline::NoopBaselineImpl, Self::Env> {
+    fn noop_baseline(&self) -> sails::client::Service<noop_baseline::NoopBaselineImpl, Self::Env> {
         self.service(NoopBaselineClientProgram::ROUTE_ID_NOOP_BASELINE)
     }
 }
 pub trait NoopBaselineClientCtors {
     type Env: sails::client::GearEnv + sails::client::EnvWithCtor;
-    fn create(
-        self,
-    ) -> sails::client::PendingCtor<NoopBaselineClientProgram, io::Create, Self::Env>;
+    fn create(self)
+    -> sails::client::PendingCtor<NoopBaselineClientProgram, io::Create, Self::Env>;
 }
 
 impl<E: sails::client::GearEnv + sails::client::EnvWithCtor> NoopBaselineClientCtors

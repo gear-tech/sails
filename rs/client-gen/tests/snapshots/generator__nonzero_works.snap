@@ -20,9 +20,7 @@ pub trait NonZeroParams {
     >;
 }
 
-impl<E: sails::client::GearEnv> NonZeroParams
-    for sails::client::Actor<NonZeroParamsProgram, E>
-{
+impl<E: sails::client::GearEnv> NonZeroParams for sails::client::Actor<NonZeroParamsProgram, E> {
     type Env = E;
     fn non_zero_params(
         &self,

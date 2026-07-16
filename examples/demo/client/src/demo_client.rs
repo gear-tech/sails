@@ -284,9 +284,7 @@ pub mod mammal_service {
             sails::InterfaceId::from_bytes_8([241, 129, 131, 53, 115, 172, 5, 191]);
     }
 
-    impl<E: sails::client::GearEnv> MammalService
-        for sails::client::Service<MammalServiceImpl, E>
-    {
+    impl<E: sails::client::GearEnv> MammalService for sails::client::Service<MammalServiceImpl, E> {
         type Env = E;
         fn avg_weight(&self) -> sails::client::PendingCall<io::AvgWeight, Self::Env> {
             self.pending_call(())
@@ -336,9 +334,7 @@ pub mod walker_service {
             sails::InterfaceId::from_bytes_8([6, 182, 117, 14, 54, 240, 253, 167]);
     }
 
-    impl<E: sails::client::GearEnv> WalkerService
-        for sails::client::Service<WalkerServiceImpl, E>
-    {
+    impl<E: sails::client::GearEnv> WalkerService for sails::client::Service<WalkerServiceImpl, E> {
         type Env = E;
         fn position(&self) -> sails::client::PendingCall<io::Position, Self::Env> {
             self.pending_call(())
@@ -437,14 +433,12 @@ pub mod dog {
         }
         fn mammal_service(
             &self,
-        ) -> sails::client::Service<super::mammal_service::MammalServiceImpl, Self::Env>
-        {
+        ) -> sails::client::Service<super::mammal_service::MammalServiceImpl, Self::Env> {
             self.base_service()
         }
         fn walker_service(
             &self,
-        ) -> sails::client::Service<super::walker_service::WalkerServiceImpl, Self::Env>
-        {
+        ) -> sails::client::Service<super::walker_service::WalkerServiceImpl, Self::Env> {
             self.base_service()
         }
     }
@@ -521,10 +515,7 @@ pub mod references {
         fn add(&mut self, v: u32) -> sails::client::PendingCall<io::Add, Self::Env>;
         fn add_byte(&mut self, byte: u8) -> sails::client::PendingCall<io::AddByte, Self::Env>;
         fn baked(&self) -> sails::client::PendingCall<io::Baked, Self::Env>;
-        fn guess_num(
-            &mut self,
-            number: u8,
-        ) -> sails::client::PendingCall<io::GuessNum, Self::Env>;
+        fn guess_num(&mut self, number: u8) -> sails::client::PendingCall<io::GuessNum, Self::Env>;
         fn incr(&mut self) -> sails::client::PendingCall<io::Incr, Self::Env>;
         fn last_byte(&self) -> sails::client::PendingCall<io::LastByte, Self::Env>;
         fn message(&self) -> sails::client::PendingCall<io::Message, Self::Env>;
@@ -549,10 +540,7 @@ pub mod references {
         fn baked(&self) -> sails::client::PendingCall<io::Baked, Self::Env> {
             self.pending_call(())
         }
-        fn guess_num(
-            &mut self,
-            number: u8,
-        ) -> sails::client::PendingCall<io::GuessNum, Self::Env> {
+        fn guess_num(&mut self, number: u8) -> sails::client::PendingCall<io::GuessNum, Self::Env> {
             self.pending_call((number,))
         }
         fn incr(&mut self) -> sails::client::PendingCall<io::Incr, Self::Env> {
@@ -896,9 +884,8 @@ pub mod chaos {
     pub trait Chaos {
         type Env: sails::client::GearEnv;
         fn panic_after_wait(&self) -> sails::client::PendingCall<io::PanicAfterWait, Self::Env>;
-        fn reply_hook_counter(
-            &self,
-        ) -> sails::client::PendingCall<io::ReplyHookCounter, Self::Env>;
+        fn reply_hook_counter(&self)
+        -> sails::client::PendingCall<io::ReplyHookCounter, Self::Env>;
         fn timeout_wait(&self) -> sails::client::PendingCall<io::TimeoutWait, Self::Env>;
     }
 
@@ -1004,10 +991,7 @@ pub mod base_service {
     pub trait BaseService {
         type Env: sails::client::GearEnv;
         fn foo(&self) -> sails::client::PendingCall<io::Foo, Self::Env>;
-        fn set_value(
-            &mut self,
-            value: u32,
-        ) -> sails::client::PendingCall<io::SetValue, Self::Env>;
+        fn set_value(&mut self, value: u32) -> sails::client::PendingCall<io::SetValue, Self::Env>;
     }
 
     pub struct BaseServiceImpl;
@@ -1022,10 +1006,7 @@ pub mod base_service {
         fn foo(&self) -> sails::client::PendingCall<io::Foo, Self::Env> {
             self.pending_call(())
         }
-        fn set_value(
-            &mut self,
-            value: u32,
-        ) -> sails::client::PendingCall<io::SetValue, Self::Env> {
+        fn set_value(&mut self, value: u32) -> sails::client::PendingCall<io::SetValue, Self::Env> {
             self.pending_call((value,))
         }
     }

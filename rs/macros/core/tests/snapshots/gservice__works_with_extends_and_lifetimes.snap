@@ -198,13 +198,11 @@ mod extended_lifetime_meta {
     use super::*;
     const __INTERFACE_ID: sails::meta::InterfaceId = {
         let mut final_hash = sails::keccak_const::Keccak256::new();
-        final_hash = final_hash
-            .update(&sails::hash_fn!(query ExtendedName() -> String));
+        final_hash = final_hash.update(&sails::hash_fn!(query ExtendedName() -> String));
         final_hash = final_hash.update(&sails::hash_fn!(query Name() -> String));
         final_hash = final_hash
             .update(
-                &<super::base::BaseLifetime as sails::meta::Identifiable>::INTERFACE_ID
-                    .0,
+                &<super::base::BaseLifetime as sails::meta::Identifiable>::INTERFACE_ID.0,
             );
         let hash = final_hash.finalize();
         sails::meta::InterfaceId::from_bytes_32(hash)

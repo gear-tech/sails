@@ -206,13 +206,11 @@ mod some_service_meta {
         final_hash = final_hash.update(&sails::hash_fn!(command DoThis() -> u32));
         final_hash = final_hash
             .update(
-                &<super::ExtendedService1 as sails::meta::Identifiable>::INTERFACE_ID
-                    .0,
+                &<super::ExtendedService1 as sails::meta::Identifiable>::INTERFACE_ID.0,
             );
         final_hash = final_hash
             .update(
-                &<super::ExtendedService2 as sails::meta::Identifiable>::INTERFACE_ID
-                    .0,
+                &<super::ExtendedService2 as sails::meta::Identifiable>::INTERFACE_ID.0,
             );
         let hash = final_hash.finalize();
         sails::meta::InterfaceId::from_bytes_32(hash)

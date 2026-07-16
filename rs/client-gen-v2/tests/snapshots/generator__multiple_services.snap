@@ -20,10 +20,7 @@ pub mod multiple {
 
     pub trait Multiple {
         type Env: sails::client::GearEnv;
-        fn do_that(
-            &mut self,
-            p1: (u8, u32),
-        ) -> sails::client::PendingCall<io::DoThat, Self::Env>;
+        fn do_that(&mut self, p1: (u8, u32)) -> sails::client::PendingCall<io::DoThat, Self::Env>;
         fn do_this(
             &mut self,
             p1: u32,
@@ -40,10 +37,7 @@ pub mod multiple {
 
     impl<E: sails::client::GearEnv> Multiple for sails::client::Service<MultipleImpl, E> {
         type Env = E;
-        fn do_that(
-            &mut self,
-            p1: (u8, u32),
-        ) -> sails::client::PendingCall<io::DoThat, Self::Env> {
+        fn do_that(&mut self, p1: (u8, u32)) -> sails::client::PendingCall<io::DoThat, Self::Env> {
             self.pending_call((p1,))
         }
         fn do_this(

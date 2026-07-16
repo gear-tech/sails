@@ -241,9 +241,7 @@ mod inherited_service_meta {
         final_hash = final_hash.update(&sails::hash_fn!(query OwnFirst() -> u32));
         final_hash = final_hash.update(&sails::hash_fn!(query OwnSecond() -> u32));
         final_hash = final_hash
-            .update(
-                &<super::BaseService as sails::meta::Identifiable>::INTERFACE_ID.0,
-            );
+            .update(&<super::BaseService as sails::meta::Identifiable>::INTERFACE_ID.0);
         let hash = final_hash.finalize();
         sails::meta::InterfaceId::from_bytes_32(hash)
     };
@@ -275,11 +273,7 @@ mod inherited_service_meta {
     }
     const _: () = {
         let base_methods = <super::BaseService as sails::meta::ServiceMeta>::METHODS;
-        if let Some(method) = sails::meta::find_method_data(
-            base_methods,
-            "Foo",
-            None,
-        ) {
+        if let Some(method) = sails::meta::find_method_data(base_methods, "Foo", None) {
             let base_name = method.name;
             if !sails::meta::bytes32_eq(
                 &method.hash,

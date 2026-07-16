@@ -20,8 +20,7 @@ impl<E: sails::client::GearEnv> Service for sails::client::Actor<ServiceProgram,
     type Env = E;
     fn service(
         &self,
-    ) -> sails::client::Service<service::ServiceImpl, Self::Env, sails::client::RouteName>
-    {
+    ) -> sails::client::Service<service::ServiceImpl, Self::Env, sails::client::RouteName> {
         self.service_v1(stringify!(Service))
     }
 }

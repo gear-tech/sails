@@ -11,18 +11,12 @@ impl sails::client::Program for CounterBenchProgram {}
 
 pub trait CounterBench {
     type Env: sails::client::GearEnv;
-    fn counter_bench(
-        &self,
-    ) -> sails::client::Service<counter_bench::CounterBenchImpl, Self::Env>;
+    fn counter_bench(&self) -> sails::client::Service<counter_bench::CounterBenchImpl, Self::Env>;
 }
 
-impl<E: sails::client::GearEnv> CounterBench
-    for sails::client::Actor<CounterBenchProgram, E>
-{
+impl<E: sails::client::GearEnv> CounterBench for sails::client::Actor<CounterBenchProgram, E> {
     type Env = E;
-    fn counter_bench(
-        &self,
-    ) -> sails::client::Service<counter_bench::CounterBenchImpl, Self::Env> {
+    fn counter_bench(&self) -> sails::client::Service<counter_bench::CounterBenchImpl, Self::Env> {
         self.service(CounterBenchProgram::ROUTE_ID_COUNTER_BENCH)
     }
 }

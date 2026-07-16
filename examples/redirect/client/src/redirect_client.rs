@@ -14,9 +14,7 @@ pub trait RedirectClient {
     fn redirect(&self) -> sails::client::Service<redirect::RedirectImpl, Self::Env>;
 }
 
-impl<E: sails::client::GearEnv> RedirectClient
-    for sails::client::Actor<RedirectClientProgram, E>
-{
+impl<E: sails::client::GearEnv> RedirectClient for sails::client::Actor<RedirectClientProgram, E> {
     type Env = E;
     fn redirect(&self) -> sails::client::Service<redirect::RedirectImpl, Self::Env> {
         self.service(RedirectClientProgram::ROUTE_ID_REDIRECT)
