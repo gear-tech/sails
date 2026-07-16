@@ -6,7 +6,7 @@ import { buildEsmCjs, runTsc } from '../build-utils';
 const WASM_BYTES_PATH = resolve(import.meta.dir, 'src/wasm-bytes.ts');
 
 async function getBase64Parser() {
-  const version = config['sails-rs'];
+  const version = config['sails'];
   const url = `https://github.com/gear-tech/sails/releases/download/rs%2Fv${version}/sails_idl_parser.wasm`;
   const response = await fetch(url);
 

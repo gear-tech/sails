@@ -4,8 +4,8 @@ version = "0.1.0"
 edition.workspace = true
 
 [dependencies]
-sails-rs.workspace = true
+sails.workspace = true
 
 [build-dependencies]
 redirect-proxy = { path = "../proxy" }
-sails-rs = { workspace = true, features = ["idl-gen", "build"] }
+sails = { workspace = true, features = ["idl-gen", "build"] }

@@ -37,7 +37,7 @@ env:
     sails-client-gen-js
     sails-macros-core
     sails-macros
-    sails-rs
+    sails
     cargo-sails
 
 jobs:
@@ -259,7 +259,7 @@ jobs:
     outputs:
       r_tag: ${{ needs.prepare.outputs.r_tag }}
     env:
-      R_NAME: Sails-RS v${{ needs.prepare.outputs.r_version }}
+      R_NAME: Sails v${{ needs.prepare.outputs.r_version }}
 
     steps:
       - name: Checkout Code from Release Branch

@@ -114,9 +114,9 @@ fn works_with_ethabi_only_non_scale_type() {
             #[export(ethabi)]
             pub fn abi_method(
                 &self,
-                addr: sails_rs::alloy_primitives::Address,
-            ) -> sails_rs::alloy_primitives::B256 {
-                sails_rs::alloy_primitives::B256::ZERO
+                addr: sails::alloy_primitives::Address,
+            ) -> sails::alloy_primitives::B256 {
+                sails::alloy_primitives::B256::ZERO
             }
         }
     };

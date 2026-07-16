@@ -1,7 +1,7 @@
 use crate::dog::DogService;
 use crate::mammal::MammalService;
 use demo_walker::WalkerService;
-use sails_rs::prelude::*;
+use sails::prelude::*;
 
 pub struct ChainService {
     dog: DogService,

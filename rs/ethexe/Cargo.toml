@@ -12,7 +12,7 @@ members = ["ethapp", "ethapp_with_events", "macros-tests"]
 
 [workspace.dependencies]
 # sails
-sails-rs = { path = ".." }
+sails = { path = ".." }
 sails-macros-core = { path = "../macros/core" }
 
 # other

@@ -7,12 +7,12 @@ expression: gen_client(idl)
 #[cfg(not(target_arch = "wasm32"))]
 extern crate std;
 #[allow(unused_imports)]
-use sails_rs::{client::*, collections::*, prelude::*};
+use sails::{client::*, collections::*, prelude::*};
 
 pub mod service_with_events {
     use super::*;
 
-    #[sails_rs::sails_type(crate = sails_rs)]
+    #[sails::sails_type(crate = sails)]
     #[derive(PartialEq, Clone, Debug)]
     pub struct MyParam {
         pub f1: U256,
@@ -21,43 +21,43 @@ pub mod service_with_events {
     }
 
     pub trait ServiceWithEvents {
-        type Env: sails_rs::client::GearEnv;
+        type Env: sails::client::GearEnv;
         fn do_this(
             &mut self,
             p1: U256,
             p2: MyParam,
-        ) -> sails_rs::client::PendingCall<io::DoThis, Self::Env>;
+        ) -> sails::client::PendingCall<io::DoThis, Self::Env>;
     }
 
     pub struct ServiceWithEventsImpl;
 
-    impl sails_rs::client::Identifiable for ServiceWithEventsImpl {
-        const INTERFACE_ID: sails_rs::InterfaceId =
-            sails_rs::InterfaceId::from_bytes_8([186, 231, 26, 185, 242, 135, 49, 106]);
+    impl sails::client::Identifiable for ServiceWithEventsImpl {
+        const INTERFACE_ID: sails::InterfaceId =
+            sails::InterfaceId::from_bytes_8([186, 231, 26, 185, 242, 135, 49, 106]);
     }
 
-    impl<E: sails_rs::client::GearEnv> ServiceWithEvents
-        for sails_rs::client::Service<ServiceWithEventsImpl, E>
+    impl<E: sails::client::GearEnv> ServiceWithEvents
+        for sails::client::Service<ServiceWithEventsImpl, E>
     {
         type Env = E;
         fn do_this(
             &mut self,
             p1: U256,
             p2: MyParam,
-        ) -> sails_rs::client::PendingCall<io::DoThis, Self::Env> {
+        ) -> sails::client::PendingCall<io::DoThis, Self::Env> {
             self.pending_call((p1, p2))
         }
     }
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(DoThis (p1: U256, p2: super::MyParam) -> u64, 0, <super::ServiceWithEventsImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails::io_struct_impl!(DoThis (p1: U256, p2: super::MyParam) -> u64, 0, <super::ServiceWithEventsImpl as sails::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
     pub mod events {
         use super::*;
-        #[sails_rs::sails_type(crate = sails_rs)]
+        #[sails::sails_type(crate = sails)]
         #[derive(PartialEq, Debug)]
         pub enum ServiceWithEventsEvents {
             #[codec(index = 0)]
@@ -81,21 +81,21 @@ pub mod service_with_events {
             }
         }
 
-        impl sails_rs::client::Event for ServiceWithEventsEvents {
+        impl sails::client::Event for ServiceWithEventsEvents {
             fn decode_event(
-                route: &sails_rs::client::RouteIdx,
+                route: &sails::client::RouteIdx,
                 payload: impl AsRef<[u8]>,
-            ) -> Result<Self, sails_rs::scale_codec::Error> {
-                sails_rs::client::decode_event_v2::<Self>(route.0, payload)
+            ) -> Result<Self, sails::scale_codec::Error> {
+                sails::client::decode_event_v2::<Self>(route.0, payload)
             }
         }
 
-        impl sails_rs::client::Identifiable for ServiceWithEventsEvents {
-            const INTERFACE_ID: sails_rs::InterfaceId =
-                <ServiceWithEventsImpl as sails_rs::client::Identifiable>::INTERFACE_ID;
+        impl sails::client::Identifiable for ServiceWithEventsEvents {
+            const INTERFACE_ID: sails::InterfaceId =
+                <ServiceWithEventsImpl as sails::client::Identifiable>::INTERFACE_ID;
         }
 
-        impl sails_rs::client::ServiceWithEvents for ServiceWithEventsImpl {
+        impl sails::client::ServiceWithEvents for ServiceWithEventsImpl {
             type Event = ServiceWithEventsEvents;
         }
     }
@@ -104,15 +104,15 @@ pub mod service_with_events {
     #[cfg(not(target_arch = "wasm32"))]
     pub mod mockall {
         use super::*;
-        use sails_rs::mockall::*;
+        use sails::mockall::*;
         mock! {
             pub ServiceWithEvents {}
 
             #[allow(refining_impl_trait)]
             #[allow(clippy::type_complexity)]
             impl service_with_events::ServiceWithEvents for ServiceWithEvents {
-                type Env = sails_rs::client::GstdEnv;
-                fn do_this (&mut self, p1: U256, p2: MyParam) -> sails_rs::client::PendingCall<service_with_events::io::DoThis, sails_rs::client::GstdEnv>;
+                type Env = sails::client::GstdEnv;
+                fn do_this (&mut self, p1: U256, p2: MyParam) -> sails::client::PendingCall<service_with_events::io::DoThis, sails::client::GstdEnv>;
             }
         }
     }

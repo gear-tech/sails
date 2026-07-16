@@ -1,5 +1,5 @@
 use ethapp_with_events::Events;
-use sails_rs::{
+use sails::{
     alloy_sol_types::SolValue,
     client::*,
     futures::StreamExt,
@@ -19,12 +19,12 @@ pub(crate) const ADMIN_ID: u64 = 10;
 async fn ethapp_with_events_low_level_works() {
     // arrange
     let system = System::new();
-    system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails_rs=debug");
+    system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails=debug");
 
     let program = Program::from_file(&system, WASM_PATH);
     system.top_up_executable_balance(program.id(), ETHEXE_EXECUTABLE_BALANCE);
 
-    let ctor = sails_rs::solidity::selector("create(bool)");
+    let ctor = sails::solidity::selector("create(bool)");
     let input = (false,).abi_encode_sequence();
     let payload = [ctor.as_slice(), input.as_slice()].concat();
 
@@ -37,7 +37,7 @@ async fn ethapp_with_events_low_level_works() {
         .unwrap();
     assert!(matches!(
         reply_log_record.reply_code(),
-        Some(sails_rs::gear_core_errors::ReplyCode::Success(_))
+        Some(sails::gear_core_errors::ReplyCode::Success(_))
     ));
 
     let gas_burned = *run_result
@@ -47,7 +47,7 @@ async fn ethapp_with_events_low_level_works() {
     let wasm_size = std::fs::metadata(WASM_PATH).unwrap().len();
     println!("[ethapp_with_events_low_level_works] Init Gas: {gas_burned:>14}, Size: {wasm_size}");
 
-    let do_this_sig = sails_rs::solidity::selector("svc1DoThis(bool,uint32,string)");
+    let do_this_sig = sails::solidity::selector("svc1DoThis(bool,uint32,string)");
     let do_this_params = (false, 42, "hello").abi_encode_sequence();
     let payload = [do_this_sig.as_slice(), do_this_params.as_slice()].concat();
 
@@ -90,7 +90,7 @@ async fn ethapp_with_events_low_level_works() {
     let event_payload = event_log_record.payload();
     assert_eq!(2u8, event_payload[0]);
 
-    let sig = sails_rs::alloy_primitives::keccak256(b"DoThisEvent(uint32,string)");
+    let sig = sails::alloy_primitives::keccak256(b"DoThisEvent(uint32,string)");
     let topic1 = &event_payload[1..1 + 32];
     assert_eq!(sig.as_slice(), topic1);
 
@@ -105,14 +105,14 @@ async fn ethapp_with_events_low_level_works() {
 #[tokio::test]
 async fn ethapp_with_events_remoting_works() {
     let system = System::new();
-    system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails_rs=debug");
+    system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails=debug");
     let code_id = system.submit_code_file(WASM_PATH);
 
     let env = GtestEnv::new(system, ADMIN_ID.into());
     let binding = env.clone();
     let mut listener = binding.listen(Some).await.unwrap();
 
-    let ctor = sails_rs::solidity::selector("create(bool)");
+    let ctor = sails::solidity::selector("create(bool)");
     let input = (false,).abi_encode_sequence();
     let payload = [ctor.as_slice(), input.as_slice()].concat();
 
@@ -120,7 +120,7 @@ async fn ethapp_with_events_remoting_works() {
         .create_program(code_id, vec![], payload.as_slice(), Default::default())
         .unwrap();
 
-    let do_this_sig = sails_rs::solidity::selector("svc1DoThis(bool,uint32,string)");
+    let do_this_sig = sails::solidity::selector("svc1DoThis(bool,uint32,string)");
     let do_this_params = (false, 42, "hello").abi_encode_sequence();
     let payload = [do_this_sig.as_slice(), do_this_params.as_slice()].concat();
 
@@ -136,7 +136,7 @@ async fn ethapp_with_events_remoting_works() {
     assert_eq!(from, program_id);
     assert_eq!(2u8, event_payload[0]);
 
-    let sig = sails_rs::alloy_primitives::keccak256(b"DoThisEvent(uint32,string)");
+    let sig = sails::alloy_primitives::keccak256(b"DoThisEvent(uint32,string)");
     let topic1 = &event_payload[1..1 + 32];
     assert_eq!(sig.as_slice(), topic1);
 
@@ -151,14 +151,14 @@ async fn ethapp_with_events_remoting_works() {
 #[tokio::test]
 async fn ethapp_with_events_exposure_emit_works() {
     let system = System::new();
-    system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails_rs=debug");
+    system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails=debug");
     let code_id = system.submit_code_file(WASM_PATH);
 
     let env = GtestEnv::new(system, ADMIN_ID.into());
     let binding = env.clone();
     let mut listener = binding.listen(Some).await.unwrap();
 
-    let ctor = sails_rs::solidity::selector("create(bool)");
+    let ctor = sails::solidity::selector("create(bool)");
     let input = (false,).abi_encode_sequence();
     let payload = [ctor.as_slice(), input.as_slice()].concat();
 
@@ -166,7 +166,7 @@ async fn ethapp_with_events_exposure_emit_works() {
         .create_program(code_id, vec![], payload.as_slice(), Default::default())
         .unwrap();
 
-    let do_this_sig = sails_rs::solidity::selector("svc2DoThis(bool,uint32,string)");
+    let do_this_sig = sails::solidity::selector("svc2DoThis(bool,uint32,string)");
     let do_this_params = (false, 42, "hello").abi_encode_sequence();
     let payload = [do_this_sig.as_slice(), do_this_params.as_slice()].concat();
 
@@ -183,7 +183,7 @@ async fn ethapp_with_events_exposure_emit_works() {
     assert_eq!(from, program_id);
     assert_eq!(2u8, event_payload[0]);
 
-    let sig = sails_rs::alloy_primitives::keccak256(b"DoThisEvent(uint32,string)");
+    let sig = sails::alloy_primitives::keccak256(b"DoThisEvent(uint32,string)");
     let topic1 = &event_payload[1..1 + 32];
     assert_eq!(sig.as_slice(), topic1);
 

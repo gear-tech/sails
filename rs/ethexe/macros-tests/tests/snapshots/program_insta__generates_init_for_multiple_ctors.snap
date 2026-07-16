@@ -10,83 +10,83 @@ impl MyProgram {
         Self { p1, p2 }
     }
 }
-impl sails_rs::meta::ProgramMeta for MyProgram {
+impl sails::meta::ProgramMeta for MyProgram {
     type ConstructorsMeta = meta_in_program::ConstructorsMeta;
-    const SERVICES: &'static [(&'static str, sails_rs::meta::AnyServiceMeta)] = &[];
+    const SERVICES: &'static [(&'static str, sails::meta::AnyServiceMeta)] = &[];
     const ASYNC: bool = true;
 }
 mod meta_in_program {
     use super::*;
-    sails_rs::invocation_io!(
+    sails::invocation_io!(
         pub struct __CreateParams { pub (super) p1 : u32, pub (super) p2 : String, },
         entry_id = 0u16,
     );
-    sails_rs::invocation_io!(
+    sails::invocation_io!(
         pub struct __New2Params { pub (super) p2 : String, pub (super) p1 : u32, },
         entry_id = 1u16,
     );
-    #[derive(sails_rs::TypeInfo)]
-    #[type_info(crate = sails_rs::type_info)]
+    #[derive(sails::TypeInfo)]
+    #[type_info(crate = sails::type_info)]
     pub enum ConstructorsMeta {
         Create(__CreateParams),
         New2(__New2Params),
     }
 }
-impl sails_rs::solidity::ProgramSignature for MyProgram {
-    const CTORS: &'static [sails_rs::solidity::MethodExpo] = &[
+impl sails::solidity::ProgramSignature for MyProgram {
+    const CTORS: &'static [sails::solidity::MethodExpo] = &[
         (
-            sails_rs::meta::InterfaceId::zero(),
+            sails::meta::InterfaceId::zero(),
             0u16,
             "create",
             <<(
                 bool,
                 u32,
                 String,
-            ) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
+            ) as sails::alloy_sol_types::SolValue>::SolType as sails::alloy_sol_types::SolType>::SOL_NAME,
             <<(
-                sails_rs::alloy_primitives::B256,
-            ) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
+                sails::alloy_primitives::B256,
+            ) as sails::alloy_sol_types::SolValue>::SolType as sails::alloy_sol_types::SolType>::SOL_NAME,
         ),
         (
-            sails_rs::meta::InterfaceId::zero(),
+            sails::meta::InterfaceId::zero(),
             1u16,
             "new2",
             <<(
                 bool,
                 String,
                 u32,
-            ) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
+            ) as sails::alloy_sol_types::SolValue>::SolType as sails::alloy_sol_types::SolType>::SOL_NAME,
             <<(
-                sails_rs::alloy_primitives::B256,
-            ) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
+                sails::alloy_primitives::B256,
+            ) as sails::alloy_sol_types::SolValue>::SolType as sails::alloy_sol_types::SolType>::SOL_NAME,
         ),
     ];
-    const SERVICES: &'static [sails_rs::solidity::ServiceExpo] = &[];
+    const SERVICES: &'static [sails::solidity::ServiceExpo] = &[];
     const METHODS_LEN: usize = 0;
 }
-const __CTOR_SIGS: [[u8; 4]; <MyProgram as sails_rs::solidity::ProgramSignature>::CTORS
-    .len()] = sails_rs::solidity::ConstProgramMeta::<MyProgram>::ctor_sigs();
-const _: () = sails_rs::solidity::assert_unique_selectors(&__CTOR_SIGS);
-const __CTOR_CALLBACK_SIGS: [[u8; 4]; <MyProgram as sails_rs::solidity::ProgramSignature>::CTORS
-    .len()] = sails_rs::solidity::ConstProgramMeta::<MyProgram>::ctor_callback_sigs();
-const __METHOD_SIGS: [[u8; 4]; <MyProgram as sails_rs::solidity::ProgramSignature>::METHODS_LEN] = sails_rs::solidity::ConstProgramMeta::<
+const __CTOR_SIGS: [[u8; 4]; <MyProgram as sails::solidity::ProgramSignature>::CTORS
+    .len()] = sails::solidity::ConstProgramMeta::<MyProgram>::ctor_sigs();
+const _: () = sails::solidity::assert_unique_selectors(&__CTOR_SIGS);
+const __CTOR_CALLBACK_SIGS: [[u8; 4]; <MyProgram as sails::solidity::ProgramSignature>::CTORS
+    .len()] = sails::solidity::ConstProgramMeta::<MyProgram>::ctor_callback_sigs();
+const __METHOD_SIGS: [[u8; 4]; <MyProgram as sails::solidity::ProgramSignature>::METHODS_LEN] = sails::solidity::ConstProgramMeta::<
     MyProgram,
 >::method_sigs();
-const _: () = sails_rs::solidity::assert_unique_selectors(&__METHOD_SIGS);
+const _: () = sails::solidity::assert_unique_selectors(&__METHOD_SIGS);
 const __METHOD_ROUTES: [(
-    sails_rs::meta::InterfaceId,
+    sails::meta::InterfaceId,
     u16,
     u8,
-); <MyProgram as sails_rs::solidity::ProgramSignature>::METHODS_LEN] = sails_rs::solidity::ConstProgramMeta::<
+); <MyProgram as sails::solidity::ProgramSignature>::METHODS_LEN] = sails::solidity::ConstProgramMeta::<
     MyProgram,
 >::method_routes();
-const __CALLBACK_SIGS: [[u8; 4]; <MyProgram as sails_rs::solidity::ProgramSignature>::METHODS_LEN] = sails_rs::solidity::ConstProgramMeta::<
+const __CALLBACK_SIGS: [[u8; 4]; <MyProgram as sails::solidity::ProgramSignature>::METHODS_LEN] = sails::solidity::ConstProgramMeta::<
     MyProgram,
 >::callback_sigs();
 #[cfg(target_arch = "wasm32")]
 pub mod wasm {
     use super::*;
-    use sails_rs::{gstd, hex, prelude::*};
+    use sails::{gstd, hex, prelude::*};
     static mut PROGRAM: Option<MyProgram> = None;
     #[unsafe(no_mangle)]
     extern "C" fn init() {
@@ -95,7 +95,7 @@ pub mod wasm {
             && let Ok(sig) = <[u8; 4]>::try_from(input_sig)
             && let Some(idx) = __CTOR_SIGS.iter().position(|s| s == &sig)
             && let Some(encode_reply) = match_ctor_solidity(
-                <MyProgram as sails_rs::solidity::ProgramSignature>::CTORS[idx].1,
+                <MyProgram as sails::solidity::ProgramSignature>::CTORS[idx].1,
                 &input[4..],
             )
         {
@@ -109,48 +109,48 @@ pub mod wasm {
             }
             return;
         }
-        if let Ok(header) = <sails_rs::meta::SailsMessageHeader as sails_rs::Decode>::decode(
+        if let Ok(header) = <sails::meta::SailsMessageHeader as sails::Decode>::decode(
             &mut input,
         ) {
-            if header.interface_id() != sails_rs::meta::InterfaceId::zero() {
-                sails_rs::gstd::unknown_input_panic(
+            if header.interface_id() != sails::meta::InterfaceId::zero() {
+                sails::gstd::unknown_input_panic(
                     "Non zero ctor interface_id",
                     header.to_bytes().as_slice(),
                 );
             }
             match header.entry_id() {
                 0u16 => {
-                    let (p1, p2): (u32, String) = sails_rs::Decode::decode(&mut input)
-                        .unwrap_or_else(|_| sails_rs::gstd::unknown_input_panic(
+                    let (p1, p2): (u32, String) = sails::Decode::decode(&mut input)
+                        .unwrap_or_else(|_| sails::gstd::unknown_input_panic(
                             "Unknown request",
                             input,
                         ));
                     #[cfg(target_arch = "wasm32")]
-                    if sails_rs::gstd::msg::value() > 0 {
+                    if sails::gstd::msg::value() > 0 {
                         core::panic!("'create' accepts no value");
                     }
-                    sails_rs::program_ctor!(
+                    sails::program_ctor!(
                         PROGRAM = MyProgram::create(p1, p2). await, params_struct =
                         meta_in_program::__CreateParams
                     )
                 }
                 1u16 => {
-                    let (p2, p1): (String, u32) = sails_rs::Decode::decode(&mut input)
-                        .unwrap_or_else(|_| sails_rs::gstd::unknown_input_panic(
+                    let (p2, p1): (String, u32) = sails::Decode::decode(&mut input)
+                        .unwrap_or_else(|_| sails::gstd::unknown_input_panic(
                             "Unknown request",
                             input,
                         ));
                     #[cfg(target_arch = "wasm32")]
-                    if sails_rs::gstd::msg::value() > 0 {
+                    if sails::gstd::msg::value() > 0 {
                         core::panic!("'new2' accepts no value");
                     }
-                    sails_rs::program_ctor!(
+                    sails::program_ctor!(
                         PROGRAM = MyProgram::new2(p2, p1), params_struct =
                         meta_in_program::__New2Params
                     )
                 }
                 _ => {
-                    sails_rs::gstd::unknown_input_panic(
+                    sails::gstd::unknown_input_panic(
                         "Unexpected ctor entry_id",
                         input,
                     )
@@ -167,12 +167,12 @@ pub mod wasm {
                     p2,
                 ): (
                     bool,
-                    <<u32 as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::RustType,
-                    <<String as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::RustType,
-                ) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(input)
+                    <<u32 as sails::alloy_sol_types::SolValue>::SolType as sails::alloy_sol_types::SolType>::RustType,
+                    <<String as sails::alloy_sol_types::SolValue>::SolType as sails::alloy_sol_types::SolType>::RustType,
+                ) = sails::alloy_sol_types::SolValue::abi_decode_params(input)
                     .expect("Failed to decode request");
                 #[cfg(target_arch = "wasm32")]
-                if sails_rs::gstd::msg::value() > 0 {
+                if sails::gstd::msg::value() > 0 {
                     core::panic!("'create' accepts no value");
                 }
                 gstd::message_loop(async move {
@@ -188,12 +188,12 @@ pub mod wasm {
                     p1,
                 ): (
                     bool,
-                    <<String as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::RustType,
-                    <<u32 as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::RustType,
-                ) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(input)
+                    <<String as sails::alloy_sol_types::SolValue>::SolType as sails::alloy_sol_types::SolType>::RustType,
+                    <<u32 as sails::alloy_sol_types::SolValue>::SolType as sails::alloy_sol_types::SolType>::RustType,
+                ) = sails::alloy_sol_types::SolValue::abi_decode_params(input)
                     .expect("Failed to decode request");
                 #[cfg(target_arch = "wasm32")]
-                if sails_rs::gstd::msg::value() > 0 {
+                if sails::gstd::msg::value() > 0 {
                     core::panic!("'new2' accepts no value");
                 }
                 let program = MyProgram::new2(p2.into(), p1.into());
@@ -204,7 +204,7 @@ pub mod wasm {
         }
     }
     const SERVICES_COUNT: usize = 0usize;
-    const INTERFACE_IDS: &'static [(sails_rs::meta::InterfaceId, u8)] = &sails_rs::meta::interface_ids::<
+    const INTERFACE_IDS: &'static [(sails::meta::InterfaceId, u8)] = &sails::meta::interface_ids::<
         SERVICES_COUNT,
     >(&[]);
     #[unsafe(no_mangle)]
@@ -217,7 +217,7 @@ pub mod wasm {
         {
             let (interface_id, entry_id, route_idx) = __METHOD_ROUTES[idx];
         }
-        if let Ok(header) = <sails_rs::meta::SailsMessageHeader as sails_rs::Decode>::decode(
+        if let Ok(header) = <sails::meta::SailsMessageHeader as sails::Decode>::decode(
             &mut input.as_slice(),
         ) {
             let header_len = header.hlen().inner() as usize;
@@ -232,7 +232,7 @@ pub mod wasm {
     }
     #[unsafe(no_mangle)]
     extern "C" fn handle_reply() {
-        use sails_rs::meta::ProgramMeta;
+        use sails::meta::ProgramMeta;
         if MyProgram::ASYNC {
             gstd::handle_reply_with_hook();
         }

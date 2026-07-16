@@ -21,10 +21,10 @@ use sails_idl_meta::InterfaceId;
 /// Given an event definition:
 ///
 /// ```rust,ignore
-/// #[sails_rs::event]
-/// #[derive(sails_rs::Encode, sails_rs::TypeInfo)]
-/// #[codec(crate = sails_rs::scale_codec)]
-/// #[type_info(crate = sails_rs::type_info)]
+/// #[sails::event]
+/// #[derive(sails::Encode, sails::TypeInfo)]
+/// #[codec(crate = sails::scale_codec)]
+/// #[type_info(crate = sails::type_info)]
 /// pub enum Events {
 ///     MyEvent {
 ///         sender: uint128,

@@ -9,7 +9,7 @@ pub mod services;
 #[derive(Default)]
 pub struct Program;
 
-#[sails_rs::program]
+#[sails::program]
 impl Program {
     // Initialize program and seed hosted services
     pub fn new() -> Self {
@@ -18,7 +18,7 @@ impl Program {
     }
 
     // Expose hosted service
-    #[sails_rs::export(route = "RmrkCatalog")]
+    #[sails::export(route = "RmrkCatalog")]
     pub fn catalog(&self) -> Catalog {
         Catalog
     }

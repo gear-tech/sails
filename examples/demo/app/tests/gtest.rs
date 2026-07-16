@@ -1,5 +1,5 @@
 use demo_client::*;
-use sails_rs::{
+use sails::{
     client::*,
     futures::StreamExt as _,
     gtest::{Program, System},
@@ -13,10 +13,10 @@ pub(crate) const DEMO_WASM_PATH: &str = "../../../target/wasm32-gear/debug/demo.
 pub(crate) const DEMO_WASM_PATH: &str = "../../../target/wasm32-gear/release/demo.opt.wasm";
 
 fn create_env() -> (GtestEnv, CodeId, GasUnit) {
-    use sails_rs::gtest::{System, constants::MAX_USER_GAS_LIMIT};
+    use sails::gtest::{System, constants::MAX_USER_GAS_LIMIT};
 
     let system = System::new();
-    system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails_rs=debug,redirect=debug");
+    system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails=debug,redirect=debug");
     system.mint_to(ACTOR_ID, 100_000_000_000_000);
     // Submit program code into the system
     let code_id = system.submit_code_file(DEMO_WASM_PATH);
@@ -162,7 +162,7 @@ async fn ping_pong_low_level_works() {
     use demo_client::{io::Default, ping_pong::io::Ping};
 
     let system = System::new();
-    system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails_rs=debug");
+    system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails=debug");
     system.mint_to(ACTOR_ID, 1_000_000_000_000_000);
 
     let demo_program = Program::from_file(&system, DEMO_WASM_PATH);
@@ -450,7 +450,7 @@ fn counter_add_low_level_works() {
     use demo_client::{counter::io::Add, io::Default};
 
     let system = System::new();
-    system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails_rs=debug");
+    system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails=debug");
     system.mint_to(ACTOR_ID, 1_000_000_000_000_000);
 
     let demo_program = Program::from_file(&system, DEMO_WASM_PATH);
@@ -556,10 +556,10 @@ async fn program_value_transfer_works() {
 fn chaos_service_panic_after_wait_works() {
     use demo_client::{chaos::io::PanicAfterWait, io::Default};
     use gstd::errors::{ErrorReplyReason, SimpleExecutionError};
-    use sails_rs::gtest::{Log, Program, System};
+    use sails::gtest::{Log, Program, System};
 
     let system = System::new();
-    system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails_rs=debug");
+    system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails=debug");
     system.mint_to(ACTOR_ID, 1_000_000_000_000_000);
     let program = Program::from_file(&system, DEMO_WASM_PATH);
     program.send_bytes(ACTOR_ID, Default::encode_call(0));
@@ -591,10 +591,10 @@ fn chaos_service_timeout_wait() {
         chaos::io::{ReplyHookCounter, TimeoutWait},
         io::Default,
     };
-    use sails_rs::gtest::{Log, Program, System};
+    use sails::gtest::{Log, Program, System};
 
     let system = System::new();
-    system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails_rs=debug,redirect=debug");
+    system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails=debug,redirect=debug");
     system.mint_to(ACTOR_ID, 1_000_000_000_000_000);
     let program = Program::from_file(&system, DEMO_WASM_PATH);
     program.send_bytes(ACTOR_ID, Default::encode_call(0));

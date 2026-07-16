@@ -1,7 +1,7 @@
 use crate::catalogs::rmrk_catalog::{RmrkCatalog, RmrkCatalogImpl};
 use errors::{Error, Result};
 use resources::{ComposedResource, PartId, Resource, ResourceId};
-use sails_rs::{
+use sails::{
     client::*,
     collections::HashMap,
     gstd::{Syscall, service},
@@ -179,7 +179,7 @@ mod tests {
     use super::*;
     use crate::catalogs::rmrk_catalog::{FixedPart, Part, mockall::MockRmrkCatalog};
     use resources::ComposedResource;
-    use sails_rs::{client::PendingCall, gstd::services::Service};
+    use sails::{client::PendingCall, gstd::services::Service};
 
     #[tokio::test]
     async fn test_add_resource_entry() {

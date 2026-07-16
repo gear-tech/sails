@@ -9,8 +9,8 @@ repository.workspace = true
 license.workspace = true
 
 [dependencies]
-sails-rs.workspace = true
+sails.workspace = true
 
 [build-dependencies]
 aggregator-app = { path = "../app" }
-sails-rs = { workspace = true, features = ["build"] }
+sails = { workspace = true, features = ["build"] }

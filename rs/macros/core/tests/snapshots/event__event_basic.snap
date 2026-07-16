@@ -5,7 +5,7 @@ expression: result
 pub enum MyEvent {
     MyEvent1,
 }
-impl sails_rs::SailsEvent for MyEvent {
+impl sails::SailsEvent for MyEvent {
     fn encoded_event_name(&self) -> &'static [u8] {
         match self {
             MyEvent::MyEvent1 => {

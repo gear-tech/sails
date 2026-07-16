@@ -9,5 +9,5 @@ redirect-app = { path = "app" }
 redirect-client = { path = "client" }
 redirect-proxy = { path = "proxy" }
 redirect-proxy-client = { path = "proxy-client" }
-sails-rs = { workspace = true, features = ["gtest", "gsdk"] }
+sails = { workspace = true, features = ["gtest", "gsdk"] }
 tokio = { workspace = true, features = ["rt", "macros"] }

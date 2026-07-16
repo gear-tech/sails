@@ -4,12 +4,12 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
-sails-rs = { workspace = true, features = ["ethexe"] }
+sails = { workspace = true, features = ["ethexe"] }
 
 [build-dependencies]
-sails-rs = { workspace = true, features = ["ethexe", "wasm-builder"] }
+sails = { workspace = true, features = ["ethexe", "wasm-builder"] }
 
 [dev-dependencies]
 insta.workspace = true
-sails-rs = { workspace = true, features = ["ethexe", "gtest", "idl-gen"] }
+sails = { workspace = true, features = ["ethexe", "gtest", "idl-gen"] }
 tokio = { workspace = true, features = ["rt", "macros"] }

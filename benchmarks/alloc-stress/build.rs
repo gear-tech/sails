@@ -1,3 +1,3 @@
 fn main() {
-    sails_rs::build_wasm();
+    sails::build_wasm();
 }

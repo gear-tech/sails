@@ -1,4 +1,4 @@
-use sails_rs::program;
+use sails::program;
 
 struct MyProgram;
 

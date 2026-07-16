@@ -5,7 +5,7 @@ expression: result
 pub enum MyEvent {
     MyEvent1,
 }
-impl sails_rs::SailsEvent for MyEvent {
+impl sails::SailsEvent for MyEvent {
     fn encoded_event_name(&self) -> &'static [u8] {
         match self {
             MyEvent::MyEvent1 => {
@@ -22,33 +22,33 @@ impl sails_rs::SailsEvent for MyEvent {
         1
     }
 }
-impl sails_rs::EthEvent for MyEvent {
-    const SIGNATURES: &'static [sails_rs::gstd::EthEventExpo] = &[
+impl sails::EthEvent for MyEvent {
+    const SIGNATURES: &'static [sails::gstd::EthEventExpo] = &[
         (
             "MyEvent1",
-            <<() as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
-            sails_rs::keccak_const::Keccak256::new()
+            <<() as sails::alloy_sol_types::SolValue>::SolType as sails::alloy_sol_types::SolType>::SOL_NAME,
+            sails::keccak_const::Keccak256::new()
                 .update("MyEvent1".as_bytes())
                 .update(
-                    <<() as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME
+                    <<() as sails::alloy_sol_types::SolValue>::SolType as sails::alloy_sol_types::SolType>::SOL_NAME
                         .as_bytes(),
                 )
                 .finalize(),
         ),
     ];
     #[allow(unused)]
-    fn topics(&self) -> sails_rs::Vec<sails_rs::alloy_primitives::B256> {
+    fn topics(&self) -> sails::Vec<sails::alloy_primitives::B256> {
         match self {
             MyEvent::MyEvent1 => {
-                let mut topics = sails_rs::Vec::with_capacity(1usize);
+                let mut topics = sails::Vec::with_capacity(1usize);
                 let (_, _, hash) = Self::SIGNATURES[0usize];
-                topics.push(sails_rs::alloy_primitives::B256::new(hash));
+                topics.push(sails::alloy_primitives::B256::new(hash));
                 topics
             }
         }
     }
     #[allow(unused)]
-    fn data(&self) -> sails_rs::Vec<u8> {
+    fn data(&self) -> sails::Vec<u8> {
         match self {
             MyEvent::MyEvent1 => Self::encode_sequence(&()),
         }

@@ -5,7 +5,7 @@
 pub extern crate std;
 
 use crate::catalogs::{RmrkCatalog as _, RmrkCatalogProgram, rmrk_catalog::RmrkCatalogImpl};
-use sails_rs::{
+use sails::{
     client::{Program as _, *},
     prelude::*,
 };

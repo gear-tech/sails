@@ -1,4 +1,4 @@
-use sails_rs::prelude::*;
+use sails::prelude::*;
 
 #[event]
 #[sails_type]
@@ -43,7 +43,7 @@ impl FeeService {
 
 #[cfg(test)]
 mod tests {
-    use sails_rs::gstd::services::Service;
+    use sails::gstd::services::Service;
 
     use super::*;
 

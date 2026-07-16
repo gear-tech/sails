@@ -6,9 +6,9 @@
 /// # Examples
 ///
 /// ```rust,ignore
-/// let hash = sails_rs::hash_fn!("command" "transfer", (u32, String) -> ());
-/// let hash = sails_rs::hash_fn!(command transfer(u32, String) -> ());
-/// let hash = sails_rs::hash_fn!(query balance_of(u32) -> u128);
+/// let hash = sails::hash_fn!("command" "transfer", (u32, String) -> ());
+/// let hash = sails::hash_fn!(command transfer(u32, String) -> ());
+/// let hash = sails::hash_fn!(query balance_of(u32) -> u128);
 /// ```
 #[macro_export]
 macro_rules! hash_fn {
@@ -113,7 +113,7 @@ macro_rules! program_ctor {
 ///
 /// ```rust,ignore
 /// // Default: derives Decode + TypeInfo
-/// sails_rs::invocation_io!(
+/// sails::invocation_io!(
 ///     pub struct __FooParams {
 ///         pub(super) a: u32,
 ///         pub(super) b: String,
@@ -122,7 +122,7 @@ macro_rules! program_ctor {
 /// );
 ///
 /// // ABI-only: derives TypeInfo only (no Decode)
-/// sails_rs::invocation_io!(
+/// sails::invocation_io!(
 ///     pub struct __BarParams {
 ///         pub(super) addr: Address,
 ///     },

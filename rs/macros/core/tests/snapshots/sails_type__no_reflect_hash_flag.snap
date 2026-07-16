@@ -3,12 +3,12 @@ source: rs/macros/core/tests/sails_type.rs
 expression: result
 ---
 #[derive(
-    sails_rs::scale_codec::Encode,
-    sails_rs::scale_codec::Decode,
-    sails_rs::type_info::TypeInfo
+    sails::scale_codec::Encode,
+    sails::scale_codec::Decode,
+    sails::type_info::TypeInfo
 )]
-#[codec(crate = sails_rs::scale_codec)]
-#[type_info(crate = sails_rs::type_info)]
+#[codec(crate = sails::scale_codec)]
+#[type_info(crate = sails::type_info)]
 pub struct MyType {
     pub a: u32,
 }

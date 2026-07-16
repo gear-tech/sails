@@ -5,7 +5,7 @@ mod demo_client {
 }
 
 use demo_client::*;
-use sails_rs::{client::*, futures::StreamExt as _, gtest::System, prelude::*};
+use sails::{client::*, futures::StreamExt as _, gtest::System, prelude::*};
 use std::{
     fs,
     path::{Path, PathBuf},
@@ -54,7 +54,7 @@ fn download_demo_wasm(path: &Path) {
 
 fn create_env() -> (GtestEnv, CodeId) {
     let system = System::new();
-    system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails_rs=debug");
+    system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails=debug");
     system.mint_to(ACTOR_ID, 100_000_000_000_000);
 
     let code_id = system.submit_code_file(demo_wasm_path());

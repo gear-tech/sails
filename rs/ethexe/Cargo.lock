@@ -1675,7 +1675,7 @@ checksum = "1b241177c7107d9829286c2ffdc5eee98d992d6356f3515e7f412f988b1a72fd"
 name = "ethapp"
 version = "2.0.0"
 dependencies = [
- "sails-rs",
+ "sails",
  "tokio",
 ]
 
@@ -1684,7 +1684,7 @@ name = "ethapp-with-events"
 version = "2.0.0"
 dependencies = [
  "insta",
- "sails-rs",
+ "sails",
  "tokio",
 ]
 
@@ -3547,7 +3547,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "sails-macros-core",
- "sails-rs",
+ "sails",
  "syn 2.0.118",
  "tokio",
  "trybuild",
@@ -4696,7 +4696,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "sails-rs"
+name = "sails"
 version = "2.0.0"
 dependencies = [
  "alloy-primitives",

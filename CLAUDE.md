@@ -4,11 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What is Sails
 
-Sails is a framework for building applications on [Gear Protocol](https://gear-tech.io/) / [Vara Network](https://vara.network/). It provides procedural macros (`#[program]`, `#[service]`, `#[export]`, `#[event]`, `#[sails_type]`), IDL generation, and multi-language client generation (Rust, TypeScript, Solidity). The main crate is published as `sails-rs` on crates.io.
+Sails is a framework for building applications on [Gear Protocol](https://gear-tech.io/) / [Vara Network](https://vara.network/). It provides procedural macros (`#[program]`, `#[service]`, `#[export]`, `#[event]`, `#[sails_type]`), IDL generation, and multi-language client generation (Rust, TypeScript, Solidity). The main crate is published as `sails` on crates.io.
 
 ## Repository Layout
 
-- **`rs/`** — Core Rust crates (the `sails-rs` crate lives at `rs/` itself):
+- **`rs/`** — Core Rust crates (the `sails` crate lives at `rs/` itself):
   - `rs/macros/`, `rs/macros/core/` — Procedural macros (`#[service]`, `#[program]`, `#[export]`)
   - `rs/idl-ast/`, `rs/idl-gen/`, `rs/idl-meta/`, `rs/idl-parser/`, `rs/idl-parser-v2/` — IDL generation and parsing
   - `rs/client-gen/`, `rs/client-gen-v2/`, `rs/client-gen-js/` — Client code generation (Rust, JS)
@@ -40,7 +40,7 @@ cargo fmt --all --check
 cargo clippy --workspace --all-targets --locked -- -D warnings
 
 # Lint with ethexe feature
-cargo clippy -p sails-rs --all-targets --locked --features ethexe -- -D warnings
+cargo clippy -p sails --all-targets --locked --features ethexe -- -D warnings
 
 # Lint ethexe workspace (separate workspace)
 cargo clippy --workspace --all-targets --locked --manifest-path ./rs/ethexe/Cargo.toml -- -D warnings
@@ -133,7 +133,7 @@ All three share the same generated client code; only the environment differs.
 
 **Reply/signal handling** — `handle_reply` delegates to `gstd::handle_reply_with_hook()` when the program has async methods (`ASYNC = true`). `handle_signal` similarly delegates to `gstd::handle_signal()`. These enable the runtime to wake pending futures when replies arrive or signals fire.
 
-### Feature Flags on `sails-rs`
+### Feature Flags on `sails`
 
 - `gstd` (default) — On-chain Gear standard library
 - `gtest` — Test environment with `GtestEnv`

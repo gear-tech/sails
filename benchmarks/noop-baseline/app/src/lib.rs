@@ -1,10 +1,10 @@
 #![no_std]
 
-use sails_rs::prelude::*;
+use sails::prelude::*;
 
 struct NoopBaseline;
 
-#[sails_rs::service]
+#[sails::service]
 impl NoopBaseline {
     #[export]
     pub fn do_nothing(&mut self) {}
@@ -13,7 +13,7 @@ impl NoopBaseline {
 #[derive(Default)]
 pub struct Program;
 
-#[sails_rs::program]
+#[sails::program]
 impl Program {
     // Exposed service
     pub fn noop_baseline(&self) -> NoopBaseline {

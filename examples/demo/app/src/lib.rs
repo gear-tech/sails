@@ -2,7 +2,7 @@
 
 use core::cell::{Cell, RefCell};
 use demo_walker as walker;
-use sails_rs::prelude::*;
+use sails::prelude::*;
 
 mod chaos;
 mod counter;
@@ -144,7 +144,7 @@ impl DemoProgram {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sails_rs::gstd::services::Exposure;
+    use sails::gstd::services::Exposure;
 
     // Test program constructor and exposed service
     // Mock `Syscall` to simulate the environment

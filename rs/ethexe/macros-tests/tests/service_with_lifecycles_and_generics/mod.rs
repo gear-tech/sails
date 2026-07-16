@@ -1,5 +1,5 @@
 use core::marker::PhantomData;
-use sails_rs::prelude::*;
+use sails::prelude::*;
 
 #[derive(Default)]
 pub(super) struct MyGenericService<'a, T = String> {

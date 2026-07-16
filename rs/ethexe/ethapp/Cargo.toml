@@ -4,11 +4,11 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
-sails-rs = { workspace = true, features = ["ethexe", "gstd-panic-message"] }
+sails = { workspace = true, features = ["ethexe", "gstd-panic-message"] }
 
 [build-dependencies]
-sails-rs = { workspace = true, features = ["ethexe", "wasm-builder"] }
+sails = { workspace = true, features = ["ethexe", "wasm-builder"] }
 
 [dev-dependencies]
-sails-rs = { workspace = true, features = ["ethexe", "gtest"] }
+sails = { workspace = true, features = ["ethexe", "gtest"] }
 tokio = { workspace = true, features = ["rt", "macros"] }

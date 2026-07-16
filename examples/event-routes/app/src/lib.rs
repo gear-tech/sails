@@ -1,6 +1,6 @@
 #![no_std]
 
-use sails_rs::{gstd, prelude::*};
+use sails::{gstd, prelude::*};
 
 #[event]
 #[sails_type]

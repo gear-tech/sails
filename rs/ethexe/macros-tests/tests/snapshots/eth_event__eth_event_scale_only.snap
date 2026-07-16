@@ -8,7 +8,7 @@ pub enum Events {
     #[annotate(codec = "scale")]
     MyEvent2,
 }
-impl sails_rs::SailsEvent for Events {
+impl sails::SailsEvent for Events {
     fn encoded_event_name(&self) -> &'static [u8] {
         match self {
             Events::MyEvent1(..) => {

@@ -1,6 +1,6 @@
 #![cfg(not(feature = "ethexe"))]
 
-use sails_rs::{Decode, Encode};
+use sails::{Decode, Encode};
 
 mod sails_type_roundtrip;
 

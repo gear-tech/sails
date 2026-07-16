@@ -1,4 +1,4 @@
-use sails_rs::prelude::*;
+use sails::prelude::*;
 
 #[derive(Debug, Default)]
 pub(super) struct MyService;

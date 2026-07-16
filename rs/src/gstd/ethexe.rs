@@ -53,7 +53,7 @@ pub type EthEventExpo = (
 ///   For static types, the ABI-encoded value is left-padded with zeros to 32 bytes.
 /// - **Data:** A byte array containing the ABI-encoded non-indexed fields of the event, encoded as a tuple.
 ///
-/// This trait is intended to be used with the `#[sails_rs::event]` procedural macro, which automatically
+/// This trait is intended to be used with the `#[sails::event]` procedural macro, which automatically
 /// implements the trait for your enum-based event definitions.
 ///
 /// # Examples
@@ -61,10 +61,10 @@ pub type EthEventExpo = (
 /// Given an event definition:
 ///
 /// ```rust,ignore
-/// #[sails_rs::event]
-/// #[derive(sails_rs::Encode, sails_rs::TypeInfo)]
-/// #[codec(crate = sails_rs::scale_codec)]
-/// #[type_info(crate = sails_rs::type_info)]
+/// #[sails::event]
+/// #[derive(sails::Encode, sails::TypeInfo)]
+/// #[codec(crate = sails::scale_codec)]
+/// #[type_info(crate = sails::type_info)]
 /// pub enum Events {
 ///     MyEvent {
 ///         #[indexed]
@@ -157,7 +157,7 @@ mod tests {
     #![allow(unused_assignments)]
 
     use super::*;
-    use crate::{self as sails_rs, Encode, String, TypeInfo, event};
+    use crate::{self as sails, Encode, String, TypeInfo, event};
 
     #[allow(unused)]
     #[event]

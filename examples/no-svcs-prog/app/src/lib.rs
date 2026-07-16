@@ -3,5 +3,5 @@
 #[derive(Default)]
 pub struct Program;
 
-#[sails_rs::program]
+#[sails::program]
 impl Program {}

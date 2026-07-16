@@ -1,8 +1,8 @@
 #![cfg(not(feature = "ethexe"))]
 
-use sails_rs::gstd::services::{Exposure, ExposureWithEvents, Service};
-use sails_rs::meta::{Identifiable, InterfaceId, SailsMessageHeader};
-use sails_rs::{Decode, Encode};
+use sails::gstd::services::{Exposure, ExposureWithEvents, Service};
+use sails::meta::{Identifiable, InterfaceId, SailsMessageHeader};
+use sails::{Decode, Encode};
 
 mod gservice_with_basics;
 mod gservice_with_events;
@@ -152,7 +152,7 @@ fn gservice_with_extends_renamed() {
     use gservice_with_extends::{
         base::Base, extended_renamed::ExtendedRenamed, other_base::Base as OtherBase,
     };
-    use sails_rs::meta::ServiceMeta;
+    use sails::meta::ServiceMeta;
 
     let base_services = <ExtendedRenamed as ServiceMeta>::BASE_SERVICES;
     assert_eq!(base_services.len(), 2);
@@ -244,7 +244,7 @@ async fn gservice_panic_on_unexpected_input() {
             panic!("Should not reach here");
         })
         .await
-        .unwrap_or_else(|| sails_rs::gstd::unknown_input_panic("Unknown request", &input));
+        .unwrap_or_else(|| sails::gstd::unknown_input_panic("Unknown request", &input));
 }
 
 #[test]
@@ -275,7 +275,7 @@ fn gservice_panic_on_unexpected_input_double_encoded() {
         .try_handle(InterfaceId::zero(), 0, &input, |_, _| {
             panic!("Should not reach here");
         })
-        .unwrap_or_else(|| sails_rs::gstd::unknown_input_panic("Unknown request", &input));
+        .unwrap_or_else(|| sails::gstd::unknown_input_panic("Unknown request", &input));
 }
 
 #[test]

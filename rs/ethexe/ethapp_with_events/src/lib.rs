@@ -1,10 +1,10 @@
 #![no_std]
 #![allow(unused_assignments)]
 
-use sails_rs::prelude::*;
+use sails::prelude::*;
 
 /// Service Events
-#[sails_rs::event]
+#[sails::event]
 #[sails_type]
 #[derive(Clone, Debug, PartialEq)]
 pub enum Events {
@@ -12,14 +12,14 @@ pub enum Events {
         /// Some u32 value
         #[indexed]
         p1: u32,
-        p2: sails_rs::String,
+        p2: sails::String,
     },
 }
 
 #[derive(Default)]
 pub struct MyProgram;
 
-#[sails_rs::program]
+#[sails::program]
 impl MyProgram {
     pub fn svc1(&self) -> SomeService {
         SomeService
@@ -33,10 +33,10 @@ impl MyProgram {
 
 pub struct SomeService;
 
-#[sails_rs::service(events = Events)]
+#[sails::service(events = Events)]
 impl SomeService {
-    #[sails_rs::export]
-    pub async fn do_this(&mut self, p1: u32, p2: sails_rs::String) -> u32 {
+    #[sails::export]
+    pub async fn do_this(&mut self, p1: u32, p2: sails::String) -> u32 {
         let r1 = p1.checked_mul(2).expect("failed to multiply");
         self.emit_eth_event(Events::DoThisEvent {
             p1: r1,
@@ -46,7 +46,7 @@ impl SomeService {
         r1
     }
 
-    #[sails_rs::export]
+    #[sails::export]
     pub fn this(&self, p1: bool) -> bool {
         !p1
     }
@@ -56,10 +56,10 @@ pub struct SomeService2 {
     svc1: SomeServiceExposure<SomeService>,
 }
 
-#[sails_rs::service]
+#[sails::service]
 impl SomeService2 {
-    #[sails_rs::export]
-    pub async fn do_this(&mut self, p1: u32, p2: sails_rs::String) -> u32 {
+    #[sails::export]
+    pub async fn do_this(&mut self, p1: u32, p2: sails::String) -> u32 {
         let r1 = p1.checked_mul(2).expect("failed to multiply");
         let r2 = format!("{p2}: greetings from sails #2");
         // Emit EthEvent via Svc1 Exposure

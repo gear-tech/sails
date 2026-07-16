@@ -141,7 +141,7 @@ fn resolve_registry_path(input: &DeriveInput) -> syn::Result<TokenStream2> {
             }
         }
     }
-    for crate_name in ["sails-type-registry", "sails-rs"] {
+    for crate_name in ["sails-type-registry", "sails"] {
         if let Ok(found) = proc_macro_crate::crate_name(crate_name) {
             let ident = match found {
                 proc_macro_crate::FoundCrate::Itself => quote!(crate),
@@ -150,7 +150,7 @@ fn resolve_registry_path(input: &DeriveInput) -> syn::Result<TokenStream2> {
                     quote!(::#i)
                 }
             };
-            return Ok(if crate_name == "sails-rs" {
+            return Ok(if crate_name == "sails" {
                 quote!(#ident::type_info)
             } else {
                 ident
@@ -927,7 +927,7 @@ mod tests {
         assert_expansion(
             parse_quote! {
                 /// The Container Type
-                #[type_info(crate = sails_rs::type_info)]
+                #[type_info(crate = sails::type_info)]
                 #[annotate(attr1 = "val1", attr2)]
                 pub struct Container<T, U, const SIZE: usize>
                 where T: Clone

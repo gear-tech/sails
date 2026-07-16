@@ -2,7 +2,7 @@ use demo_client::{counter::events::*, counter::*, value_fee::*, *};
 use gear_node_wrapper::{Node, NodeInstance};
 use gsdk::{Api, SignedApi};
 use gstd::errors::{ErrorReplyReason, SimpleExecutionError};
-use sails_rs::{client::*, futures::StreamExt, prelude::*};
+use sails::{client::*, futures::StreamExt, prelude::*};
 
 #[cfg(debug_assertions)]
 pub(crate) const DEMO_WASM_PATH: &str = "../../../target/wasm32-gear/debug/demo.opt.wasm";

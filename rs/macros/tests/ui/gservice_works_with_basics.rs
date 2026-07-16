@@ -1,5 +1,5 @@
 use parity_scale_codec::Encode;
-use sails_rs::{
+use sails::{
     MessageId,
     gstd::{service, services::Service},
 };

@@ -1,5 +1,5 @@
 use gtest::{Log, Program, System};
-use sails_rs::{
+use sails::{
     Encode,
     meta::{InterfaceId, SailsMessageHeader},
 };
@@ -10,7 +10,7 @@ const ACTOR_ID: u64 = 42;
 #[tokio::test]
 async fn event_routes_work() {
     let system = System::new();
-    system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails_rs=debug");
+    system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails=debug");
     system.mint_to(ACTOR_ID, 1_000_000_000_000_000);
 
     let code_id = system.submit_code(event_routes_app::WASM_BINARY);

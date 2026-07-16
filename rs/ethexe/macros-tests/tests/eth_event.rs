@@ -85,8 +85,8 @@ fn eth_event_ethabi_only() {
         pub enum Events {
             MyEvent1 {
                 #[indexed]
-                sender: sails_rs::alloy_primitives::Address,
-                amount: sails_rs::alloy_primitives::U256,
+                sender: sails::alloy_primitives::Address,
+                amount: sails::alloy_primitives::U256,
             },
             MyEvent2,
         }

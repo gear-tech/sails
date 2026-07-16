@@ -4,7 +4,7 @@ version = "0.1.0"
 edition.workspace = true
 
 [dependencies]
-sails-rs.workspace = true
+sails.workspace = true
 
 [build-dependencies]
-sails-rs = { workspace = true, features = ["wasm-builder"] }
+sails = { workspace = true, features = ["wasm-builder"] }

@@ -29,7 +29,7 @@ pub fn sails_type(attrs: TokenStream, item: TokenStream) -> TokenStream {
 
     let sails_path: Path = sails_path_or_default(args.path);
 
-    // Detect wrong macro order: #[sails_rs::sails_type] outer, #[sails_rs::event] inner.
+    // Detect wrong macro order: #[sails::sails_type] outer, #[sails::event] inner.
     // The event macro must sort variants before derives run, so it must appear first.
     let sails_crate = sails_path.segments.first().map(|s| &s.ident);
     if let Item::Enum(item_enum) = &parsed
@@ -46,7 +46,7 @@ pub fn sails_type(attrs: TokenStream, item: TokenStream) -> TokenStream {
     {
         abort!(
             item_enum,
-            "#[sails_rs::event] must appear before #[sails_rs::sails_type], not after; \
+            "#[sails::event] must appear before #[sails::sails_type], not after; \
                  swap the attribute order to avoid a hash mismatch"
         );
     }

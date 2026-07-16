@@ -16,11 +16,11 @@ clap = { workspace = true, features = ["derive"] }
 serde = { workspace = true, features = ["derive"] }
 serde-json = { workspace = true, features = ["std"] }
 fs2.workspace = true
-sails-rs.workspace = true
+sails.workspace = true
 itertools.workspace = true
 
 [build-dependencies]
-sails-rs = { workspace = true, features = ["build"] }
+sails = { workspace = true, features = ["build"] }
 alloc-stress = { path = "alloc-stress" }
 compute-stress = { path = "compute-stress" }
 counter-bench = { path = "counter-bench" }
@@ -30,7 +30,7 @@ noop-baseline = { path = "noop-baseline" }
 
 [dev-dependencies]
 gtest.workspace = true
-sails-rs = { workspace = true, features = ["gtest"] }
+sails = { workspace = true, features = ["gtest"] }
 alloc-stress = { path = "alloc-stress" }
 compute-stress = { path = "compute-stress" }
 counter-bench = { path = "counter-bench" }

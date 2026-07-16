@@ -3,7 +3,7 @@ use inspector_client::{
     InspectorClient, InspectorClientCtors, InspectorClientProgram,
     inspector::{Inspector as _, ValidationError},
 };
-use sails_rs::{ActorId, client::*};
+use sails::{ActorId, client::*};
 
 const ACTOR_ID: u64 = 42;
 
@@ -14,7 +14,7 @@ const DEMO_WASM_PATH: &str = "../../../target/wasm32-gear/release/demo.opt.wasm"
 
 #[tokio::test]
 async fn gstd_env_test_cross_contract_panic_handling() {
-    let system = sails_rs::gtest::System::new();
+    let system = sails::gtest::System::new();
     system.init_logger();
     system.mint_to(ACTOR_ID, 100_000_000_000_000);
 
@@ -50,7 +50,7 @@ async fn gstd_env_test_cross_contract_panic_handling() {
 
 #[tokio::test]
 async fn gstd_env_test_failing_constructor_handling() {
-    let system = sails_rs::gtest::System::new();
+    let system = sails::gtest::System::new();
     system.init_logger();
     system.mint_to(ACTOR_ID, 1_000_000_000_000_000);
 
@@ -79,7 +79,7 @@ async fn gstd_env_test_failing_constructor_handling() {
 
 #[tokio::test]
 async fn test_failing_constructor_handling() {
-    let system = sails_rs::gtest::System::new();
+    let system = sails::gtest::System::new();
     system.init_logger();
     system.mint_to(ACTOR_ID, 100_000_000_000_000);
 

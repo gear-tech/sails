@@ -1,5 +1,5 @@
 use core::marker::PhantomData;
-use sails_rs::{cell::RefCell, prelude::*};
+use sails::{cell::RefCell, prelude::*};
 
 pub trait MetadataStorage {}
 

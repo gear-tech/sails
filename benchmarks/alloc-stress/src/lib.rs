@@ -1,10 +1,10 @@
 #![no_std]
 
-use sails_rs::prelude::*;
+use sails::prelude::*;
 
 struct AllocStressService;
 
-#[sails_rs::service]
+#[sails::service]
 impl AllocStressService {
     #[export]
     pub fn alloc_stress(&mut self, n: u32) -> AllocStressResult {
@@ -46,7 +46,7 @@ pub fn fibonacci_sum(n: u32) -> u32 {
 
 pub struct AllocStressProgram;
 
-#[sails_rs::program]
+#[sails::program]
 impl AllocStressProgram {
     pub fn new_for_bench() -> Self {
         Self

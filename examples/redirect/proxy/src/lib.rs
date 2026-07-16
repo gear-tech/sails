@@ -1,7 +1,7 @@
 #![no_std]
 
 use redirect_client::{redirect::Redirect as _, *};
-use sails_rs::{client::*, prelude::*};
+use sails::{client::*, prelude::*};
 
 struct ProxyService(Service<redirect_client::redirect::RedirectImpl>);
 
@@ -11,10 +11,10 @@ impl ProxyService {
     }
 }
 
-#[sails_rs::service]
+#[sails::service]
 impl ProxyService {
     /// Get program ID of the target program via client
-    #[sails_rs::export]
+    #[sails::export]
     pub async fn get_program_id(&self) -> ActorId {
         self.0
             .get_program_id()
@@ -27,7 +27,7 @@ impl ProxyService {
 
 pub struct ProxyProgram(ActorId);
 
-#[sails_rs::program]
+#[sails::program]
 impl ProxyProgram {
     /// Proxy Program's constructor
     pub fn new(target: ActorId) -> Self {

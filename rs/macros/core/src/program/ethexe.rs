@@ -5,21 +5,21 @@ use quote::quote;
 impl ProgramBuilder {
     /// Generates code
     /// ```rust
-    /// impl sails_rs::solidity::ProgramSignature for MyProgram {
-    ///     const CTORS: &'static [sails_rs::solidity::MethodExpo] = &[(
+    /// impl sails::solidity::ProgramSignature for MyProgram {
+    ///     const CTORS: &'static [sails::solidity::MethodExpo] = &[(
     ///         &[24u8, 67u8, 114u8, 101u8, 97u8, 116u8, 101u8] as &[u8],
     ///         "create",
-    ///         <<(bool) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
-    ///         <<() as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
+    ///         <<(bool) as sails::alloy_sol_types::SolValue>::SolType as sails::alloy_sol_types::SolType>::SOL_NAME,
+    ///         <<() as sails::alloy_sol_types::SolValue>::SolType as sails::alloy_sol_types::SolType>::SOL_NAME,
     ///     ),];
-    /// const SERVICES: &'static [sails_rs::solidity::ServiceExpo] = &[
+    /// const SERVICES: &'static [sails::solidity::ServiceExpo] = &[
     ///     (
     ///         "service",
     ///         &[28u8, 83u8, 101u8, 114u8, 118u8, 105u8, 99u8, 101u8] as &[u8],
-    ///         <MyService as sails_rs::solidity::ServiceSignature>::METHODS,
+    ///         <MyService as sails::solidity::ServiceSignature>::METHODS,
     ///     ),
     /// ];
-    /// const METHODS_LEN: usize = <MyService as sails_rs::solidity::ServiceSignature>::METHODS
+    /// const METHODS_LEN: usize = <MyService as sails::solidity::ServiceSignature>::METHODS
     ///     .len();
     /// }
     /// ```
