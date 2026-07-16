@@ -7,55 +7,53 @@ expression: gen_client(idl)
 #[cfg(not(target_arch = "wasm32"))]
 extern crate std;
 #[allow(unused_imports)]
-use sails_rs::{client::*, collections::*, prelude::*};
+use sails::{client::*, collections::*, prelude::*};
 
 pub mod partial_service {
     use super::*;
 
     pub trait PartialService {
-        type Env: sails_rs::client::GearEnv;
-        fn first(&mut self) -> sails_rs::client::PendingCall<io::First, Self::Env>;
-        fn second(&mut self) -> sails_rs::client::PendingCall<io::Second, Self::Env>;
+        type Env: sails::client::GearEnv;
+        fn first(&mut self) -> sails::client::PendingCall<io::First, Self::Env>;
+        fn second(&mut self) -> sails::client::PendingCall<io::Second, Self::Env>;
     }
 
     pub struct PartialServiceImpl;
 
-    impl sails_rs::client::Identifiable for PartialServiceImpl {
-        const INTERFACE_ID: sails_rs::InterfaceId =
-            sails_rs::InterfaceId::from_bytes_8([18, 52, 86, 120, 144, 171, 205, 239]);
+    impl sails::client::Identifiable for PartialServiceImpl {
+        const INTERFACE_ID: sails::InterfaceId =
+            sails::InterfaceId::from_bytes_8([18, 52, 86, 120, 144, 171, 205, 239]);
     }
 
-    impl<E: sails_rs::client::GearEnv> PartialService
-        for sails_rs::client::Service<PartialServiceImpl, E>
-    {
+    impl<E: sails::client::GearEnv> PartialService for sails::client::Service<PartialServiceImpl, E> {
         type Env = E;
-        fn first(&mut self) -> sails_rs::client::PendingCall<io::First, Self::Env> {
+        fn first(&mut self) -> sails::client::PendingCall<io::First, Self::Env> {
             self.pending_call(())
         }
-        fn second(&mut self) -> sails_rs::client::PendingCall<io::Second, Self::Env> {
+        fn second(&mut self) -> sails::client::PendingCall<io::Second, Self::Env> {
             self.pending_call(())
         }
     }
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(First () -> bool, 5, <super::PartialServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(Second () -> u32, 0, <super::PartialServiceImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails::io_struct_impl!(First () -> bool, 5, <super::PartialServiceImpl as sails::client::Identifiable>::INTERFACE_ID);
+        sails::io_struct_impl!(Second () -> u32, 0, <super::PartialServiceImpl as sails::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(feature = "with_mocks")]
     #[cfg(not(target_arch = "wasm32"))]
     pub mod mockall {
         use super::*;
-        use sails_rs::mockall::*;
+        use sails::mockall::*;
         mock! {
             pub PartialService {}
 
             #[allow(refining_impl_trait)]
             #[allow(clippy::type_complexity)]
             impl partial_service::PartialService for PartialService {
-                type Env = sails_rs::client::GstdEnv;
-                fn first (&mut self, ) -> sails_rs::client::PendingCall<partial_service::io::First, sails_rs::client::GstdEnv>;fn second (&mut self, ) -> sails_rs::client::PendingCall<partial_service::io::Second, sails_rs::client::GstdEnv>;
+                type Env = sails::client::GstdEnv;
+                fn first (&mut self, ) -> sails::client::PendingCall<partial_service::io::First, sails::client::GstdEnv>;fn second (&mut self, ) -> sails::client::PendingCall<partial_service::io::Second, sails::client::GstdEnv>;
             }
         }
     }

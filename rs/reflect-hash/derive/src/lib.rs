@@ -39,7 +39,7 @@ use syn::{
 ///
 /// The final hash is `keccak256(variant_hash_0 || variant_hash_1 || ... || variant_hash_N)`.
 /// Variants are processed in **declaration order** unless the enum also carries an `#[event]`
-/// (or `#[sails_rs::event]`) attribute, in which case variants are sorted case-insensitively by
+/// (or `#[sails::event]`) attribute, in which case variants are sorted case-insensitively by
 /// name to match IDL normalization.
 ///
 /// - **Unit variant** `Transferred` → `keccak256(b"Transferred")`

@@ -1,4 +1,4 @@
-use sails_rs::prelude::*;
+use sails::prelude::*;
 
 pub const BASE_NAME_RESULT: &str = "base-name";
 pub const HIDDEN_NAME_RESULT: &str = "base";

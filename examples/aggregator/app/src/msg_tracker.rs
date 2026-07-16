@@ -1,5 +1,5 @@
-use sails_rs::collections::BTreeMap;
-use sails_rs::prelude::*;
+use sails::collections::BTreeMap;
+use sails::prelude::*;
 
 #[sails_type]
 #[derive(Clone, PartialEq, Debug)]

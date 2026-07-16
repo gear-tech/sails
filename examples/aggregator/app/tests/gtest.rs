@@ -5,7 +5,7 @@ use demo_client::{DemoClientCtors, DemoClientProgram};
 use redirect_client::{
     RedirectClient, RedirectClientCtors, RedirectClientProgram, redirect::Redirect as _,
 };
-use sails_rs::{ActorId, client::*};
+use sails::{ActorId, client::*};
 
 const ACTOR_ID: u64 = 42;
 
@@ -15,7 +15,7 @@ const DEMO_WASM_PATH: &str = "../../../target/wasm32-gear/debug/demo.opt.wasm";
 const DEMO_WASM_PATH: &str = "../../../target/wasm32-gear/release/demo.opt.wasm";
 
 async fn setup() -> (GtestEnv, ActorId, ActorId) {
-    let system = sails_rs::gtest::System::new();
+    let system = sails::gtest::System::new();
     system.init_logger();
     system.mint_to(ACTOR_ID, 100_000_000_000_000);
 

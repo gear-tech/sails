@@ -1,4 +1,4 @@
-use sails_rs::{cell::RefCell, prelude::*};
+use sails::{cell::RefCell, prelude::*};
 
 #[derive(Default)]
 pub struct ValidatorData {

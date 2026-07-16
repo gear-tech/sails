@@ -75,12 +75,12 @@ sails-macros-core = { path = "rs/macros/core" }
 sails-macros = { path = "rs/macros" }
 sails-reflect-hash-derive = { path = "rs/reflect-hash/derive" }
 sails-reflect-hash = { path = "rs/reflect-hash" }
-sails-rs = { path = "rs" }
+sails = { path = "rs" }
 sails-sol-gen = { path = "rs/sol-gen", default-features = false }
 sails-type-registry = { path = "rs/type-registry" }
 sails-type-registry-derive = { path = "rs/type-registry/derive" }
-# Renamed sails-rs for `proxy` demo
-sails-rename = { package = "sails-rs", path = "rs" }
+# Renamed sails for `proxy` demo
+sails-rename = { package = "sails", path = "rs" }
 
 # Gear deps
 gsdk = "=2.0.0"

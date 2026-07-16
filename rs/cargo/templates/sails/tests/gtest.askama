@@ -3,9 +3,9 @@ use ::{{ client_crate_name }}::{
     {{ client_program_name }}Ctors as _,
     {{ service_name_snake }}::*,
 };
-use sails_rs::prelude::futures::StreamExt as _;
+use sails::prelude::futures::StreamExt as _;
 #[allow(unused_imports)]
-use sails_rs::{client::*, gtest::*, prelude::*};
+use sails::{client::*, gtest::*, prelude::*};
 
 #[tokio::test]
 async fn do_something_works() {

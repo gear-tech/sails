@@ -9,9 +9,9 @@ use proc_macro_error::proc_macro_error;
 /// for details.
 ///
 /// The macro can be customized with the following arguments:
-/// - `crate` - specifies path to the `sails-rs` crate allowing the latter
+/// - `crate` - specifies path to the `sails` crate allowing the latter
 ///             to be imported with a different name, for example, when the
-///             `sails-rs` create is re-exported from another crate.
+///             `sails` create is re-exported from another crate.
 /// - `events` - specifies a Rust enum type denoting events that the service can emit.
 ///              See [documentation](https://github.com/gear-tech/sails?tab=readme-ov-file#events)
 ///              for details.
@@ -23,11 +23,11 @@ use proc_macro_error::proc_macro_error;
 ///
 /// ```rust
 /// mod my_service {
-///     use sails_rs::{export, service, prelude::*};
+///     use sails::{export, service, prelude::*};
 ///
 ///     #[event]
 ///     #[derive(parity_scale_codec::Encode, type_info::TypeInfo, ReflectHash)]
-///     #[reflect_hash(crate = sails_rs)]
+///     #[reflect_hash(crate = sails)]
 ///     pub enum MyServiceEvents {
 ///         SomethingDone,
 ///     }
@@ -61,9 +61,9 @@ pub fn service(args: TokenStream, impl_tokens: TokenStream) -> TokenStream {
 /// for details.
 ///
 /// The macro can be customized with the following arguments:
-/// - `crate` - specifies path to the `sails-rs` crate allowing the latter
+/// - `crate` - specifies path to the `sails` crate allowing the latter
 ///             to be imported with a different name, for example, when the
-///             `sails-rs` create is re-exported from another crate.
+///             `sails` create is re-exported from another crate.
 /// - `handle_signal` - specifies a path to a function that will be called
 ///                     after standard signal handling provided by the `gstd` crate.
 /// - `payable` - specifies that the program can accept transfers of value.
@@ -76,7 +76,7 @@ pub fn service(args: TokenStream, impl_tokens: TokenStream) -> TokenStream {
 ///
 /// ```rust
 /// mod my_program {
-///     use sails_rs::program;
+///     use sails::program;
 ///
 ///     pub struct MyProgram;
 ///
@@ -122,7 +122,7 @@ pub fn program(args: TokenStream, impl_tokens: TokenStream) -> TokenStream {
 ///
 /// ```rust
 /// mod my_service {
-///    use sails_rs::{export, service};
+///    use sails::{export, service};
 ///
 ///    struct MyService;
 ///
@@ -156,7 +156,7 @@ pub fn export(args: TokenStream, impl_item_fn_tokens: TokenStream) -> TokenStrea
 ///   For static types, the ABI-encoded value is left-padded with zeros to 32 bytes.
 /// - **Data:** A byte array containing the ABI-encoded non-indexed fields of the event, encoded as a tuple.
 ///
-/// This is intended to be used with the `#[sails_rs::event]` procedural macro, which automatically
+/// This is intended to be used with the `#[sails::event]` procedural macro, which automatically
 /// implements the trait for your enum-based event definitions.
 ///
 ///
@@ -167,7 +167,7 @@ pub fn export(args: TokenStream, impl_item_fn_tokens: TokenStream) -> TokenStrea
 /// - `ethabi` — implement only `EthEvent` (Ethereum ABI transport, requires `ethexe` feature).
 ///   The Solidity generator will include this event; the Rust and JS client generators will exclude it.
 /// - `scale, ethabi` — implement both traits explicitly (same as the default when both flags are omitted).
-/// - `crate = <path>` — override the path to the `sails-rs` crate (defaults to `sails_rs`).
+/// - `crate = <path>` — override the path to the `sails` crate (defaults to `sails`).
 ///
 /// When only one transport flag is given, every variant in the IDL receives a `@codec: scale` or
 /// `@codec: ethabi` annotation so downstream generators can filter accordingly.
@@ -180,12 +180,12 @@ pub fn export(args: TokenStream, impl_item_fn_tokens: TokenStream) -> TokenStrea
 /// `TypeInfo` and `ReflectHash` manually:
 ///
 /// ```rust,ignore
-/// #[sails_rs::event(ethabi)]
-/// #[derive(sails_rs::type_info::TypeInfo, sails_rs::ReflectHash)]
-/// #[type_info(crate = sails_rs::type_info)]
-/// #[reflect_hash(crate = sails_rs)]
+/// #[sails::event(ethabi)]
+/// #[derive(sails::type_info::TypeInfo, sails::ReflectHash)]
+/// #[type_info(crate = sails::type_info)]
+/// #[reflect_hash(crate = sails)]
 /// pub enum Events {
-///     Something(sails_rs::alloy_primitives::Address),
+///     Something(sails::alloy_primitives::Address),
 /// }
 /// ```
 ///
@@ -194,10 +194,10 @@ pub fn export(args: TokenStream, impl_item_fn_tokens: TokenStream) -> TokenStrea
 /// Given an event definition:
 ///
 /// ```rust,ignore
-/// #[sails_rs::event]
-/// #[derive(sails_rs::Encode, sails_rs::TypeInfo)]
-/// #[codec(crate = sails_rs::scale_codec)]
-/// #[type_info(crate = sails_rs::type_info)]
+/// #[sails::event]
+/// #[derive(sails::Encode, sails::TypeInfo)]
+/// #[codec(crate = sails::scale_codec)]
+/// #[type_info(crate = sails::type_info)]
 /// pub enum Events {
 ///     MyEvent {
 ///         #[indexed]
@@ -236,12 +236,12 @@ pub fn event(args: TokenStream, input: TokenStream) -> TokenStream {
 
 /// Derives the canonical Sails type bundle: `Encode`, `Decode`, `TypeInfo`,
 /// and `ReflectHash`, together with their `crate =` helper attributes routed
-/// to the `sails_rs` re-exports.
+/// to the `sails` re-exports.
 ///
 /// # Arguments
 ///
-/// - `crate = <path>` — override the path to the `sails-rs` crate (defaults to
-///   `sails_rs`). Useful when `sails-rs` is re-exported from a parent crate.
+/// - `crate = <path>` — override the path to the `sails` crate (defaults to
+///   `sails`). Useful when `sails` is re-exported from a parent crate.
 /// - `no_reflect_hash` — omit `ReflectHash` from the derive list and drop the
 ///   `reflect_hash` helper attribute. Exists specifically for the IDL v1
 ///   client generator, which predates `ReflectHash`.
@@ -249,7 +249,7 @@ pub fn event(args: TokenStream, input: TokenStream) -> TokenStream {
 /// # Examples
 ///
 /// ```rust,ignore
-/// use sails_rs::sails_type;
+/// use sails::sails_type;
 ///
 /// #[sails_type]
 /// #[derive(PartialEq, Clone, Debug)]
@@ -270,8 +270,8 @@ pub fn event(args: TokenStream, input: TokenStream) -> TokenStream {
 /// When applied to an event enum, `#[event]` **must** appear _before_ `#[sails_type]`:
 ///
 /// ```rust,ignore
-/// #[sails_rs::event]  // correct: sorts variants first
-/// #[sails_rs::sails_type]
+/// #[sails::event]  // correct: sorts variants first
+/// #[sails::sails_type]
 /// pub enum MyEvents { Transferred, Approved }
 /// ```
 ///

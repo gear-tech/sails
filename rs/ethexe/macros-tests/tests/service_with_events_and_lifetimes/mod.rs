@@ -1,5 +1,5 @@
 use core::marker::PhantomData;
-use sails_rs::prelude::*;
+use sails::prelude::*;
 
 #[derive(Default)]
 pub(super) struct MyGenericEventsService<'l, T = String> {
@@ -9,8 +9,8 @@ pub(super) struct MyGenericEventsService<'l, T = String> {
 
 #[event]
 #[derive(TypeInfo, Encode, Clone, Debug, PartialEq, ReflectHash)]
-#[codec(crate = sails_rs::scale_codec)]
-#[reflect_hash(crate = sails_rs)]
+#[codec(crate = sails::scale_codec)]
+#[reflect_hash(crate = sails)]
 pub enum MyEvents {
     Event1,
 }

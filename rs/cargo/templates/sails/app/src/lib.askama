@@ -1,7 +1,7 @@
 #![no_std]
 
 use core::cell::RefCell;
-use sails_rs::prelude::*;
+use sails::prelude::*;
 
 /// Maximum number of call records retained in history.
 ///
@@ -12,10 +12,10 @@ const MAX_HISTORY: usize = 16;
 
 /// A record of a single call into the service.
 ///
-/// `#[sails_rs::sails_type]` derives `Encode`, `Decode`, `TypeInfo`, and
+/// `#[sails::sails_type]` derives `Encode`, `Decode`, `TypeInfo`, and
 /// `ReflectHash` with the right crate paths — required for any custom type
 /// that crosses a service boundary (parameter, return value, or state).
-#[sails_rs::sails_type]
+#[sails::sails_type]
 #[derive(Clone, Debug, PartialEq)]
 pub struct CallRecord {
     pub caller: {% if eth %}Address{% else %}ActorId{% endif %},
@@ -29,8 +29,8 @@ pub struct {{ service_name }}State {
 }
 
 /// Events emitted by the `{{ service_name }}` service.
-#[sails_rs::event]
-#[sails_rs::sails_type]
+#[sails::event]
+#[sails::sails_type]
 pub enum {{ service_name }}Events {
     CalledBy { caller: {% if eth %}Address{% else %}ActorId{% endif %} },
 }
@@ -45,7 +45,7 @@ impl<S: StateMut<Item = {{ service_name }}State, Error = Infallible>> {{ service
     }
 }
 
-#[sails_rs::service(events = {{ service_name }}Events)]
+#[sails::service(events = {{ service_name }}Events)]
 impl<S: StateMut<Item = {{ service_name }}State, Error = Infallible>> {{ service_name }}<S> {
     // Service's method (command)
     #[export]
@@ -66,7 +66,7 @@ impl<S: StateMut<Item = {{ service_name }}State, Error = Infallible>> {{ service
 
     // Query returning a custom-DTO collection. Service methods hash every
     // parameter and return type via `ReflectHash`, so `CallRecord` must derive
-    // it — which `#[sails_rs::sails_type]` handles for us.
+    // it — which `#[sails::sails_type]` handles for us.
 {%- if eth %}
     // Expose this query only over SCALE because custom Rust DTOs
     // do not automatically implement Ethereum ABI encoding.
@@ -82,7 +82,7 @@ pub struct {{ program_struct_name }} {
     {{ service_name_snake }}_state: RefCell<{{ service_name }}State>,
 }
 
-#[sails_rs::program]
+#[sails::program]
 impl {{ program_struct_name }} {
     // Program's constructor
     pub fn create() -> Self {
@@ -98,7 +98,7 @@ impl {{ program_struct_name }} {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sails_rs::gstd::services::Service as _;
+    use sails::gstd::services::Service as _;
 
     #[test]
     fn service_returns_empty_history() {

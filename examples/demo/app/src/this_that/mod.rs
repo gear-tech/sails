@@ -1,4 +1,4 @@
-use sails_rs::{gstd::debug, prelude::*};
+use sails::{gstd::debug, prelude::*};
 
 #[derive(Default)]
 pub struct MyService(());

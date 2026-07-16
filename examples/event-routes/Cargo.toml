@@ -6,5 +6,5 @@ edition.workspace = true
 [dev-dependencies]
 gtest.workspace = true
 event-routes-app = { path = "app" }
-sails-rs = { workspace = true, features = ["gtest", "gsdk"] }
+sails = { workspace = true, features = ["gtest", "gsdk"] }
 tokio = { workspace = true, features = ["rt", "macros"] }

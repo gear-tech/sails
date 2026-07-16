@@ -44,7 +44,7 @@ enum SailsCommands {
         /// Set the GitHub username for the package repository URL, defaults to "gear-tech"
         #[arg(long)]
         username: Option<String>,
-        /// Local path to `sails-rs` crate
+        /// Local path to `sails` crate
         #[arg(long, value_hint = clap::ValueHint::DirPath)]
         sails_path: Option<PathBuf>,
         /// Run without accessing the network
@@ -67,7 +67,7 @@ enum SailsCommands {
         /// Generate module with mocks with specified feature name
         #[arg(long)]
         mocks: Option<String>,
-        /// Custom path to the sails-rs crate
+        /// Custom path to the sails crate
         #[arg(long)]
         sails_crate: Option<String>,
         /// Map type from IDL to crate path, separated by `=`, example `-T Part=crate::parts::Part`
@@ -202,7 +202,7 @@ fn format_client_rs_config(
         source = "source:",
         output = "output:",
         version_label = "version:",
-        sails_label = "sails-rs:",
+        sails_label = "sails:",
         ext_label = "ext types:",
     )
 }

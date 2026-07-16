@@ -7,7 +7,7 @@ import { ProjectBuilder } from '../cli/src/generate/index.js';
 const USE_LOCAL_BUILD = process.env.USE_LOCAL_BUILD === 'true';
 
 async function downloadAndWriteFile(fileName: string, writeTo: string) {
-  const link = `https://github.com/gear-tech/sails/releases/download/rs%2Fv${config['sails-rs']}/${fileName}`;
+  const link = `https://github.com/gear-tech/sails/releases/download/rs%2Fv${config['sails']}/${fileName}`;
   const res = await fetch(link);
 
   if (!res.ok) {

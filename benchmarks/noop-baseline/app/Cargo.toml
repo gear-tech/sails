@@ -9,7 +9,7 @@ repository.workspace = true
 license.workspace = true
 
 [dependencies]
-sails-rs.workspace = true
+sails.workspace = true
 
 [dev-dependencies]
-sails-rs = { workspace = true, features = ["std"] }
+sails = { workspace = true, features = ["std"] }

@@ -8,7 +8,7 @@ use rmrk_resource_app::services::{
     errors::{Error as ResourceStorageError, Result as ResourceStorageResult},
     resources::{ComposedResource, PartId, Resource, ResourceId},
 };
-use sails_rs::{
+use sails::{
     ActorId, Decode, Encode,
     client::{Program as _, *},
     collections::BTreeMap,
@@ -284,7 +284,7 @@ struct SystemFixture {
 impl SystemFixture {
     fn new() -> Self {
         let system = System::new();
-        system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails_rs=debug");
+        system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails=debug");
         system.mint_to(ADMIN_ID, 1_000_000_000_000_000);
         system.mint_to(NON_ADMIN_ID, 1_000_000_000_000_000);
 

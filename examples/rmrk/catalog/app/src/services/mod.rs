@@ -1,6 +1,6 @@
 use errors::Error;
 use parts::{CollectionId, Part, PartId, SlotPart};
-use sails_rs::{
+use sails::{
     Result as RtlResult,
     collections::{BTreeMap, BTreeSet},
     gstd::{Syscall, service},

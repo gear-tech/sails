@@ -1,6 +1,6 @@
-use sails_rs::prelude::*;
+use sails::prelude::*;
 
-pub type Result<T, E = Error> = sails_rs::Result<T, E>;
+pub type Result<T, E = Error> = sails::Result<T, E>;
 
 #[sails_type]
 #[derive(Debug)]

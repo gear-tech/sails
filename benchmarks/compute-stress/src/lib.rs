@@ -1,10 +1,10 @@
 #![no_std]
 
-use sails_rs::prelude::*;
+use sails::prelude::*;
 
 struct ComputeStressService;
 
-#[sails_rs::service]
+#[sails::service]
 impl ComputeStressService {
     #[export]
     pub fn compute_stress(&mut self, n: u32) -> ComputeStressResult {
@@ -37,7 +37,7 @@ pub struct ComputeStressResult {
 
 pub struct ComputeStressProgram;
 
-#[sails_rs::program]
+#[sails::program]
 impl ComputeStressProgram {
     pub fn new_for_bench() -> Self {
         Self

@@ -1,6 +1,6 @@
 use redirect_client::{redirect::Redirect as _, *};
 use redirect_proxy_client::{proxy::Proxy as _, *};
-use sails_rs::{CodeId, GasUnit, client::*};
+use sails::{CodeId, GasUnit, client::*};
 
 const ACTOR_ID: u64 = 42;
 
@@ -47,10 +47,10 @@ async fn redirect_on_exit_works() {
 }
 
 fn create_env() -> (GtestEnv, CodeId, CodeId, GasUnit) {
-    use sails_rs::gtest::{System, constants::MAX_USER_GAS_LIMIT};
+    use sails::gtest::{System, constants::MAX_USER_GAS_LIMIT};
 
     let system = System::new();
-    system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails_rs=debug,redirect=debug");
+    system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails=debug,redirect=debug");
     system.mint_to(ACTOR_ID, 100_000_000_000_000);
     // Submit program code into the system
     let program_code_id = system.submit_code(redirect_app::WASM_BINARY);

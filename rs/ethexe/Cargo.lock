@@ -1675,7 +1675,7 @@ checksum = "1b241177c7107d9829286c2ffdc5eee98d992d6356f3515e7f412f988b1a72fd"
 name = "ethapp"
 version = "2.0.0"
 dependencies = [
- "sails-rs",
+ "sails",
  "tokio",
 ]
 
@@ -1684,7 +1684,7 @@ name = "ethapp-with-events"
 version = "2.0.0"
 dependencies = [
  "insta",
- "sails-rs",
+ "sails",
  "tokio",
 ]
 
@@ -3546,8 +3546,8 @@ dependencies = [
  "prettyplease",
  "proc-macro2",
  "quote",
+ "sails",
  "sails-macros-core",
- "sails-rs",
  "syn 2.0.118",
  "tokio",
  "trybuild",
@@ -4623,6 +4623,38 @@ dependencies = [
 ]
 
 [[package]]
+name = "sails"
+version = "2.0.0"
+dependencies = [
+ "alloy-primitives",
+ "alloy-sol-types",
+ "futures",
+ "gcore",
+ "gear-core",
+ "gear-core-errors",
+ "gear-wasm-builder",
+ "gprimitives",
+ "gstd",
+ "gsys",
+ "gtest",
+ "hashbrown 0.17.1",
+ "hex",
+ "keccak-const",
+ "log",
+ "parity-scale-codec",
+ "paste",
+ "pin-project-lite",
+ "sails-idl-gen",
+ "sails-idl-meta",
+ "sails-macros",
+ "sails-reflect-hash",
+ "sails-type-registry",
+ "spin 0.12.1",
+ "thiserror 2.0.18",
+ "tokio-stream",
+]
+
+[[package]]
 name = "sails-idl-ast"
 version = "2.0.0"
 dependencies = [
@@ -4693,38 +4725,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.118",
-]
-
-[[package]]
-name = "sails-rs"
-version = "2.0.0"
-dependencies = [
- "alloy-primitives",
- "alloy-sol-types",
- "futures",
- "gcore",
- "gear-core",
- "gear-core-errors",
- "gear-wasm-builder",
- "gprimitives",
- "gstd",
- "gsys",
- "gtest",
- "hashbrown 0.17.1",
- "hex",
- "keccak-const",
- "log",
- "parity-scale-codec",
- "paste",
- "pin-project-lite",
- "sails-idl-gen",
- "sails-idl-meta",
- "sails-macros",
- "sails-reflect-hash",
- "sails-type-registry",
- "spin 0.12.1",
- "thiserror 2.0.18",
- "tokio-stream",
 ]
 
 [[package]]

@@ -1,4 +1,4 @@
-error: #[sails_rs::event] must appear before #[sails_rs::sails_type], not after; swap the attribute order to avoid a hash mismatch
+error: #[sails::event] must appear before #[sails::sails_type], not after; swap the attribute order to avoid a hash mismatch
  --> tests/ui/sails_type_fails_event_wrong_order.rs:4:1
   |
 4 | / #[event]

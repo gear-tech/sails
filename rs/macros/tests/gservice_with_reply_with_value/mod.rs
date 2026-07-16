@@ -1,5 +1,5 @@
-use sails_rs::prelude::*;
-use sails_rs::{CommandReply, Encode};
+use sails::prelude::*;
+use sails::{CommandReply, Encode};
 
 pub(super) struct MyServiceWithReplyWithValue;
 

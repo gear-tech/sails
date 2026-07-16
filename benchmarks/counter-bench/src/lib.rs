@@ -1,12 +1,12 @@
 #![no_std]
 
-use sails_rs::prelude::*;
+use sails::prelude::*;
 
 static mut COUNTER: u64 = 0;
 
 pub struct CounterBenchService;
 
-#[sails_rs::service]
+#[sails::service]
 impl CounterBenchService {
     #[export]
     pub fn inc(&mut self) -> u64 {
@@ -31,7 +31,7 @@ impl CounterBenchService {
 
 pub struct CounterBenchProgram;
 
-#[sails_rs::program]
+#[sails::program]
 impl CounterBenchProgram {
     pub fn new_for_bench() -> Self {
         Self

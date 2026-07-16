@@ -4,7 +4,7 @@ use demo_client::{DemoClient, DemoClientProgram, chaos::Chaos, counter::Counter}
 use futures::{FutureExt, future};
 use msg_tracker::{MsgTracker, OpStatus};
 use redirect_client::{redirect::Redirect as _, *};
-use sails_rs::{cell::RefCell, client::*, gstd::msg, prelude::*};
+use sails::{cell::RefCell, client::*, gstd::msg, prelude::*};
 
 pub mod msg_tracker;
 
@@ -31,7 +31,7 @@ impl AggregatorService {
     }
 }
 
-#[sails_rs::service]
+#[sails::service]
 impl AggregatorService {
     #[export]
     pub async fn fetch_value(&self) -> Result<u32, String> {
@@ -70,7 +70,7 @@ impl AggregatorService {
             .send_for_reply()
             .map_err(|e| e.to_string())?;
         if use_fallback {
-            let fallback = future::ready(Ok::<u32, sails_rs::errors::Error>(999));
+            let fallback = future::ready(Ok::<u32, sails::errors::Error>(999));
             match future::select(call, fallback.boxed()).await {
                 future::Either::Left((res, _)) => res.map_err(|e| e.to_string()),
                 future::Either::Right((res, _)) => res.map_err(|e| e.to_string()),
@@ -206,7 +206,7 @@ pub struct AggregatorProgram {
     target: ActorId,
 }
 
-#[sails_rs::program]
+#[sails::program]
 impl AggregatorProgram {
     pub fn new(target: ActorId) -> Self {
         unsafe {

@@ -19,10 +19,10 @@ proc-macro-error.workspace = true
 [dev-dependencies]
 parity-scale-codec = { workspace = true, features = ["derive"] }
 # use relative path for the publish workflow
-sails-rs = { path = "..", features = ["std"] }
+sails = { path = "..", features = ["std"] }
 sails-type-registry = { workspace = true, features = ["derive"] }
 tokio = { workspace = true, features = ["full"] }
 trybuild.workspace = true
 
 [features]
-ethexe = ["sails-macros-core/ethexe", "sails-rs/ethexe"]
+ethexe = ["sails-macros-core/ethexe", "sails/ethexe"]

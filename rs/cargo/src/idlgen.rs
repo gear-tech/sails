@@ -48,14 +48,14 @@ impl CrateIdlGenerator {
             .manifest_path(&self.manifest_path)
             .exec()?;
 
-        // find `sails-rs` packages (any version )
+        // find `sails` packages (any version )
         let sails_packages = metadata
             .packages
             .iter()
-            .filter(|&p| p.name == "sails-rs")
+            .filter(|&p| p.name == "sails")
             .collect::<Vec<_>>();
         if sails_packages.is_empty() {
-            bail!("`sails-rs` package not found");
+            bail!("`sails` package not found");
         }
 
         let target_dir = self
@@ -119,26 +119,23 @@ impl<'a> PackageIdlGenerator<'a> {
     }
 
     fn try_generate_for_package(&self, program_struct_path: &str) -> anyhow::Result<Utf8PathBuf> {
-        // find `sails-rs` dependency kind `Normal`
+        // find `sails` dependency kind `Normal`
         let sails_dep = self
             .program_package
             .dependencies
             .iter()
-            .find(|p| p.name == "sails-rs" && p.kind == DependencyKind::Normal)
-            .context("failed to find `sails-rs` dependency")?;
+            .find(|p| p.name == "sails" && p.kind == DependencyKind::Normal)
+            .context("failed to find `sails` dependency")?;
         // collect features, e.g. ["ethexe"]
         let sails_features = &sails_dep.features;
-        println!(
-            "...found `sails-rs` dep with features: {:?}",
-            sails_features
-        );
-        // find `sails-rs` package matches dep version
+        println!("...found `sails` dep with features: {:?}", sails_features);
+        // find `sails` package matches dep version
         let sails_package = self
             .sails_packages
             .iter()
             .find(|p| sails_dep.req == VersionReq::STAR || sails_dep.req.matches(&p.version))
             .context(format!(
-                "failed to find `sails-rs` package with matching version {}",
+                "failed to find `sails` package with matching version {}",
                 sails_dep.req
             ))?;
 
@@ -250,18 +247,18 @@ fn get_program_struct_path_from_doc(
     let json_string = std::fs::read_to_string(docs_path)?;
     let doc_crate: rustdoc_types::Crate = serde_json::from_str(&json_string)?;
 
-    // find `sails_rs::meta::ProgramMeta` path id
+    // find `sails::meta::ProgramMeta` path id
     let program_meta_id = doc_crate
         .paths
         .iter()
         .find_map(|(id, summary)| (summary.path == META_PATH).then_some(id))
-        .context("failed to find `sails_rs::meta::ProgramMeta` definition in dependencies")?;
-    // find struct implementing `sails_rs::meta::ProgramMeta`
+        .context("failed to find `sails::meta::ProgramMeta` definition in dependencies")?;
+    // find struct implementing `sails::meta::ProgramMeta`
     let program_struct_path = doc_crate
         .index
         .values()
         .find_map(|idx| try_get_trait_implementation_path(idx, program_meta_id))
-        .context("failed to find `sails_rs::meta::ProgramMeta` implementation")?;
+        .context("failed to find `sails::meta::ProgramMeta` implementation")?;
     let program_struct = doc_crate
         .paths
         .get(&program_struct_path.id)
@@ -398,7 +395,7 @@ fn gen_main_rs(
     format!(
         "
 fn main() {{
-    sails_rs::generate_idl_to_file::<{}>(
+    sails::generate_idl_to_file::<{}>(
         Some(r\"{}\"),
         std::path::PathBuf::from(r\"{}\")
     )

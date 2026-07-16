@@ -75,7 +75,7 @@ dependencies = [
  "futures",
  "redirect-app",
  "redirect-client",
- "sails-rs",
+ "sails",
  "tokio",
 ]
 
@@ -84,7 +84,7 @@ name = "aggregator-client"
 version = "2.0.0"
 dependencies = [
  "aggregator-app",
- "sails-rs",
+ "sails",
 ]
 
 [[package]]
@@ -113,7 +113,7 @@ dependencies = [
 name = "alloc-stress"
 version = "2.0.0"
 dependencies = [
- "sails-rs",
+ "sails",
 ]
 
 [[package]]
@@ -775,8 +775,8 @@ dependencies = [
  "redirect-client",
  "redirect-proxy",
  "redirect-proxy-client",
+ "sails",
  "sails-client-gen-v2",
- "sails-rs",
  "serde",
  "serde_json",
  "tempfile",
@@ -1300,7 +1300,7 @@ checksum = "2382f75942f4b3be3690fe4f86365e9c853c1587d6ee58212cebf6e2a9ccd101"
 name = "compute-stress"
 version = "2.0.0"
 dependencies = [
- "sails-rs",
+ "sails",
 ]
 
 [[package]]
@@ -1451,7 +1451,7 @@ dependencies = [
 name = "counter-bench"
 version = "2.0.0"
 dependencies = [
- "sails-rs",
+ "sails",
 ]
 
 [[package]]
@@ -1831,7 +1831,7 @@ dependencies = [
  "gsdk",
  "gstd",
  "gtest",
- "sails-rs",
+ "sails",
  "tokio",
 ]
 
@@ -1841,14 +1841,14 @@ version = "0.1.0"
 dependencies = [
  "demo",
  "mockall",
- "sails-rs",
+ "sails",
 ]
 
 [[package]]
 name = "demo-walker"
 version = "0.1.0"
 dependencies = [
- "sails-rs",
+ "sails",
 ]
 
 [[package]]
@@ -2354,7 +2354,7 @@ version = "0.1.0"
 dependencies = [
  "event-routes-app",
  "gtest",
- "sails-rs",
+ "sails",
  "tokio",
 ]
 
@@ -2362,7 +2362,7 @@ dependencies = [
 name = "event-routes-app"
 version = "0.1.0"
 dependencies = [
- "sails-rs",
+ "sails",
 ]
 
 [[package]]
@@ -4136,7 +4136,7 @@ dependencies = [
  "demo",
  "demo-client",
  "inspector-client",
- "sails-rs",
+ "sails",
  "tokio",
 ]
 
@@ -4145,7 +4145,7 @@ name = "inspector-client"
 version = "2.0.0"
 dependencies = [
  "inspector-app",
- "sails-rs",
+ "sails",
 ]
 
 [[package]]
@@ -4977,7 +4977,7 @@ name = "no-svcs-prog"
 version = "0.1.0"
 dependencies = [
  "no-svcs-prog-app",
- "sails-rs",
+ "sails",
  "tokio",
 ]
 
@@ -4985,7 +4985,7 @@ dependencies = [
 name = "no-svcs-prog-app"
 version = "0.1.0"
 dependencies = [
- "sails-rs",
+ "sails",
 ]
 
 [[package]]
@@ -5020,14 +5020,14 @@ name = "noop-baseline"
 version = "2.0.0"
 dependencies = [
  "noop-baseline-app",
- "sails-rs",
+ "sails",
 ]
 
 [[package]]
 name = "noop-baseline-app"
 version = "2.0.0"
 dependencies = [
- "sails-rs",
+ "sails",
 ]
 
 [[package]]
@@ -5035,7 +5035,7 @@ name = "noop-baseline-client"
 version = "2.0.0"
 dependencies = [
  "noop-baseline-app",
- "sails-rs",
+ "sails",
 ]
 
 [[package]]
@@ -5311,7 +5311,7 @@ name = "partial-idl-app"
 version = "0.1.0"
 dependencies = [
  "partial-idl-client",
- "sails-rs",
+ "sails",
  "tokio",
 ]
 
@@ -5320,7 +5320,7 @@ name = "partial-idl-client"
 version = "0.1.0"
 dependencies = [
  "partial-idl-app",
- "sails-rs",
+ "sails",
 ]
 
 [[package]]
@@ -5475,7 +5475,7 @@ checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 name = "ping-pong-bench-app"
 version = "2.0.0"
 dependencies = [
- "sails-rs",
+ "sails",
 ]
 
 [[package]]
@@ -5491,7 +5491,7 @@ dependencies = [
 name = "ping-pong-stack"
 version = "0.1.0"
 dependencies = [
- "sails-rs",
+ "sails",
  "tokio",
 ]
 
@@ -5792,7 +5792,7 @@ name = "proxy"
 version = "0.1.0"
 dependencies = [
  "demo-client",
- "sails-rs",
+ "sails",
  "tokio",
 ]
 
@@ -5960,7 +5960,7 @@ dependencies = [
  "redirect-client",
  "redirect-proxy",
  "redirect-proxy-client",
- "sails-rs",
+ "sails",
  "tokio",
 ]
 
@@ -5968,7 +5968,7 @@ dependencies = [
 name = "redirect-app"
 version = "0.1.0"
 dependencies = [
- "sails-rs",
+ "sails",
 ]
 
 [[package]]
@@ -5976,7 +5976,7 @@ name = "redirect-client"
 version = "0.1.0"
 dependencies = [
  "redirect-app",
- "sails-rs",
+ "sails",
 ]
 
 [[package]]
@@ -5984,7 +5984,7 @@ name = "redirect-proxy"
 version = "0.1.0"
 dependencies = [
  "redirect-client",
- "sails-rs",
+ "sails",
 ]
 
 [[package]]
@@ -5992,7 +5992,7 @@ name = "redirect-proxy-client"
 version = "0.1.0"
 dependencies = [
  "redirect-proxy",
- "sails-rs",
+ "sails",
 ]
 
 [[package]]
@@ -6140,14 +6140,14 @@ name = "rmrk-catalog"
 version = "0.1.0"
 dependencies = [
  "rmrk-catalog-app",
- "sails-rs",
+ "sails",
 ]
 
 [[package]]
 name = "rmrk-catalog-app"
 version = "0.1.0"
 dependencies = [
- "sails-rs",
+ "sails",
 ]
 
 [[package]]
@@ -6157,7 +6157,7 @@ dependencies = [
  "gtest",
  "rmrk-catalog",
  "rmrk-resource-app",
- "sails-rs",
+ "sails",
  "tokio",
 ]
 
@@ -6169,7 +6169,7 @@ dependencies = [
  "mockall",
  "rmrk-catalog-app",
  "rmrk-resource-app",
- "sails-rs",
+ "sails",
  "tokio",
 ]
 
@@ -6367,6 +6367,44 @@ dependencies = [
 ]
 
 [[package]]
+name = "sails"
+version = "2.0.0"
+dependencies = [
+ "alloy-primitives",
+ "alloy-sol-types",
+ "convert_case 0.11.0",
+ "futures",
+ "gcore",
+ "gear-core",
+ "gear-core-errors",
+ "gear-wasm-builder",
+ "gprimitives",
+ "gsdk",
+ "gstd",
+ "gsys",
+ "gtest",
+ "hashbrown 0.17.0",
+ "hex",
+ "keccak-const",
+ "log",
+ "mockall",
+ "parity-scale-codec",
+ "paste",
+ "pin-project-lite",
+ "sails-client-gen-v2",
+ "sails-idl-embed",
+ "sails-idl-gen",
+ "sails-idl-meta",
+ "sails-macros",
+ "sails-reflect-hash",
+ "sails-type-registry",
+ "spin 0.12.1",
+ "thiserror 2.0.18",
+ "tokio",
+ "tokio-stream",
+]
+
+[[package]]
 name = "sails-client-gen"
 version = "2.0.0"
 dependencies = [
@@ -6375,8 +6413,8 @@ dependencies = [
  "genco",
  "insta",
  "parity-scale-codec",
+ "sails",
  "sails-idl-parser",
- "sails-rs",
  "tokio",
 ]
 
@@ -6496,8 +6534,8 @@ version = "2.0.0"
 dependencies = [
  "parity-scale-codec",
  "proc-macro-error",
+ "sails",
  "sails-macros-core",
- "sails-rs",
  "sails-type-registry",
  "tokio",
  "trybuild",
@@ -6535,44 +6573,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.117",
-]
-
-[[package]]
-name = "sails-rs"
-version = "2.0.0"
-dependencies = [
- "alloy-primitives",
- "alloy-sol-types",
- "convert_case 0.11.0",
- "futures",
- "gcore",
- "gear-core",
- "gear-core-errors",
- "gear-wasm-builder",
- "gprimitives",
- "gsdk",
- "gstd",
- "gsys",
- "gtest",
- "hashbrown 0.17.0",
- "hex",
- "keccak-const",
- "log",
- "mockall",
- "parity-scale-codec",
- "paste",
- "pin-project-lite",
- "sails-client-gen-v2",
- "sails-idl-embed",
- "sails-idl-gen",
- "sails-idl-meta",
- "sails-macros",
- "sails-reflect-hash",
- "sails-type-registry",
- "spin 0.12.1",
- "thiserror 2.0.18",
- "tokio",
- "tokio-stream",
 ]
 
 [[package]]

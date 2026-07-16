@@ -24,7 +24,7 @@ use std::{
 /// let client_path = PathBuf::from(&out_dir).join("src").join(&program_name).with_extension("rs");
 ///
 /// // Generate IDL file for the program
-/// sails_rs::generate_idl_to_file::<redirect_app::RedirectProgram>(&idl_path).unwrap();
+/// sails::generate_idl_to_file::<redirect_app::RedirectProgram>(&idl_path).unwrap();
 /// // Generate client code from IDL file
 /// ClientGenerator::from_idl_path(&idl_path).generate_to(&client_path).unwrap();
 /// ```
@@ -294,11 +294,11 @@ mod tests {
             ..
         } = ClientBuilder::<P>::from_env();
 
-        assert_eq!("sails_rs", program_name);
+        assert_eq!("sails", program_name);
         assert!(client_path.is_some());
         assert!(idl_path.is_some());
-        assert!(client_path.unwrap().ends_with("src/sails_rs.rs"));
-        assert!(idl_path.unwrap().ends_with("sails_rs.idl"));
+        assert!(client_path.unwrap().ends_with("src/sails.rs"));
+        assert!(idl_path.unwrap().ends_with("sails.idl"));
     }
 
     #[test]

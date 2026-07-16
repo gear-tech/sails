@@ -1,4 +1,4 @@
-use sails_rs::{cell::RefCell, prelude::*};
+use sails::{cell::RefCell, prelude::*};
 
 // Model of the service's data. Only service knows what is the data
 // and how to manipulate it.
@@ -88,7 +88,7 @@ impl<S: StateMut<Item = CounterData, Error = Infallible>> CounterService<S> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sails_rs::gstd::services::Service;
+    use sails::gstd::services::Service;
 
     #[test]
     fn value_returns_initial_state() {

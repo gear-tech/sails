@@ -1,5 +1,5 @@
 use core::marker::PhantomData;
-use sails_rs::prelude::*;
+use sails::prelude::*;
 
 #[derive(Default)]
 pub(super) struct Service<'l, T = String> {
@@ -9,7 +9,7 @@ pub(super) struct Service<'l, T = String> {
 
 #[event]
 #[derive(TypeInfo, Encode, Clone, Debug, PartialEq, ReflectHash)]
-#[reflect_hash(crate = sails_rs)]
+#[reflect_hash(crate = sails)]
 pub enum MyEvents {
     Event1,
 }

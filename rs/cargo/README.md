@@ -32,7 +32,7 @@ Create a new Sails project:
 cargo sails new my-ping
 ```
 
-Create a project without network access and use a local `sails-rs` path:
+Create a project without network access and use a local `sails` path:
 
 ```bash
 cargo sails new my-ping --offline --sails-path ../rs

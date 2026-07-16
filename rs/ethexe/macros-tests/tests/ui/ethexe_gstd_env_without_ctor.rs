@@ -3,7 +3,7 @@
 //! compile-time error rather than a runtime panic. Generated client constructors
 //! require `E: EnvWithCtor`, so this assertion stands in for `GstdEnv.deploy(..).new(..)`.
 
-use sails_rs::client::{EnvWithCtor, GstdEnv};
+use sails::client::{EnvWithCtor, GstdEnv};
 
 fn requires_env_with_ctor<E: EnvWithCtor>() {}
 

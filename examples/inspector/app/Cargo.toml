@@ -8,14 +8,14 @@ repository.workspace = true
 license.workspace = true
 
 [dependencies]
-sails-rs.workspace = true
+sails.workspace = true
 demo-client = { path = "../../demo/client" }
 
 [build-dependencies]
-sails-rs = { workspace = true, features = ["wasm-builder"] }
+sails = { workspace = true, features = ["wasm-builder"] }
 
 [dev-dependencies]
 demo = { path = "../../demo/app" }
 inspector-client = { path = "../client" }
-sails-rs = { workspace = true, features = ["gtest", "gsdk"] }
+sails = { workspace = true, features = ["gtest", "gsdk"] }
 tokio = { workspace = true, features = ["rt", "macros"] }

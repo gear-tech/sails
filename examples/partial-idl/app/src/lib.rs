@@ -1,7 +1,7 @@
 #![no_std]
-use sails_rs::prelude::*;
+use sails::prelude::*;
 
-#[sails_rs::event]
+#[sails::event]
 #[sails_type]
 #[derive(Clone, Debug, PartialEq)]
 pub enum PartialIdlEvents {
@@ -19,7 +19,7 @@ impl PartialIdlService {
     }
 }
 
-#[sails_rs::service(events = PartialIdlEvents)]
+#[sails::service(events = PartialIdlEvents)]
 impl PartialIdlService {
     #[export]
     pub fn first(&mut self) -> bool {
@@ -45,7 +45,7 @@ impl PartialIdlService {
 #[derive(Default)]
 pub struct PartialIdlProgram;
 
-#[sails_rs::program]
+#[sails::program]
 impl PartialIdlProgram {
     pub fn new() -> Self {
         Self

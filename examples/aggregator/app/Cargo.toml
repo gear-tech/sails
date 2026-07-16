@@ -8,17 +8,17 @@ repository.workspace = true
 license.workspace = true
 
 [dependencies]
-sails-rs = { workspace = true, features = ["gstd-panic-message"] }
+sails = { workspace = true, features = ["gstd-panic-message"] }
 demo-client = { path = "../../demo/client" }
 redirect-client = { path = "../../redirect/client" }
 futures = { workspace = true }
 
 [build-dependencies]
-sails-rs = { workspace = true, features = ["wasm-builder"] }
+sails = { workspace = true, features = ["wasm-builder"] }
 
 [dev-dependencies]
 demo = { path = "../../demo/app" }
 redirect-app = { path = "../../redirect/app" }
 aggregator-client = { path = "../client" }
-sails-rs = { workspace = true, features = ["gtest"] }
+sails = { workspace = true, features = ["gtest"] }
 tokio = { workspace = true, features = ["rt", "macros"] }

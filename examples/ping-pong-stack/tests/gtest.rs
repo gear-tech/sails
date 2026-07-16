@@ -1,7 +1,7 @@
 use ping_pong_stack::client::{
     PingPongStack, PingPongStackCtors, PingPongStackProgram, ping_pong_stack::PingPongStack as _,
 };
-use sails_rs::{CodeId, GasUnit, client::*};
+use sails::{CodeId, GasUnit, client::*};
 
 const ACTOR_ID: u64 = 42;
 
@@ -35,11 +35,11 @@ async fn ping_pong_stack_works() {
 }
 
 fn create_env() -> (GtestEnv, CodeId, GasUnit) {
-    use sails_rs::gtest::{System, constants::MAX_USER_GAS_LIMIT};
+    use sails::gtest::{System, constants::MAX_USER_GAS_LIMIT};
 
     let system = System::new();
     system.init_logger_with_default_filter(
-        "gwasm=debug,gtest=info,sails_rs=debug,ping_pong_stack=debug",
+        "gwasm=debug,gtest=info,sails=debug,ping_pong_stack=debug",
     );
     system.mint_to(ACTOR_ID, 1_000_000_000_000_000);
     // Submit program code into the system

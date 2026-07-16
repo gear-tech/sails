@@ -38,7 +38,7 @@ function writeCompressedWasmParser(type) {
   return {
     name: 'write-wasm-parser',
     async closeBundle() {
-      const base64Bytes = await getBase64Parser(config['sails-rs']);
+      const base64Bytes = await getBase64Parser(config['sails']);
 
       mkdirSync('./lib', { recursive: true });
       if (type === 'cjs') {

@@ -1,7 +1,7 @@
 [package]
-name = "sails-rs"
+name = "sails"
 description = "Main abstractions for the Sails framework"
-documentation = "https://docs.rs/sails-rs"
+documentation = "https://docs.rs/sails"
 readme = "../README.md"
 version.workspace = true
 authors.workspace = true

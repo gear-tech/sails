@@ -7,12 +7,12 @@ expression: gen_client(IDL)
 #[cfg(not(target_arch = "wasm32"))]
 extern crate std;
 #[allow(unused_imports)]
-use sails_rs::{client::*, collections::*, prelude::*};
+use sails::{client::*, collections::*, prelude::*};
 
 pub mod aliases {
     use super::*;
 
-    #[sails_rs::sails_type(crate = sails_rs)]
+    #[sails::sails_type(crate = sails)]
     #[derive(PartialEq, Clone, Debug)]
     pub struct MyStruct {
         pub f: u32,
@@ -22,53 +22,53 @@ pub mod aliases {
     pub type MyGeneric<T> = Result<T, String>;
 
     pub trait Aliases {
-        type Env: sails_rs::client::GearEnv;
+        type Env: sails::client::GearEnv;
         fn do_something(
             &mut self,
             p: MyU32,
-        ) -> sails_rs::client::PendingCall<io::DoSomething, Self::Env>;
-        fn gen(&mut self) -> sails_rs::client::PendingCall<io::Gen, Self::Env>;
+        ) -> sails::client::PendingCall<io::DoSomething, Self::Env>;
+        fn gen(&mut self) -> sails::client::PendingCall<io::Gen, Self::Env>;
     }
 
     pub struct AliasesImpl;
 
-    impl sails_rs::client::Identifiable for AliasesImpl {
-        const INTERFACE_ID: sails_rs::InterfaceId =
-            sails_rs::InterfaceId::from_bytes_8([171, 248, 234, 235, 51, 129, 39, 39]);
+    impl sails::client::Identifiable for AliasesImpl {
+        const INTERFACE_ID: sails::InterfaceId =
+            sails::InterfaceId::from_bytes_8([171, 248, 234, 235, 51, 129, 39, 39]);
     }
 
-    impl<E: sails_rs::client::GearEnv> Aliases for sails_rs::client::Service<AliasesImpl, E> {
+    impl<E: sails::client::GearEnv> Aliases for sails::client::Service<AliasesImpl, E> {
         type Env = E;
         fn do_something(
             &mut self,
             p: MyU32,
-        ) -> sails_rs::client::PendingCall<io::DoSomething, Self::Env> {
+        ) -> sails::client::PendingCall<io::DoSomething, Self::Env> {
             self.pending_call((p,))
         }
-        fn gen(&mut self) -> sails_rs::client::PendingCall<io::Gen, Self::Env> {
+        fn gen(&mut self) -> sails::client::PendingCall<io::Gen, Self::Env> {
             self.pending_call(())
         }
     }
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(DoSomething (p: super::MyU32) -> super::MyStructAlias, 0, <super::AliasesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(Gen () -> super::MyGeneric<u32, >, 1, <super::AliasesImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails::io_struct_impl!(DoSomething (p: super::MyU32) -> super::MyStructAlias, 0, <super::AliasesImpl as sails::client::Identifiable>::INTERFACE_ID);
+        sails::io_struct_impl!(Gen () -> super::MyGeneric<u32, >, 1, <super::AliasesImpl as sails::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(feature = "with_mocks")]
     #[cfg(not(target_arch = "wasm32"))]
     pub mod mockall {
         use super::*;
-        use sails_rs::mockall::*;
+        use sails::mockall::*;
         mock! {
             pub Aliases {}
 
             #[allow(refining_impl_trait)]
             #[allow(clippy::type_complexity)]
             impl aliases::Aliases for Aliases {
-                type Env = sails_rs::client::GstdEnv;
-                fn do_something (&mut self, p: MyU32) -> sails_rs::client::PendingCall<aliases::io::DoSomething, sails_rs::client::GstdEnv>;fn gen (&mut self, ) -> sails_rs::client::PendingCall<aliases::io::Gen, sails_rs::client::GstdEnv>;
+                type Env = sails::client::GstdEnv;
+                fn do_something (&mut self, p: MyU32) -> sails::client::PendingCall<aliases::io::DoSomething, sails::client::GstdEnv>;fn gen (&mut self, ) -> sails::client::PendingCall<aliases::io::Gen, sails::client::GstdEnv>;
             }
         }
     }

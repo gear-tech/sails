@@ -1,5 +1,5 @@
 use partial_idl_client::*;
-use sails_rs::{client::*, gtest::System, prelude::*};
+use sails::{client::*, gtest::System, prelude::*};
 
 const ACTOR_ID: u64 = 42;
 #[cfg(debug_assertions)]
@@ -35,7 +35,7 @@ async fn test_partial_client_subscribes_to_third_event() {
     use partial_idl_client::partial_idl_service::{
         PartialIdlService as _, events::PartialIdlServiceEvents,
     };
-    use sails_rs::futures::StreamExt as _;
+    use sails::futures::StreamExt as _;
 
     let (env, code_id) = create_env();
     let program = env.deploy(code_id, vec![]).new().await.unwrap();

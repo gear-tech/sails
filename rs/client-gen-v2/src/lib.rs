@@ -11,7 +11,7 @@ mod root_generator;
 mod service_generators;
 mod type_generators;
 
-const SAILS: &str = "sails_rs";
+const SAILS: &str = "sails";
 
 pub struct IdlPath<'ast>(&'ast Path);
 pub struct IdlString<'ast>(&'ast str);

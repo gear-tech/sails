@@ -1,8 +1,8 @@
-use sails_rs::prelude::*;
+use sails::prelude::*;
 
 pub struct MyService;
 
-#[sails_rs::service]
+#[sails::service]
 impl MyService {
     #[export(scale)]
     pub fn scale_only(&self, p1: u32) -> u32 {

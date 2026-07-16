@@ -5,7 +5,7 @@ pub mod client {
 }
 
 use client::{PingPong as _, ping_pong_service::PingPongService as _};
-use sails_rs::{client::*, prelude::*};
+use sails::{client::*, prelude::*};
 
 #[sails_type]
 #[derive(Debug, Clone, Copy)]
@@ -18,7 +18,7 @@ pub enum PingPongPayload {
 
 pub struct PingPongService;
 
-#[sails_rs::service]
+#[sails::service]
 impl PingPongService {
     #[export]
     pub async fn ping(&mut self, payload: PingPongPayload) -> PingPongPayload {
@@ -49,7 +49,7 @@ impl PingPongService {
 
 pub struct PingPongProgram;
 
-#[sails_rs::program]
+#[sails::program]
 impl PingPongProgram {
     #[allow(clippy::new_without_default)]
     pub fn new_for_bench() -> Self {

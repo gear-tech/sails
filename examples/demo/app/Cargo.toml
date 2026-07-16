@@ -5,10 +5,10 @@ edition.workspace = true
 
 [dependencies]
 demo-walker = { path = "../walker" }
-sails-rs.workspace = true
+sails.workspace = true
 
 [build-dependencies]
-sails-rs = { workspace = true, features = ["wasm-builder"] }
+sails = { workspace = true, features = ["wasm-builder"] }
 
 [dev-dependencies]
 demo-client = { path = "../client" }
@@ -17,5 +17,5 @@ gsdk.workspace = true
 gear-node-wrapper.workspace = true
 gstd.workspace = true
 gtest.workspace = true
-sails-rs = { workspace = true, features = ["gtest", "gsdk"] }
+sails = { workspace = true, features = ["gtest", "gsdk"] }
 tokio = { workspace = true, features = ["rt", "macros"] }

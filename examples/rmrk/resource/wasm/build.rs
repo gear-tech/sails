@@ -1,9 +1,9 @@
 fn main() {
-    sails_rs::build_wasm();
+    sails::build_wasm();
 
-    // sails_rs::build_client::<rmrk_resource_app::Program>();
+    // sails::build_client::<rmrk_resource_app::Program>();
 
-    use sails_rs::ClientGenerator;
+    use sails::ClientGenerator;
     use std::{env, path::PathBuf};
 
     let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());

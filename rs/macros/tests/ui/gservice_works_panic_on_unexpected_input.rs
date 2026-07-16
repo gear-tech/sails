@@ -1,6 +1,6 @@
 use fluent_asserter::prelude::*;
 use parity_scale_codec::Encode;
-use sails_rs::{
+use sails::{
     gstd::{service, services::Service},
     MessageId,
 };

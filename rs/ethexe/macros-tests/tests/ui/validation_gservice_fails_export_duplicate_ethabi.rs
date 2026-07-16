@@ -1,8 +1,8 @@
-use sails_rs::prelude::*;
+use sails::prelude::*;
 
 struct SomeService;
 
-#[sails_rs::service]
+#[sails::service]
 impl SomeService {
     #[export(ethabi, ethabi)]
     pub fn do_this(&self) -> u32 {

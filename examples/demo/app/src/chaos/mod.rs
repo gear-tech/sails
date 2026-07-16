@@ -1,5 +1,5 @@
-use sails_rs::gstd::debug;
-use sails_rs::{gstd, prelude::*};
+use sails::gstd::debug;
+use sails::{gstd, prelude::*};
 
 static mut REPLY_HOOK_COUNTER: u32 = 0;
 

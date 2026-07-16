@@ -11,10 +11,6 @@ clarity. It deals with things like:
 - generated client allowing to interact with your application from code written in
   different languages and executed in different runtimes
 
-> **NOTE**
->
-> The `Sails` library is published under the name `sails-rs` on `crates-io`.
-
 ## Getting started
 
 Either use `Sails` CLI:
@@ -28,10 +24,10 @@ Or add the following to your `Cargo.toml`
 
 ```toml
 [dependencies]
-sails-rs = "*"
+sails = "*"
 
 [build-dependencies]
-sails-rs = { version = "*", features = ["wasm-builder"] }
+sails = { version = "*", features = ["wasm-builder"] }
 ```
 
 And then in your `lib.rs`:
@@ -39,7 +35,7 @@ And then in your `lib.rs`:
 ```rust
 #![no_std]
 
-use sails_rs::{gstd::debug, prelude::*};
+use sails::{gstd::debug, prelude::*};
 
 struct MyPing;
 
@@ -534,15 +530,15 @@ code depends on the trait which can be easily mocked.
 
 As you may have noticed, the option 2 uses the concept of a `env` object, which needs
 to be passed to the client instantiation code. This object should implement the `GearEnv`
-trait from the `sails-rs` crate. It abstracts the low-level communication details
-between client and the application. The `sails-rs` crate provides three implementations of this
+trait from the `sails` crate. It abstracts the low-level communication details
+between client and the application. The `sails` crate provides three implementations of this
 trait:
 
-- `sails_rs::client::GstdEnv` should be used when the client code is executed
+- `sails::client::GstdEnv` should be used when the client code is executed
   as part of another on-chain application.
-- `sails_rs::client::GsdkEnv` should be used when the client code is executed
+- `sails::client::GsdkEnv` should be used when the client code is executed
   as part of an off-chain application.
-- `sails_rs::client::GtestEnv` should be used when the client code is executed
+- `sails::client::GtestEnv` should be used when the client code is executed
   as part of tests utilizing the `gtest` crate.
 
 See the [Redirect](/examples/redirect/proxy/src/lib.rs) example, which demonstrates how to work with a remote program using a generated client.
@@ -648,7 +644,7 @@ Here is an example demonstrating these features:
 ```rust
 #![no_std]
 
-use sails_rs::prelude::*;
+use sails::prelude::*;
 
 pub struct MyProgram;
 
@@ -670,7 +666,7 @@ impl MyProgram {
 
 #[event]
 #[derive(Clone, Debug, PartialEq, Encode, TypeInfo, ReflectHash)]
-#[reflect_hash(crate = sails_rs)]
+#[reflect_hash(crate = sails)]
 pub enum MyEvent {
     Transfer {
         #[indexed]
@@ -868,7 +864,7 @@ You can find an example of the interaction from an application in the
 [Rmrk Resource](/examples/rmrk/resource/app/src/services/mod.rs) service's `add_part_to_resource`
 method.
 
-Bear in mind that working with the generated client requires the `sails_rs` crate to
+Bear in mind that working with the generated client requires the `sails` crate to
 be in dependencies.
 
 ##

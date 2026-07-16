@@ -1,4 +1,4 @@
-use sails_rs::{
+use sails::{
     alloy_primitives::B256,
     alloy_sol_types::SolValue,
     client::*,
@@ -15,12 +15,12 @@ pub(crate) const ADMIN_ID: u64 = 10;
 #[tokio::test]
 async fn ethapp_sol_works() {
     let system = System::new();
-    system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails_rs=debug");
+    system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails=debug");
 
     let program = Program::from_file(&system, WASM_PATH);
     system.top_up_executable_balance(program.id(), ETHEXE_EXECUTABLE_BALANCE);
 
-    let ctor = sails_rs::solidity::selector("createPrg(bool)");
+    let ctor = sails::solidity::selector("createPrg(bool)");
     let input = (false,).abi_encode_sequence();
     let payload = [ctor.as_slice(), input.as_slice()].concat();
 
@@ -33,7 +33,7 @@ async fn ethapp_sol_works() {
         .unwrap();
     assert!(matches!(
         reply_log_record.reply_code(),
-        Some(sails_rs::gear_core_errors::ReplyCode::Success(_))
+        Some(sails::gear_core_errors::ReplyCode::Success(_))
     ));
 
     let gas_burned = *run_result
@@ -43,7 +43,7 @@ async fn ethapp_sol_works() {
     let wasm_size = std::fs::metadata(WASM_PATH).unwrap().len();
     println!("[ethapp_sol_works] Init Gas: {gas_burned:>14}, Size: {wasm_size}");
 
-    let do_this_sig = sails_rs::solidity::selector("svc1DoThis(bool,uint32,string)");
+    let do_this_sig = sails::solidity::selector("svc1DoThis(bool,uint32,string)");
     let do_this_params = (false, 42, "hello").abi_encode_sequence();
     let payload = [do_this_sig.as_slice(), do_this_params.as_slice()].concat();
 
@@ -71,11 +71,11 @@ async fn ethapp_sol_works() {
 #[tokio::test]
 async fn ethapp_remoting_works() {
     let system = System::new();
-    system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails_rs=debug");
+    system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails=debug");
     let code_id = system.submit_code_file(WASM_PATH);
     let env = GtestEnv::new(system, ADMIN_ID.into());
 
-    let ctor = sails_rs::solidity::selector("createPrg(bool)");
+    let ctor = sails::solidity::selector("createPrg(bool)");
     let input = (false,).abi_encode_sequence();
     let payload = [ctor.as_slice(), input.as_slice()].concat();
 
@@ -83,7 +83,7 @@ async fn ethapp_remoting_works() {
         .create_program(code_id, vec![], payload.as_slice(), Default::default())
         .unwrap();
 
-    let do_this_sig = sails_rs::solidity::selector("svc1DoThis(bool,uint32,string)");
+    let do_this_sig = sails::solidity::selector("svc1DoThis(bool,uint32,string)");
     let do_this_params = (false, 42, "hello").abi_encode_sequence();
     let payload = [do_this_sig.as_slice(), do_this_params.as_slice()].concat();
 
@@ -99,11 +99,11 @@ async fn ethapp_remoting_works() {
 #[tokio::test]
 async fn ethapp_remoting_encode_reply_works() {
     let system = System::new();
-    system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails_rs=debug");
+    system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails=debug");
     let code_id = system.submit_code_file(WASM_PATH);
     let env = GtestEnv::new(system, ADMIN_ID.into());
 
-    let ctor = sails_rs::solidity::selector("createPrg(bool)");
+    let ctor = sails::solidity::selector("createPrg(bool)");
     let input = (true,).abi_encode_sequence();
     let payload = [ctor.as_slice(), input.as_slice()].concat();
 
@@ -118,12 +118,12 @@ async fn ethapp_remoting_encode_reply_works() {
         .unwrap();
 
     // assert
-    let callback_selector = sails_rs::solidity::selector("replyOn_createPrg(bytes32)");
+    let callback_selector = sails::solidity::selector("replyOn_createPrg(bytes32)");
     assert_eq!(callback_selector.as_slice(), &reply_payload[..4]);
     let (_message_id,) = <(B256,)>::abi_decode_sequence(&reply_payload[4..]).unwrap();
 
     // arrange
-    let do_this_sig = sails_rs::solidity::selector("svc1DoThis(bool,uint32,string)");
+    let do_this_sig = sails::solidity::selector("svc1DoThis(bool,uint32,string)");
     let do_this_params = (true, 42, "hello").abi_encode_sequence();
     let payload = [do_this_sig.as_slice(), do_this_params.as_slice()].concat();
 
@@ -134,7 +134,7 @@ async fn ethapp_remoting_encode_reply_works() {
         .unwrap();
 
     // assert
-    let callback_selector = sails_rs::solidity::selector("replyOn_svc1DoThis(bytes32,uint32)");
+    let callback_selector = sails::solidity::selector("replyOn_svc1DoThis(bytes32,uint32)");
     assert_eq!(callback_selector.as_slice(), &reply_payload[..4]);
 
     let (_message_id, result) = <(B256, u32)>::abi_decode_sequence(&reply_payload[4..]).unwrap();
@@ -144,13 +144,13 @@ async fn ethapp_remoting_encode_reply_works() {
 #[tokio::test]
 async fn ethapp_ctor_non_payable_fails_with_value() {
     let system = System::new();
-    system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails_rs=debug");
+    system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails=debug");
 
     let program = Program::from_file(&system, WASM_PATH);
     system.top_up_executable_balance(program.id(), ETHEXE_EXECUTABLE_BALANCE);
 
     // Init program with value but non-payable ctor
-    let ctor = sails_rs::solidity::selector("createPrg(bool)");
+    let ctor = sails::solidity::selector("createPrg(bool)");
     let input = (false,).abi_encode_sequence();
     let payload = [ctor.as_slice(), input.as_slice()].concat();
 
@@ -163,9 +163,9 @@ async fn ethapp_ctor_non_payable_fails_with_value() {
         .find(|entry| entry.reply_to() == Some(message_id))
         .expect("No reply found");
 
-    if let Some(sails_rs::gear_core_errors::ReplyCode::Error(
-        sails_rs::gear_core_errors::ErrorReplyReason::Execution(
-            sails_rs::gear_core_errors::SimpleExecutionError::UserspacePanic,
+    if let Some(sails::gear_core_errors::ReplyCode::Error(
+        sails::gear_core_errors::ErrorReplyReason::Execution(
+            sails::gear_core_errors::SimpleExecutionError::UserspacePanic,
         ),
     )) = reply_log_record.reply_code()
     {
@@ -183,13 +183,13 @@ async fn ethapp_ctor_non_payable_fails_with_value() {
 #[tokio::test]
 async fn ethapp_ctor_payable_works_with_value() {
     let system = System::new();
-    system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails_rs=debug");
+    system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails=debug");
 
     let program = Program::from_file(&system, WASM_PATH);
     system.top_up_executable_balance(program.id(), ETHEXE_EXECUTABLE_BALANCE);
 
     // Init program with value AND payable ctor
-    let ctor = sails_rs::solidity::selector("createPayable(bool)"); // ctor name should be createPayable
+    let ctor = sails::solidity::selector("createPayable(bool)"); // ctor name should be createPayable
 
     let input = (false,).abi_encode_sequence();
     let payload = [ctor.as_slice(), input.as_slice()].concat();
@@ -204,27 +204,27 @@ async fn ethapp_ctor_payable_works_with_value() {
         .unwrap();
     assert!(matches!(
         reply_log_record.reply_code(),
-        Some(sails_rs::gear_core_errors::ReplyCode::Success(_))
+        Some(sails::gear_core_errors::ReplyCode::Success(_))
     ));
 }
 
 #[tokio::test]
 async fn ethapp_method_non_payable_fails_with_value() {
     let system = System::new();
-    system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails_rs=debug");
+    system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails=debug");
 
     let program = Program::from_file(&system, WASM_PATH);
     system.top_up_executable_balance(program.id(), ETHEXE_EXECUTABLE_BALANCE);
 
     // Init program
-    let ctor = sails_rs::solidity::selector("createPrg(bool)");
+    let ctor = sails::solidity::selector("createPrg(bool)");
     let input = (false,).abi_encode_sequence();
     let payload = [ctor.as_slice(), input.as_slice()].concat();
     let _ = program.send_bytes(ADMIN_ID, payload.as_slice());
     let _ = system.run_next_block();
 
     // Call non-payable method with value
-    let do_this_sig = sails_rs::solidity::selector("svc1DoThis(bool,uint32,string)");
+    let do_this_sig = sails::solidity::selector("svc1DoThis(bool,uint32,string)");
     let do_this_params = (false, 42, "hello").abi_encode_sequence();
     let payload = [do_this_sig.as_slice(), do_this_params.as_slice()].concat();
 
@@ -239,9 +239,9 @@ async fn ethapp_method_non_payable_fails_with_value() {
         .find(|entry| entry.reply_to() == Some(message_id))
         .expect("No reply found");
 
-    if let Some(sails_rs::gear_core_errors::ReplyCode::Error(
-        sails_rs::gear_core_errors::ErrorReplyReason::Execution(
-            sails_rs::gear_core_errors::SimpleExecutionError::UserspacePanic,
+    if let Some(sails::gear_core_errors::ReplyCode::Error(
+        sails::gear_core_errors::ErrorReplyReason::Execution(
+            sails::gear_core_errors::SimpleExecutionError::UserspacePanic,
         ),
     )) = reply_log_record.reply_code()
     {
@@ -259,20 +259,20 @@ async fn ethapp_method_non_payable_fails_with_value() {
 #[tokio::test]
 async fn ethapp_method_payable_works_with_value() {
     let system = System::new();
-    system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails_rs=debug");
+    system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails=debug");
 
     let program = Program::from_file(&system, WASM_PATH);
     system.top_up_executable_balance(program.id(), ETHEXE_EXECUTABLE_BALANCE);
 
     // Init program
-    let ctor = sails_rs::solidity::selector("createPrg(bool)");
+    let ctor = sails::solidity::selector("createPrg(bool)");
     let input = (false,).abi_encode_sequence();
     let payload = [ctor.as_slice(), input.as_slice()].concat();
     let _ = program.send_bytes(ADMIN_ID, payload.as_slice());
     let _ = system.run_next_block();
 
     // Call payable method with value
-    let do_this_sig = sails_rs::solidity::selector("svc1DoThisPayable(bool,uint32)");
+    let do_this_sig = sails::solidity::selector("svc1DoThisPayable(bool,uint32)");
     let do_this_params = (false, 42).abi_encode_sequence();
     let payload = [do_this_sig.as_slice(), do_this_params.as_slice()].concat();
 

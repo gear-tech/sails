@@ -35,7 +35,7 @@ use redirect_client::{RedirectClient, RedirectClientCtors, redirect::*};
 use redirect_proxy_client::{
     RedirectProxyClient, RedirectProxyClientCtors, RedirectProxyClientProgram, proxy::*,
 };
-use sails_rs::{client::*, prelude::*};
+use sails::{client::*, prelude::*};
 use std::{collections::BTreeMap, sync::atomic::AtomicU64};
 
 static COUNTER_SALT: AtomicU64 = AtomicU64::new(0);
@@ -357,7 +357,7 @@ async fn deploy_for_bench<P, IO, F>(env: &GtestEnv, wasm_path: &str, f: F) -> Ac
 where
     P: Program,
     IO: ServiceCall,
-    <IO as sails_rs::client::ServiceCall>::Output: PendingCtorOutput<P, sails_rs::client::GtestEnv>,
+    <IO as sails::client::ServiceCall>::Output: PendingCtorOutput<P, sails::client::GtestEnv>,
     F: FnOnce(Deployment<P, GtestEnv>) -> PendingCtor<P, IO, GtestEnv>,
 {
     let code_id = env.system().submit_local_code_file(wasm_path);
@@ -372,7 +372,7 @@ async fn deploy_code_for_bench<P, IO, F>(
 where
     P: Program,
     IO: ServiceCall,
-    <IO as sails_rs::client::ServiceCall>::Output: PendingCtorOutput<P, sails_rs::client::GtestEnv>,
+    <IO as sails::client::ServiceCall>::Output: PendingCtorOutput<P, sails::client::GtestEnv>,
     F: FnOnce(Deployment<P, GtestEnv>) -> PendingCtor<P, IO, GtestEnv>,
 {
     let salt = COUNTER_SALT
@@ -385,9 +385,9 @@ where
         .with_value(100_000_000_000_000)
         .await
         .expect("failed to initialize the program");
-    <<IO as sails_rs::client::ServiceCall>::Output as PendingCtorOutput<
+    <<IO as sails::client::ServiceCall>::Output as PendingCtorOutput<
         P,
-        sails_rs::client::GtestEnv,
+        sails::client::GtestEnv,
     >>::actor(program)
 }
 

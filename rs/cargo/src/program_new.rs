@@ -247,13 +247,13 @@ impl ProgramGenerator {
         format!("{}-client", self.package_name)
     }
 
-    fn cargo_add_sails_rs<P: AsRef<Path>>(
+    fn cargo_add_sails<P: AsRef<Path>>(
         &self,
         manifest_path: P,
         dependency: cargo_metadata::DependencyKind,
         features: Option<&str>,
     ) -> Result<()> {
-        let sails_package = ["sails-rs"];
+        let sails_package = ["sails"];
         cargo_add(
             manifest_path,
             sails_package,
@@ -278,7 +278,7 @@ impl ProgramGenerator {
         print_field("package:", &self.package_name);
         print_field("author:", &self.package_author);
         print_field("username:", &self.github_username);
-        print_field("sails-rs:", &sails_source);
+        print_field("sails:", &sails_source);
         print_field("offline:", &self.offline);
         print_field("eth:", &self.eth);
     }
@@ -315,10 +315,10 @@ impl ProgramGenerator {
         cargo_new(path, &self.app_name(), self.offline, false)?;
         let manifest_path = &manifest_path(path);
 
-        // add sails-rs refs
-        self.cargo_add_sails_rs(manifest_path, Normal, self.eth.then_some("ethexe"))?;
+        // add sails refs
+        self.cargo_add_sails(manifest_path, Normal, self.eth.then_some("ethexe"))?;
         // dev-dep with `std` enables `Syscall::with_*` mocks for inline unit tests.
-        self.cargo_add_sails_rs(
+        self.cargo_add_sails(
             manifest_path,
             Development,
             Some(if self.eth { "ethexe,std" } else { "std" }),
@@ -364,10 +364,10 @@ impl ProgramGenerator {
         self.root_rust_toolchain()
             .write_into(&mut rust_toolchain_toml)?;
 
-        // add sails-rs refs
-        self.cargo_add_sails_rs(manifest_path, Normal, self.eth.then_some("ethexe"))?;
+        // add sails refs
+        self.cargo_add_sails(manifest_path, Normal, self.eth.then_some("ethexe"))?;
 
-        // update `sails-rs` if not path ref and not offline
+        // update `sails` if not path ref and not offline
         if self.sails_path.is_none() && !self.offline {
             // fix `error: failed to select a version for the requirement``
             cargo_info("sails-idl-embed")?;
@@ -376,7 +376,7 @@ impl ProgramGenerator {
             cargo_info("sails-idl-parser-v2")?;
         }
 
-        self.cargo_add_sails_rs(
+        self.cargo_add_sails(
             manifest_path,
             Build,
             Some(if self.eth { "ethexe,build" } else { "build" }),
@@ -407,9 +407,9 @@ impl ProgramGenerator {
         cargo_new(path, &self.client_name(), self.offline, false)?;
 
         let manifest_path = &manifest_path(path);
-        // add sails-rs refs
-        self.cargo_add_sails_rs(manifest_path, Normal, self.eth.then_some("ethexe"))?;
-        self.cargo_add_sails_rs(
+        // add sails refs
+        self.cargo_add_sails(manifest_path, Normal, self.eth.then_some("ethexe"))?;
+        self.cargo_add_sails(
             manifest_path,
             Build,
             Some(if self.eth { "ethexe,build" } else { "build" }),
@@ -430,8 +430,8 @@ impl ProgramGenerator {
     fn generate_tests(&self) -> Result<()> {
         let path = &self.path;
         let manifest_path = &manifest_path(path);
-        // add sails-rs refs
-        self.cargo_add_sails_rs(
+        // add sails refs
+        self.cargo_add_sails(
             manifest_path,
             Development,
             Some(if self.eth { "ethexe,gtest" } else { "gtest" }),
@@ -833,9 +833,9 @@ fn cargo_toml_create_workspace_and_fill_package<P: AsRef<Path>>(
                 .context("failed to convert to UTF-8 string")?
                 .into(),
         );
-        dependencies.insert("sails-rs", dependency.into());
+        dependencies.insert("sails", dependency.into());
     } else {
-        dependencies.insert("sails-rs", SAILS_VERSION.into());
+        dependencies.insert("sails", SAILS_VERSION.into());
     }
 
     dependencies.insert("tokio", TOKIO_VERSION.into());

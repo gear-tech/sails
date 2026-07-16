@@ -7,19 +7,19 @@ expression: gen_client(idl)
 #[cfg(not(target_arch = "wasm32"))]
 extern crate std;
 #[allow(unused_imports)]
-use sails_rs::{client::*, collections::*, prelude::*};
+use sails::{client::*, collections::*, prelude::*};
 
 pub mod basic {
     use super::*;
 
-    #[sails_rs::sails_type(crate = sails_rs)]
+    #[sails::sails_type(crate = sails)]
     #[derive(PartialEq, Clone, Debug)]
     pub struct MyParam {
         pub f1: u32,
         pub f2: Vec<String>,
         pub f3: Option<(u8, u32)>,
     }
-    #[sails_rs::sails_type(crate = sails_rs)]
+    #[sails::sails_type(crate = sails)]
     #[derive(PartialEq, Clone, Debug)]
     pub enum MyParam2 {
         Variant1,
@@ -30,61 +30,55 @@ pub mod basic {
     }
 
     pub trait Basic {
-        type Env: sails_rs::client::GearEnv;
-        fn do_that(
-            &mut self,
-            p1: (u8, u32),
-        ) -> sails_rs::client::PendingCall<io::DoThat, Self::Env>;
+        type Env: sails::client::GearEnv;
+        fn do_that(&mut self, p1: (u8, u32)) -> sails::client::PendingCall<io::DoThat, Self::Env>;
         fn do_this(
             &mut self,
             p1: u32,
             p2: MyParam,
-        ) -> sails_rs::client::PendingCall<io::DoThis, Self::Env>;
+        ) -> sails::client::PendingCall<io::DoThis, Self::Env>;
     }
 
     pub struct BasicImpl;
 
-    impl sails_rs::client::Identifiable for BasicImpl {
-        const INTERFACE_ID: sails_rs::InterfaceId =
-            sails_rs::InterfaceId::from_bytes_8([82, 241, 49, 169, 231, 31, 0, 230]);
+    impl sails::client::Identifiable for BasicImpl {
+        const INTERFACE_ID: sails::InterfaceId =
+            sails::InterfaceId::from_bytes_8([82, 241, 49, 169, 231, 31, 0, 230]);
     }
 
-    impl<E: sails_rs::client::GearEnv> Basic for sails_rs::client::Service<BasicImpl, E> {
+    impl<E: sails::client::GearEnv> Basic for sails::client::Service<BasicImpl, E> {
         type Env = E;
-        fn do_that(
-            &mut self,
-            p1: (u8, u32),
-        ) -> sails_rs::client::PendingCall<io::DoThat, Self::Env> {
+        fn do_that(&mut self, p1: (u8, u32)) -> sails::client::PendingCall<io::DoThat, Self::Env> {
             self.pending_call((p1,))
         }
         fn do_this(
             &mut self,
             p1: u32,
             p2: MyParam,
-        ) -> sails_rs::client::PendingCall<io::DoThis, Self::Env> {
+        ) -> sails::client::PendingCall<io::DoThis, Self::Env> {
             self.pending_call((p1, p2))
         }
     }
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(DoThat (p1: (u8, u32, )) -> u8, 0, <super::BasicImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
-        sails_rs::io_struct_impl!(DoThis (p1: u32, p2: super::MyParam) -> u16, 1, <super::BasicImpl as sails_rs::client::Identifiable>::INTERFACE_ID);
+        sails::io_struct_impl!(DoThat (p1: (u8, u32, )) -> u8, 0, <super::BasicImpl as sails::client::Identifiable>::INTERFACE_ID);
+        sails::io_struct_impl!(DoThis (p1: u32, p2: super::MyParam) -> u16, 1, <super::BasicImpl as sails::client::Identifiable>::INTERFACE_ID);
     }
 
     #[cfg(feature = "with_mocks")]
     #[cfg(not(target_arch = "wasm32"))]
     pub mod mockall {
         use super::*;
-        use sails_rs::mockall::*;
+        use sails::mockall::*;
         mock! {
             pub Basic {}
 
             #[allow(refining_impl_trait)]
             #[allow(clippy::type_complexity)]
             impl basic::Basic for Basic {
-                type Env = sails_rs::client::GstdEnv;
-                fn do_that (&mut self, p1: (u8, u32, )) -> sails_rs::client::PendingCall<basic::io::DoThat, sails_rs::client::GstdEnv>;fn do_this (&mut self, p1: u32, p2: MyParam) -> sails_rs::client::PendingCall<basic::io::DoThis, sails_rs::client::GstdEnv>;
+                type Env = sails::client::GstdEnv;
+                fn do_that (&mut self, p1: (u8, u32, )) -> sails::client::PendingCall<basic::io::DoThat, sails::client::GstdEnv>;fn do_this (&mut self, p1: u32, p2: MyParam) -> sails::client::PendingCall<basic::io::DoThis, sails::client::GstdEnv>;
             }
         }
     }

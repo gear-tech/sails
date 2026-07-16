@@ -7,19 +7,19 @@ impl MyProgram {
         Self { p1, p2 }
     }
 }
-impl sails_rs::meta::ProgramMeta for MyProgram {
+impl sails::meta::ProgramMeta for MyProgram {
     type ConstructorsMeta = meta_in_program::ConstructorsMeta;
-    const SERVICES: &'static [(&'static str, sails_rs::meta::AnyServiceMeta)] = &[];
+    const SERVICES: &'static [(&'static str, sails::meta::AnyServiceMeta)] = &[];
     const ASYNC: bool = true;
 }
 mod meta_in_program {
     use super::*;
-    sails_rs::invocation_io!(
+    sails::invocation_io!(
         pub struct __NewParams { pub (super) p1 : u32, pub (super) p2 : String, },
         entry_id = 0u16,
     );
-    #[derive(sails_rs::TypeInfo)]
-    #[type_info(crate = sails_rs::type_info)]
+    #[derive(sails::TypeInfo)]
+    #[type_info(crate = sails::type_info)]
     pub enum ConstructorsMeta {
         New(__NewParams),
     }
@@ -27,50 +27,45 @@ mod meta_in_program {
 #[cfg(target_arch = "wasm32")]
 pub mod wasm {
     use super::*;
-    use sails_rs::{gstd, hex, prelude::*};
+    use sails::{gstd, hex, prelude::*};
     static mut PROGRAM: Option<MyProgram> = None;
     #[unsafe(no_mangle)]
     extern "C" fn init() {
         let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
-        if let Ok(header) = <sails_rs::meta::SailsMessageHeader as sails_rs::Decode>::decode(
+        if let Ok(header) = <sails::meta::SailsMessageHeader as sails::Decode>::decode(
             &mut input,
         ) {
-            if header.interface_id() != sails_rs::meta::InterfaceId::zero() {
-                sails_rs::gstd::unknown_input_panic(
+            if header.interface_id() != sails::meta::InterfaceId::zero() {
+                sails::gstd::unknown_input_panic(
                     "Non zero ctor interface_id",
                     header.to_bytes().as_slice(),
                 );
             }
             match header.entry_id() {
                 0u16 => {
-                    let (p1, p2): (u32, String) = sails_rs::Decode::decode(&mut input)
-                        .unwrap_or_else(|_| sails_rs::gstd::unknown_input_panic(
+                    let (p1, p2): (u32, String) = sails::Decode::decode(&mut input)
+                        .unwrap_or_else(|_| sails::gstd::unknown_input_panic(
                             "Unknown request",
                             input,
                         ));
-                    sails_rs::program_ctor!(
+                    sails::program_ctor!(
                         PROGRAM = MyProgram::new(p1, p2). await, params_struct =
                         meta_in_program::__NewParams
                     )
                 }
-                _ => {
-                    sails_rs::gstd::unknown_input_panic(
-                        "Unexpected ctor entry_id",
-                        input,
-                    )
-                }
+                _ => sails::gstd::unknown_input_panic("Unexpected ctor entry_id", input),
             }
         }
     }
     const SERVICES_COUNT: usize = 0usize;
-    const INTERFACE_IDS: &'static [(sails_rs::meta::InterfaceId, u8)] = &sails_rs::meta::interface_ids::<
+    const INTERFACE_IDS: &'static [(sails::meta::InterfaceId, u8)] = &sails::meta::interface_ids::<
         SERVICES_COUNT,
     >(&[]);
     #[unsafe(no_mangle)]
     extern "C" fn handle() {
         let mut input = gstd::msg::load_bytes().expect("Failed to read input");
         let program_ref = unsafe { PROGRAM.as_ref() }.expect("Program not initialized");
-        if let Ok(header) = <sails_rs::meta::SailsMessageHeader as sails_rs::Decode>::decode(
+        if let Ok(header) = <sails::meta::SailsMessageHeader as sails::Decode>::decode(
             &mut input.as_slice(),
         ) {
             let header_len = header.hlen().inner() as usize;
@@ -85,14 +80,14 @@ pub mod wasm {
     }
     #[unsafe(no_mangle)]
     extern "C" fn handle_reply() {
-        use sails_rs::meta::ProgramMeta;
+        use sails::meta::ProgramMeta;
         if MyProgram::ASYNC {
             gstd::handle_reply_with_hook();
         }
     }
     #[unsafe(no_mangle)]
     extern "C" fn handle_signal() {
-        use sails_rs::meta::ProgramMeta;
+        use sails::meta::ProgramMeta;
         if MyProgram::ASYNC {
             gstd::handle_signal();
         }

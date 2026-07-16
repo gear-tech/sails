@@ -4,7 +4,7 @@ use demo_client::{
     DemoClient, DemoClientCtors, DemoClientProgram,
     validator::{ValidationError, Validator},
 };
-use sails_rs::{client::*, prelude::*};
+use sails::{client::*, prelude::*};
 
 pub struct InspectorService {
     validator: Service<demo_client::validator::ValidatorImpl>,
@@ -19,7 +19,7 @@ impl InspectorService {
     }
 }
 
-#[sails_rs::service]
+#[sails::service]
 impl InspectorService {
     /// Proxy call to validator.validate_range(20, 5, 15)
     #[export(unwrap_result)]
@@ -48,7 +48,7 @@ impl InspectorService {
     /// Try to deploy demo with error - should return Err
     #[export(unwrap_result)]
     pub async fn test_failing_demo_ctor(&self, demo_code_id: CodeId) -> Result<ActorId, String> {
-        use sails_rs::client::Program;
+        use sails::client::Program;
         let demo_factory = DemoClientProgram::deploy(demo_code_id, vec![1]);
         let res = demo_factory.new_with_error(0).await;
         match res {
@@ -63,7 +63,7 @@ pub struct InspectorProgram {
     target: ActorId,
 }
 
-#[sails_rs::program]
+#[sails::program]
 impl InspectorProgram {
     pub fn new(target: ActorId) -> Self {
         Self { target }

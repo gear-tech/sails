@@ -1,12 +1,12 @@
-use sails_rs::prelude::*;
+use sails::prelude::*;
 
 #[allow(dead_code)]
 pub struct MyServiceWithEvents(pub u8);
 
 #[event]
 #[derive(TypeInfo, Encode, Clone, Debug, PartialEq, ReflectHash)]
-#[codec(crate = sails_rs::scale_codec)]
-#[reflect_hash(crate = sails_rs)]
+#[codec(crate = sails::scale_codec)]
+#[reflect_hash(crate = sails)]
 pub enum MyEvents {
     Event1,
 }

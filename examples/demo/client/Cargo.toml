@@ -5,11 +5,11 @@ edition.workspace = true
 
 [dependencies]
 mockall = { workspace = true, optional = true }
-sails-rs.workspace = true
+sails.workspace = true
 
 [build-dependencies]
 demo = { path = "../app" }
-sails-rs = { workspace = true, features = ["build"] }
+sails = { workspace = true, features = ["build"] }
 
 [features]
-with_mocks = ["sails-rs/mockall", "dep:mockall"]
+with_mocks = ["sails/mockall", "dep:mockall"]
