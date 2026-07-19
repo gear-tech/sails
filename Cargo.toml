@@ -110,28 +110,28 @@ git-download = "0.1"
 hashbrown = "0.17"
 hex = { version = "0.4", default-features = false }
 insta = "1.47"
-itertools = { version = "0.14", default-features = false }
+itertools = { version = "0.15", default-features = false }
 keccak-const = "0.2"
 lalrpop = { version = "=0.20", default-features = false } # PIN version
 lalrpop-util = { version = "=0.20", default-features = false } # PIN version
 log = { version = "0.4", default-features = false }
 logos = { version = "0.16", default-features = false, features = ["export_derive"] }
-mockall = "0.14"
+mockall = "0.15"
 parity-scale-codec = { version = "=3.7.5", default-features = false }
 paste = "1.0"
 pest = { version = "2", default-features = false }
 pest_derive = { version = "2", default-features = false }
 pin-project-lite = "0.2"
-prettyplease = "0.2"
+prettyplease = "0.3"
 proc-macro2 = { version = "1", default-features = false }
 proc-macro-crate = "3.5.0"
 proc-macro-error = "1.0"
 quote = "1.0"
-rustdoc-types = "=0.57.3"
+rustdoc-types = "=0.60.0"
 serde = { version = "1.0", default-features = false }
 serde-json = { package = "serde_json", version = "1.0", default-features = false }
 spin = { version = "0.12", default-features = false, features = ["spin_mutex"] }
-syn = "2.0"
+syn = "3.0"
 talc = "5.0"
 tempfile = "3.27"
 thiserror = { version = "2.0", default-features = false }
@@ -139,8 +139,8 @@ tokio = "1.52"
 tokio-stream = "0.1"
 toml_edit = "0.25"
 trybuild = "1"
-wasmparser = "0.244"
-wasm-encoder = "0.244"
+wasmparser = "0.252"
+wasm-encoder = "0.252"
 
 # The profile that 'dist' will build with
 [profile.dist]
