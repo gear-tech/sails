@@ -398,6 +398,32 @@ mod tests {
     }
 
     #[test]
+    fn decode_invocation_params_rejects_trailing_bytes() {
+        const INTERFACE_ID: crate::meta::InterfaceId =
+            crate::meta::InterfaceId::from_bytes_8([1, 2, 3, 4, 5, 6, 7, 8]);
+
+        invocation_io!(
+            struct __DecodeParams {
+                value: u32,
+            },
+            interface_id = INTERFACE_ID,
+            entry_id = 7,
+        );
+
+        let mut payload = crate::meta::SailsMessageHeader::v1(INTERFACE_ID, 7, 0).to_bytes();
+        payload.extend_from_slice(&42_u32.encode());
+
+        let params = crate::gstd::decode_invocation_params::<__DecodeParams>(&payload).unwrap();
+        assert_eq!(params.value, 42);
+
+        payload.push(0);
+        assert!(matches!(
+            crate::gstd::decode_invocation_params::<__DecodeParams>(&payload),
+            Err(crate::errors::Error::Codec(_))
+        ));
+    }
+
+    #[test]
     fn invocation_io_macro_defaults_interface_id_to_zero() {
         invocation_io!(
             pub struct __BarParams {

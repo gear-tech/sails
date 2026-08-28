@@ -26,6 +26,7 @@ use crate::{
     utils::MaybeUninitBufferWriter,
 };
 use gcore::stack_buffer;
+use parity_scale_codec::DecodeAll;
 
 #[cfg(feature = "ethexe")]
 mod ethexe;
@@ -127,8 +128,7 @@ where
     if header.entry_id() != I::ENTRY_ID {
         return Err(Error::Rtl(RtlError::InvocationPrefixMismatches));
     }
-    let value: I::Params = Decode::decode(&mut value).map_err(Error::Codec)?;
-    Ok(value)
+    DecodeAll::decode_all(&mut value).map_err(Error::Codec)
 }
 
 /// SCALE-encode a reply payload prefixed with the Sails header derived from `I`,
