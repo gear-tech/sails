@@ -131,7 +131,6 @@ where
     DecodeAll::decode_all(&mut value).map_err(Error::Codec)
 }
 
-
 /// SCALE-encode a reply payload prefixed with the Sails header derived from `I`,
 /// passing the encoded bytes to the caller's closure.
 pub fn encode_invocation_payload<I, T, R>(value: &T, route_idx: u8, f: impl FnOnce(&[u8]) -> R) -> R

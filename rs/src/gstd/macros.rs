@@ -460,7 +460,6 @@ mod tests {
         assert!(result.is_err());
     }
 
-
     #[test]
     fn invocation_io_macro_defaults_interface_id_to_zero() {
         invocation_io!(
