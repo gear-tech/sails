@@ -101,7 +101,7 @@ impl InheritedServiceExposure<InheritedService> {
                         );
                         ID
                     } => {
-                let request: inherited_service_meta::__MethodThreeParams = sails::scale_codec::Decode::decode(
+                let request: inherited_service_meta::__MethodThreeParams = sails::scale_codec::DecodeAll::decode_all(
                         &mut input,
                     )
                     .expect("Failed to decode params");
@@ -134,7 +134,7 @@ impl InheritedServiceExposure<InheritedService> {
                         );
                         ID
                     } => {
-                let request: inherited_service_meta::__RenamedByRouteParams = sails::scale_codec::Decode::decode(
+                let request: inherited_service_meta::__RenamedByRouteParams = sails::scale_codec::DecodeAll::decode_all(
                         &mut input,
                     )
                     .expect("Failed to decode params");
@@ -159,7 +159,7 @@ impl InheritedServiceExposure<InheritedService> {
                 id,
                 0u16,
             ) if id == <BaseService as sails::meta::Identifiable>::INTERFACE_ID => {
-                let request: inherited_service_meta::__RenamedByIdParams = sails::scale_codec::Decode::decode(
+                let request: inherited_service_meta::__RenamedByIdParams = sails::scale_codec::DecodeAll::decode_all(
                         &mut input,
                     )
                     .expect("Failed to decode params");

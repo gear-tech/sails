@@ -424,6 +424,44 @@ mod tests {
     }
 
     #[test]
+    fn service_params_decoder_rejects_trailing_bytes() {
+        invocation_io!(
+            struct __ServiceParams {
+                value: u32,
+            },
+            entry_id = 8,
+        );
+
+        let mut payload = 42_u32.encode();
+        let mut input = payload.as_slice();
+        let params: __ServiceParams =
+            crate::scale_codec::DecodeAll::decode_all(&mut input).unwrap();
+        assert_eq!(params.value, 42);
+
+        payload.push(0);
+        let mut input = payload.as_slice();
+        let result: Result<__ServiceParams, _> =
+            crate::scale_codec::DecodeAll::decode_all(&mut input);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn constructor_params_decoder_rejects_trailing_bytes() {
+        let mut payload = (42_u32, 7_u64).encode();
+        let mut input = payload.as_slice();
+        let params: (u32, u64) =
+            crate::scale_codec::DecodeAll::decode_all(&mut input).unwrap();
+        assert_eq!(params, (42, 7));
+
+        payload.push(0);
+        let mut input = payload.as_slice();
+        let result: Result<(u32, u64), _> =
+            crate::scale_codec::DecodeAll::decode_all(&mut input);
+        assert!(result.is_err());
+    }
+
+
+    #[test]
     fn invocation_io_macro_defaults_interface_id_to_zero() {
         invocation_io!(
             pub struct __BarParams {
