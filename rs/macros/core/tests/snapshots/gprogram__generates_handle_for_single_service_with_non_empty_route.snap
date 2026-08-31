@@ -60,7 +60,7 @@ pub mod wasm {
             }
             match header.entry_id() {
                 0u16 => {
-                    let (): () = sails::Decode::decode(&mut input)
+                    let (): () = sails::scale_codec::DecodeAll::decode_all(&mut input)
                         .unwrap_or_else(|_| sails::gstd::unknown_input_panic(
                             "Unknown request",
                             input,

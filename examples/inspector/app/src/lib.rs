@@ -35,6 +35,7 @@ impl InspectorService {
 
     /// Proxy call to validator.validate_even(7)
     #[export(unwrap_result)]
+    #[allow(clippy::result_unit_err)]
     pub async fn test_even_panic(&self) -> Result<u32, ()> {
         self.validator.validate_even(7).await.unwrap()
     }

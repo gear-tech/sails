@@ -70,7 +70,7 @@ impl SomeServiceExposure<SomeService> {
                 0u16,
             ) if id
                 == <self::SomeService as sails::meta::Identifiable>::INTERFACE_ID => {
-                let request: some_service_meta::__DoThisParams = sails::scale_codec::Decode::decode(
+                let request: some_service_meta::__DoThisParams = sails::scale_codec::DecodeAll::decode_all(
                         &mut input,
                     )
                     .expect("Failed to decode params");
@@ -96,7 +96,7 @@ impl SomeServiceExposure<SomeService> {
                 1u16,
             ) if id
                 == <self::SomeService as sails::meta::Identifiable>::INTERFACE_ID => {
-                let request: some_service_meta::__ThisParams = sails::scale_codec::Decode::decode(
+                let request: some_service_meta::__ThisParams = sails::scale_codec::DecodeAll::decode_all(
                         &mut input,
                     )
                     .expect("Failed to decode params");

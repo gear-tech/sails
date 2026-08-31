@@ -398,6 +398,67 @@ mod tests {
     }
 
     #[test]
+    fn decode_invocation_params_rejects_trailing_bytes() {
+        const INTERFACE_ID: crate::meta::InterfaceId =
+            crate::meta::InterfaceId::from_bytes_8([1, 2, 3, 4, 5, 6, 7, 8]);
+
+        invocation_io!(
+            struct __DecodeParams {
+                value: u32,
+            },
+            interface_id = INTERFACE_ID,
+            entry_id = 7,
+        );
+
+        let mut payload = crate::meta::SailsMessageHeader::v1(INTERFACE_ID, 7, 0).to_bytes();
+        payload.extend_from_slice(&42_u32.encode());
+
+        let params = crate::gstd::decode_invocation_params::<__DecodeParams>(&payload).unwrap();
+        assert_eq!(params.value, 42);
+
+        payload.push(0);
+        assert!(matches!(
+            crate::gstd::decode_invocation_params::<__DecodeParams>(&payload),
+            Err(crate::errors::Error::Codec(_))
+        ));
+    }
+
+    #[test]
+    fn service_params_decoder_rejects_trailing_bytes() {
+        invocation_io!(
+            struct __ServiceParams {
+                value: u32,
+            },
+            entry_id = 8,
+        );
+
+        let mut payload = 42_u32.encode();
+        let mut input = payload.as_slice();
+        let params: __ServiceParams =
+            crate::scale_codec::DecodeAll::decode_all(&mut input).unwrap();
+        assert_eq!(params.value, 42);
+
+        payload.push(0);
+        let mut input = payload.as_slice();
+        let result: Result<__ServiceParams, _> =
+            crate::scale_codec::DecodeAll::decode_all(&mut input);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn constructor_params_decoder_rejects_trailing_bytes() {
+        let mut payload = (42_u32, 7_u64).encode();
+        let mut input = payload.as_slice();
+        let params: (u32, u64) = crate::scale_codec::DecodeAll::decode_all(&mut input).unwrap();
+        assert_eq!(params, (42, 7));
+
+        payload.push(0);
+        let mut input = payload.as_slice();
+        let result: Result<(u32, u64), _> = crate::scale_codec::DecodeAll::decode_all(&mut input);
+        assert!(result.is_err());
+    }
+
+    #[test]
     fn invocation_io_macro_defaults_interface_id_to_zero() {
         invocation_io!(
             pub struct __BarParams {

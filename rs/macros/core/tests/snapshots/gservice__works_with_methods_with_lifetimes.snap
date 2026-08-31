@@ -93,7 +93,7 @@ impl ReferenceServiceExposure<ReferenceService> {
                 0u16,
             ) if id
                 == <self::ReferenceService as sails::meta::Identifiable>::INTERFACE_ID => {
-                let request: reference_service_meta::__AddByteParams = sails::scale_codec::Decode::decode(
+                let request: reference_service_meta::__AddByteParams = sails::scale_codec::DecodeAll::decode_all(
                         &mut input,
                     )
                     .expect("Failed to decode params");
@@ -119,7 +119,7 @@ impl ReferenceServiceExposure<ReferenceService> {
                 1u16,
             ) if id
                 == <self::ReferenceService as sails::meta::Identifiable>::INTERFACE_ID => {
-                let request: reference_service_meta::__BakedParams = sails::scale_codec::Decode::decode(
+                let request: reference_service_meta::__BakedParams = sails::scale_codec::DecodeAll::decode_all(
                         &mut input,
                     )
                     .expect("Failed to decode params");
@@ -145,7 +145,7 @@ impl ReferenceServiceExposure<ReferenceService> {
                 3u16,
             ) if id
                 == <self::ReferenceService as sails::meta::Identifiable>::INTERFACE_ID => {
-                let request: reference_service_meta::__IncrParams = sails::scale_codec::Decode::decode(
+                let request: reference_service_meta::__IncrParams = sails::scale_codec::DecodeAll::decode_all(
                         &mut input,
                     )
                     .expect("Failed to decode params");
@@ -183,7 +183,7 @@ impl ReferenceServiceExposure<ReferenceService> {
                 2u16,
             ) if id
                 == <self::ReferenceService as sails::meta::Identifiable>::INTERFACE_ID => {
-                let request: reference_service_meta::__FirstByteParams = sails::scale_codec::Decode::decode(
+                let request: reference_service_meta::__FirstByteParams = sails::scale_codec::DecodeAll::decode_all(
                         &mut input,
                     )
                     .expect("Failed to decode params");
@@ -209,7 +209,7 @@ impl ReferenceServiceExposure<ReferenceService> {
                 4u16,
             ) if id
                 == <self::ReferenceService as sails::meta::Identifiable>::INTERFACE_ID => {
-                let request: reference_service_meta::__LastByteParams = sails::scale_codec::Decode::decode(
+                let request: reference_service_meta::__LastByteParams = sails::scale_codec::DecodeAll::decode_all(
                         &mut input,
                     )
                     .expect("Failed to decode params");

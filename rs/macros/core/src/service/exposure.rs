@@ -121,8 +121,9 @@ impl ServiceBuilder<'_> {
         let result_type_static = fn_builder.result_type_with_static_lifetime();
 
         quote! {
-            let request: #meta_module_ident::#params_struct_ident = #sails_path::scale_codec::Decode::decode(&mut input)
-                .expect("Failed to decode params");
+            let request: #meta_module_ident::#params_struct_ident =
+                #sails_path::scale_codec::DecodeAll::decode_all(&mut input)
+                    .expect("Failed to decode params");
             #handle_token
             if ! #sails_path::gstd::is_empty_tuple::<#result_type_static>() {
                 #sails_path::gstd::encode_invocation_payload::<#meta_module_ident::#params_struct_ident, _, _>(

@@ -70,7 +70,7 @@ where
                     '_,
                     T,
                 > as sails::meta::Identifiable>::INTERFACE_ID => {
-                let request: my_generic_events_service_meta::__DoThisParams = sails::scale_codec::Decode::decode(
+                let request: my_generic_events_service_meta::__DoThisParams = sails::scale_codec::DecodeAll::decode_all(
                         &mut input,
                     )
                     .expect("Failed to decode params");

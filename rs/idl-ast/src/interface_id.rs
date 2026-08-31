@@ -94,7 +94,7 @@ impl core::str::FromStr for InterfaceId {
         }
 
         let mut bytes = [0u8; 8];
-        for (i, chunk) in s.as_bytes().chunks_exact(2).enumerate() {
+        for (i, chunk) in s.as_bytes().as_chunks::<2>().0.iter().enumerate() {
             let hex = core::str::from_utf8(chunk).map_err(|_| "invalid UTF-8".to_string())?;
 
             bytes[i] =

@@ -787,7 +787,7 @@ impl FnBuilder<'_> {
 
         quote!(
             #entry_id => {
-                let (#(#handler_args),*): (#(#handler_types),*)  = #sails_path::Decode::decode(&mut #input_ident)
+                let (#(#handler_args),*): (#(#handler_types),*)  = #sails_path::scale_codec::DecodeAll::decode_all(&mut #input_ident)
                     .unwrap_or_else(|_| #sails_path::gstd::unknown_input_panic("Unknown request", #input_ident));
                 #payable_check
                 #ctor_call_impl

@@ -120,7 +120,9 @@ pub mod wasm {
             }
             match header.entry_id() {
                 0u16 => {
-                    let (p1, p2): (u32, String) = sails::Decode::decode(&mut input)
+                    let (p1, p2): (u32, String) = sails::scale_codec::DecodeAll::decode_all(
+                            &mut input,
+                        )
                         .unwrap_or_else(|_| sails::gstd::unknown_input_panic(
                             "Unknown request",
                             input,
@@ -135,7 +137,9 @@ pub mod wasm {
                     )
                 }
                 1u16 => {
-                    let (p2, p1): (String, u32) = sails::Decode::decode(&mut input)
+                    let (p2, p1): (String, u32) = sails::scale_codec::DecodeAll::decode_all(
+                            &mut input,
+                        )
                         .unwrap_or_else(|_| sails::gstd::unknown_input_panic(
                             "Unknown request",
                             input,
