@@ -116,7 +116,7 @@ pub trait InvocationIo {
             return Err(Error::Rtl(RtlError::InvocationPrefixMismatches));
         }
         value = &value[Self::ROUTE.len()..];
-        Decode::decode(&mut value).map_err(Error::Codec)
+        scale_codec::DecodeAll::decode_all(&mut value).map_err(Error::Codec)
     }
 
     fn with_optimized_encode<T: Encode, R>(
@@ -138,5 +138,34 @@ pub trait InvocationIo {
 
     fn is_empty_tuple<T: 'static>() -> bool {
         TypeId::of::<T>() == TypeId::of::<()>()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::prelude::*;
+
+    #[derive(Debug, Decode, Encode, PartialEq)]
+    struct TestParams(u32);
+
+    impl InvocationIo for TestParams {
+        const ROUTE: &'static [u8] = b"route";
+        type Params = Self;
+        const ASYNC: bool = false;
+    }
+
+    #[test]
+    fn decode_params_rejects_trailing_bytes() {
+        let mut payload = Vec::from(TestParams::ROUTE);
+        payload.extend(TestParams(42).encode());
+
+        assert_eq!(
+            TestParams::decode_params(&payload).expect("valid invocation"),
+            TestParams(42)
+        );
+
+        payload.push(0);
+        assert!(TestParams::decode_params(&payload).is_err());
     }
 }
