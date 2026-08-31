@@ -449,14 +449,12 @@ mod tests {
     fn constructor_params_decoder_rejects_trailing_bytes() {
         let mut payload = (42_u32, 7_u64).encode();
         let mut input = payload.as_slice();
-        let params: (u32, u64) =
-            crate::scale_codec::DecodeAll::decode_all(&mut input).unwrap();
+        let params: (u32, u64) = crate::scale_codec::DecodeAll::decode_all(&mut input).unwrap();
         assert_eq!(params, (42, 7));
 
         payload.push(0);
         let mut input = payload.as_slice();
-        let result: Result<(u32, u64), _> =
-            crate::scale_codec::DecodeAll::decode_all(&mut input);
+        let result: Result<(u32, u64), _> = crate::scale_codec::DecodeAll::decode_all(&mut input);
         assert!(result.is_err());
     }
 
